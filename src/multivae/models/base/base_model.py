@@ -43,16 +43,16 @@ class BaseMultiVAE(nn.Module):
 
         self.n_modalities = model_config.n_modalities
         
-        if self.n_modalities == len(encoders.keys):
+        if self.n_modalities != len(encoders.keys()):
             raise AttributeError(
-                f"The provided number of encoders {len(encoders.keys)} doesn't"
-                "match the number of modalities ({self.n_modalities} in model config "
+                f"The provided number of encoders {len(encoders.keys())} doesn't"
+                f"match the number of modalities ({self.n_modalities} in model config "
             )
         
-        if self.n_modalities == len(decoders.keys):
+        if self.n_modalities != len(decoders.keys()):
             raise AttributeError(
-                f"The provided number of decoders {len(decoders.keys)} doesn't"
-                "match the number of modalities ({self.n_modalities} in model config "
+                f"The provided number of decoders {len(decoders.keys())} doesn't"
+                f"match the number of modalities ({self.n_modalities} in model config "
             )
         
         self.latent_dim = model_config.latent_dim
@@ -136,6 +136,11 @@ class BaseMultiVAE(nn.Module):
                         f"For modality {modality}, encoder must inherit from BaseEncoder class from "
                         "pythae.models.base_architectures.BaseEncoder. Refer to documentation."
                     )
+                )
+            if encoder.latent_dim != self.latent_dim:
+                raise AttributeError(
+                    f"The latent dim of encoder {modality} doesn't have the same latent dimension as the "
+                    f" model itself ({self.latent_dim})"
                 )
         self.encoders = encoders
 

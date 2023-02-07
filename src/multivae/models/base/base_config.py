@@ -13,5 +13,5 @@ class BaseMultiVAEConfig(BaseConfig):
         latent_dim (int): The dimension of the latent space. Default: None.
     """
 
-    n_modalities: Union[Tuple[int, ...], None] = None
+    n_modalities: Union[int, None] = None
     latent_dim: int = 10

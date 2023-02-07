@@ -5,7 +5,7 @@ import pytest
 from multivae.data.datasets.base import MultimodalBaseDataset
 
 
-class Test_BaseMultiVAEConfig:
+class Test:
     @pytest.fixture
     def input_dataset_test(self):
         data = dict(
@@ -20,8 +20,6 @@ class Test_BaseMultiVAEConfig:
 
         sample = dataset[0]
         assert type(sample)==dict
-        assert sample['data'] ==  dict(
-            mod1 = np.array([1,2]),
-            mod2 = np.array([67,2,3]),
-        )
-        assert sample['label'] == 0
+        assert np.all(sample['data']['mod1'] == np.array([1,2]))
+        assert np.all(sample['data']['mod2'] == np.array([67,2,3]))
+        assert sample['labels'] == 0

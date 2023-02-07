@@ -18,7 +18,7 @@ class MultimodalBaseDataset(Dataset):
 
     def __init__(self, data : dict, labels):
 
-        self.labels = labels.type(torch.float)
+        self.labels = labels
         self.data = data
 
     def __len__(self):
