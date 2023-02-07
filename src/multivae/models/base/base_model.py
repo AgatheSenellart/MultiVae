@@ -2,7 +2,6 @@
 import os
 from copy import deepcopy
 
-import dill
 import torch
 import torch.nn as nn
 from pythae.models.base.base_utils import ModelOutput
@@ -89,70 +88,4 @@ class BaseMultiVAE(nn.Module):
         """
         pass
 
-    def save(self, dir_path):
-        """Method to save the model at a specific location. It saves, the model weights as a
-        ``models.pt`` file along with the model config as a ``model_config.json`` file. If the
-        model to save used custom encoder (resp. decoder) provided by the user, these are also
-        saved as ``decoder.pkl`` (resp. ``decoder.pkl``).
-
-        Args:
-            dir_path (str): The path where the model should be saved. If the path
-                path does not exist a folder will be created at the provided location.
-        """
-
-        model_path = dir_path
-
-        model_dict = {"model_state_dict": deepcopy(self.state_dict())}
-
-        if not os.path.exists(model_path):
-            try:
-                os.makedirs(model_path)
-
-            except FileNotFoundError as e:
-                raise e
-
-        self.model_config.save_json(model_path, "model_config")
-
-        # only save .pkl if custom architecture provided
-        if not self.model_config.uses_default_encoder:
-            with open(os.path.join(model_path, "encoder.pkl"), "wb") as fp:
-                dill.dump(self.encoder, fp)
-
-        if not self.model_config.uses_default_decoder:
-            with open(os.path.join(model_path, "decoder.pkl"), "wb") as fp:
-                dill.dump(self.decoder, fp)
-
-        torch.save(model_dict, os.path.join(model_path, "model.pt"))
-
-
-
-    def set_encoders(self, encoders: dict) -> None:
-        """Set the encoders of the model"""
-        for modality in encoders:
-            encoder = encoders[modality]
-            if not issubclass(type(encoder), BaseEncoder):
-                raise AttributeError(
-                    (
-                        f"For modality {modality}, encoder must inherit from BaseEncoder class from "
-                        "pythae.models.base_architectures.BaseEncoder. Refer to documentation."
-                    )
-                )
-            if encoder.latent_dim != self.latent_dim:
-                raise AttributeError(
-                    f"The latent dim of encoder {modality} doesn't have the same latent dimension as the "
-                    f" model itself ({self.latent_dim})"
-                )
-        self.encoders = encoders
-
-    def set_decoders(self, decoders: dict) -> None:
-        """Set the decoders of the model"""
-        for modality in decoders:
-            decoder = decoders[modality]
-            if not issubclass(type(decoder), BaseDecoder):
-                raise AttributeError(
-                    (
-                        f"For modality {modality}, decoder must inherit from BaseDecoder class from "
-                        "pythae.models.base_architectures.BaseDecoder. Refer to documentation."
-                    )
-                )
-        self.decoders = decoders
+    
