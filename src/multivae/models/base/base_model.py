@@ -88,4 +88,35 @@ class BaseMultiVAE(nn.Module):
         """
         pass
 
-    
+
+
+    def set_encoders(self, encoders: dict) -> None:
+        """Set the encoders of the model"""
+        for modality in encoders:
+            encoder = encoders[modality]
+            if not issubclass(type(encoder), BaseEncoder):
+                raise AttributeError(
+                    (
+                        f"For modality {modality}, encoder must inherit from BaseEncoder class from "
+                        "pythae.models.base_architectures.BaseEncoder. Refer to documentation."
+                    )
+                )
+            if encoder.latent_dim != self.latent_dim:
+                raise AttributeError(
+                    f"The latent dim of encoder {modality} doesn't have the same latent dimension as the "
+                    f" model itself ({self.latent_dim})"
+                )
+        self.encoders = encoders
+
+    def set_decoders(self, decoders: dict) -> None:
+        """Set the decoders of the model"""
+        for modality in decoders:
+            decoder = decoders[modality]
+            if not issubclass(type(decoder), BaseDecoder):
+                raise AttributeError(
+                    (
+                        f"For modality {modality}, decoder must inherit from BaseDecoder class from "
+                        "pythae.models.base_architectures.BaseDecoder. Refer to documentation."
+                    )
+                )
+        self.decoders = decoders
