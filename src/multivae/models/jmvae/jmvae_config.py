@@ -1,16 +1,14 @@
 from typing import Tuple, Union
 
 from pydantic.dataclasses import dataclass
-from ..base import BaseMultiVAEConfig
+from ..base.base_config import BaseMultiVAEConfig
 
 @dataclass
 class JMVAEConfig(BaseMultiVAEConfig):
-    """This is the config class for the jmvae model.
+    """This is the base config for the JMVAE model.
 
-    Parameters:
-        n_modalities (int): The number of modalities. Default: None.
-        latent_dim (int): The dimension of the latent space. Default: None.
     """
+    
+    alpha : float = 0.1
 
-    n_modalities: Union[int, None] = None
-    latent_dim: int = 10
+    

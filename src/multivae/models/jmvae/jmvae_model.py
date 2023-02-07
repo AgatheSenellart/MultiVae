@@ -1,50 +1,69 @@
-from ..base import BaseMultiVAE
+from ..joint_models import BaseJointModel
 from .jmvae_config import JMVAEConfig
-from pythae.models.nn.base_architectures import BaseEncoder, BaseDecoder
 from typing import Tuple, Union
-from ..nn.default_architectures import MultipleHeadJointEncoder
+from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
+from ...data.datasets.base import MultimodalBaseDataset
+from pythae.models.base.base_utils import ModelOutput
+import torch.distributions as dist
+import torch
 
-
-
-
-
-class JMVAE(BaseMultiVAE):
-    """
-    Implements the JMVAE model. 
+class JMVAE(BaseJointModel):
+    """The JMVAE model from the paper 'Joint Multimodal Learning with Deep Generative Models' 
+    (Suzuki et al, 2016), http://arxiv.org/abs/1611.01891."""
     
-    Args:
-        
-        model_config (JMVAEConfig): The configuration of the model.
-        
-        encoders (Dict[BaseEncoder]): A dictionary containing the modalities names and the encoders for each 
-            modality (instance of Pythae's BaseEncoder). 
+    def __init__(self, model_config: JMVAEConfig, encoders: dict, decoders: dict, joint_encoder: Union[BaseEncoder, None] = None, **kwargs):
+        super().__init__(model_config, encoders, decoders, joint_encoder, **kwargs)
 
-        decoder (Dict[BaseDecoder]): A dictionary containing the modalities names and the encoders for each 
-            modality (instance of Pythae's BaseEncoder).
+        self.alpha = model_config.alpha
+
+
+    def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
+        """Performs a forward pass of the JMVAE model on inputs.
+
+        Args:
+            inputs (MultimodalBaseDataset)
+
+        Returns:
+            ModelOutput
+        """
+        
+        warmup, epoch = kwargs['warmup'], kwargs['epoch']
+                
+        # Compute the reconstruction term
+        joint_output = self.joint_encoder(inputs.data)
+        mu, log_var = joint_output.embedding, joint_output.log_covariance
+
+        sigma = torch.exp(0.5*log_var)
+        qz_xy = dist.Normal(mu, sigma)
+        z_joint = qz_xy.rsample()
+        
+        recon_loss = 0
+        
+        # Decode in each modality
+        for mod in self.decoders:
+            x_mod = inputs.data[mod]
+            recon_mod = self.decoders[mod](z_joint).reconstruction
+            recon_loss += -0.5*torch.sum((x_mod - recon_mod)**2)
             
-        joint_encoder (BaseEncoder) : An instance of BaseEncoder that takes all the modalities as an input. 
-            If none is provided, one is created from the unimodal encoders. Default : None. 
-    """
-
-    def __init__(self, model_config: JMVAEConfig, encoders: dict, decoders: dict, joint_encoder : Union[BaseEncoder, None]=None, **kwargs):
-        super().__init__(model_config, encoders, decoders)
         
-        if joint_encoder is None:
-            # TODO
-            joint_encoder = MultipleHeadJointEncoder(self.encoders,model_config)
+        # Compute the KLD to the prior
+        KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())        
         
-        self.set_joint_encoder(joint_encoder)
+        # Compute the KL between unimodal and joint encoders
+        LJM = 0
+        for mod in self.encoders:
+            output = self.encoders[mod](inputs.data[mod])
+            uni_mu, uni_log_var = output.embedding, output.log_covariance
+            LJM += 1/2*(uni_log_var-log_var +  (torch.exp(log_var) + (mu - uni_mu)**2)/torch.exp(uni_log_var) - 1)
         
-    def set_joint_encoder(self, joint_encoder):
-        "Checks that the provided joint encoder is an instance of BaseEncoder."
+        LJM = LJM.sum()*self.alpha
         
-        if not issubclass(type(joint_encoder), BaseEncoder):
-                raise AttributeError(
-                    (
-                        f"The joint encoder must inherit from BaseEncoder class from "
-                        "pythae.models.base_architectures.BaseEncoder. Refer to documentation."
-                    )
-                )
-        self.joint_encoder = joint_encoder
+        # Compute the total loss to minimize
         
+        reg_loss = KLD + LJM
+        beta = min(1, epoch/warmup)
+        loss = recon_loss - beta*reg_loss
         
+        output = ModelOutput(loss=loss)
+        
+        return output
