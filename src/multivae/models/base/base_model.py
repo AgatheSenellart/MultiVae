@@ -92,6 +92,7 @@ class BaseMultiVAE(nn.Module):
 
     def set_encoders(self, encoders: dict) -> None:
         """Set the encoders of the model"""
+        self.encoders = nn.ModuleDict()
         for modality in encoders:
             encoder = encoders[modality]
             if not issubclass(type(encoder), BaseEncoder):
@@ -106,10 +107,11 @@ class BaseMultiVAE(nn.Module):
                     f"The latent dim of encoder {modality} doesn't have the same latent dimension as the "
                     f" model itself ({self.latent_dim})"
                 )
-        self.encoders = encoders
+            self.encoders[modality] = encoder
 
     def set_decoders(self, decoders: dict) -> None:
         """Set the decoders of the model"""
+        self.decoders = nn.ModuleDict()
         for modality in decoders:
             decoder = decoders[modality]
             if not issubclass(type(decoder), BaseDecoder):
@@ -119,4 +121,4 @@ class BaseMultiVAE(nn.Module):
                         "pythae.models.base_architectures.BaseDecoder. Refer to documentation."
                     )
                 )
-        self.decoders = decoders
+            self.decoders[modality] = decoder
