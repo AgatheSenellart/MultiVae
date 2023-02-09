@@ -2,6 +2,8 @@ import os
 import numpy as np
 import pytest
 
+from pythae.data.datasets import DatasetOutput
+
 from multivae.data.datasets.base import MultimodalBaseDataset
 
 
@@ -19,7 +21,7 @@ class Test:
         dataset = MultimodalBaseDataset(**input_dataset_test)
 
         sample = dataset[0]
-        assert type(sample)==dict
+        assert type(sample)==DatasetOutput
         assert np.all(sample['data']['mod1'] == np.array([1,2]))
         assert np.all(sample['data']['mod2'] == np.array([67,2,3]))
         assert sample['labels'] == 0

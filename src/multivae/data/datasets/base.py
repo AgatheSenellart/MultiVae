@@ -6,6 +6,7 @@ from numpy import ndarray
 import torch
 
 from pythae.data.datasets import Dataset
+from pythae.data.datasets import DatasetOutput
 
 
 class MultimodalBaseDataset(Dataset):
@@ -42,4 +43,4 @@ class MultimodalBaseDataset(Dataset):
         X = {modality : self.data[modality][index] for modality in self.data }
         y = self.labels[index]
 
-        return dict(data=X, labels=y)
+        return DatasetOutput(data=X, labels=y)

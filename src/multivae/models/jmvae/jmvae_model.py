@@ -31,8 +31,8 @@ class JMVAE(BaseJointModel):
             ModelOutput
         """
         
-        warmup, epoch = kwargs['warmup'], kwargs['epoch']
-                
+        warmup, epoch = kwargs.pop('warmup', 1), kwargs.pop('epoch', 1)
+
         # Compute the reconstruction term
         joint_output = self.joint_encoder(inputs.data)
         mu, log_var = joint_output.embedding, joint_output.log_covariance
