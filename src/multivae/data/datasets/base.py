@@ -4,8 +4,6 @@ from torch import Tensor
 from numpy import ndarray
 
 import torch
-from torch.utils.data import Dataset
-
 
 from pythae.data.datasets import Dataset
 
