@@ -19,14 +19,12 @@ class BaseMultiVAE(nn.Module):
             made available.
 
         encoders (Dict[BaseEncoder]): A dictionary containing the modalities names and the encoders for each 
-            modality (instance of Pythae's BaseEncoder). 
+            modality. Each encoder is an instance of Pythae's BaseEncoder. 
 
-        decoder (Dict[BaseDecoder]): A dictionary containing the modalities names and the encoders for each 
-            modality (instance of Pythae's BaseEncoder). 
+        decoder (Dict[BaseDecoder]): A dictionary containing the modalities names and the decoders for each 
+            modality. Each decoder is an instance of Pythae's BaseDecoder. 
 
-    .. note::
-        For high dimensional data we advice you to provide you own network architectures. With the
-        provided MLP you may end up with a ``MemoryError``.
+
     """
 
     def __init__(
@@ -53,18 +51,28 @@ class BaseMultiVAE(nn.Module):
                 f"The provided number of decoders {len(decoders.keys())} doesn't"
                 f"match the number of modalities ({self.n_modalities} in model config "
             )
+            
+        if encoders.keys() != decoders.keys():
+            raise AttributeError(
+                "The names of the modalities in the encoders dict doesn't match the names of the modalities"
+                " in the decoders dict."
+            )
+        
+        # Set the modalities names as an attributes of the model : can be used for sanity check 
+        self.modalities = encoders.keys()
         
         self.latent_dim = model_config.latent_dim
         self.model_config = model_config
 
-
+        
         self.set_decoders(decoders)
         self.set_encoders(encoders)
 
         self.device = None
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
-        """Main forward pass outputing the VAE outputs
+        """
+        Main forward pass outputing the VAE outputs
         This function should output a :class:`~pythae.models.base.base_utils.ModelOutput` instance
         gathering all the model outputs
 

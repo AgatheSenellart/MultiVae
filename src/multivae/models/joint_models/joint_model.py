@@ -1,4 +1,5 @@
-from ..base import BaseMultiVAE, BaseMultiVAEConfig
+from ..base import BaseMultiVAE
+from .joint_model_config import BaseJointModelConfig
 from pythae.models.nn.base_architectures import BaseEncoder, BaseDecoder
 from typing import Tuple, Union
 from ..nn.default_architectures import MultipleHeadJointEncoder
@@ -13,24 +14,25 @@ class BaseJointModel(BaseMultiVAE):
     
     Args:
         
-        model_config (JMVAEConfig): The configuration of the model.
+        model_config (BaseJointModelConfig): The configuration of the model.
         
         encoders (Dict[BaseEncoder]): A dictionary containing the modalities names and the encoders for each 
-            modality (instance of Pythae's BaseEncoder). 
+            modality. Each encoder is an instance of Pythae's BaseEncoder class.
 
-        decoder (Dict[BaseDecoder]): A dictionary containing the modalities names and the encoders for each 
-            modality (instance of Pythae's BaseEncoder).
+        decoder (Dict[BaseDecoder]): A dictionary containing the modalities names and the decoders for each 
+            modality. Each decoder is an instance of Pythae's BaseDecoder class. 
             
         joint_encoder (BaseEncoder) : An instance of BaseEncoder that takes all the modalities as an input. 
             If none is provided, one is created from the unimodal encoders. Default : None. 
     """
 
-    def __init__(self, model_config: BaseMultiVAEConfig, encoders: dict, decoders: dict, joint_encoder : Union[BaseEncoder, None]=None, **kwargs):
+    def __init__(self, model_config: BaseJointModelConfig, encoders: dict, decoders: dict, joint_encoder : Union[BaseEncoder, None]=None, **kwargs):
         super().__init__(model_config, encoders, decoders)
         
         if joint_encoder is None:
             # Create a MultiHead Joint Encoder MLP
             joint_encoder = MultipleHeadJointEncoder(self.encoders,model_config)
+            model_config.use_default_joint = True
         
         self.set_joint_encoder(joint_encoder)
         

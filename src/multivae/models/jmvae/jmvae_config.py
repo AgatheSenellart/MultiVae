@@ -1,11 +1,16 @@
 from typing import Tuple, Union
 
 from pydantic.dataclasses import dataclass
-from ..base.base_config import BaseMultiVAEConfig
+from ..joint_models import BaseJointModelConfig
 
 @dataclass
-class JMVAEConfig(BaseMultiVAEConfig):
-    """This is the base config for the JMVAE model.
+class JMVAEConfig(BaseJointModelConfig):
+    """
+    This is the base config for the JMVAE model. 
+    
+    Args :
+        alpha (float) :  the parameter that controls the tradeoff between the ELBO and the regularization term. Default to 0.1.
+
 
     """
     

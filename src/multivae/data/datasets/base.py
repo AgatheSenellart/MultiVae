@@ -1,5 +1,7 @@
 from collections import OrderedDict
-from typing import Any, Tuple
+from typing import Any, Tuple, Union
+from torch import Tensor
+from numpy import ndarray
 
 import torch
 from torch.utils.data import Dataset
@@ -14,9 +16,13 @@ class MultimodalBaseDataset(Dataset):
         A ``__getitem__`` is redefined and outputs a python dictionnary
     with the keys corresponding to `data` and `labels`.
     This Class should be used for any new data sets.
+    
+    Args :
+        data (dict) : A dictionary containing the modalities' name and a tensor or numpy array for each modality. 
+        labels (Union[Tensor, ndarray]) : A torch.Tensor or numpy.ndarray instance containing the labels. 
     """
 
-    def __init__(self, data : dict, labels):
+    def __init__(self, data : dict, labels : Union[Tensor,ndarray]):
 
         self.labels = labels
         self.data = data

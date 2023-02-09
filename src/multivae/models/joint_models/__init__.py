@@ -1,3 +1,5 @@
-from .joint_models import BaseJointModel
+from .joint_model import BaseJointModel
+from .joint_model_config import BaseJointModelConfig
 
-__all__ = [ "BaseJointModel"]
+__all__ = [ "BaseJointModel",
+           "BaseJointModelConfig"]

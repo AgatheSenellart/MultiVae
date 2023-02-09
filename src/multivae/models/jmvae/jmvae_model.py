@@ -8,6 +8,7 @@ import torch.distributions as dist
 import torch
 
 class JMVAE(BaseJointModel):
+    
     """The JMVAE model from the paper 'Joint Multimodal Learning with Deep Generative Models' 
     (Suzuki et al, 2016), http://arxiv.org/abs/1611.01891."""
     
@@ -22,6 +23,9 @@ class JMVAE(BaseJointModel):
 
         Args:
             inputs (MultimodalBaseDataset)
+            warmup (int) : number of warmup epochs to do. The weigth of the regularization augments linearly to reach 1 at the end of
+                the warmup. The enforces the optimization of the reconstruction term only at first. 
+            epoch (int) : the epoch number during which forward is called.    
 
         Returns:
             ModelOutput
