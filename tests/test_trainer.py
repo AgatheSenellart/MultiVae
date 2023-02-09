@@ -3,7 +3,11 @@ import os
 import pytest
 import torch
 
-from multivae.models import BaseMultiVAE, BaseMultiVAEConfig
+from pythae.models.nn.default_architectures import Encoder_VAE_MLP, Decoder_AE_MLP
+from pythae.models.nn.benchmarks.mnist.convnets import Encoder_Conv_VAE_MNIST, Decoder_Conv_AE_MNIST
+from pythae.models.base import BaseAEConfig
+
+from multivae.models import JMVAE, JMVAEConfig
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 from multivae.data import MultimodalBaseDataset
 
@@ -17,11 +21,29 @@ def training_config(tmpdir):
 
 @pytest.fixture
 def model_sample():
-    return BaseMultiVAE(BaseMultiVAEConfig())
+    model_config = JMVAEConfig(n_modalities=2, latent_dim=10)
+    config = BaseAEConfig(input_dim=(1, 28, 28), latent_dim=10)
+    encoders = dict(
+        mod1 = Encoder_VAE_MLP(config),
+        mod2 = Encoder_Conv_VAE_MNIST(config)
+    )
+    decoders = dict(
+        mod1 = Decoder_AE_MLP(config),
+        mod2 = Decoder_Conv_AE_MNIST(config)
+    )
+    return JMVAE(
+        model_config=model_config, encoders=encoders, decoders=decoders
+    )
 
 @pytest.fixture
 def train_dataset():
-    return MultimodalBaseDataset()
+    return MultimodalBaseDataset(
+        data = dict(
+            mod1 = torch.randn((2, 1, 28, 28)),
+            mod2 = torch.randn((2, 1, 28, 28)),
+        ),
+        labels = torch.tensor([0,1])
+    )
 
 class Test_Set_Training_config:
 
