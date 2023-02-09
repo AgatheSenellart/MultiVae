@@ -1,6 +1,9 @@
 """Implementations of MultiVAE models
 """
 
-from .base import BaseMultiVAEConfig
+from .base import BaseMultiVAEConfig, BaseMultiVAE
 
-__all__ = ["BaseMultiVAEConfig"]
+__all__ = [
+    "BaseMultiVAEConfig",
+    "BaseMultiVAE"
+]
