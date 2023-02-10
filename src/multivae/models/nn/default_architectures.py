@@ -1,11 +1,25 @@
 from pythae.models.nn.base_architectures import BaseEncoder
+from pythae.models.base import BaseAEConfig
+from pythae.models.nn.default_architectures import Encoder_VAE_MLP, Decoder_AE_MLP
 from copy import deepcopy
 from torch import nn
 import numpy as np
 import torch
 from pythae.models.base.base_utils import ModelOutput
 
+def BaseDictEncoders(input_dims : dict, latent_dim:int):
+    encoders = nn.ModuleDict()
+    for mod in input_dims:
+        config = BaseAEConfig(input_dim = input_dims[mod], latent_dim=latent_dim)
+        encoders[mod] = Encoder_VAE_MLP(config)
+    return encoders
 
+def BaseDictDecoders(input_dims : dict, latent_dim :int):
+    decoders = nn.ModuleDict()
+    for mod in input_dims:
+        config = BaseAEConfig(input_dim = input_dims[mod], latent_dim=latent_dim)
+        decoders[mod] = Decoder_AE_MLP(config)
+    return decoders
 
 class MultipleHeadJointEncoder(BaseEncoder):
     """

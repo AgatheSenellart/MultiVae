@@ -26,7 +26,7 @@ class BaseJointModel(BaseMultiVAE):
             If none is provided, one is created from the unimodal encoders. Default : None. 
     """
 
-    def __init__(self, model_config: BaseJointModelConfig, encoders: dict, decoders: dict, joint_encoder : Union[BaseEncoder, None]=None, **kwargs):
+    def __init__(self, model_config: BaseJointModelConfig, encoders: dict=None, decoders: dict=None, joint_encoder : Union[BaseEncoder, None]=None, **kwargs):
         super().__init__(model_config, encoders, decoders)
         
         if joint_encoder is None:
