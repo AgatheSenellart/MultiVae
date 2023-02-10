@@ -12,7 +12,7 @@ class JMVAE(BaseJointModel):
     """The JMVAE model from the paper 'Joint Multimodal Learning with Deep Generative Models' 
     (Suzuki et al, 2016), http://arxiv.org/abs/1611.01891."""
     
-    def __init__(self, model_config: JMVAEConfig, encoders: dict, decoders: dict, joint_encoder: Union[BaseEncoder, None] = None, **kwargs):
+    def __init__(self, model_config: JMVAEConfig, encoders: dict=None, decoders: dict=None, joint_encoder: Union[BaseEncoder, None] = None, **kwargs):
         super().__init__(model_config, encoders, decoders, joint_encoder, **kwargs)
 
         self.alpha = model_config.alpha

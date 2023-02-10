@@ -7,7 +7,7 @@ import torch
 from multivae.models.base import BaseMultiVAE, BaseMultiVAEConfig
 from multivae.models.joint_models import BaseJointModel
 from multivae.models.nn.default_architectures import MultipleHeadJointEncoder
-from pythae.models.nn.default_architectures import Encoder_AE_MLP, Decoder_AE_MLP
+from pythae.models.nn.default_architectures import Encoder_AE_MLP, Decoder_AE_MLP, Encoder_VAE_MLP
 from pythae.models.nn.benchmarks.mnist.convnets import Encoder_Conv_AE_MNIST, Decoder_Conv_AE_MNIST
 from pythae.models.base import BaseAEConfig
 
@@ -44,3 +44,29 @@ class Test_JointModel:
         
         assert isinstance(model.joint_encoder, MultipleHeadJointEncoder)
         assert model.latent_dim == input_model['model_config'].latent_dim
+
+
+    @pytest.fixture
+    def input2(self):
+        
+        model_config = BaseMultiVAEConfig(n_modalities=2, latent_dim=10, input_dims=dict(mod1=(7,),mod2=(3,)))
+
+        return dict(model_config=model_config)
+
+    def test2(self, input2):
+        model = BaseJointModel(**input2)
+        
+        assert type(model.encoders)==nn.ModuleDict
+        assert isinstance(model.encoders['mod1'],Encoder_VAE_MLP)
+        assert isinstance(model.encoders['mod2'],Encoder_VAE_MLP)
+        assert model.encoders['mod1'].input_dim == (7,)
+        assert model.encoders['mod2'].input_dim == (3,)
+        assert model.encoders['mod1'].latent_dim == 10
+        assert model.encoders['mod2'].latent_dim == 10
+
+        assert type(model.decoders)==nn.ModuleDict
+        assert isinstance(model.decoders['mod1'],Decoder_AE_MLP)
+        assert isinstance(model.decoders['mod2'],Decoder_AE_MLP)
+        
+        assert isinstance(model.joint_encoder, MultipleHeadJointEncoder)
+        assert model.latent_dim == input2['model_config'].latent_dim

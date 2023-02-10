@@ -59,3 +59,30 @@ class Test:
         assert type(loss) == torch.Tensor
         assert loss.size() == torch.Size([])
         
+    @pytest.fixture
+    def input2(self):
+        
+        # Create simple small dataset
+        data = dict(
+            mod1 = torch.Tensor([[1.0,2.0],[4.0,5.0]]),
+            mod2 = torch.Tensor([[67.1,2.3,3.0],[1.3,2.,3.]]),
+        )
+        labels = np.array([0,1])
+        dataset = MultimodalBaseDataset(data, labels)
+        
+        # Create an instance of jmvae model
+        model_config = JMVAEConfig(n_modalities=2, latent_dim=5, input_dims=dict(mod1=(2,), mod2=(3,)))
+        
+        
+        return dict(model_config = model_config,
+                    dataset = dataset)
+
+    def test2(self, input2):
+        model = JMVAE(**input2)
+
+        assert model.alpha == input2['model_config'].alpha
+        
+        loss = model(input2['dataset'], epoch=2, warmup=2).loss
+        assert type(loss) == torch.Tensor
+        assert loss.size() == torch.Size([])
+        

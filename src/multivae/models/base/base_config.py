@@ -15,3 +15,4 @@ class BaseMultiVAEConfig(BaseConfig):
 
     n_modalities: Union[int, None] = None
     latent_dim: int = 10
+    input_dims: dict = None

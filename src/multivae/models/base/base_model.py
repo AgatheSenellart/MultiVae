@@ -10,6 +10,7 @@ from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
 from ...data.datasets.base import MultimodalBaseDataset
 from .base_config import BaseMultiVAEConfig
 
+from ..nn.default_architectures import BaseDictEncoders, BaseDictDecoders
 
 class BaseMultiVAE(nn.Module):
     """Base class for Multimodal VAE models.
@@ -30,8 +31,8 @@ class BaseMultiVAE(nn.Module):
     def __init__(
         self,
         model_config: BaseMultiVAEConfig,
-        encoders: dict,
-        decoders: dict,
+        encoders: dict = None,
+        decoders: dict = None
     ):
 
         nn.Module.__init__(self)
@@ -39,6 +40,36 @@ class BaseMultiVAE(nn.Module):
         self.model_name = "BaseMultiVAE"
 
         self.n_modalities = model_config.n_modalities
+        self.input_dims = model_config.input_dims
+        
+        if encoders is None:
+            if self.input_dims is None:
+                raise AttributeError(
+                    "Please provide encoders or input dims for the modalities in the model_config."
+                )
+            else:
+                encoders = BaseDictEncoders(self.input_dims, model_config.latent_dim)
+        
+        if decoders is None:
+            if self.input_dims is None:
+                raise AttributeError(
+                    "Please provide decoders or input dims for the modalities in the model_config."
+                )
+            else:
+                decoders = BaseDictDecoders(self.input_dims, model_config.latent_dim)
+        
+        self.sanity_check(encoders, decoders)
+        
+        self.latent_dim = model_config.latent_dim
+        self.model_config = model_config
+
+        
+        self.set_decoders(decoders)
+        self.set_encoders(encoders)
+
+        self.device = None
+        
+    def sanity_check(self, encoders, decoders):
         
         if self.n_modalities != len(encoders.keys()):
             raise AttributeError(
@@ -57,18 +88,6 @@ class BaseMultiVAE(nn.Module):
                 "The names of the modalities in the encoders dict doesn't match the names of the modalities"
                 " in the decoders dict."
             )
-        
-        # Set the modalities names as an attributes of the model : can be used for sanity check 
-        self.modalities = encoders.keys()
-        
-        self.latent_dim = model_config.latent_dim
-        self.model_config = model_config
-
-        
-        self.set_decoders(decoders)
-        self.set_encoders(encoders)
-
-        self.device = None
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
         """

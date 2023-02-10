@@ -27,7 +27,13 @@ class MultimodalBaseDataset(Dataset):
         self.data = data
 
     def __len__(self):
-        return len(self.data)
+        
+        length = len(self.data[list(self.data)[0]])
+        for m in self.data:
+            if len(self.data[m]) != length:
+                raise AttributeError("The size of the provided datasets doesn't correspond between modalities!")
+        
+        return length
 
     def __getitem__(self, index):
         """Generates one sample of data
