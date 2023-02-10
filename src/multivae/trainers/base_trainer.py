@@ -12,6 +12,8 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
+from pythae.data.datasets import DatasetOutput
+
 from ..data import MultimodalBaseDataset
 from ..models import BaseMultiVAE
 from .utils import set_seed
@@ -334,11 +336,19 @@ class BaseTrainer:
                 if torch.is_tensor(inputs[key]):
                     cuda_inputs[key] = inputs[key].cuda()
 
+                elif isinstance(inputs[key], dict):
+                    cuda_inputs[key] = dict.fromkeys(inputs[key])
+                    for subkey in inputs[key].keys():
+                        if torch.is_tensor(inputs[key][subkey]):
+                            cuda_inputs[key][subkey] = inputs[key][subkey].cuda()
+                        else:
+                            cuda_inputs[key][subkey] = inputs[key][subkey]            
+
                 else:
                     cuda_inputs[key] = inputs[key]
             inputs_on_device = cuda_inputs
 
-        return inputs_on_device
+        return DatasetOutput(**inputs_on_device)
 
     def _optimizers_step(self, model_output=None):
 

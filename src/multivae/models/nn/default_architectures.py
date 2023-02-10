@@ -67,7 +67,7 @@ class MultipleHeadJointEncoder(BaseEncoder):
         modalities_outputs = []
         for mod in self.encoders:
             modalities_outputs.append(self.encoders[mod](x[mod])['embedding'])
-        
+
         # Stack the modalities outputs
         concatened_outputs = torch.cat(modalities_outputs,dim=1)
         h=self.enc(concatened_outputs)

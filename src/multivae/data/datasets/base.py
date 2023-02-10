@@ -31,7 +31,9 @@ class MultimodalBaseDataset(Dataset):
         length = len(self.data[list(self.data)[0]])
         for m in self.data:
             if len(self.data[m]) != length:
-                raise AttributeError("The size of the provided datasets doesn't correspond between modalities!")
+                raise AttributeError(
+                    "The size of the provided datasets doesn't correspond between modalities!"
+                    )
         
         return length
 

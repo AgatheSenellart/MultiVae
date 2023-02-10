@@ -2,6 +2,8 @@
 import os
 from copy import deepcopy
 
+import cloudpickle
+import inspect
 import torch
 import torch.nn as nn
 from pythae.models.base.base_utils import ModelOutput
@@ -38,9 +40,11 @@ class BaseMultiVAE(nn.Module):
         nn.Module.__init__(self)
 
         self.model_name = "BaseMultiVAE"
-
+        self.model_config = model_config
         self.n_modalities = model_config.n_modalities
         self.input_dims = model_config.input_dims
+        self.model_config.ses_default_encoders = False
+        self.model_config.ses_default_decoders = False
         
         if encoders is None:
             if self.input_dims is None:
@@ -49,6 +53,7 @@ class BaseMultiVAE(nn.Module):
                 )
             else:
                 encoders = BaseDictEncoders(self.input_dims, model_config.latent_dim)
+                self.model_config.uses_default_encoders = True
         
         if decoders is None:
             if self.input_dims is None:
@@ -57,6 +62,7 @@ class BaseMultiVAE(nn.Module):
                 )
             else:
                 decoders = BaseDictDecoders(self.input_dims, model_config.latent_dim)
+                self.model_config.uses_default_decoders = True
         
         self.sanity_check(encoders, decoders)
         
@@ -149,3 +155,37 @@ class BaseMultiVAE(nn.Module):
                     )
                 )
             self.decoders[modality] = decoder
+
+    def save(self, dir_path: str):
+        """Method to save the model at a specific location. It saves, the model weights as a
+        ``models.pt`` file along with the model config as a ``model_config.json`` file. If the
+        model to save used custom encoder (resp. decoder) provided by the user, these are also
+        saved as ``encoders.pkl`` (resp. ``decoders.pkl``).
+
+        Args:
+            dir_path (str): The path where the model should be saved. If the path
+                path does not exist a folder will be created at the provided location.
+        """
+        model_dict = {"model_state_dict": deepcopy(self.state_dict())}
+
+        if not os.path.exists(dir_path):
+            try:
+                os.makedirs(dir_path)
+
+            except FileNotFoundError as e:
+                raise e
+
+        self.model_config.save_json(dir_path, "model_config")
+
+        # only save .pkl if custom architecture provided
+        if not self.model_config.uses_default_encoders:
+            with open(os.path.join(dir_path, "encoders.pkl"), "wb") as fp:
+                cloudpickle.register_pickle_by_value(inspect.getmodule(self.encoders))
+                cloudpickle.dump(self.encoder, fp)
+
+        if not self.model_config.uses_default_decoders:
+            with open(os.path.join(dir_path, "decoders.pkl"), "wb") as fp:
+                cloudpickle.register_pickle_by_value(inspect.getmodule(self.decoders))
+                cloudpickle.dump(self.decoder, fp)
+
+        torch.save(model_dict, os.path.join(dir_path, "model.pt"))

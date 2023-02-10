@@ -15,7 +15,10 @@ class JMVAE(BaseJointModel):
     def __init__(self, model_config: JMVAEConfig, encoders: dict=None, decoders: dict=None, joint_encoder: Union[BaseEncoder, None] = None, **kwargs):
         super().__init__(model_config, encoders, decoders, joint_encoder, **kwargs)
 
+        self.model_name = 'JMVAE'
+
         self.alpha = model_config.alpha
+        self.warmup = model_config.warmup
 
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
@@ -30,8 +33,8 @@ class JMVAE(BaseJointModel):
         Returns:
             ModelOutput
         """
-        
-        warmup, epoch = kwargs.pop('warmup', 1), kwargs.pop('epoch', 1)
+
+        epoch = kwargs.pop('epoch', 1)
 
         # Compute the reconstruction term
         joint_output = self.joint_encoder(inputs.data)
@@ -65,7 +68,7 @@ class JMVAE(BaseJointModel):
         # Compute the total loss to minimize
         
         reg_loss = KLD + LJM
-        beta = min(1, epoch/warmup)
+        beta = min(1, epoch / self.warmup)
         loss = recon_loss - beta*reg_loss
         
         output = ModelOutput(loss=loss)
