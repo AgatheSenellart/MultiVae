@@ -37,6 +37,7 @@ setup(
         "tqdm",
         "typing_extensions",
         "dataclasses>=0.6",
+        "torchvision"
     ],
     extras_require={':python_version == "3.7.*"': ["pickle5"]},
     python_requires=">=3.7",
