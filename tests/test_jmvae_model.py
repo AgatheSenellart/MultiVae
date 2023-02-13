@@ -1,107 +1,96 @@
 import os
+from copy import deepcopy
+
 import numpy as np
 import pytest
+import torch
+from pythae.models.base import BaseAEConfig
+from pythae.models.nn.benchmarks.mnist.convnets import (
+    Decoder_Conv_AE_MNIST,
+    Encoder_Conv_AE_MNIST,
+)
+from pythae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
+from torch import nn
 
 from multivae.data.datasets.base import MultimodalBaseDataset
-import os
-import numpy as np
-import pytest
-from copy import deepcopy
-from torch import nn
-import torch
-
-from multivae.models.base import BaseMultiVAE, BaseMultiVAEConfig
+from multivae.models import JMVAE, JMVAEConfig, AutoModel
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
-from multivae.models.jmvae import JMVAE, JMVAEConfig
-from multivae.models.joint_models import BaseJointModel
-from multivae.models.nn.default_architectures import MultipleHeadJointEncoder
-from pythae.models.nn.default_architectures import Encoder_VAE_MLP, Decoder_AE_MLP
-from pythae.models.nn.benchmarks.mnist.convnets import Encoder_Conv_AE_MNIST, Decoder_Conv_AE_MNIST
-from pythae.models.base import BaseAEConfig
 
 
 class Test:
     @pytest.fixture
     def input1(self):
-        
         # Create simple small dataset
         data = dict(
-            mod1 = torch.Tensor([[1.0,2.0],[4.0,5.0]]),
-            mod2 = torch.Tensor([[67.1,2.3,3.0],[1.3,2.,3.]]),
+            mod1=torch.Tensor([[1.0, 2.0], [4.0, 5.0]]),
+            mod2=torch.Tensor([[67.1, 2.3, 3.0], [1.3, 2.0, 3.0]]),
         )
-        labels = np.array([0,1])
+        labels = np.array([0, 1])
         dataset = MultimodalBaseDataset(data, labels)
-        
+
         # Create an instance of jmvae model
         model_config = JMVAEConfig(n_modalities=2, latent_dim=5)
         config1 = BaseAEConfig(input_dim=(2,), latent_dim=5)
         config2 = BaseAEConfig(input_dim=(3,), latent_dim=5)
 
-        encoders = dict(
-            mod1 = Encoder_VAE_MLP(config1),
-            mod2 = Encoder_VAE_MLP(config2)
+        encoders = dict(mod1=Encoder_VAE_MLP(config1), mod2=Encoder_VAE_MLP(config2))
+
+        decoders = dict(mod1=Decoder_AE_MLP(config1), mod2=Decoder_AE_MLP(config2))
+
+        return dict(
+            model_config=model_config,
+            encoders=encoders,
+            decoders=decoders,
+            dataset=dataset,
         )
-        
-        decoders = dict(
-            mod1 = Decoder_AE_MLP(config1),
-            mod2 = Decoder_AE_MLP(config2)
-        )
-        
-        return dict(model_config = model_config,
-                    encoders = encoders,
-                    decoders = decoders,
-                    dataset = dataset)
 
     def test1(self, input1):
         model = JMVAE(**input1)
 
-        assert model.alpha == input1['model_config'].alpha
-        
-        loss = model(input1['dataset'], epoch=2, warmup=2).loss
+        assert model.alpha == input1["model_config"].alpha
+
+        loss = model(input1["dataset"], epoch=2, warmup=2).loss
         assert type(loss) == torch.Tensor
         assert loss.size() == torch.Size([])
-        
+
     @pytest.fixture
     def input2(self):
-        
         # Create simple small dataset
         data = dict(
-            mod1 = torch.Tensor([[1.0,2.0],[4.0,5.0]]),
-            mod2 = torch.Tensor([[67.1,2.3,3.0],[1.3,2.,3.]]),
+            mod1=torch.Tensor([[1.0, 2.0], [4.0, 5.0]]),
+            mod2=torch.Tensor([[67.1, 2.3, 3.0], [1.3, 2.0, 3.0]]),
         )
-        labels = np.array([0,1])
+        labels = np.array([0, 1])
         dataset = MultimodalBaseDataset(data, labels)
-        
+
         # Create an instance of jmvae model
-        model_config = JMVAEConfig(n_modalities=2, latent_dim=5, input_dims=dict(mod1=(2,), mod2=(3,)))
-        
-        
-        return dict(model_config = model_config,
-                    dataset = dataset)
+        model_config = JMVAEConfig(
+            n_modalities=2, latent_dim=5, input_dims=dict(mod1=(2,), mod2=(3,))
+        )
+
+        return dict(model_config=model_config, dataset=dataset)
 
     def test2(self, input2):
         model = JMVAE(**input2)
 
-        assert model.alpha == input2['model_config'].alpha
-        
-        loss = model(input2['dataset'], epoch=2, warmup=2).loss
+        assert model.alpha == input2["model_config"].alpha
+
+        loss = model(input2["dataset"], epoch=2, warmup=2).loss
         assert type(loss) == torch.Tensor
         assert loss.size() == torch.Size([])
-        
+
 
 class TestTraining:
     @pytest.fixture
     def input_dataset(self):
-        
         # Create simple small dataset
         data = dict(
-            mod1 = torch.Tensor([[1.0,2.0],[4.0,5.0]]),
-            mod2 = torch.Tensor([[67.1,2.3,3.0],[1.3,2.,3.]]),
+            mod1=torch.Tensor([[1.0, 2.0], [4.0, 5.0]]),
+            mod2=torch.Tensor([[67.1, 2.3, 3.0], [1.3, 2.0, 3.0]]),
         )
-        labels = np.array([0,1])
+        labels = np.array([0, 1])
         dataset = MultimodalBaseDataset(data, labels)
-        
-        
+
         return dataset
 
     @pytest.fixture
@@ -111,22 +100,19 @@ class TestTraining:
             latent_dim=5,
             input_dims=dict(
                 mod1=tuple(input_dataset[0].data["mod1"].shape),
-                mod2=tuple(input_dataset[0].data["mod2"].shape)
-                ))
+                mod2=tuple(input_dataset[0].data["mod2"].shape),
+            ),
+        )
 
     @pytest.fixture
     def custom_architecture(self):
-        config = BaseAEConfig(input_dim=(10,2), latent_dim=10)
+        config = BaseAEConfig(input_dim=(10, 2), latent_dim=10)
         encoders = dict(
-            mod1 = Encoder_VAE_MLP(config),
-            mod2 = Encoder_Conv_AE_MNIST(config)
+            mod1=Encoder_VAE_MLP(config), mod2=Encoder_Conv_AE_MNIST(config)
         )
-        decoders = dict(
-            mod1 = Decoder_AE_MLP(config),
-            mod2 = Decoder_Conv_AE_MNIST(config)
-        )
+        decoders = dict(mod1=Decoder_AE_MLP(config), mod2=Decoder_Conv_AE_MNIST(config))
         return {"encoders": encoders, "decoders": decoders}
-    
+
     @pytest.fixture(
         params=[
             True,
@@ -144,8 +130,8 @@ class TestTraining:
         else:
             model = JMVAE(
                 model_config,
-                encoder=custom_architecture['encoders'],
-                decoder=custom_architecture['decoders']
+                encoder=custom_architecture["encoders"],
+                decoder=custom_architecture["decoders"],
             )
 
         return model
@@ -160,27 +146,23 @@ class TestTraining:
             learning_rate=1e-4,
             optimizer_cls="AdamW",
             optimizer_params={"betas": (0.91, 0.995)},
-            output_dir=dir_path
+            output_dir=dir_path,
         )
 
     @pytest.fixture
     def trainer(self, model, training_config, input_dataset):
-        
-
         trainer = BaseTrainer(
             model=model,
             train_dataset=input_dataset,
             eval_dataset=input_dataset,
-            training_config=training_config
+            training_config=training_config,
         )
 
         trainer.prepare_training()
 
         return trainer
 
-
     def test_train_step(self, trainer):
-
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         _ = trainer.train_step(epoch=1)
@@ -211,7 +193,6 @@ class TestTraining:
         )
 
     def test_main_train_loop(self, trainer):
-
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         trainer.train()
@@ -227,7 +208,6 @@ class TestTraining:
         )
 
     def test_checkpoint_saving(self, model, trainer, training_config):
-
         dir_path = training_config.output_dir
 
         # Make a training step
@@ -276,7 +256,7 @@ class TestTraining:
         )
 
         # check reload full model
-        model_rec = JMVAE.load_from_folder(os.path.join(checkpoint_dir))
+        model_rec = AutoModel.load_from_folder(os.path.join(checkpoint_dir))
 
         assert all(
             [
@@ -287,8 +267,8 @@ class TestTraining:
             ]
         )
 
-        assert type(model_rec.encoder.cpu()) == type(model.encoder.cpu())
-        assert type(model_rec.decoder.cpu()) == type(model.decoder.cpu())
+        assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
+        assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
 
         optim_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "optimizer.pt"))
 
@@ -365,7 +345,6 @@ class TestTraining:
         )
 
     def test_final_model_saving(self, model, trainer, training_config):
-
         dir_path = training_config.output_dir
 
         trainer.train()
@@ -401,7 +380,8 @@ class TestTraining:
             assert not "encoder.pkl" in files_list
 
         # check reload full model
-        model_rec = JMVAE.load_from_folder(os.path.join(final_dir))
+        model_rec = AutoModel.load_from_folder(os.path.join(final_dir))
+        
 
         assert all(
             [
@@ -412,8 +392,5 @@ class TestTraining:
             ]
         )
 
-        assert type(model_rec.encoder.cpu()) == type(model.encoder.cpu())
-        assert type(model_rec.decoder.cpu()) == type(model.decoder.cpu())
-
-
-
+        assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
+        assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())

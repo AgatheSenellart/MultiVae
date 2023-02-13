@@ -8,22 +8,21 @@ import torch
 import torch.distributed as dist
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
+from pythae.data.datasets import DatasetOutput
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
-from pythae.data.datasets import DatasetOutput
-
 from ..data import MultimodalBaseDataset
 from ..models import BaseMultiVAE
-from .utils import set_seed
+from .base_trainer_config import BaseTrainerConfig
 from .callbacks import (
     CallbackHandler,
     MetricConsolePrinterCallback,
     ProgressBarCallback,
     TrainingCallback,
 )
-from .base_trainer_config import BaseTrainerConfig
+from .utils import set_seed
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +60,6 @@ class BaseTrainer:
         training_config: Optional[BaseTrainerConfig] = None,
         callbacks: List[TrainingCallback] = None,
     ):
-
         if training_config is None:
             training_config = BaseTrainerConfig()
 
@@ -326,7 +324,6 @@ class BaseTrainer:
         return optim
 
     def _set_inputs_to_device(self, inputs: Dict[str, Any]):
-
         inputs_on_device = inputs
 
         if self.device == "cuda":
@@ -342,7 +339,7 @@ class BaseTrainer:
                         if torch.is_tensor(inputs[key][subkey]):
                             cuda_inputs[key][subkey] = inputs[key][subkey].cuda()
                         else:
-                            cuda_inputs[key][subkey] = inputs[key][subkey]            
+                            cuda_inputs[key][subkey] = inputs[key][subkey]
 
                 else:
                     cuda_inputs[key] = inputs[key]
@@ -351,7 +348,6 @@ class BaseTrainer:
         return DatasetOutput(**inputs_on_device)
 
     def _optimizers_step(self, model_output=None):
-
         loss = model_output.loss
 
         self.optimizer.zero_grad()
@@ -429,7 +425,6 @@ class BaseTrainer:
         best_eval_loss = 1e10
 
         for epoch in range(1, self.training_config.num_epochs + 1):
-
             self.callback_handler.on_epoch_begin(
                 training_config=self.training_config,
                 epoch=epoch,
@@ -541,12 +536,10 @@ class BaseTrainer:
         epoch_loss = 0
 
         for inputs in self.eval_loader:
-
             inputs = self._set_inputs_to_device(inputs)
 
             try:
                 with torch.no_grad():
-
                     model_output = self.model(
                         inputs,
                         epoch=epoch,
@@ -597,7 +590,6 @@ class BaseTrainer:
         epoch_loss = 0
 
         for inputs in self.train_loader:
-
             inputs = self._set_inputs_to_device(inputs)
 
             model_output = self.model(
@@ -689,7 +681,6 @@ class BaseTrainer:
         self.training_config.save_json(checkpoint_dir, "training_config")
 
     def predict(self, model: BaseMultiVAE):
-
         model.eval()
 
         inputs = next(iter(self.eval_loader))
