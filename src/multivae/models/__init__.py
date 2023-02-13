@@ -1,12 +1,15 @@
 """Implementations of MultiVAE models
 """
 
-from .base import BaseMultiVAEConfig, BaseMultiVAE
-from .jmvae import JMVAEConfig, JMVAE
+from .auto_model import AutoConfig, AutoModel
+from .base import BaseMultiVAE, BaseMultiVAEConfig
+from .jmvae import JMVAE, JMVAEConfig
 
 __all__ = [
     "BaseMultiVAEConfig",
     "BaseMultiVAE",
     "JMVAEConfig",
-    "JMVAE"
+    "JMVAE",
+    "AutoConfig",
+    "AutoModel",
 ]

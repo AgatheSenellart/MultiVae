@@ -1,5 +1,3 @@
 from .datasets import MultimodalBaseDataset
 
-__all__ = [
-    "MultimodalBaseDataset"
-]
+__all__ = ["MultimodalBaseDataset"]

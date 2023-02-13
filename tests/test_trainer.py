@@ -2,16 +2,19 @@ import os
 
 import pytest
 import torch
-
-from pythae.models.nn.default_architectures import Encoder_VAE_MLP, Decoder_AE_MLP
-from pythae.models.nn.benchmarks.mnist.convnets import Encoder_Conv_VAE_MNIST, Decoder_Conv_AE_MNIST
 from pythae.models.base import BaseAEConfig
+from pythae.models.nn.benchmarks.mnist.convnets import (
+    Decoder_Conv_AE_MNIST,
+    Encoder_Conv_VAE_MNIST,
+)
+from pythae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
 
+from multivae.data import MultimodalBaseDataset
 from multivae.models import JMVAE, JMVAEConfig
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
-from multivae.data import MultimodalBaseDataset
 
 PATH = os.path.dirname(os.path.abspath(__file__))
+
 
 @pytest.fixture
 def training_config(tmpdir):
@@ -19,34 +22,28 @@ def training_config(tmpdir):
     dir_path = os.path.join(tmpdir, "dummy_folder")
     return BaseTrainerConfig(output_dir=dir_path)
 
+
 @pytest.fixture
 def model_sample():
     model_config = JMVAEConfig(n_modalities=2, latent_dim=10)
     config = BaseAEConfig(input_dim=(1, 28, 28), latent_dim=10)
-    encoders = dict(
-        mod1 = Encoder_VAE_MLP(config),
-        mod2 = Encoder_Conv_VAE_MNIST(config)
-    )
-    decoders = dict(
-        mod1 = Decoder_AE_MLP(config),
-        mod2 = Decoder_Conv_AE_MNIST(config)
-    )
-    return JMVAE(
-        model_config=model_config, encoders=encoders, decoders=decoders
-    )
+    encoders = dict(mod1=Encoder_VAE_MLP(config), mod2=Encoder_Conv_VAE_MNIST(config))
+    decoders = dict(mod1=Decoder_AE_MLP(config), mod2=Decoder_Conv_AE_MNIST(config))
+    return JMVAE(model_config=model_config, encoders=encoders, decoders=decoders)
+
 
 @pytest.fixture
 def train_dataset():
     return MultimodalBaseDataset(
-        data = dict(
-            mod1 = torch.randn((2, 1, 28, 28)),
-            mod2 = torch.randn((2, 1, 28, 28)),
+        data=dict(
+            mod1=torch.randn((2, 1, 28, 28)),
+            mod2=torch.randn((2, 1, 28, 28)),
         ),
-        labels = torch.tensor([0,1])
+        labels=torch.tensor([0, 1]),
     )
 
-class Test_Set_Training_config:
 
+class Test_Set_Training_config:
     @pytest.fixture(
         params=[
             None,
@@ -112,7 +109,6 @@ class Test_Build_Optimizer:
         ]
     )
     def optimizer_config(self, request, training_configs_learning_rate):
-
         optimizer_config = request.param
 
         # set optim and params to training config
@@ -126,7 +122,6 @@ class Test_Build_Optimizer:
     def test_default_optimizer_building(
         self, model_sample, train_dataset, training_configs_learning_rate
     ):
-
         trainer = BaseTrainer(
             model=model_sample,
             train_dataset=train_dataset,
@@ -148,7 +143,6 @@ class Test_Build_Optimizer:
         training_configs_learning_rate,
         optimizer_config,
     ):
-
         trainer = BaseTrainer(
             model=model_sample,
             train_dataset=train_dataset,
@@ -199,7 +193,6 @@ class Test_Build_Scheduler:
         ]
     )
     def optimizer_config(self, request, training_configs_learning_rate):
-
         optimizer_config = request.param
 
         # set optim and params to training config
@@ -218,7 +211,6 @@ class Test_Build_Scheduler:
         ]
     )
     def scheduler_config(self, request, training_configs_learning_rate):
-
         scheduler_config = request.param
 
         # set scheduler and params to training config
@@ -232,7 +224,6 @@ class Test_Build_Scheduler:
     def test_default_scheduler_building(
         self, model_sample, train_dataset, training_configs_learning_rate
     ):
-
         trainer = BaseTrainer(
             model=model_sample,
             train_dataset=train_dataset,

@@ -203,7 +203,6 @@ class MetricConsolePrinterCallback(TrainingCallback):
         self.logger.setLevel(logging.INFO)
 
     def on_log(self, training_config: BaseTrainerConfig, logs, **kwargs):
-
         logger = kwargs.pop("logger", self.logger)
         rank = kwargs.pop("rank", -1)
 
@@ -376,7 +375,6 @@ class WandbCallback(TrainingCallback):  # pragma: no cover
             and generations is not None
         ):
             for i in range(len(true_data)):
-
                 data_to_log.append(
                     [
                         f"img_{i}",

@@ -2,9 +2,7 @@
 **Abstract class**
 """
 
-from .base_model import BaseMultiVAE
 from .base_config import BaseMultiVAEConfig
+from .base_model import BaseMultiVAE
 
-
-__all__ = ["BaseMultiVAEConfig", 
-           "BaseMultiVAE"]
+__all__ = ["BaseMultiVAEConfig", "BaseMultiVAE"]
