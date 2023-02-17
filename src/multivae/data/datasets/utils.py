@@ -1,5 +1,7 @@
 from torch.utils.data import Dataset
-
+from torchvision.transforms import ToTensor
+import torch
+from torchvision.utils import save_image
 
 class ResampleDataset(Dataset):
     """
@@ -20,11 +22,12 @@ class ResampleDataset(Dataset):
 
     """
 
-    def __init__(self, dataset, sampler=lambda ds, idx: idx, size=None):
+    def __init__(self, dataset, sampler=lambda ds, idx: idx, size=None, transform=None):
         super(ResampleDataset, self).__init__()
         self.dataset = dataset
         self.sampler = sampler
         self.size = size
+        self.transform = transform
 
     def __len__(self):
         return (self.size and self.size > 0) and self.size or len(self.dataset)
@@ -32,7 +35,16 @@ class ResampleDataset(Dataset):
     def __getitem__(self, idx):
         idx = self.sampler(self.dataset, idx)
 
-        if idx < 0 or idx >= len(self.dataset):
+        if torch.min(idx) < 0 or torch.max(idx) >= len(self.dataset):
             raise IndexError("out of range")
 
-        return self.dataset[idx]
+        if self.transform is not None:
+            
+            return(self.transform(self.dataset[idx]))
+        else :
+            return self.dataset[idx]
+
+
+def save_all_images(data: dict, dir='',suffix=''):
+    for m in data:
+        save_image(data[m],dir + m + suffix + '.png')

@@ -4,7 +4,7 @@ from typing import Union
 
 import torch
 from torchvision.datasets import MNIST, SVHN
-from torchvision.transforms import ToTensor
+from torchvision.transforms import Compose, ToTensor, ConvertImageDtype
 
 from .base import MultimodalBaseDataset
 from .utils import ResampleDataset
@@ -38,19 +38,13 @@ class MnistSvhn(MultimodalBaseDataset):
             raise AttributeError("Possible values for split are 'train' or 'test'")
 
         # Load unimodal datasets
-        transform_mnist, transform_svhn = ToTensor(), ToTensor()
-        if "transform_mnist" in kwargs:
-            transform_mnist = kwargs["transform_mnist"]
-        if "transform_svhn" in kwargs:
-            transform_svhn = kwargs["transform_svhn"]
 
         mnist = MNIST(
             data_path,
             train=(split == "train"),
-            download=download,
-            transform=transform_mnist,
-        )
-        svhn = SVHN(data_path, split=split, download=download, transform=transform_svhn)
+            download=download)        
+        svhn = SVHN(data_path, split=split, download=download)
+
 
         # Check if a pairing already exists and if not create one
         if not self._check_pairing_exists(data_path, split):
@@ -62,9 +56,10 @@ class MnistSvhn(MultimodalBaseDataset):
         labels = mnist.targets[i_mnist]
 
         # Resample the datasets
-        mnist = ResampleDataset(mnist.data, lambda d, i: i_mnist[i], size=len(i_mnist))
-        svhn = ResampleDataset(svhn.data, lambda d, i: i_svhn[i], size=len(i_svhn))
-
+        data_mnist = (mnist.data/255).unsqueeze(1)
+        data_svhn = torch.FloatTensor(svhn.data)/255
+        mnist = ResampleDataset(data_mnist, lambda d, i: i_mnist[i], size=len(i_mnist))
+        svhn = ResampleDataset(data_svhn, lambda d, i: i_svhn[i], size=len(i_svhn))
         data = dict(mnist=mnist, svhn=svhn)
 
         self.data_path = data_path

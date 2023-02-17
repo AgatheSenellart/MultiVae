@@ -12,6 +12,7 @@ from pythae.data.datasets import DatasetOutput
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
+from ..data.datasets.utils import save_all_images
 
 from ..data import MultimodalBaseDataset
 from ..models import BaseMultiVAE
@@ -394,7 +395,7 @@ class BaseTrainer:
             training_config=self.training_config, model_config=self.model_config
         )
 
-        log_verbose = False
+        log_verbose = True
 
         msg = (
             f"Training params:\n - max_epochs: {self.training_config.num_epochs}\n"
@@ -419,6 +420,7 @@ class BaseTrainer:
 
         if self.is_main_process:
             logger.info("Successfully launched training !\n")
+
 
         # set best losses for early stopping
         best_train_loss = 1e10
@@ -466,17 +468,16 @@ class BaseTrainer:
                 self.training_config.steps_predict is not None
                 and epoch % self.training_config.steps_predict == 0
                 and self.is_main_process
-            ):
-                true_data, reconstructions, generations = self.predict(best_model)
+            ):  
+                
+                true_data, reconstructions = self.predict(best_model, epoch)
 
                 self.callback_handler.on_prediction_step(
                     self.training_config,
                     true_data=true_data,
                     reconstructions=reconstructions,
-                    generations=generations,
                     global_step=epoch,
                 )
-
             self.callback_handler.on_epoch_end(training_config=self.training_config)
 
             # save checkpoints
@@ -680,25 +681,32 @@ class BaseTrainer:
         # save training config
         self.training_config.save_json(checkpoint_dir, "training_config")
 
-    def predict(self, model: BaseMultiVAE):
+    def predict(self, model: BaseMultiVAE,epoch:int):
         model.eval()
 
         inputs = next(iter(self.eval_loader))
         inputs = self._set_inputs_to_device(inputs)
+        
+        # Reconstructions
+        recon = model.predict(inputs)
+        recon_dir = self.training_dir + '/reconstructions/' 
+        os.mkdir(recon_dir)
+        save_all_images(recon, recon_dir, suffix='_recon_'+epoch)
+        save_all_images(inputs.data, recon_dir, suffix='_true_'+epoch)
 
-        model_out = model(inputs)
-        reconstructions = model_out.recon_x.cpu().detach()[
-            : min(inputs["data"].shape[0], 10)
-        ]
-        z_enc = model_out.z[: min(inputs["data"].shape[0], 10)]
-        z = torch.randn_like(z_enc)
-        if self.distributed:
-            normal_generation = model.module.decoder(z).reconstruction.detach().cpu()
-        else:
-            normal_generation = model.decoder(z).reconstruction.detach().cpu()
+
+        # model_out = model(inputs)
+        # reconstructions = model_out.recon_x.cpu().detach()[
+        #     : min(inputs["data"].shape[0], 10)
+        # ]
+        # z_enc = model_out.z[: min(inputs["data"].shape[0], 10)]
+        # z = torch.randn_like(z_enc)
+        # if self.distributed:
+        #     normal_generation = model.module.decoder(z).reconstruction.detach().cpu()
+        # else:
+        #     normal_generation = model.decoder(z).reconstruction.detach().cpu()
 
         return (
-            inputs["data"][: min(inputs["data"].shape[0], 10)],
-            reconstructions,
-            normal_generation,
+            inputs.data,
+            recon
         )

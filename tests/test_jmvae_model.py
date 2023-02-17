@@ -15,6 +15,7 @@ from torch import nn
 from multivae.data.datasets.base import MultimodalBaseDataset
 from multivae.models import JMVAE, JMVAEConfig, AutoModel
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
+from multivae.data.datasets import MnistSvhn
 
 
 class Test:
@@ -78,8 +79,24 @@ class Test:
         loss = model(input2["dataset"], epoch=2, warmup=2).loss
         assert type(loss) == torch.Tensor
         assert loss.size() == torch.Size([])
-
-
+        embeddings = model.encode(input2["dataset"])
+        assert embeddings.shape == (2,5)
+        embeddings = model.encode(input2["dataset"], N=2)
+        assert embeddings.shape == (2,2,5)
+        embeddings = model.encode(input2["dataset"],cond_mod=['mod1'])
+        assert embeddings.shape == (2,5)
+        embeddings = model.encode(input2["dataset"],cond_mod='mod2', N=10)
+        assert embeddings.shape == (10,2,5)
+        embeddings = model.encode(input2["dataset"],cond_mod=['mod2', 'mod1'])
+        assert embeddings.shape == (2,5)
+        
+        Y = model.predict(input2["dataset"],cond_mod='mod1')
+        assert type(Y) == dict
+        assert Y['mod1'].shape == (2,2)
+        assert Y['mod2'].shape == (2,3)
+    
+    
+    
 class TestTraining:
     @pytest.fixture
     def input_dataset(self):

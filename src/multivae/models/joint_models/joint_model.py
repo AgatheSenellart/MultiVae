@@ -5,6 +5,7 @@ from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
 from ..base import BaseMultiVAE
 from ..nn.default_architectures import MultipleHeadJointEncoder
 from .joint_model_config import BaseJointModelConfig
+from ...data import MultimodalBaseDataset
 
 
 class BaseJointModel(BaseMultiVAE):
@@ -53,3 +54,7 @@ class BaseJointModel(BaseMultiVAE):
                 )
             )
         self.joint_encoder = joint_encoder
+    
+    
+        
+        

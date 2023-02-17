@@ -1,6 +1,7 @@
 import inspect
 import os
 from copy import deepcopy
+from typing import Union
 
 import cloudpickle
 import torch
@@ -91,6 +92,61 @@ class BaseMultiVAE(nn.Module):
                 "The names of the modalities in the encoders dict doesn't match the names of the modalities"
                 " in the decoders dict."
             )
+            
+    
+
+    def encode(self, inputs: MultimodalBaseDataset, cond_mod: Union[list, str] = 'all',N:int=1,**kwargs)->ModelOutput:
+        
+        """ 
+        Generate encodings conditioning on all modalities or a subset of modalities.
+
+        Args:
+            inputs (MultimodalBaseDataset): The dataset to use for the conditional generation.
+            cond_mod (Union[list, str]): Either 'all' or a list of str containing the modalities names to condition on.
+            N (int) : The number of encodings to sample for each datapoint. Default to 1.
+        
+        """
+        
+        if type(cond_mod) != list and cond_mod != 'all':
+            raise AttributeError('cond_mod must be either a list or "all"')
+        
+        raise NotImplementedError('Must be defined in subclass.')
+    
+    def decode(self, z:torch.Tensor,modalities:Union[list, str]='all'):
+        """Decode a latent variable z in all modalities specified in modalities.
+        
+        Args:
+            z (Tensor): the latent variables
+            modalities (Union(List, str), Optional): the modalities to decode from z. Default to 'all'.
+        Return
+            dict : containing a tensor per modality name.
+        """
+        self.eval()
+        if modalities == 'all':
+            modalities = list(self.decoders.keys())
+        elif type(modalities) == str:
+            modalities = [modalities]
+                
+        outputs = {}
+        for m in modalities:
+            outputs[m] = self.decoders[m](z).reconstruction
+        return outputs
+            
+            
+    
+    def predict(self, inputs: MultimodalBaseDataset, cond_mod: Union[list, str] = 'all', gen_mod: Union[list, str] = 'all',**kwargs):
+        """Generate in all modalities conditioning on a subset of modalities.
+
+        Args:
+            inputs (MultimodalBaseDataset): The data to condition on. It must contain at least the modalities
+                contained in cond_mod.
+            cond_mod (Union[list, str], optional): The modalities to condition on. Defaults to 'all'.
+            gen_mod (Union[list, str], optional): The modalities to generate. Defaults to 'all'.
+
+        """
+        self.eval()
+        z = self.encode(inputs, cond_mod,N=1,**kwargs)
+        return self.decode(z, gen_mod)
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
         """
@@ -106,8 +162,11 @@ class BaseMultiVAE(nn.Module):
 
         .. note::
             The loss must be computed in this forward pass and accessed through
-            ``loss = model_output.loss``"""
+            ``loss = model_output.loss``
+        """
         raise NotImplementedError()
+    
+    
 
     def update(self):
         """Method that allows model update during the training (at the end of a training epoch)
@@ -136,6 +195,7 @@ class BaseMultiVAE(nn.Module):
                     f" model itself ({self.latent_dim})"
                 )
             self.encoders[modality] = encoder
+            
 
     def set_decoders(self, decoders: dict) -> None:
         """Set the decoders of the model"""
@@ -150,6 +210,7 @@ class BaseMultiVAE(nn.Module):
                     )
                 )
             self.decoders[modality] = decoder
+    
 
     def save(self, dir_path: str):
         """Method to save the model at a specific location. It saves, the model weights as a
@@ -176,14 +237,16 @@ class BaseMultiVAE(nn.Module):
         if not self.model_config.uses_default_encoders:
             with open(os.path.join(dir_path, "encoders.pkl"), "wb") as fp:
                 cloudpickle.register_pickle_by_value(inspect.getmodule(self.encoders))
-                cloudpickle.dump(self.encoder, fp)
+                cloudpickle.dump(self.encoders, fp)
 
         if not self.model_config.uses_default_decoders:
             with open(os.path.join(dir_path, "decoders.pkl"), "wb") as fp:
                 cloudpickle.register_pickle_by_value(inspect.getmodule(self.decoders))
-                cloudpickle.dump(self.decoder, fp)
+                cloudpickle.dump(self.decoders, fp)
 
         torch.save(model_dict, os.path.join(dir_path, "model.pt"))
+        
+    
 
     @classmethod
     def _load_model_config_from_folder(cls, dir_path):
