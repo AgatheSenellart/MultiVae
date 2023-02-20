@@ -18,4 +18,4 @@ class JMVAEConfig(BaseJointModelConfig):
     """
 
     alpha: float = 0.1
-    warmup: int = 1
+    warmup: int = 10

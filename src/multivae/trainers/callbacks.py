@@ -363,48 +363,48 @@ class WandbCallback(TrainingCallback):  # pragma: no cover
 
         column_names = ["images_id", "truth", "reconstruction", "normal_generation"]
 
-        true_data = kwargs.pop("true_data", None)
         reconstructions = kwargs.pop("reconstructions", None)
-        generations = kwargs.pop("generations", None)
 
-        data_to_log = []
+        for cond_mod in reconstructions:
+            image = self._wandb.Image(reconstructions[cond_mod])
+            self._wandb.log({"recon_from_" + cond_mod: image})
 
-        if (
-            true_data is not None
-            and reconstructions is not None
-            and generations is not None
-        ):
-            for i in range(len(true_data)):
-                data_to_log.append(
-                    [
-                        f"img_{i}",
-                        self._wandb.Image(
-                            np.moveaxis(true_data[i].cpu().detach().numpy(), 0, -1)
-                        ),
-                        self._wandb.Image(
-                            np.clip(
-                                np.moveaxis(
-                                    reconstructions[i].cpu().detach().numpy(), 0, -1
-                                ),
-                                0,
-                                255.0,
-                            )
-                        ),
-                        self._wandb.Image(
-                            np.clip(
-                                np.moveaxis(
-                                    generations[i].cpu().detach().numpy(), 0, -1
-                                ),
-                                0,
-                                255.0,
-                            )
-                        ),
-                    ]
-                )
+        # if (
+        #     true_data is not None
+        #     and reconstructions is not None
+        #     and generations is not None
+        # ):
+        #     for i in range(len(true_data)):
+        #         data_to_log.append(
+        #             [
+        #                 f"img_{i}",
+        #                 self._wandb.Image(
+        #                     np.moveaxis(true_data[i].cpu().detach().numpy(), 0, -1)
+        #                 ),
+        #                 self._wandb.Image(
+        #                     np.clip(
+        #                         np.moveaxis(
+        #                             reconstructions[i].cpu().detach().numpy(), 0, -1
+        #                         ),
+        #                         0,
+        #                         255.0,
+        #                     )
+        #                 ),
+        #                 self._wandb.Image(
+        #                     np.clip(
+        #                         np.moveaxis(
+        #                             generations[i].cpu().detach().numpy(), 0, -1
+        #                         ),
+        #                         0,
+        #                         255.0,
+        #                     )
+        #                 ),
+        #             ]
+        #         )
 
-            val_table = self._wandb.Table(data=data_to_log, columns=column_names)
+        # val_table = self._wandb.Table(data=data_to_log, columns=column_names)
 
-            self._wandb.log({"my_val_table": val_table})
+        # self._wandb.log({"my_val_table": val_table})
 
     def on_train_end(self, training_config: BaseTrainerConfig, **kwargs):
         self.run.finish()

@@ -12,10 +12,10 @@ from pythae.models.nn.benchmarks.mnist.convnets import (
 from pythae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
 from torch import nn
 
-from multivae.data.datasets.base import MultimodalBaseDataset
-from multivae.models import JMVAE, JMVAEConfig, AutoModel
-from multivae.trainers import BaseTrainer, BaseTrainerConfig
 from multivae.data.datasets import MnistSvhn
+from multivae.data.datasets.base import MultimodalBaseDataset
+from multivae.models import JMVAE, AutoModel, JMVAEConfig
+from multivae.trainers import BaseTrainer, BaseTrainerConfig
 
 
 class Test:
@@ -80,23 +80,22 @@ class Test:
         assert type(loss) == torch.Tensor
         assert loss.size() == torch.Size([])
         embeddings = model.encode(input2["dataset"])
-        assert embeddings.shape == (2,5)
+        assert embeddings.shape == (2, 5)
         embeddings = model.encode(input2["dataset"], N=2)
-        assert embeddings.shape == (2,2,5)
-        embeddings = model.encode(input2["dataset"],cond_mod=['mod1'])
-        assert embeddings.shape == (2,5)
-        embeddings = model.encode(input2["dataset"],cond_mod='mod2', N=10)
-        assert embeddings.shape == (10,2,5)
-        embeddings = model.encode(input2["dataset"],cond_mod=['mod2', 'mod1'])
-        assert embeddings.shape == (2,5)
-        
-        Y = model.predict(input2["dataset"],cond_mod='mod1')
+        assert embeddings.shape == (2, 2, 5)
+        embeddings = model.encode(input2["dataset"], cond_mod=["mod1"])
+        assert embeddings.shape == (2, 5)
+        embeddings = model.encode(input2["dataset"], cond_mod="mod2", N=10)
+        assert embeddings.shape == (10, 2, 5)
+        embeddings = model.encode(input2["dataset"], cond_mod=["mod2", "mod1"])
+        assert embeddings.shape == (2, 5)
+
+        Y = model.predict(input2["dataset"], cond_mod="mod1")
         assert type(Y) == dict
-        assert Y['mod1'].shape == (2,2)
-        assert Y['mod2'].shape == (2,3)
-    
-    
-    
+        assert Y["mod1"].shape == (2, 2)
+        assert Y["mod2"].shape == (2, 3)
+
+
 class TestTraining:
     @pytest.fixture
     def input_dataset(self):
@@ -398,7 +397,6 @@ class TestTraining:
 
         # check reload full model
         model_rec = AutoModel.load_from_folder(os.path.join(final_dir))
-        
 
         assert all(
             [
