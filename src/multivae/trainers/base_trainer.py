@@ -395,7 +395,7 @@ class BaseTrainer:
             training_config=self.training_config, model_config=self.model_config
         )
 
-        log_verbose = True
+        log_verbose = False
 
         msg = (
             f"Training params:\n - max_epochs: {self.training_config.num_epochs}\n"
