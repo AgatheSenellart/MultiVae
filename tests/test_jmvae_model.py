@@ -14,9 +14,9 @@ from torch import nn
 
 from multivae.data.datasets import MnistSvhn
 from multivae.data.datasets.base import MultimodalBaseDataset
+from multivae.data.utils import set_inputs_to_device
 from multivae.models import JMVAE, AutoModel, JMVAEConfig
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
-from multivae.data.utils import set_inputs_to_device
 
 
 class Test:
@@ -411,11 +411,8 @@ class TestTraining:
         assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
         assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
 
-
     def test_compute_nll(self, model, input_dataset):
-        
-        nll = model.compute_joint_nll(input_dataset,K=10, batch_size_K = 2)
-        assert nll >=0 
+        nll = model.compute_joint_nll(input_dataset, K=10, batch_size_K=2)
+        assert nll >= 0
         assert type(nll) == torch.Tensor
         assert nll.size() == torch.Size([])
-        

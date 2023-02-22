@@ -4,8 +4,8 @@ from pythae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_M
 from torch.utils.data import DataLoader, random_split
 
 from multivae.data.datasets import MnistSvhn
-from multivae.data.utils import set_inputs_to_device
 from multivae.data.datasets.utils import save_all_images
+from multivae.data.utils import set_inputs_to_device
 from multivae.models import JMVAE, JMVAEConfig
 from multivae.models.nn.svhn import Decoder_VAE_SVHN, Encoder_VAE_SVHN
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
@@ -56,6 +56,6 @@ trainer = BaseTrainer(
 )
 # trainer.train()
 # save_all_images(model.predict(test_data[:10],'all', 'all'),trainer.training_dir,'_reconstructions')
-data = set_inputs_to_device(eval_data[:100], device = 'cuda')
+data = set_inputs_to_device(eval_data[:100], device="cuda")
 nll = model.compute_joint_nll(data)
 print(nll)
