@@ -4,6 +4,7 @@ from pythae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_M
 from torch.utils.data import DataLoader, random_split
 
 from multivae.data.datasets import MnistSvhn
+from multivae.data.utils import set_inputs_to_device
 from multivae.data.datasets.utils import save_all_images
 from multivae.models import JMVAE, JMVAEConfig
 from multivae.models.nn.svhn import Decoder_VAE_SVHN, Encoder_VAE_SVHN
@@ -23,7 +24,7 @@ model_config = JMVAEConfig(
     n_modalities=2,
     input_dims=dict(mnist=(1, 28, 28), svhn=(3, 32, 32)),
     latent_dim=20,
-    warmup=5,
+    warmup=2,
 )
 
 encoders = dict(
@@ -38,7 +39,7 @@ decoders = dict(
 
 model = JMVAE(model_config, encoders, decoders)
 
-trainer_config = BaseTrainerConfig(num_epochs=10, learning_rate=1e-3, steps_predict=1)
+trainer_config = BaseTrainerConfig(num_epochs=5, learning_rate=1e-3, steps_predict=1)
 
 # Set up callbacks
 wandb_cb = WandbCallback()
@@ -53,5 +54,8 @@ trainer = BaseTrainer(
     training_config=trainer_config,
     callbacks=callbacks,
 )
-trainer.train()
+# trainer.train()
 # save_all_images(model.predict(test_data[:10],'all', 'all'),trainer.training_dir,'_reconstructions')
+data = set_inputs_to_device(eval_data[:100], device = 'cuda')
+nll = model.compute_joint_nll(data)
+print(nll)

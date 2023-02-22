@@ -152,7 +152,11 @@ class BaseMultiVAE(nn.Module):
 
         """
         self.eval()
-        z = self.encode(inputs, cond_mod, N=1, **kwargs)
+        N = kwargs.pop("N",1)
+        z = self.encode(inputs, cond_mod, N=N, **kwargs)
+        if N > 1:
+            l,_,d = z.shape
+            z = z.resize(l*N, d)
         return self.decode(z, gen_mod)
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:

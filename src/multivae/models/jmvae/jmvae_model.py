@@ -150,3 +150,7 @@ class JMVAE(BaseJointModel):
         output = ModelOutput(loss=-loss, metrics=metrics)
 
         return output
+
+    
+    
+    
