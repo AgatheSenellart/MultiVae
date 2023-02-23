@@ -10,13 +10,14 @@ from pythae.models.nn.benchmarks.mnist.convnets import (
     Decoder_Conv_AE_MNIST,
     Encoder_Conv_AE_MNIST,
 )
-from pythae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
+from pythae.models.nn.default_architectures import Encoder_VAE_MLP
 from torch import nn
 
 from multivae.data.datasets import MnistSvhn
 from multivae.data.datasets.base import MultimodalBaseDataset
 from multivae.data.utils import set_inputs_to_device
 from multivae.models import JMVAE, AutoModel, JMVAEConfig
+from multivae.models.nn.default_architectures import Decoder_AE_MLP
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 
 
@@ -99,6 +100,16 @@ class Test:
         assert isinstance(Y, ModelOutput)
         assert Y.mod1.shape == (2, 2)
         assert Y.mod2.shape == (2, 3)
+
+        Y = model.predict(input2["dataset"], cond_mod="mod1", N=10)
+        assert isinstance(Y, ModelOutput)
+        assert Y.mod1.shape == (10, 2, 2)
+        assert Y.mod2.shape == (10, 2, 3)
+
+        Y = model.predict(input2["dataset"], cond_mod="mod1", N=10, flatten=True)
+        assert isinstance(Y, ModelOutput)
+        assert Y.mod1.shape == (2 * 10, 2)
+        assert Y.mod2.shape == (2 * 10, 3)
 
 
 class TestTraining:
