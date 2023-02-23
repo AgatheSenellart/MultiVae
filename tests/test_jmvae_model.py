@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 import torch
 from pythae.models.base import BaseAEConfig
+from pythae.models.base.base_utils import ModelOutput
 from pythae.models.nn.benchmarks.mnist.convnets import (
     Decoder_Conv_AE_MNIST,
     Encoder_Conv_AE_MNIST,
@@ -80,21 +81,24 @@ class Test:
         loss = model(input2["dataset"], epoch=2, warmup=2).loss
         assert type(loss) == torch.Tensor
         assert loss.size() == torch.Size([])
-        embeddings = model.encode(input2["dataset"])
+        outputs = model.encode(input2["dataset"])
+        assert outputs.one_latent_space
+        embeddings = outputs.z
+        assert isinstance(outputs, ModelOutput)
         assert embeddings.shape == (2, 5)
-        embeddings = model.encode(input2["dataset"], N=2)
+        embeddings = model.encode(input2["dataset"], N=2).z
         assert embeddings.shape == (2, 2, 5)
-        embeddings = model.encode(input2["dataset"], cond_mod=["mod1"])
+        embeddings = model.encode(input2["dataset"], cond_mod=["mod1"]).z
         assert embeddings.shape == (2, 5)
-        embeddings = model.encode(input2["dataset"], cond_mod="mod2", N=10)
+        embeddings = model.encode(input2["dataset"], cond_mod="mod2", N=10).z
         assert embeddings.shape == (10, 2, 5)
-        embeddings = model.encode(input2["dataset"], cond_mod=["mod2", "mod1"])
+        embeddings = model.encode(input2["dataset"], cond_mod=["mod2", "mod1"]).z
         assert embeddings.shape == (2, 5)
 
         Y = model.predict(input2["dataset"], cond_mod="mod1")
-        assert type(Y) == dict
-        assert Y["mod1"].shape == (2, 2)
-        assert Y["mod2"].shape == (2, 3)
+        assert isinstance(Y, ModelOutput)
+        assert Y.mod1.shape == (2, 2)
+        assert Y.mod2.shape == (2, 3)
 
 
 class TestTraining:

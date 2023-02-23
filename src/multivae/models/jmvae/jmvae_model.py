@@ -55,6 +55,7 @@ class JMVAE(BaseJointModel):
             torch.FloatTensor: the latent variables.
         """
         self.eval()
+
         if cond_mod == "all" or (
             type(cond_mod) == list and len(cond_mod) == self.n_modalities
         ):
@@ -63,12 +64,13 @@ class JMVAE(BaseJointModel):
             z = dist.Normal(
                 output.embedding, torch.exp(0.5 * output.log_covariance)
             ).rsample(sample_shape)
-            return z
+            return ModelOutput(z=z, one_latent_space=True)
 
         if type(cond_mod) == list and len(cond_mod) != 1:
             raise AttributeError(
                 "Conditioning on a subset containing more than one modality "
-                "is not possible with the JMVAE model"
+                "is not possible with the JMVAE model. Please provide one modality's name"
+                " or set to 'all'."
             )
         elif type(cond_mod) == list and len(cond_mod) == 1:
             cond_mod = cond_mod[0]
@@ -79,9 +81,12 @@ class JMVAE(BaseJointModel):
             z = dist.Normal(
                 output.embedding, torch.exp(0.5 * output.log_covariance)
             ).rsample(sample_shape)
-            return z
+            return ModelOutput(z=z, one_latent_space=True)
         else:
-            raise AttributeError()
+            raise AttributeError(
+                f"Modality of name {cond_mod} not handled. The"
+                f" modalities that can be encoded are {list(self.encoders.keys())}"
+            )
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
         """Performs a forward pass of the JMVAE model on inputs.

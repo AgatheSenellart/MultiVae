@@ -4,7 +4,6 @@ from typing import Union
 
 import torch
 from torchvision.datasets import MNIST, SVHN
-from torchvision.transforms import Compose, ConvertImageDtype, ToTensor
 
 from .base import MultimodalBaseDataset
 from .utils import ResampleDataset

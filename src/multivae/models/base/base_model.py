@@ -115,14 +115,15 @@ class BaseMultiVAE(nn.Module):
 
         raise NotImplementedError("Must be defined in subclass.")
 
-    def decode(self, z: torch.Tensor, modalities: Union[list, str] = "all"):
+    def decode(self, embedding: ModelOutput, modalities: Union[list, str] = "all"):
         """Decode a latent variable z in all modalities specified in modalities.
 
         Args:
-            z (Tensor): the latent variables
+            z (ModelOutput): the latent variables. In case there is only one latent space, z is a tensor
+                otherwise it is a dictionary containing all the latent variables associated with modalities'name.
             modalities (Union(List, str), Optional): the modalities to decode from z. Default to 'all'.
         Return
-            dict : containing a tensor per modality name.
+            ModelOutput : containing a tensor per modality name.
         """
         self.eval()
         if modalities == "all":
@@ -130,10 +131,17 @@ class BaseMultiVAE(nn.Module):
         elif type(modalities) == str:
             modalities = [modalities]
 
-        outputs = {}
-        for m in modalities:
-            outputs[m] = self.decoders[m](z).reconstruction
-        return outputs
+        if embedding.one_latent_space:
+            z = embedding.z
+            outputs = ModelOutput()
+            for m in modalities:
+                outputs[m] = self.decoders[m](z).reconstruction
+            return outputs
+        else:
+            raise NotImplementedError(
+                "The decoding function for multiple latent spaces is not implemented"
+                "yet"
+            )
 
     def predict(
         self,
