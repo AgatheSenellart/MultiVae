@@ -1,7 +1,11 @@
 from typing import Tuple, Union
 
+import numpy as np
+import torch
+import torch.distributions as dist
 from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
 
+from ...data import MultimodalBaseDataset
 from ..base import BaseMultiVAE
 from ..nn.default_architectures import MultipleHeadJointEncoder
 from .joint_model_config import BaseJointModelConfig
@@ -53,3 +57,73 @@ class BaseJointModel(BaseMultiVAE):
                 )
             )
         self.joint_encoder = joint_encoder
+
+    def compute_joint_nll(
+        self, inputs: MultimodalBaseDataset, K: int = 1000, batch_size_K: int = 100
+    ):
+        """Return the average estimated negative log-likelihood over the inputs.
+        The negative log-likelihood is estimated using importance sampling.
+
+        Args :
+            inputs : the data to compute the joint likelihood"""
+
+        # First compute all the parameters of the joint posterior q(z|x,y)
+
+        print(
+            "Started computing the negative log_likelihood on inputs. This function"
+            " can take quite a long time to run."
+        )
+
+        joint_output = self.joint_encoder(inputs.data)
+        mu, log_var = joint_output.embedding, joint_output.log_covariance
+
+        sigma = torch.exp(0.5 * log_var)
+        qz_xy = dist.Normal(mu, sigma)
+        # And sample from the posterior
+        z_joint = qz_xy.rsample([K])  # shape K x n_data x latent_dim
+        z_joint = z_joint.permute(1, 0, 2)
+        n_data, _, latent_dim = z_joint.shape
+
+        # Then iter on each datapoint to compute the iwae estimate of ln(p(x))
+        ll = 0
+        for i in range(n_data):
+            start_idx = 0
+            stop_idx = min(start_idx + batch_size_K, K)
+            lnpxs = []
+            while start_idx < stop_idx:
+                latents = z_joint[i][start_idx:stop_idx]
+
+                # Compute p(x_m|z) for z in latents and for each modality m
+                lpx_zs = 0  # ln(p(x,y|z))
+                for mod in inputs.data:
+                    decoder = self.decoders[mod]
+                    mu_recon = decoder(latents)[
+                        "reconstruction"
+                    ]  # (batch_size_K, nb_channels, w, h)
+                    x_m = inputs.data[mod][i]  # (nb_channels, w, h)
+                    # print(x_m.shape)
+                    # print(mus.shape)
+                    px_z = dist.Normal(mu_recon, 1)
+
+                    dim_reduce = tuple(range(1, len(mu_recon.shape)))
+                    # print(dim_reduce)
+                    lpx_zs += px_z.log_prob(x_m).sum(dim=dim_reduce)
+
+                # Compute ln(p(z))
+                prior = dist.Normal(0, 1)
+                lpz = prior.log_prob(latents).sum(dim=-1)
+
+                # Compute posteriors -ln(q(z|x,y))
+                qz_xy = dist.Normal(mu[i], sigma[i])
+                lqz_xy = qz_xy.log_prob(latents).sum(dim=-1)
+
+                ln_px = torch.logsumexp(lpx_zs + lpz - lqz_xy, dim=0)
+                lnpxs.append(ln_px)
+
+                # next batch
+                start_idx += batch_size_K
+                stop_idx = min(stop_idx + batch_size_K, K)
+
+            ll += torch.logsumexp(torch.Tensor(lnpxs), dim=0) - np.log(K)
+
+        return -ll / n_data

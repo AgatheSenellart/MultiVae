@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 import torch
 from pythae.models.base import BaseAEConfig
+from pythae.models.base.base_utils import ModelOutput
 from pythae.models.nn.benchmarks.mnist.convnets import (
     Decoder_Conv_AE_MNIST,
     Encoder_Conv_AE_MNIST,
@@ -12,8 +13,10 @@ from pythae.models.nn.benchmarks.mnist.convnets import (
 from pythae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
 from torch import nn
 
+from multivae.data.datasets import MnistSvhn
 from multivae.data.datasets.base import MultimodalBaseDataset
-from multivae.models import JMVAE, JMVAEConfig, AutoModel
+from multivae.data.utils import set_inputs_to_device
+from multivae.models import JMVAE, AutoModel, JMVAEConfig
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 
 
@@ -78,6 +81,24 @@ class Test:
         loss = model(input2["dataset"], epoch=2, warmup=2).loss
         assert type(loss) == torch.Tensor
         assert loss.size() == torch.Size([])
+        outputs = model.encode(input2["dataset"])
+        assert outputs.one_latent_space
+        embeddings = outputs.z
+        assert isinstance(outputs, ModelOutput)
+        assert embeddings.shape == (2, 5)
+        embeddings = model.encode(input2["dataset"], N=2).z
+        assert embeddings.shape == (2, 2, 5)
+        embeddings = model.encode(input2["dataset"], cond_mod=["mod1"]).z
+        assert embeddings.shape == (2, 5)
+        embeddings = model.encode(input2["dataset"], cond_mod="mod2", N=10).z
+        assert embeddings.shape == (10, 2, 5)
+        embeddings = model.encode(input2["dataset"], cond_mod=["mod2", "mod1"]).z
+        assert embeddings.shape == (2, 5)
+
+        Y = model.predict(input2["dataset"], cond_mod="mod1")
+        assert isinstance(Y, ModelOutput)
+        assert Y.mod1.shape == (2, 2)
+        assert Y.mod2.shape == (2, 3)
 
 
 class TestTraining:
@@ -381,7 +402,6 @@ class TestTraining:
 
         # check reload full model
         model_rec = AutoModel.load_from_folder(os.path.join(final_dir))
-        
 
         assert all(
             [
@@ -394,3 +414,9 @@ class TestTraining:
 
         assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
         assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
+
+    def test_compute_nll(self, model, input_dataset):
+        nll = model.compute_joint_nll(input_dataset, K=10, batch_size_K=2)
+        assert nll >= 0
+        assert type(nll) == torch.Tensor
+        assert nll.size() == torch.Size([])

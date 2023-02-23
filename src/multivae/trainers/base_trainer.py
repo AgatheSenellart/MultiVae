@@ -8,12 +8,15 @@ import torch
 import torch.distributed as dist
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
+from PIL import Image
 from pythae.data.datasets import DatasetOutput
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
+from torchvision.utils import make_grid
 
 from ..data import MultimodalBaseDataset
+from ..data.datasets.utils import adapt_shape, save_all_images
 from ..models import BaseMultiVAE
 from .base_trainer_config import BaseTrainerConfig
 from .callbacks import (
@@ -22,7 +25,7 @@ from .callbacks import (
     ProgressBarCallback,
     TrainingCallback,
 )
-from .utils import set_seed
+from .utils import set_seed, update_dict
 
 logger = logging.getLogger(__name__)
 
@@ -432,14 +435,17 @@ class BaseTrainer:
                 eval_loader=self.eval_loader,
             )
 
-            metrics = {}
-
-            epoch_train_loss = self.train_step(epoch)
+            epoch_train_loss, epoch_metrics = self.train_step(epoch)
+            metrics = {"train_" + k: epoch_metrics[k] for k in epoch_metrics}
             metrics["train_epoch_loss"] = epoch_train_loss
 
             if self.eval_dataset is not None:
-                epoch_eval_loss = self.eval_step(epoch)
+                epoch_eval_loss, epoch_eval_metrics = self.eval_step(epoch)
                 metrics["eval_epoch_loss"] = epoch_eval_loss
+                update_dict(
+                    metrics,
+                    {"eval_" + k: epoch_eval_metrics[k] for k in epoch_eval_metrics},
+                )
                 self._schedulers_step(epoch_eval_loss)
 
             else:
@@ -467,16 +473,13 @@ class BaseTrainer:
                 and epoch % self.training_config.steps_predict == 0
                 and self.is_main_process
             ):
-                true_data, reconstructions, generations = self.predict(best_model)
+                reconstructions = self.predict(best_model, epoch)
 
                 self.callback_handler.on_prediction_step(
                     self.training_config,
-                    true_data=true_data,
                     reconstructions=reconstructions,
-                    generations=generations,
                     global_step=epoch,
                 )
-
             self.callback_handler.on_epoch_end(training_config=self.training_config)
 
             # save checkpoints
@@ -534,6 +537,7 @@ class BaseTrainer:
         self.model.eval()
 
         epoch_loss = 0
+        epoch_metrics = {}
 
         for inputs in self.eval_loader:
             inputs = self._set_inputs_to_device(inputs)
@@ -558,6 +562,7 @@ class BaseTrainer:
             loss = model_output.loss
 
             epoch_loss += loss.item()
+            update_dict(epoch_metrics, model_output.metrics)
 
             if epoch_loss != epoch_loss:
                 raise ArithmeticError("NaN detected in eval loss")
@@ -565,8 +570,11 @@ class BaseTrainer:
             self.callback_handler.on_eval_step_end(training_config=self.training_config)
 
         epoch_loss /= len(self.eval_loader)
+        epoch_metrics = {
+            k: epoch_metrics[k] / len(self.eval_loader) for k in epoch_metrics
+        }
 
-        return epoch_loss
+        return epoch_loss, epoch_metrics
 
     def train_step(self, epoch: int):
         """The trainer performs training loop over the train_loader.
@@ -588,6 +596,7 @@ class BaseTrainer:
         self.model.train()
 
         epoch_loss = 0
+        epoch_model_metrics = {}
 
         for inputs in self.train_loader:
             inputs = self._set_inputs_to_device(inputs)
@@ -604,6 +613,7 @@ class BaseTrainer:
             loss = model_output.loss
 
             epoch_loss += loss.item()
+            update_dict(epoch_model_metrics, model_output.metrics)
 
             if epoch_loss != epoch_loss:
                 raise ArithmeticError("NaN detected in train loss")
@@ -619,8 +629,12 @@ class BaseTrainer:
             self.model.update()
 
         epoch_loss /= len(self.train_loader)
+        epoch_model_metrics = {
+            k: epoch_model_metrics[k] / len(self.train_loader)
+            for k in epoch_model_metrics
+        }
 
-        return epoch_loss
+        return epoch_loss, epoch_model_metrics
 
     def save_model(self, model: BaseMultiVAE, dir_path: str):
         """This method saves the final model along with the config files
@@ -680,25 +694,36 @@ class BaseTrainer:
         # save training config
         self.training_config.save_json(checkpoint_dir, "training_config")
 
-    def predict(self, model: BaseMultiVAE):
+    def predict(self, model: BaseMultiVAE, epoch: int, n_data=8):
         model.eval()
 
-        inputs = next(iter(self.eval_loader))
+        inputs = self.eval_dataset[:n_data]
         inputs = self._set_inputs_to_device(inputs)
 
-        model_out = model(inputs)
-        reconstructions = model_out.recon_x.cpu().detach()[
-            : min(inputs["data"].shape[0], 10)
-        ]
-        z_enc = model_out.z[: min(inputs["data"].shape[0], 10)]
-        z = torch.randn_like(z_enc)
-        if self.distributed:
-            normal_generation = model.module.decoder(z).reconstruction.detach().cpu()
-        else:
-            normal_generation = model.decoder(z).reconstruction.detach().cpu()
+        # recon_dir = self.training_dir + '/reconstructions/'
+        # os.makedirs(recon_dir,exist_ok=True)
+        all_recons = dict()
+        for mod in inputs.data:
+            recon = model.predict(inputs, mod, "all", N=8)
+            recon["true_data"] = inputs.data[mod]
+            recon, shape = adapt_shape(recon)
+            recon_image = [recon["true_data"]] + [
+                recon[m] for m in recon if m != "true_data"
+            ]
+            recon_image = torch.cat(recon_image)
 
-        return (
-            inputs["data"][: min(inputs["data"].shape[0], 10)],
-            reconstructions,
-            normal_generation,
-        )
+            # Transform to PIL format
+            recon_image = make_grid(recon_image, nrow=n_data)
+            # Add 0.5 after unnormalizing to [0, 255] to round to nearest integer
+            ndarr = (
+                recon_image.mul(255)
+                .add_(0.5)
+                .clamp_(0, 255)
+                .permute(1, 2, 0)
+                .to("cpu", torch.uint8)
+                .numpy()
+            )
+            recon_image = Image.fromarray(ndarr)
+
+            all_recons[mod] = recon_image
+        return all_recons

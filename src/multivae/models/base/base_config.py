@@ -11,6 +11,7 @@ class BaseMultiVAEConfig(BaseConfig):
     Parameters:
         n_modalities (int): The number of modalities. Default: None.
         latent_dim (int): The dimension of the latent space. Default: None.
+        input_dims (dict[str,tuple]) : The modalities'names (str) and input shapes (tuple)
     """
 
     n_modalities: Union[int, None] = None
