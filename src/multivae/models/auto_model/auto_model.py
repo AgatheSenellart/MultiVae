@@ -42,6 +42,11 @@ class AutoModel(nn.Module):
 
             model = JMVAE.load_from_folder(dir_path=dir_path)
 
+        elif model_name == "JNFConfig":
+            from ..jnf import JNF
+
+            model = JNF.load_from_folder(dir_path=dir_path)
+
         else:
             raise NameError(
                 "Cannot reload automatically the model... "

@@ -15,9 +15,9 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from torchvision.utils import make_grid
 
-from ..data import MultimodalBaseDataset
-from ..data.datasets.utils import adapt_shape, save_all_images
-from ..models import BaseMultiVAE
+from ...data import MultimodalBaseDataset
+from ...data.datasets.utils import adapt_shape, save_all_images
+from ...models import BaseMultiVAE
 from .base_trainer_config import BaseTrainerConfig
 from .callbacks import (
     CallbackHandler,

@@ -1,6 +1,8 @@
 import inspect
 import os
+import sys
 from copy import deepcopy
+from http.cookiejar import LoadError
 from typing import Union
 
 import cloudpickle
@@ -12,7 +14,7 @@ from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
 from ...data.datasets.base import MultimodalBaseDataset
 from ..auto_model import AutoConfig
 from ..nn.default_architectures import BaseDictDecoders, BaseDictEncoders
-from .base_config import BaseMultiVAEConfig
+from .base_config import BaseMultiVAEConfig, EnvironmentConfig
 
 
 class BaseMultiVAE(nn.Module):
@@ -65,18 +67,19 @@ class BaseMultiVAE(nn.Module):
                 self.model_config.uses_default_decoders = True
 
         self.sanity_check(encoders, decoders)
-        
-        
+
         self.latent_dim = model_config.latent_dim
         self.model_config = model_config
 
         self.set_decoders(decoders)
         self.set_encoders(encoders)
-        
+
         if self.input_dims is not None:
             if self.input_dims.keys() != self.encoders.keys():
-                print(f'Warning! : The modalities names in model_config.input_dims : {list(self.input_dims.keys())}'
-                      f' does not match the modalities names in encoders : {list(self.encoders.keys())}')
+                print(
+                    f"Warning! : The modalities names in model_config.input_dims : {list(self.input_dims.keys())}"
+                    f" does not match the modalities names in encoders : {list(self.encoders.keys())}"
+                )
 
         self.device = None
 
@@ -320,13 +323,13 @@ class BaseMultiVAE(nn.Module):
 
         if "encoders.pkl" not in file_list:
             raise FileNotFoundError(
-                f"Missing encoder pkl file ('encoder.pkl') in"
+                f"Missing encoder pkl file ('encoders.pkl') in"
                 f"{dir_path}... This file is needed to rebuild custom encoders."
                 " Cannot perform model building."
             )
 
         else:
-            with open(os.path.join(dir_path, "encoder.pkl"), "rb") as fp:
+            with open(os.path.join(dir_path, "encoders.pkl"), "rb") as fp:
                 encoder = CPU_Unpickler(fp).load()
 
         return encoder
@@ -338,13 +341,13 @@ class BaseMultiVAE(nn.Module):
 
         if "decoders.pkl" not in file_list:
             raise FileNotFoundError(
-                f"Missing decoder pkl file ('decoder.pkl') in"
+                f"Missing decoder pkl file ('decoders.pkl') in"
                 f"{dir_path}... This file is needed to rebuild custom decoders."
                 " Cannot perform model building."
             )
 
         else:
-            with open(os.path.join(dir_path, "decoder.pkl"), "rb") as fp:
+            with open(os.path.join(dir_path, "decoders.pkl"), "rb") as fp:
                 decoder = CPU_Unpickler(fp).load()
 
         return decoder
@@ -386,3 +389,24 @@ class BaseMultiVAE(nn.Module):
         model.load_state_dict(model_weights)
 
         return model
+
+    @classmethod
+    def _check_python_version_from_folder(cls, dir_path: str):
+        if "environment.json" in os.listdir(dir_path):
+            env_spec = EnvironmentConfig.from_json_file(
+                os.path.join(dir_path, "environment.json")
+            )
+            python_version = env_spec.python_version
+            python_version_minor = python_version.split(".")[1]
+
+            if python_version_minor == "7" and sys.version_info[1] > 7:
+                raise LoadError(
+                    "Trying to reload a model saved with python3.7 with python3.8+. "
+                    "Please create a virtual env with python 3.7 to reload this model."
+                )
+
+            elif int(python_version_minor) >= 8 and sys.version_info[1] == 7:
+                raise LoadError(
+                    "Trying to reload a model saved with python3.8+ with python3.7. "
+                    "Please create a virtual env with python 3.8+ to reload this model."
+                )

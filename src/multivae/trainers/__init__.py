@@ -1,4 +1,4 @@
-from .base_trainer import BaseTrainer
-from .base_trainer_config import BaseTrainerConfig
+from .base import BaseTrainer, BaseTrainerConfig
+from .jnf import JNFTrainer, JNFTrainerConfig
 
-__all__ = ["BaseTrainer", "BaseTrainerConfig"]
+__all__ = ["BaseTrainer", "BaseTrainerConfig", "JNFTrainer", "JNFTrainerConfig"]

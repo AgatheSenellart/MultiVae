@@ -1,4 +1,4 @@
-from .jmvae_config import JMVAEConfig
-from .jmvae_model import JMVAE
+from .jnf_config import JNFConfig
+from .jnf_model import JNF
 
-__all__ = ["JMVAEConfig", "JMVAE"]
+__all__ = ["JNFConfig", "JNF"]

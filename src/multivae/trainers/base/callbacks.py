@@ -7,7 +7,7 @@ import logging
 import numpy as np
 from tqdm.auto import tqdm
 
-from ..models import BaseMultiVAEConfig
+from ...models import BaseMultiVAEConfig
 from .base_trainer_config import BaseTrainerConfig
 
 logger = logging.getLogger(__name__)
