@@ -66,18 +66,17 @@ class BaseMultiVAE(nn.Module):
 
         self.sanity_check(encoders, decoders)
         
-        if self.input_dims is not None:
-            if self.input_dims.keys() != self.encoders.keys():
-                print(f'Warning! : The modalities names in model_config.input_dims : {list(self.input_dims.keys())}'
-                      f' does not match the modalities names in encoders : {list(self.encoders.keys())}')
-        
-        # Save the modalities in one reference place.
         
         self.latent_dim = model_config.latent_dim
         self.model_config = model_config
 
         self.set_decoders(decoders)
         self.set_encoders(encoders)
+        
+        if self.input_dims is not None:
+            if self.input_dims.keys() != self.encoders.keys():
+                print(f'Warning! : The modalities names in model_config.input_dims : {list(self.input_dims.keys())}'
+                      f' does not match the modalities names in encoders : {list(self.encoders.keys())}')
 
         self.device = None
 
