@@ -15,5 +15,5 @@ class MMVAEConfig(BaseMultiVAEConfig):
     """
 
     K: int = 10
-    posterior_dist = "laplace_with_softmax"
+    prior_and_posterior_dist = "laplace_with_softmax"
     learn_prior = True

@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 from torch.distributions import Laplace, Normal
 
 from multivae.data.datasets.base import MultimodalBaseDataset
@@ -23,16 +24,19 @@ class MMVAE(BaseMultiVAE):
 
         self.K = model_config.K
 
-        if model_config.posterior_dist == "laplace_with_softmax":
+        if model_config.prior_and_posterior_dist == "laplace_with_softmax":
             self.post_dist = Laplace
+            self.prior_dist = Laplace
         elif model_config.posterior_dist == "normal":
             self.post_dist = Normal
+            self.prior_dist = Normal
         else:
             raise AttributeError(
                 " The posterior_dist parameter must be "
                 " either 'laplace_with_softmax' or 'normal'. "
                 f" {model_config.posterior_dist} was provided."
             )
+            
 
         self.prior_mean = torch.zeros((self.latent_dim,))
         self.prior_std = torch.ones((self.latent_dim,))
@@ -70,7 +74,14 @@ class MMVAE(BaseMultiVAE):
             qz_xs[cond_mod] = qz_x
             embeddings[cond_mod] = z_x
 
-        # TODO : finish the implementation of forward
+        # Compute DREG loss
+        for mod in embeddings:
+            z = embeddings[mod]
+            prior = self.prior_dist(self.prior_mean, self.prior_std)
+            lpz = prior.log_prob(z).sum(-1)
+            lqz_x = torch.stack([qz_x[m].log_prob(z).sum(-1) for m in qz_xs])
+            lqz_x = torch.logsumexp(lqz_x, dim=0) - np.log(self.n_modalities)
+            lpx_z = reconstructions
 
         return
 
