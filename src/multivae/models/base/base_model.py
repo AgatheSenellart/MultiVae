@@ -7,6 +7,7 @@ from typing import Union
 
 import cloudpickle
 import torch
+import numpy as np
 import torch.nn as nn
 from pythae.models.base.base_utils import CPU_Unpickler, ModelOutput
 from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
@@ -70,10 +71,13 @@ class BaseMultiVAE(nn.Module):
 
         self.latent_dim = model_config.latent_dim
         self.model_config = model_config
+        self.device = None
+
 
         self.set_decoders(decoders)
         self.set_encoders(encoders)
 
+        # Check that the modalities' name are coherent
         if self.input_dims is not None:
             if self.input_dims.keys() != self.encoders.keys():
                 print(
@@ -81,7 +85,23 @@ class BaseMultiVAE(nn.Module):
                     f" does not match the modalities names in encoders : {list(self.encoders.keys())}"
                 )
 
-        self.device = None
+        
+        self.use_likelihood_rescaling = model_config.uses_likelihood_rescaling
+        if self.use_likelihood_rescaling:
+            if self.input_dims is None:
+                raise AttributeError(
+                    " inputs_dim = None but (use_likelihood_rescaling = True"
+                    " in model_config)"
+                    " To compute likelihood rescalings we need the input dimensions."
+                    " Please provide a valid dictionary for input_dims."
+                )
+            else:
+                self.rescale_factors = {
+                    k: 1 / np.prod(self.input_dims[k]) for k in self.input_dims
+                }
+        else:
+            self.rescale_factors = {k: 1 for k in self.encoders}
+            # above, we take the modalities keys in self.encoders as input_dims may be None
 
     def sanity_check(self, encoders, decoders):
         if self.n_modalities != len(encoders.keys()):

@@ -52,14 +52,14 @@ class Test:
             flows=flows,
         )
 
-    @pytest.fixture(params=[True])
+    @pytest.fixture(params=[True, False])
     def model_config(self, request):
-        if request.param:
-            model_config = JNFConfig(
-                n_modalities=2, latent_dim=5, input_dims=dict(mod1=(2,), mod2=(3,))
-            )
-        else:
-            model_config = JNFConfig(n_modalities=2, latent_dim=5)
+
+        model_config = JNFConfig(
+            n_modalities=2, latent_dim=5, input_dims=dict(mod1=(2,), mod2=(3,)),
+            use_likelihood_rescaling=request.param
+        )
+        
         return model_config
 
     @pytest.fixture(params=[True, False])
@@ -80,13 +80,15 @@ class Test:
         loss = output.loss
         assert type(loss) == torch.Tensor
         assert loss.size() == torch.Size([])
+        assert loss.requires_grad
 
         output = model(dataset, epoch=model_config.warmup + 2)
         assert hasattr(output, "ljm")
         loss = output.loss
         assert type(loss) == torch.Tensor
         assert loss.size() == torch.Size([])
-
+        assert loss.requires_grad 
+        
         # Try encoding and prediction
 
         outputs = model.encode(dataset)

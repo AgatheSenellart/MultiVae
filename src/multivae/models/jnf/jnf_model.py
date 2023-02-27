@@ -58,23 +58,6 @@ class JNF(BaseJointModel):
 
         self.set_flows(flows)
 
-        self.use_likelihood_rescaling = model_config.use_likelihood_rescaling
-        if self.use_likelihood_rescaling:
-            if self.input_dims is None:
-                raise AttributeError(
-                    " inputs_dim = None but (use_likelihood_rescaling = True"
-                    " in model_config)"
-                    " To compute likelihood rescalings we need the input dimensions."
-                    " Please provide a valid dictionary for input_dims."
-                )
-            else:
-                self.rescale_factors = {
-                    k: 1 / np.prod(self.input_dims[k]) for k in self.input_dims
-                }
-        else:
-            self.rescale_factors = {k: 1 for k in self.encoders}
-            # above, we take the modalities keys in self.encoders as input_dims may be None
-
         self.model_name = "JNF"
         self.warmup = model_config.warmup
 
@@ -102,6 +85,11 @@ class JNF(BaseJointModel):
                     " class."
                 )
         return
+    
+    def _set_torch_no_grad_on_joint_vae(self):
+        # After the warmup, we freeze the architecture of the joint encoder and decoders
+        self.joint_encoder.requires_grad_(False)
+        self.decoders.requires_grad_(False)
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs):
         epoch = kwargs.pop("epoch", 1)
@@ -133,13 +121,14 @@ class JNF(BaseJointModel):
             return ModelOutput(
                 recon_loss=recon_loss / len_batch,
                 KLD=KLD / len_batch,
-                loss=-(recon_loss + KLD) / len_batch,
-                metrics=dict(kld_prior=KLD, total_loss=(recon_loss + KLD) / len_batch),
+                loss=-(recon_loss - KLD) / len_batch,
+                metrics=dict(kld_prior=KLD, recon_loss = recon_loss / len_batch,ljm=None),
             )
 
         else:
+            self._set_torch_no_grad_on_joint_vae()
             ljm = 0
-            for m in self.encoders:
+            for mod in self.encoders:
                 mod_output = self.encoders[mod](inputs.data[mod])
                 mu0, log_var0 = mod_output.embedding, mod_output.log_covariance
 
@@ -147,11 +136,11 @@ class JNF(BaseJointModel):
                 qz_x0 = dist.Normal(mu0, sigma0)
 
                 # Compute -ln q_\phi_mod(z_joint|x_mod)
-                z_joint = z_joint.detach()  # no backpropagation on z_joint
                 flow_output = self.flows[mod](z_joint)
+                z0 = flow_output.out
 
                 ljm += -(
-                    qz_x0.log_prob(z_joint).sum(dim=-1) + flow_output.log_abs_det_jac
+                    qz_x0.log_prob(z0).sum(dim=-1) + flow_output.log_abs_det_jac
                 ).sum()
 
             return ModelOutput(
@@ -159,8 +148,11 @@ class JNF(BaseJointModel):
                 KLD=KLD / len_batch,
                 loss=ljm / len_batch,
                 ljm=ljm / len_batch,
-                metrics=dict(total_loss=(recon_loss + KLD - ljm) / len_batch),
-            )
+                metrics=dict(kld_prior=KLD,
+                    recon_loss = recon_loss/len_batch, ljm=ljm / len_batch))
+    
+
+         
 
     def encode(
         self,

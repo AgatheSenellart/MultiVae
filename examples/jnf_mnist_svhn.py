@@ -8,7 +8,7 @@ from multivae.data.utils import set_inputs_to_device
 from multivae.models import JNF, JNFConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
 from multivae.models.nn.svhn import Decoder_VAE_SVHN, Encoder_VAE_SVHN
-from multivae.trainers import BaseTrainer, BaseTrainerConfig
+from multivae.trainers import JNFTrainer, JNFTrainerConfig
 from multivae.trainers.base.callbacks import (
     ProgressBarCallback,
     TrainingCallback,
@@ -24,7 +24,7 @@ model_config = JNFConfig(
     n_modalities=2,
     input_dims=dict(mnist=(1, 28, 28), svhn=(3, 32, 32)),
     latent_dim=20,
-    warmup=100,
+    warmup=30,
     use_likelihood_rescaling=True
 )
 
@@ -40,7 +40,7 @@ decoders = dict(
 
 model = JNF(model_config, encoders, decoders)
 
-trainer_config = BaseTrainerConfig(num_epochs=200, learning_rate=1e-3, steps_predict=5)
+trainer_config = JNFTrainerConfig(num_epochs=60, learning_rate=1e-3, steps_predict=1)
 
 # Set up callbacks
 wandb_cb = WandbCallback()
@@ -48,7 +48,7 @@ wandb_cb.setup(trainer_config, project_name="package")
 
 callbacks = [TrainingCallback(), ProgressBarCallback(), wandb_cb]
 
-trainer = BaseTrainer(
+trainer = JNFTrainer(
     model,
     train_dataset=train_data,
     eval_dataset=eval_data,
