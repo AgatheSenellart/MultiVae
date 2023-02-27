@@ -15,7 +15,7 @@ class BaseMultiVAEConfig(BaseConfig):
         uses_likelihood_rescaling: To mitigate modality collapse, it is possible to use likelihood rescaling.
             (see : https://proceedings.mlr.press/v162/javaloy22a.html).
             The inputs_dim must be provided to compute the likelihoods rescalings. It is used in a number of models
-            which is why we include it here. 
+            which is why we include it here.
     """
 
     n_modalities: Union[int, None] = None
@@ -24,7 +24,6 @@ class BaseMultiVAEConfig(BaseConfig):
     uses_default_encoders: bool = False
     uses_default_decoders: bool = False
     uses_likelihood_rescaling: bool = False
-    
 
 
 @dataclass

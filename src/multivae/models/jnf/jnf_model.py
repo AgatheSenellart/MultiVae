@@ -85,7 +85,7 @@ class JNF(BaseJointModel):
                     " class."
                 )
         return
-    
+
     def _set_torch_no_grad_on_joint_vae(self):
         # After the warmup, we freeze the architecture of the joint encoder and decoders
         self.joint_encoder.requires_grad_(False)
@@ -122,7 +122,7 @@ class JNF(BaseJointModel):
                 recon_loss=recon_loss / len_batch,
                 KLD=KLD / len_batch,
                 loss=-(recon_loss - KLD) / len_batch,
-                metrics=dict(kld_prior=KLD, recon_loss = recon_loss / len_batch,ljm=None),
+                metrics=dict(kld_prior=KLD, recon_loss=recon_loss / len_batch, ljm=0),
             )
 
         else:
@@ -148,11 +148,12 @@ class JNF(BaseJointModel):
                 KLD=KLD / len_batch,
                 loss=ljm / len_batch,
                 ljm=ljm / len_batch,
-                metrics=dict(kld_prior=KLD,
-                    recon_loss = recon_loss/len_batch, ljm=ljm / len_batch))
-    
-
-         
+                metrics=dict(
+                    kld_prior=KLD,
+                    recon_loss=recon_loss / len_batch,
+                    ljm=ljm / len_batch,
+                ),
+            )
 
     def encode(
         self,

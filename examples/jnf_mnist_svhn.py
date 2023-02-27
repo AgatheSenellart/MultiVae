@@ -25,7 +25,7 @@ model_config = JNFConfig(
     input_dims=dict(mnist=(1, 28, 28), svhn=(3, 32, 32)),
     latent_dim=20,
     warmup=30,
-    use_likelihood_rescaling=True
+    use_likelihood_rescaling=True,
 )
 
 encoders = dict(

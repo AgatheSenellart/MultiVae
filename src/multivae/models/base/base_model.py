@@ -6,8 +6,8 @@ from http.cookiejar import LoadError
 from typing import Union
 
 import cloudpickle
-import torch
 import numpy as np
+import torch
 import torch.nn as nn
 from pythae.models.base.base_utils import CPU_Unpickler, ModelOutput
 from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
@@ -73,7 +73,6 @@ class BaseMultiVAE(nn.Module):
         self.model_config = model_config
         self.device = None
 
-
         self.set_decoders(decoders)
         self.set_encoders(encoders)
 
@@ -85,7 +84,6 @@ class BaseMultiVAE(nn.Module):
                     f" does not match the modalities names in encoders : {list(self.encoders.keys())}"
                 )
 
-        
         self.use_likelihood_rescaling = model_config.uses_likelihood_rescaling
         if self.use_likelihood_rescaling:
             if self.input_dims is None:
