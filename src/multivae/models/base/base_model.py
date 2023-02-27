@@ -16,6 +16,7 @@ from ...data.datasets.base import MultimodalBaseDataset
 from ..auto_model import AutoConfig
 from ..nn.default_architectures import BaseDictDecoders, BaseDictEncoders
 from .base_config import BaseMultiVAEConfig, EnvironmentConfig
+from torch.nn.modules.loss import MSELoss, BCEWithLogitsLoss, L1Loss
 
 
 class BaseMultiVAE(nn.Module):
@@ -100,6 +101,27 @@ class BaseMultiVAE(nn.Module):
         else:
             self.rescale_factors = {k: 1 for k in self.encoders}
             # above, we take the modalities keys in self.encoders as input_dims may be None
+
+        # Set the reconstruction losses
+        if model_config.recon_losses is None:
+            model_config.recon_losses = {k: "mse" for k in self.encoders}
+        self.set_recon_losses(model_config.recon_losses)
+
+    def set_recon_losses(self, recon_dict):
+        self.recon_losses = {}
+        for k in recon_dict:
+            if recon_dict[k] == "mse":
+                self.recon_losses[k] = MSELoss(reduction="none")
+            elif recon_dict[k] == "bce":
+                self.recon_losses[k] = BCEWithLogitsLoss(reduction="none")
+            elif recon_dict[k] == "l1":
+                self.recon_losses[k] = L1Loss(reduction="none")
+            else:
+                raise AttributeError(
+                    'Reconstructions losses must be either "mse","bce" or "l1"'
+                )
+        # TODO : add the possibility to provide custom reconstruction loss function
+        return
 
     def sanity_check(self, encoders, decoders):
         if self.n_modalities != len(encoders.keys()):

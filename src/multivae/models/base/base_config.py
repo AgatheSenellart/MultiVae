@@ -16,7 +16,8 @@ class BaseMultiVAEConfig(BaseConfig):
             (see : https://proceedings.mlr.press/v162/javaloy22a.html).
             The inputs_dim must be provided to compute the likelihoods rescalings. It is used in a number of models
             which is why we include it here.
-        recon_losses (Dict[])
+        recon_losses (Dict[str, Union[function, str]]). The reconstruction loss to use per modality.
+            Per modality, you can provide a string in ['mse','bce','l1'].
     """
 
     n_modalities: Union[int, None] = None
@@ -26,6 +27,7 @@ class BaseMultiVAEConfig(BaseConfig):
     uses_default_decoders: bool = False
     uses_likelihood_rescaling: bool = False
     recon_losses: dict = None
+
 
 @dataclass
 class EnvironmentConfig(BaseConfig):

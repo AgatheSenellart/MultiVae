@@ -46,6 +46,10 @@ class AutoModel(nn.Module):
             from ..jnf import JNF
 
             model = JNF.load_from_folder(dir_path=dir_path)
+            
+        elif model_name == "MMVAEConfig":
+            from ..mmvae import MMVAE
+            model = MMVAE.load_from_folder(dir_path=dir_path)
 
         else:
             raise NameError(
