@@ -19,10 +19,10 @@ class JNFTrainer(BaseTrainer):
     ):
         super().__init__(model, train_dataset, eval_dataset, training_config, callbacks)
 
-    def prepare_train_step(self,epoch, best_train_loss, best_eval_loss):
-        """ 
+    def prepare_train_step(self, epoch, best_train_loss, best_eval_loss):
+        """
         Function to operate changes between train_steps such as resetting the optimizer and
-        the best losses values. 
+        the best losses values.
         """
         if epoch == self.model.warmup:
             # Reset the optimizer
@@ -30,4 +30,3 @@ class JNFTrainer(BaseTrainer):
             best_train_loss = 1e10
             best_eval_loss = 1e10
         return best_train_loss, best_eval_loss
-        
