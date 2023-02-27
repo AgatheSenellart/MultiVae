@@ -383,6 +383,13 @@ class BaseTrainer:
 
         # set callbacks
         self._setup_callbacks()
+    
+    def prepare_train_step(self,epoch, best_train_loss, best_eval_loss):
+        """ 
+        Function to operate changes between train_steps such as resetting the optimizer and
+        the best losses values. 
+        """
+        return best_train_loss, best_eval_loss
 
     def train(self, log_output_dir: str = None):
         """This function is the main training function
@@ -434,7 +441,9 @@ class BaseTrainer:
                 train_loader=self.train_loader,
                 eval_loader=self.eval_loader,
             )
-
+            best_train_loss, best_eval_loss = self.prepare_train_step(epoch, 
+                                                                      best_train_loss,
+                                                                      best_eval_loss)
             epoch_train_loss, epoch_metrics = self.train_step(epoch)
             metrics = {"train_" + k: epoch_metrics[k] for k in epoch_metrics}
             metrics["train_epoch_loss"] = epoch_train_loss
@@ -459,6 +468,8 @@ class BaseTrainer:
                 best_eval_loss = epoch_eval_loss
                 best_model = deepcopy(self.model)
                 self._best_model = best_model
+                logger.info("New best model saved!")
+
 
             elif (
                 epoch_train_loss < best_train_loss
