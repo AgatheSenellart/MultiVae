@@ -44,7 +44,7 @@ trainer_config = JNFTrainerConfig(num_epochs=60, learning_rate=1e-3, steps_predi
 
 # Set up callbacks
 wandb_cb = WandbCallback()
-wandb_cb.setup(trainer_config, project_name="package")
+wandb_cb.setup(trainer_config,model_config, project_name="package")
 
 callbacks = [TrainingCallback(), ProgressBarCallback(), wandb_cb]
 

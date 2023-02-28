@@ -81,11 +81,11 @@ class MMVAE(BaseMultiVAE):
             embeddings[cond_mod] = z_x
 
         # Compute DREG loss
-        output = self.dreg_looser(qz_xs, embeddings, reconstructions)
+        output = self.dreg_looser(qz_xs, embeddings, reconstructions, inputs)
         return output
     
     
-    def dreg_looser(self, qz_xs, embeddings, reconstructions):
+    def dreg_looser(self, qz_xs, embeddings, reconstructions, inputs):
         lw = []
         zss = []
         for mod in embeddings:
