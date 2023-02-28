@@ -38,6 +38,10 @@ class AutoConfig(BaseConfig):
             from ..mmvae import MMVAEConfig
 
             model_config = MMVAEConfig.from_json_file(json_path)
+        elif config_name == "TELBOConfig":
+            from ..telbo import TELBOConfig
+
+            model_config = TELBOConfig.from_json_file(json_path)
 
         else:
             raise NameError(
