@@ -79,7 +79,7 @@ class BaseMultiVAE(nn.Module):
         # Check that the modalities' name are coherent
         if self.input_dims is not None:
             if self.input_dims.keys() != self.encoders.keys():
-                print(
+                raise KeyError(
                     f"Warning! : The modalities names in model_config.input_dims : {list(self.input_dims.keys())}"
                     f" does not match the modalities names in encoders : {list(self.encoders.keys())}"
                 )

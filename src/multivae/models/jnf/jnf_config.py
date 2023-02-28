@@ -11,7 +11,7 @@ class JNFConfig(BaseJointModelConfig):
     This is the base config for the JNF model.
 
     Args :
-        warmup (int): The number of warmup epochs during training.
+        warmup (int): The number of warmup epochs during training. Default to 10. 
         use_default_flow (bool): If no flows are provided during the training, this variable becomes True
             and default MAF flows are used.
         use_likelihood_rescaling: To mitigate modality collapse, it is possible to use likelihood rescaling.
