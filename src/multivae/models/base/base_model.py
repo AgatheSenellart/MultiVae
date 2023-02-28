@@ -95,8 +95,9 @@ class BaseMultiVAE(nn.Module):
                     " Please provide a valid dictionary for input_dims."
                 )
             else:
+                max_dim = max(*[np.prod(self.input_dims[k]) for k in self.input_dims])
                 self.rescale_factors = {
-                    k: 1 / np.prod(self.input_dims[k]) for k in self.input_dims
+                    k: max_dim/np.prod(self.input_dims[k]) for k in self.input_dims
                 }
         else:
             self.rescale_factors = {k: 1 for k in self.encoders}
