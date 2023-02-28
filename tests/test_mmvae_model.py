@@ -421,8 +421,8 @@ class TestTraining:
         assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
         assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
 
-    # def test_compute_nll(self, model, input_dataset):
-    #     nll = model.compute_joint_nll(input_dataset, K=10, batch_size_K=2)
-    #     assert nll >= 0
-    #     assert type(nll) == torch.Tensor
-    #     assert nll.size() == torch.Size([])
+    def test_compute_nll(self, model, input_dataset):
+        nll = model.compute_joint_nll(input_dataset, K=10, batch_size_K=2)
+        assert nll >= 0
+        assert type(nll) == torch.Tensor
+        assert nll.size() == torch.Size([])

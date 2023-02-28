@@ -8,9 +8,11 @@ from typing import Union
 import cloudpickle
 import numpy as np
 import torch
+import torch.distributions as dist
 import torch.nn as nn
 from pythae.models.base.base_utils import CPU_Unpickler, ModelOutput
 from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
+from torch.nn import functional as F
 from torch.nn.modules.loss import BCEWithLogitsLoss, L1Loss, MSELoss
 
 from ...data.datasets.base import MultimodalBaseDataset
@@ -109,20 +111,35 @@ class BaseMultiVAE(nn.Module):
         self.set_recon_losses(model_config.recon_losses)
 
     def set_recon_losses(self, recon_dict):
-        self.recon_losses = {}
+        self.recon_losses = {}  # The loss between reconstruction and true data.
+        self.recon_log_probs = (
+            {}
+        )  # The log probability of true data given the reconstruction
+        # recon_log_probs is the normalized negative version of recon_loss and is used for
+        # likelihood estimation.
+
         for k in recon_dict:
             if recon_dict[k] == "mse":
+                self.recon_log_probs[k] = lambda input, target: dist.Normal(
+                    input, 1
+                ).log_prob(target)
                 self.recon_losses[k] = MSELoss(reduction="none")
             elif recon_dict[k] == "bce":
+                self.recon_log_probs[k] = lambda input, target: dist.Bernoulli(
+                    logits=input
+                ).log_prob(target)
                 self.recon_losses[k] = BCEWithLogitsLoss(reduction="none")
             elif recon_dict[k] == "l1":
+                self.recon_log_probs[k] = lambda input, target: dist.Laplace(
+                    input, 1
+                ).log_prob(target)
                 self.recon_losses[k] = L1Loss(reduction="none")
             else:
                 raise AttributeError(
                     'Reconstructions losses must be either "mse","bce" or "l1"'
                 )
-        # TODO : add the possibility to provide custom reconstruction loss function
-        return
+        # TODO : add the possibility to provide custom reconstruction loss and in that case use the negative
+        # reconstruction loss as the log probability.
 
     def sanity_check(self, encoders, decoders):
         if self.n_modalities != len(encoders.keys()):

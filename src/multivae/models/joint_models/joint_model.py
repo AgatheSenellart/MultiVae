@@ -97,17 +97,13 @@ class BaseJointModel(BaseMultiVAE):
                 lpx_zs = 0  # ln(p(x,y|z))
                 for mod in inputs.data:
                     decoder = self.decoders[mod]
-                    mu_recon = decoder(latents)[
+                    recon = decoder(latents)[
                         "reconstruction"
                     ]  # (batch_size_K, nb_channels, w, h)
                     x_m = inputs.data[mod][i]  # (nb_channels, w, h)
-                    # print(x_m.shape)
-                    # print(mus.shape)
-                    px_z = dist.Normal(mu_recon, 1)
 
-                    dim_reduce = tuple(range(1, len(mu_recon.shape)))
-                    # print(dim_reduce)
-                    lpx_zs += px_z.log_prob(x_m).sum(dim=dim_reduce)
+                    dim_reduce = tuple(range(1, len(recon.shape)))
+                    lpx_zs += self.recon_log_probs[mod](recon, x_m).sum(dim=dim_reduce)
 
                 # Compute ln(p(z))
                 prior = dist.Normal(0, 1)
