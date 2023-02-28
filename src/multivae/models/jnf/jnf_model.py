@@ -112,7 +112,7 @@ class JNF(BaseJointModel):
             recon_mod = self.decoders[mod](z_joint).reconstruction
             recon_loss += (
                 self.recon_losses[mod](recon_mod, x_mod) * self.rescale_factors[mod]
-            )
+            ).sum()
 
         # Compute the KLD to the prior
         KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
