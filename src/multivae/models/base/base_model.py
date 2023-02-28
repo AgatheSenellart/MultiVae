@@ -11,12 +11,12 @@ import torch
 import torch.nn as nn
 from pythae.models.base.base_utils import CPU_Unpickler, ModelOutput
 from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
+from torch.nn.modules.loss import BCEWithLogitsLoss, L1Loss, MSELoss
 
 from ...data.datasets.base import MultimodalBaseDataset
 from ..auto_model import AutoConfig
 from ..nn.default_architectures import BaseDictDecoders, BaseDictEncoders
 from .base_config import BaseMultiVAEConfig, EnvironmentConfig
-from torch.nn.modules.loss import MSELoss, BCEWithLogitsLoss, L1Loss
 
 
 class BaseMultiVAE(nn.Module):
@@ -97,7 +97,7 @@ class BaseMultiVAE(nn.Module):
             else:
                 max_dim = max(*[np.prod(self.input_dims[k]) for k in self.input_dims])
                 self.rescale_factors = {
-                    k: max_dim/np.prod(self.input_dims[k]) for k in self.input_dims
+                    k: max_dim / np.prod(self.input_dims[k]) for k in self.input_dims
                 }
         else:
             self.rescale_factors = {k: 1 for k in self.encoders}

@@ -25,7 +25,7 @@ model_config = MMVAEConfig(
     input_dims=dict(mnist=(1, 28, 28), svhn=(3, 32, 32)),
     latent_dim=20,
     use_likelihood_rescaling=True,
-    K=30
+    K=30,
 )
 
 encoders = dict(
@@ -40,8 +40,13 @@ decoders = dict(
 
 model = MMVAE(model_config, encoders, decoders)
 
-trainer_config = BaseTrainerConfig(num_epochs=60, learning_rate=1e-3, steps_predict=1,
-                                   per_device_train_batch_size = 64, per_device_eval_batch_size=64)
+trainer_config = BaseTrainerConfig(
+    num_epochs=60,
+    learning_rate=1e-3,
+    steps_predict=1,
+    per_device_train_batch_size=64,
+    per_device_eval_batch_size=64,
+)
 
 # Set up callbacks
 wandb_cb = WandbCallback()

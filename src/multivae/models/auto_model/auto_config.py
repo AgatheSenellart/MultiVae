@@ -33,10 +33,10 @@ class AutoConfig(BaseConfig):
             from ..jnf import JNFConfig
 
             model_config = JNFConfig.from_json_file(json_path)
-            
+
         elif config_name == "MMVAEConfig":
             from ..mmvae import MMVAEConfig
-            
+
             model_config = MMVAEConfig.from_json_file(json_path)
 
         else:

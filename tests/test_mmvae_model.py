@@ -16,9 +16,9 @@ from torch import nn
 
 from multivae.data.datasets.base import MultimodalBaseDataset
 from multivae.data.utils import set_inputs_to_device
-from multivae.models import MMVAEConfig, AutoModel, MMVAE
+from multivae.models import MMVAE, AutoModel, MMVAEConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP
-from multivae.trainers import BaseTrainerConfig, BaseTrainer
+from multivae.trainers import BaseTrainer, BaseTrainerConfig
 
 
 class Test:
@@ -43,7 +43,6 @@ class Test:
 
         decoders = dict(mod1=Decoder_AE_MLP(config1), mod2=Decoder_AE_MLP(config2))
 
-        
         return dict(
             encoders=encoders,
             decoders=decoders,
@@ -78,7 +77,6 @@ class Test:
         assert loss.size() == torch.Size([])
         assert loss.requires_grad
 
-       
         # Try encoding and prediction
 
         outputs = model.encode(dataset)
@@ -143,8 +141,6 @@ class TestTraining:
         encoders = dict(mod1=Encoder_VAE_MLP(config1), mod2=Encoder_VAE_MLP(config2))
         decoders = dict(mod1=Decoder_AE_MLP(config1), mod2=Decoder_AE_MLP(config2))
 
-
-
         return dict(encoders=encoders, decoders=decoders)
 
     @pytest.fixture(
@@ -207,7 +203,6 @@ class TestTraining:
             ]
         )
         assert trainer.optimizer == start_optimizer
-        
 
     def test_eval_step(self, trainer):
         start_model_state_dict = deepcopy(trainer.model.state_dict())

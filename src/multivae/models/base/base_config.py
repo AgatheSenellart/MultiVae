@@ -1,4 +1,4 @@
-from typing import Tuple, Union, Dict
+from typing import Dict, Tuple, Union
 
 from pydantic.dataclasses import dataclass
 from pythae.config import BaseConfig

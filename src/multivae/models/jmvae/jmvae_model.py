@@ -128,7 +128,9 @@ class JMVAE(BaseJointModel):
             x_mod = inputs.data[mod]
             len_batch = len(x_mod)
             recon_mod = self.decoders[mod](z_joint).reconstruction
-            recon_loss += self.recon_losses[mod](recon_mod,x_mod)*self.rescale_factors[mod]
+            recon_loss += (
+                self.recon_losses[mod](recon_mod, x_mod) * self.rescale_factors[mod]
+            )
 
         # Compute the KLD to the prior
         KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
@@ -160,6 +162,6 @@ class JMVAE(BaseJointModel):
 
         metrics = dict(loss_no_ponderation=reg_loss - recon_loss, beta=beta)
 
-        output = ModelOutput(loss= loss, metrics=metrics)
+        output = ModelOutput(loss=loss, metrics=metrics)
 
         return output
