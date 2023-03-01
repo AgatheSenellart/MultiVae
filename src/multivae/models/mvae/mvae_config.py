@@ -11,6 +11,6 @@ class MVAEConfig(BaseMultiVAEConfig):
         k (int) : The number of subsets in the objective. Default to 1.
     
     """
-    k:int=1
+    k:int=0
     
     

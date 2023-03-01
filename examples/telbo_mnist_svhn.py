@@ -24,7 +24,7 @@ model_config = TELBOConfig(
     n_modalities=2,
     input_dims=dict(mnist=(1, 28, 28), svhn=(3, 32, 32)),
     latent_dim=20,
-    warmup=5,
+    warmup=30,
     use_likelihood_rescaling=True,
 )
 
@@ -41,7 +41,7 @@ decoders = dict(
 model = TELBO(model_config, encoders, decoders)
 
 trainer_config = TwoStepsTrainerConfig(
-    num_epochs=10, learning_rate=1e-3, steps_predict=1
+    num_epochs=60, learning_rate=1e-3, steps_predict=1
 )
 
 # Set up callbacks

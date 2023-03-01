@@ -58,6 +58,11 @@ class BaseMultiVAE(nn.Module):
                     "Please provide encoders or input dims for the modalities in the model_config."
                 )
             else:
+                if len(self.input_dims.keys()) != self.n_modalities:
+                    raise AttributeError(
+                f"The provided number of input_dims {len(self.input_dims.keys())} doesn't"
+                f"match the number of modalities ({self.n_modalities} in model config "
+            )
                 encoders = BaseDictEncoders(self.input_dims, model_config.latent_dim)
                 self.model_config.uses_default_encoders = True
 
@@ -67,6 +72,11 @@ class BaseMultiVAE(nn.Module):
                     "Please provide decoders or input dims for the modalities in the model_config."
                 )
             else:
+                if len(self.input_dims.keys()) != self.n_modalities:
+                    raise AttributeError(
+                f"The provided number of input_dims {len(self.input_dims.keys())} doesn't"
+                f"match the number of modalities ({self.n_modalities} in model config "
+            )
                 decoders = BaseDictDecoders(self.input_dims, model_config.latent_dim)
                 self.model_config.uses_default_decoders = True
 

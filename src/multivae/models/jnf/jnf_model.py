@@ -121,7 +121,7 @@ class JNF(BaseJointModel):
             return ModelOutput(
                 recon_loss=recon_loss / len_batch,
                 KLD=KLD / len_batch,
-                loss=recon_loss + KLD / len_batch,
+                loss=(recon_loss + KLD) / len_batch,
                 metrics=dict(kld_prior=KLD, recon_loss=recon_loss / len_batch, ljm=0),
             )
 
