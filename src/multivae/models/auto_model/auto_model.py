@@ -55,6 +55,11 @@ class AutoModel(nn.Module):
             from ..telbo import TELBO
 
             model = TELBO.load_from_folder(dir_path)
+        
+        elif model_name == 'MVAEConfig':
+            from ..mvae import MVAE
+            
+            model=MVAE.load_from_folder(dir_path)
 
         else:
             raise NameError(

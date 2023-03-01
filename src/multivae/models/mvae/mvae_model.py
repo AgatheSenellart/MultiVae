@@ -21,6 +21,7 @@ class MVAE(BaseMultiVAE):
         if self.n_modalities <=2:
             self.k = 0
         self.set_subsets()
+        self.model_name = 'MVAE'
         
     
     def set_subsets(self):
