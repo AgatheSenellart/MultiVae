@@ -1,11 +1,13 @@
 from copy import deepcopy
+from typing import List
 
 import numpy as np
 import torch
 from pythae.models.base import BaseAEConfig
+from pythae.models.base.base_model import BaseDecoder
 from pythae.models.base.base_utils import ModelOutput
 from pythae.models.nn.base_architectures import BaseEncoder
-from pythae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
+from pythae.models.nn.default_architectures import Encoder_VAE_MLP
 from torch import nn
 
 
@@ -23,6 +25,58 @@ def BaseDictDecoders(input_dims: dict, latent_dim: int):
         config = BaseAEConfig(input_dim=input_dims[mod], latent_dim=latent_dim)
         decoders[mod] = Decoder_AE_MLP(config)
     return decoders
+
+
+class Decoder_AE_MLP(BaseDecoder):
+    # The same as in Pythae but allows for any input shape (*, latent_dim) with * containing any number of dimensions.
+    def __init__(self, args: dict):
+        BaseDecoder.__init__(self)
+
+        self.input_dim = args.input_dim
+
+        layers = nn.ModuleList()
+
+        layers.append(nn.Sequential(nn.Linear(args.latent_dim, 512), nn.ReLU()))
+
+        layers.append(
+            nn.Sequential(nn.Linear(512, int(np.prod(args.input_dim))), nn.Sigmoid())
+        )
+
+        self.layers = layers
+        self.depth = len(layers)
+
+    def forward(self, z: torch.Tensor, output_layer_levels: List[int] = None):
+        output = ModelOutput()
+
+        max_depth = self.depth
+
+        if output_layer_levels is not None:
+            assert all(
+                self.depth >= levels > 0 or levels == -1
+                for levels in output_layer_levels
+            ), (
+                f"Cannot output layer deeper than depth ({self.depth}). "
+                f"Got ({output_layer_levels})."
+            )
+
+            if -1 in output_layer_levels:
+                max_depth = self.depth
+            else:
+                max_depth = max(output_layer_levels)
+
+        out = z
+
+        for i in range(max_depth):
+            out = self.layers[i](out)
+
+            if output_layer_levels is not None:
+                if i + 1 in output_layer_levels:
+                    output[f"reconstruction_layer_{i+1}"] = out
+            if i + 1 == self.depth:
+                output_shape = (*z.shape[:-1],) + self.input_dim
+                output["reconstruction"] = out.reshape(output_shape)
+
+        return output
 
 
 class MultipleHeadJointEncoder(BaseEncoder):

@@ -1,9 +1,12 @@
 import inspect
 import os
+import sys
 from copy import deepcopy
+from http.cookiejar import LoadError
 from typing import Union
 
 import cloudpickle
+import numpy as np
 import torch
 import torch.nn as nn
 from pythae.models.base.base_utils import CPU_Unpickler, ModelOutput
@@ -12,7 +15,7 @@ from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
 from ...data.datasets.base import MultimodalBaseDataset
 from ..auto_model import AutoConfig
 from ..nn.default_architectures import BaseDictDecoders, BaseDictEncoders
-from .base_config import BaseMultiVAEConfig
+from .base_config import BaseMultiVAEConfig, EnvironmentConfig
 
 
 class BaseMultiVAE(nn.Module):
@@ -43,8 +46,6 @@ class BaseMultiVAE(nn.Module):
         self.model_config = model_config
         self.n_modalities = model_config.n_modalities
         self.input_dims = model_config.input_dims
-        self.model_config.uses_default_encoders = False
-        self.model_config.uses_default_decoders = False
 
         if encoders is None:
             if self.input_dims is None:
@@ -53,7 +54,8 @@ class BaseMultiVAE(nn.Module):
                 )
             else:
                 encoders = BaseDictEncoders(self.input_dims, model_config.latent_dim)
-                self.model_config.uses_default_encoders = True
+        else:
+            self.model_config.uses_default_encoders = False
 
         if decoders is None:
             if self.input_dims is None:
@@ -62,17 +64,42 @@ class BaseMultiVAE(nn.Module):
                 )
             else:
                 decoders = BaseDictDecoders(self.input_dims, model_config.latent_dim)
-                self.model_config.uses_default_decoders = True
+        else:
+            self.model_config.uses_default_decoders = False
 
         self.sanity_check(encoders, decoders)
 
         self.latent_dim = model_config.latent_dim
         self.model_config = model_config
+        self.device = None
 
         self.set_decoders(decoders)
         self.set_encoders(encoders)
 
-        self.device = None
+        # Check that the modalities' name are coherent
+        if self.input_dims is not None:
+            if self.input_dims.keys() != self.encoders.keys():
+                raise KeyError(
+                    f"Warning! : The modalities names in model_config.input_dims : {list(self.input_dims.keys())}"
+                    f" does not match the modalities names in encoders : {list(self.encoders.keys())}"
+                )
+
+        self.use_likelihood_rescaling = model_config.uses_likelihood_rescaling
+        if self.use_likelihood_rescaling:
+            if self.input_dims is None:
+                raise AttributeError(
+                    " inputs_dim = None but (use_likelihood_rescaling = True"
+                    " in model_config)"
+                    " To compute likelihood rescalings we need the input dimensions."
+                    " Please provide a valid dictionary for input_dims."
+                )
+            else:
+                self.rescale_factors = {
+                    k: 1 / np.prod(self.input_dims[k]) for k in self.input_dims
+                }
+        else:
+            self.rescale_factors = {k: 1 for k in self.encoders}
+            # above, we take the modalities keys in self.encoders as input_dims may be None
 
     def sanity_check(self, encoders, decoders):
         if self.n_modalities != len(encoders.keys()):
@@ -161,10 +188,11 @@ class BaseMultiVAE(nn.Module):
         """
         self.eval()
         N = kwargs.pop("N", 1)
-        z = self.encode(inputs, cond_mod, N=N, **kwargs)
-        if N > 1:
-            l, _, d = z.shape
-            z = z.resize(l * N, d)
+        flatten = kwargs.pop(
+            "flatten", False
+        )  # If flatten and N>1, the encodings have the shape (Nxn_data, latent_dim)
+        # instead of (N, n_data, latent_dim)
+        z = self.encode(inputs, cond_mod, N=N, flatten=flatten, **kwargs)
         return self.decode(z, gen_mod)
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
@@ -313,13 +341,13 @@ class BaseMultiVAE(nn.Module):
 
         if "encoders.pkl" not in file_list:
             raise FileNotFoundError(
-                f"Missing encoder pkl file ('encoder.pkl') in"
+                f"Missing encoder pkl file ('encoders.pkl') in"
                 f"{dir_path}... This file is needed to rebuild custom encoders."
                 " Cannot perform model building."
             )
 
         else:
-            with open(os.path.join(dir_path, "encoder.pkl"), "rb") as fp:
+            with open(os.path.join(dir_path, "encoders.pkl"), "rb") as fp:
                 encoder = CPU_Unpickler(fp).load()
 
         return encoder
@@ -331,13 +359,13 @@ class BaseMultiVAE(nn.Module):
 
         if "decoders.pkl" not in file_list:
             raise FileNotFoundError(
-                f"Missing decoder pkl file ('decoder.pkl') in"
+                f"Missing decoder pkl file ('decoders.pkl') in"
                 f"{dir_path}... This file is needed to rebuild custom decoders."
                 " Cannot perform model building."
             )
 
         else:
-            with open(os.path.join(dir_path, "decoder.pkl"), "rb") as fp:
+            with open(os.path.join(dir_path, "decoders.pkl"), "rb") as fp:
                 decoder = CPU_Unpickler(fp).load()
 
         return decoder
@@ -379,3 +407,24 @@ class BaseMultiVAE(nn.Module):
         model.load_state_dict(model_weights)
 
         return model
+
+    @classmethod
+    def _check_python_version_from_folder(cls, dir_path: str):
+        if "environment.json" in os.listdir(dir_path):
+            env_spec = EnvironmentConfig.from_json_file(
+                os.path.join(dir_path, "environment.json")
+            )
+            python_version = env_spec.python_version
+            python_version_minor = python_version.split(".")[1]
+
+            if python_version_minor == "7" and sys.version_info[1] > 7:
+                raise LoadError(
+                    "Trying to reload a model saved with python3.7 with python3.8+. "
+                    "Please create a virtual env with python 3.7 to reload this model."
+                )
+
+            elif int(python_version_minor) >= 8 and sys.version_info[1] == 7:
+                raise LoadError(
+                    "Trying to reload a model saved with python3.8+ with python3.7. "
+                    "Please create a virtual env with python 3.8+ to reload this model."
+                )

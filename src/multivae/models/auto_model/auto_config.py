@@ -29,6 +29,11 @@ class AutoConfig(BaseConfig):
 
             model_config = JMVAEConfig.from_json_file(json_path)
 
+        elif config_name == "JNFConfig":
+            from ..jnf import JNFConfig
+
+            model_config = JNFConfig.from_json_file(json_path)
+
         else:
             raise NameError(
                 "Cannot reload automatically the model configuration... "

@@ -7,10 +7,11 @@ from pythae.models.nn.benchmarks.mnist.convnets import (
     Decoder_Conv_AE_MNIST,
     Encoder_Conv_VAE_MNIST,
 )
-from pythae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
+from pythae.models.nn.default_architectures import Encoder_VAE_MLP
 
 from multivae.data import MultimodalBaseDataset
 from multivae.models import JMVAE, JMVAEConfig
+from multivae.models.nn.default_architectures import Decoder_AE_MLP
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 
 PATH = os.path.dirname(os.path.abspath(__file__))

@@ -52,7 +52,7 @@ class JMVAE(BaseJointModel):
             AttributeError: _description_
 
         Returns:
-            torch.FloatTensor: the latent variables.
+            ModelOutput: Containing z the latent variables.
         """
         self.eval()
 
@@ -64,6 +64,9 @@ class JMVAE(BaseJointModel):
             z = dist.Normal(
                 output.embedding, torch.exp(0.5 * output.log_covariance)
             ).rsample(sample_shape)
+            if N > 1 and kwargs.pop("flatten", False):
+                N, l, d = z.shape
+                z = z.reshape(l * N, d)
             return ModelOutput(z=z, one_latent_space=True)
 
         if type(cond_mod) == list and len(cond_mod) != 1:
@@ -80,7 +83,12 @@ class JMVAE(BaseJointModel):
 
             z = dist.Normal(
                 output.embedding, torch.exp(0.5 * output.log_covariance)
-            ).rsample(sample_shape)
+            ).rsample(
+                sample_shape
+            )  # shape N x len_data x latent_dim
+            if N > 1 and kwargs.pop("flatten", False):
+                N, l, d = z.shape
+                z = z.reshape(l * N, d)
             return ModelOutput(z=z, one_latent_space=True)
         else:
             raise AttributeError(
