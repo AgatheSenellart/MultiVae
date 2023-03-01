@@ -1,4 +1,4 @@
-from .jnf_trainer import TwoStepsTrainer
-from .jnf_trainer_config import TwoStepsTrainerConfig
+from .jnf_trainer import JNFTrainer
+from .jnf_trainer_config import JNFTrainerConfig
 
-__all__ = ["TwoStepsTrainer", "TwoStepsTrainerConfig"]
+__all__ = ["JNFTrainer", "JNFTrainerConfig"]
