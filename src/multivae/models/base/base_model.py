@@ -49,8 +49,6 @@ class BaseMultiVAE(nn.Module):
         self.model_config = model_config
         self.n_modalities = model_config.n_modalities
         self.input_dims = model_config.input_dims
-        self.model_config.uses_default_encoders = False
-        self.model_config.uses_default_decoders = False
 
         if encoders is None:
             if self.input_dims is None:
@@ -60,11 +58,12 @@ class BaseMultiVAE(nn.Module):
             else:
                 if len(self.input_dims.keys()) != self.n_modalities:
                     raise AttributeError(
-                f"The provided number of input_dims {len(self.input_dims.keys())} doesn't"
-                f"match the number of modalities ({self.n_modalities} in model config "
-            )
+                        f"The provided number of input_dims {len(self.input_dims.keys())} doesn't"
+                        f"match the number of modalities ({self.n_modalities} in model config "
+                    )
                 encoders = BaseDictEncoders(self.input_dims, model_config.latent_dim)
-                self.model_config.uses_default_encoders = True
+        else:
+            self.model_config.uses_default_encoders = False
 
         if decoders is None:
             if self.input_dims is None:
@@ -74,11 +73,12 @@ class BaseMultiVAE(nn.Module):
             else:
                 if len(self.input_dims.keys()) != self.n_modalities:
                     raise AttributeError(
-                f"The provided number of input_dims {len(self.input_dims.keys())} doesn't"
-                f"match the number of modalities ({self.n_modalities} in model config "
-            )
+                        f"The provided number of input_dims {len(self.input_dims.keys())} doesn't"
+                        f"match the number of modalities ({self.n_modalities} in model config "
+                    )
                 decoders = BaseDictDecoders(self.input_dims, model_config.latent_dim)
-                self.model_config.uses_default_decoders = True
+        else:
+            self.model_config.uses_default_decoders = False
 
         self.sanity_check(encoders, decoders)
 
@@ -92,7 +92,7 @@ class BaseMultiVAE(nn.Module):
         # Check that the modalities' name are coherent
         if self.input_dims is not None:
             if self.input_dims.keys() != self.encoders.keys():
-                print(
+                raise KeyError(
                     f"Warning! : The modalities names in model_config.input_dims : {list(self.input_dims.keys())}"
                     f" does not match the modalities names in encoders : {list(self.encoders.keys())}"
                 )

@@ -52,9 +52,10 @@ class JNF(BaseJointModel):
 
         if flows is None:
             flows = dict()
-            self.model_config.use_default_flow = True
             for modality in self.encoders:
                 flows[modality] = MAF(MAFConfig(input_dim=(model_config.latent_dim,)))
+        else:
+            self.model_config.use_default_flow = False
 
         self.set_flows(flows)
 
