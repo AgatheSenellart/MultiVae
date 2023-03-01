@@ -21,8 +21,8 @@ class BaseMultiVAEConfig(BaseConfig):
     n_modalities: Union[int, None] = None
     latent_dim: int = 10
     input_dims: dict = None
-    uses_default_encoders: bool = False
-    uses_default_decoders: bool = False
+    uses_default_encoders: bool = True
+    uses_default_decoders: bool = True
     uses_likelihood_rescaling: bool = False
 
 

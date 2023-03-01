@@ -46,8 +46,6 @@ class BaseMultiVAE(nn.Module):
         self.model_config = model_config
         self.n_modalities = model_config.n_modalities
         self.input_dims = model_config.input_dims
-        self.model_config.uses_default_encoders = False
-        self.model_config.uses_default_decoders = False
 
         if encoders is None:
             if self.input_dims is None:
@@ -56,7 +54,8 @@ class BaseMultiVAE(nn.Module):
                 )
             else:
                 encoders = BaseDictEncoders(self.input_dims, model_config.latent_dim)
-                self.model_config.uses_default_encoders = True
+        else:
+            self.model_config.uses_default_encoders = False
 
         if decoders is None:
             if self.input_dims is None:
@@ -65,7 +64,8 @@ class BaseMultiVAE(nn.Module):
                 )
             else:
                 decoders = BaseDictDecoders(self.input_dims, model_config.latent_dim)
-                self.model_config.uses_default_decoders = True
+        else:
+            self.model_config.uses_default_decoders = False
 
         self.sanity_check(encoders, decoders)
 
