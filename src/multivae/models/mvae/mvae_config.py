@@ -13,13 +13,12 @@ class MVAEConfig(BaseMultiVAEConfig):
     Args :
         k (int) : The number of subsets to use in the objective. The MVAE objective is the sum
             of the unimodal ELBOs, the joint ELBO and of k random subset ELBOs. Default to 1.
-        warmup (int) : If warmup > 0, the MVAE model uses annealing during the first warmup epochs. 
+        warmup (int) : If warmup > 0, the MVAE model uses annealing during the first warmup epochs.
             In the objective, the KL terms are weighted by a factor beta that is linearly brought
-            to 1 during the first warmup epochs. Default to 10. 
+            to 1 during the first warmup epochs. Default to 10.
 
 
     """
 
     k: int = 0
-    warmup : int = 10
-   
+    warmup: int = 10

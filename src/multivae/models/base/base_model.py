@@ -121,12 +121,13 @@ class BaseMultiVAE(nn.Module):
         self.set_recon_losses(model_config.recon_losses)
 
     def set_recon_losses(self, recon_dict):
-        self.recon_losses = {}  # The loss between reconstruction and true data.
-        self.recon_log_probs = (
-            {}
-        )  # The log probability of true data given the reconstruction
-        # recon_log_probs is the normalized negative version of recon_loss and is used for
-        # likelihood estimation.
+        """Set the reconstruction losses functions recon_losses
+        and the log_probabilites functions recon_log_probs.
+        recon_log_probs is the normalized negative version of recon_loss and is used only for
+        likelihood estimation.
+        """
+        self.recon_losses = {}
+        self.recon_log_probs = {}
 
         for k in recon_dict:
             if recon_dict[k] == "mse":

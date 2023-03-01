@@ -1,4 +1,5 @@
 from ..base import BaseMultiVAEConfig
+from typing import Literal
 
 
 class MMVAEConfig(BaseMultiVAEConfig):
@@ -23,5 +24,7 @@ class MMVAEConfig(BaseMultiVAEConfig):
     """
 
     K: int = 10
-    prior_and_posterior_dist = "laplace_with_softmax"
-    learn_prior = True
+    prior_and_posterior_dist: Literal[
+        "laplace_with_softmax", "normal"
+    ] = "laplace_with_softmax"
+    learn_prior: bool = True

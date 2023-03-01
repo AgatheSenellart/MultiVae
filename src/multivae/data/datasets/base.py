@@ -53,14 +53,21 @@ class MultimodalBaseDataset(Dataset):
 class IncompleteDataset(Dataset):
     """This class is the Base class for datasets with incomplete data.
     We add a field masks to indicate which data samples are available.
+    This is used with models compatible with weakly supervised learning such as
+    the MVAE.
 
         A ``__getitem__`` is redefined and outputs a python dictionnary
     with the keys corresponding to `data` and `labels`.
     This Class should be used for any new data sets.
 
     Args :
-        data (dict) : A dictionary containing the modalities' name and a tensor or numpy array for each modality.
+        data (dict[str, tensor]) : A dictionary containing the modalities' name and a tensor or numpy array for each modality.
+        masks (dict[str,tensor]) : A dictionary containing the modalities'name and a boolean tensor of the same lenght
+            as the data tensor in the data dictionary. For each modality, the mask tensor indicates if a sample
+            is available. The unavailable samples are assumed to have been filled by random/or zeros values in
+            the data dictionary.
         labels (Union[Tensor, ndarray]) : A torch.Tensor or numpy.ndarray instance containing the labels.
+
     """
 
     def __init__(self, data: dict, masks: dict, labels: Tensor = None) -> None:
