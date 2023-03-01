@@ -51,6 +51,11 @@ class MMVAE(BaseMultiVAE):
         self.model_name = "MMVAE"
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs):
+        
+        # TODO : maybe implement a minibatch strategy for stashing the gradients before
+        # backpropagation when using a large number k. 
+        # Also, I've only implemented the dreg_looser loss but it may be nice to offer other options. 
+        
         # First compute all the encodings for all modalities
         embeddings = {}
         qz_xs = {}
