@@ -65,12 +65,15 @@ class MVAE(BaseMultiVAE):
         unimodal_elbos = {}
         mus = {}
         log_vars = {}
+        mus_list, log_vars_list = [], []
         for mod in self.encoders:
             output_mod = self.encoders[mod](inputs.data[mod])
             mu_mod, log_var_mod = output_mod.mu, output_mod.log_var
             sigma_mod = torch.exp(0.5*log_var_mod)
             mus[mod] = mu_mod
             log_vars[mod] = log_var_mod
+            mus_list.append(mu_mod)
+            log_vars_list.append(log_vars_list)
             
             z_mod = dist.Normal(mu_mod, sigma_mod).rsample()
             
@@ -81,7 +84,27 @@ class MVAE(BaseMultiVAE):
             total_loss += recon_loss + kld_mod
             
         # Compute the joint elbo
-        joint_mu, joint_log_var = self.poe(zip())
+        joint_mu, joint_log_var = self.poe(mus_list, log_vars_list)
+        joint_sigma = torch.exp(0.5*joint_log_var)
+        z_joint = dist.Normal(joint_mu, joint_sigma).rsample()
+        recons = {mod :self.decoders[mod](z_joint).reconstruction for mod in self.decoders}
+        recons_losses = [self.recon_losses[mod](recons[mod],inputs.data[mod]) for mod in recons]
+        joint_recon_loss = torch.stack(recons_losses).sum()
+        # joint kl
+        kld_joint = self.kl_prior(joint_mu, joint_sigma)
+        
+        total_loss += joint_recon_loss + kld_joint
+        
+        # Compute the elbos for k random subsets. 
+        k_subsets = choice(self.subsets, size=k, replace=False)
+        for sub in k_subsets:
+            mus_sub = []
+            log_vars_sub = []
+            for mod in self.encoders:
+                if mod in sub: 
+                    mus_sub.append(mus[mod])
+                    log_vars_sub.append(log_vars[mod])
+            sub_mu, sub_joi
             
 
     
