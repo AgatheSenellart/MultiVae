@@ -25,6 +25,7 @@ class MVAE(BaseMultiVAE):
         if self.n_modalities <= 2:
             self.k = 0
         self.set_subsets()
+        self.warmup = model_config.warmup
         self.model_name = "MVAE"
 
     def set_subsets(self):
@@ -62,7 +63,7 @@ class MVAE(BaseMultiVAE):
         sub_mu, sub_log_var = self.poe(mus_sub, log_vars_sub)
         return sub_mu, sub_log_var
 
-    def _compute_elbo_subset(self, data: dict, subset: list):
+    def _compute_elbo_subset(self, data: dict, subset: list, beta: float):
         len_batch = 0
         sub_mu, sub_log_var = self._compute_mu_logvar_subset(data, subset)
         z = dist.Normal(sub_mu, torch.exp(0.5 * sub_log_var)).rsample()
@@ -72,7 +73,7 @@ class MVAE(BaseMultiVAE):
                 len_batch = len(data[mod])
                 recon = self.decoders[mod](z).reconstruction
                 elbo_sub += self.recon_losses[mod](recon, data[mod]).sum()
-        elbo_sub += self.kl_prior(sub_mu, torch.exp(0.5 * sub_log_var))
+        elbo_sub += self.kl_prior(sub_mu, torch.exp(0.5 * sub_log_var)) * beta
         return elbo_sub / len_batch
 
     def _filter_inputs_with_masks(
@@ -107,6 +108,12 @@ class MVAE(BaseMultiVAE):
                 available samples are assumed to be replaced with zero values in the multimodal dataset entry.)
         """
 
+        epoch = kwargs.pop("epoch", 1)
+        if epoch >= self.warmup:
+            beta = 1
+        else:
+            beta = epoch / self.warmup
+
         total_loss = 0
         # Collect all the subsets
         # Add the unimodal subset
@@ -126,7 +133,7 @@ class MVAE(BaseMultiVAE):
                 filtered_inputs, filter = self._filter_inputs_with_masks(inputs, s)
             else:
                 filtered_inputs = inputs.data
-            total_loss += self._compute_elbo_subset(filtered_inputs, s)
+            total_loss += self._compute_elbo_subset(filtered_inputs, s, beta)
 
         return ModelOutput(loss=total_loss, metrics=dict())
 

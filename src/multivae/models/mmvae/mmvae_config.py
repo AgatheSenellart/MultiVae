@@ -4,14 +4,22 @@ from ..base import BaseMultiVAEConfig
 class MMVAEConfig(BaseMultiVAEConfig):
 
     """
+    This class is the configuration class for the MMVAE model, from
+    (Variational Mixture-of-Experts Autoencoders
+    for Multi-Modal Deep Generative Models, Shi et al 2019,
+    https://proceedings.neurips.cc/paper/2019/hash/0ae775a8cb3b499ad1fca944e6f5c836-Abstract.html)
+
 
     Args :
         K (int) : the number of samples to use in the DreG loss. Default to 1.
         use_likelihood_rescaling (bool) : Use likelihood rescaling to mitigate modality collapse.
             Default to True.
-        posterior_dist : (str) Default to 'laplace with softmax' the posterior distribution that is used in
-            the original paper. Possible values ['laplace_with_softmax','normal']
-
+        prior_and_posterior_dist (str) : The type of distribution to use for posterior and prior.
+            Possible values ['laplace_with_softmax','normal'].
+            Default to 'laplace_with_softmax' the posterior distribution that is used in
+            the original paper.
+        learn_prior (bool) : If True, the mean and variance of the prior are optimized during the
+            training. Default to True.
     """
 
     K: int = 10

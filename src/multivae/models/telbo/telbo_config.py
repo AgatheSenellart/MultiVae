@@ -5,11 +5,16 @@ from ..joint_models import BaseJointModelConfig
 
 @dataclass
 class TELBOConfig(BaseJointModelConfig):
-    """The TELBO (for Triple Elbo) is a joint model which uses a two-steps training.
+    """
+    Configuration class for the TELBO model from (arXiv:1705.10762 [cs, stat])
+    "Generative Models of Visually Grounded Imagination" (Vedantam et al,2018).
+
 
     Args:
-        warmup (int): How many epochs to train the joint encoder and decoders.
-        lambda_factors (dict[str,float]) : Ponderation factors for the reconstructions in the joint elbo.
+        warmup (int): How many epochs to train the joint encoder and decoders before freezing them
+            and learn the unimodal encoders. It is recommended to use half of the
+            total training time for the first step. Default to 10.
+        lambda_factors (dict[str,float]) : Ponderation factors for the reconstructions in the Joint Elbo.
             If None is provided but uses_likelihood_rescaling is True, we use the inverse product of
             dimensions as a rescaling factor for each modality. If None is provided and uses_likelihood_rescaling
             is False, each factor is set to one. Default to None.
@@ -18,7 +23,7 @@ class TELBOConfig(BaseJointModelConfig):
             dimensions as a rescaling factor for each modality. If None is provided and uses_likelihood_rescaling
             is False, each factor is set to one. Default to None.
         uses_likelihood_rescaling (bool) : Indicates how to set lambda or gamma factors when None are provided.
-            Default to True. Ignored when lambda_factors and gamma_factors are provided.
+            Ignored when lambda_factors and gamma_factors are provided. Default to True.
     """
 
     warmup: int = 10

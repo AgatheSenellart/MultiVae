@@ -60,7 +60,8 @@ class TELBO(BaseJointModel):
             self.gamma_factors = model_config.gamma_factors
 
     def _set_torch_no_grad_on_joint_vae(self):
-        # After the warmup, we freeze the architecture of the joint encoder and decoders
+        """Function used to freeze the parameters of the joint
+        encoder and decoders after the warmup."""
         self.joint_encoder.requires_grad_(False)
         self.decoders.requires_grad_(False)
 

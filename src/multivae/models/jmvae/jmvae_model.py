@@ -156,7 +156,10 @@ class JMVAE(BaseJointModel):
         # Compute the total loss to minimize
 
         reg_loss = KLD + LJM
-        beta = min(1, epoch / self.warmup)
+        if epoch >= self.warmup:
+            beta = 1
+        else:
+            beta = epoch / self.warmup
         recon_loss, reg_loss = recon_loss / len_batch, reg_loss / len_batch
         loss = recon_loss + beta * reg_loss
 
