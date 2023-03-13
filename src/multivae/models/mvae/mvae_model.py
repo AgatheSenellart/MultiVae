@@ -84,7 +84,7 @@ class MVAE(BaseMultiVAE):
 
         filter = torch.tensor(
             True,
-        )
+        ).to(inputs.masks[subset[0]].device)
         for mod in subset:
             filter = torch.logical_and(filter, inputs.masks[mod])
 
