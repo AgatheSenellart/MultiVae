@@ -8,9 +8,12 @@ from typing import Union
 import cloudpickle
 import numpy as np
 import torch
+import torch.distributions as dist
 import torch.nn as nn
 from pythae.models.base.base_utils import CPU_Unpickler, ModelOutput
 from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
+from torch.nn import functional as F
+from torch.nn.modules.loss import BCEWithLogitsLoss, L1Loss, MSELoss
 
 from ...data.datasets.base import MultimodalBaseDataset
 from ..auto_model import AutoConfig
@@ -53,6 +56,11 @@ class BaseMultiVAE(nn.Module):
                     "Please provide encoders or input dims for the modalities in the model_config."
                 )
             else:
+                if len(self.input_dims.keys()) != self.n_modalities:
+                    raise AttributeError(
+                        f"The provided number of input_dims {len(self.input_dims.keys())} doesn't"
+                        f"match the number of modalities ({self.n_modalities} in model config "
+                    )
                 encoders = BaseDictEncoders(self.input_dims, model_config.latent_dim)
         else:
             self.model_config.uses_default_encoders = False
@@ -63,6 +71,11 @@ class BaseMultiVAE(nn.Module):
                     "Please provide decoders or input dims for the modalities in the model_config."
                 )
             else:
+                if len(self.input_dims.keys()) != self.n_modalities:
+                    raise AttributeError(
+                        f"The provided number of input_dims {len(self.input_dims.keys())} doesn't"
+                        f"match the number of modalities ({self.n_modalities} in model config "
+                    )
                 decoders = BaseDictDecoders(self.input_dims, model_config.latent_dim)
         else:
             self.model_config.uses_default_decoders = False
@@ -94,12 +107,50 @@ class BaseMultiVAE(nn.Module):
                     " Please provide a valid dictionary for input_dims."
                 )
             else:
+                max_dim = max(*[np.prod(self.input_dims[k]) for k in self.input_dims])
                 self.rescale_factors = {
-                    k: 1 / np.prod(self.input_dims[k]) for k in self.input_dims
+                    k: max_dim / np.prod(self.input_dims[k]) for k in self.input_dims
                 }
         else:
             self.rescale_factors = {k: 1 for k in self.encoders}
             # above, we take the modalities keys in self.encoders as input_dims may be None
+
+        # Set the reconstruction losses
+        if model_config.recon_losses is None:
+            model_config.recon_losses = {k: "mse" for k in self.encoders}
+        self.set_recon_losses(model_config.recon_losses)
+
+    def set_recon_losses(self, recon_dict):
+        """Set the reconstruction losses functions recon_losses
+        and the log_probabilites functions recon_log_probs.
+        recon_log_probs is the normalized negative version of recon_loss and is used only for
+        likelihood estimation.
+        """
+        self.recon_losses = {}
+        self.recon_log_probs = {}
+
+        for k in recon_dict:
+            if recon_dict[k] == "mse":
+                self.recon_log_probs[k] = lambda input, target: dist.Normal(
+                    input, 1
+                ).log_prob(target)
+                self.recon_losses[k] = MSELoss(reduction="none")
+            elif recon_dict[k] == "bce":
+                self.recon_log_probs[k] = lambda input, target: dist.Bernoulli(
+                    logits=input
+                ).log_prob(target)
+                self.recon_losses[k] = BCEWithLogitsLoss(reduction="none")
+            elif recon_dict[k] == "l1":
+                self.recon_log_probs[k] = lambda input, target: dist.Laplace(
+                    input, 1
+                ).log_prob(target)
+                self.recon_losses[k] = L1Loss(reduction="none")
+            else:
+                raise AttributeError(
+                    'Reconstructions losses must be either "mse","bce" or "l1"'
+                )
+        # TODO : add the possibility to provide custom reconstruction loss and in that case use the negative
+        # reconstruction loss as the log probability.
 
     def sanity_check(self, encoders, decoders):
         if self.n_modalities != len(encoders.keys()):

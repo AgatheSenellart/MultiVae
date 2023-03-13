@@ -112,8 +112,8 @@ class JNF(BaseJointModel):
             len_batch = len(x_mod)
             recon_mod = self.decoders[mod](z_joint).reconstruction
             recon_loss += (
-                -0.5 * torch.sum((x_mod - recon_mod) ** 2)
-            ) * self.rescale_factors[mod]
+                self.recon_losses[mod](recon_mod, x_mod) * self.rescale_factors[mod]
+            ).sum()
 
         # Compute the KLD to the prior
         KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
@@ -122,7 +122,7 @@ class JNF(BaseJointModel):
             return ModelOutput(
                 recon_loss=recon_loss / len_batch,
                 KLD=KLD / len_batch,
-                loss=-(recon_loss - KLD) / len_batch,
+                loss=(recon_loss + KLD) / len_batch,
                 metrics=dict(kld_prior=KLD, recon_loss=recon_loss / len_batch, ljm=0),
             )
 

@@ -24,7 +24,7 @@ model_config = JMVAEConfig(
     n_modalities=2,
     input_dims=dict(mnist=(1, 28, 28), svhn=(3, 32, 32)),
     latent_dim=20,
-    warmup=100,
+    warmup=30,
 )
 
 encoders = dict(
@@ -39,7 +39,7 @@ decoders = dict(
 
 model = JMVAE(model_config, encoders, decoders)
 
-trainer_config = BaseTrainerConfig(num_epochs=200, learning_rate=1e-3, steps_predict=5)
+trainer_config = BaseTrainerConfig(num_epochs=60, learning_rate=1e-3, steps_predict=5)
 
 # Set up callbacks
 wandb_cb = WandbCallback()

@@ -47,6 +47,20 @@ class AutoModel(nn.Module):
 
             model = JNF.load_from_folder(dir_path=dir_path)
 
+        elif model_name == "MMVAEConfig":
+            from ..mmvae import MMVAE
+
+            model = MMVAE.load_from_folder(dir_path=dir_path)
+        elif model_name == "TELBOConfig":
+            from ..telbo import TELBO
+
+            model = TELBO.load_from_folder(dir_path)
+
+        elif model_name == "MVAEConfig":
+            from ..mvae import MVAE
+
+            model = MVAE.load_from_folder(dir_path)
+
         else:
             raise NameError(
                 "Cannot reload automatically the model... "

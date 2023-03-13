@@ -1,5 +1,5 @@
 from ..base import BaseTrainerConfig
 
 
-class JNFTrainerConfig(BaseTrainerConfig):
-    pass
+class TwoStepsTrainerConfig(BaseTrainerConfig):
+    name_trainer = "TwoStepsTrainerConfig"

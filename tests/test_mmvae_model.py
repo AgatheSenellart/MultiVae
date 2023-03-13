@@ -16,9 +16,9 @@ from torch import nn
 
 from multivae.data.datasets.base import MultimodalBaseDataset
 from multivae.data.utils import set_inputs_to_device
-from multivae.models import JNF, AutoModel, JNFConfig
+from multivae.models import MMVAE, AutoModel, MMVAEConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP
-from multivae.trainers import BaseTrainerConfig, TwoStepsTrainer
+from multivae.trainers import BaseTrainer, BaseTrainerConfig
 
 
 class Test:
@@ -35,7 +35,7 @@ class Test:
 
     @pytest.fixture
     def custom_architectures(self):
-        # Create an instance of jnf model
+        # Create an instance of mmvae model
         config1 = BaseAEConfig(input_dim=(2,), latent_dim=5)
         config2 = BaseAEConfig(input_dim=(3,), latent_dim=5)
 
@@ -43,18 +43,14 @@ class Test:
 
         decoders = dict(mod1=Decoder_AE_MLP(config1), mod2=Decoder_AE_MLP(config2))
 
-        flows = dict(
-            mod1=IAF(IAFConfig(input_dim=(5,))), mod2=IAF(IAFConfig(input_dim=(5,)))
-        )
         return dict(
             encoders=encoders,
             decoders=decoders,
-            flows=flows,
         )
 
     @pytest.fixture(params=[True, False])
     def model_config(self, request):
-        model_config = JNFConfig(
+        model_config = MMVAEConfig(
             n_modalities=2,
             latent_dim=5,
             input_dims=dict(mod1=(2,), mod2=(3,)),
@@ -67,24 +63,15 @@ class Test:
     def model(self, custom_architectures, model_config, request):
         custom = request.param
         if custom:
-            model = JNF(model_config, **custom_architectures)
+            model = MMVAE(model_config, **custom_architectures)
         else:
-            model = JNF(model_config)
+            model = MMVAE(model_config)
         return model
 
     def test(self, model, dataset, model_config):
-        assert model.warmup == model_config.warmup
+        assert model.K == model_config.K
 
         output = model(dataset, epoch=2)
-        assert hasattr(output, "recon_loss")
-        assert hasattr(output, "KLD")
-        loss = output.loss
-        assert type(loss) == torch.Tensor
-        assert loss.size() == torch.Size([])
-        assert loss.requires_grad
-
-        output = model(dataset, epoch=model_config.warmup + 2)
-        assert hasattr(output, "ljm")
         loss = output.loss
         assert type(loss) == torch.Tensor
         assert loss.size() == torch.Size([])
@@ -137,7 +124,7 @@ class TestTraining:
 
     @pytest.fixture
     def model_config(self, input_dataset):
-        return JNFConfig(
+        return MMVAEConfig(
             n_modalities=int(len(input_dataset.data.keys())),
             latent_dim=5,
             input_dims=dict(
@@ -154,11 +141,7 @@ class TestTraining:
         encoders = dict(mod1=Encoder_VAE_MLP(config1), mod2=Encoder_VAE_MLP(config2))
         decoders = dict(mod1=Decoder_AE_MLP(config1), mod2=Decoder_AE_MLP(config2))
 
-        flows = dict(
-            mod1=IAF(IAFConfig(input_dim=(5,))), mod2=IAF(IAFConfig(input_dim=(5,)))
-        )
-
-        return dict(encoders=encoders, decoders=decoders, flows=flows)
+        return dict(encoders=encoders, decoders=decoders)
 
     @pytest.fixture(
         params=[
@@ -172,10 +155,10 @@ class TestTraining:
         custom = request.param
 
         if not custom:
-            model = JNF(model_config)
+            model = MMVAE(model_config)
 
         else:
-            model = JNF(model_config, **custom_architecture)
+            model = MMVAE(model_config, **custom_architecture)
 
         return model
 
@@ -194,7 +177,7 @@ class TestTraining:
 
     @pytest.fixture
     def trainer(self, model, training_config, input_dataset):
-        trainer = TwoStepsTrainer(
+        trainer = BaseTrainer(
             model=model,
             train_dataset=input_dataset,
             eval_dataset=input_dataset,
@@ -220,17 +203,6 @@ class TestTraining:
             ]
         )
         assert trainer.optimizer == start_optimizer
-        _ = trainer.prepare_train_step(10, None, None)
-        _ = trainer.train_step(epoch=10)
-        step_2_model_state_dict = deepcopy(trainer.model.state_dict())
-
-        assert not all(
-            [
-                torch.equal(step_1_model_state_dict[key], step_2_model_state_dict[key])
-                for key in step_1_model_state_dict.keys()
-            ]
-        )
-        assert trainer.optimizer != start_optimizer
 
     def test_eval_step(self, trainer):
         start_model_state_dict = deepcopy(trainer.model.state_dict())
@@ -357,7 +329,7 @@ class TestTraining:
         trainer.train()
 
         training_dir = os.path.join(
-            dir_path, f"JNF_training_{trainer._training_signature}"
+            dir_path, f"MMVAE_training_{trainer._training_signature}"
         )
         assert os.path.isdir(training_dir)
 
@@ -407,7 +379,7 @@ class TestTraining:
         model = deepcopy(trainer._best_model)
 
         training_dir = os.path.join(
-            dir_path, f"JNF_training_{trainer._training_signature}"
+            dir_path, f"MMVAE_training_{trainer._training_signature}"
         )
         assert os.path.isdir(training_dir)
 

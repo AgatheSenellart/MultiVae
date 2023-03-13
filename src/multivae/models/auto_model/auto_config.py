@@ -34,6 +34,20 @@ class AutoConfig(BaseConfig):
 
             model_config = JNFConfig.from_json_file(json_path)
 
+        elif config_name == "MMVAEConfig":
+            from ..mmvae import MMVAEConfig
+
+            model_config = MMVAEConfig.from_json_file(json_path)
+        elif config_name == "TELBOConfig":
+            from ..telbo import TELBOConfig
+
+            model_config = TELBOConfig.from_json_file(json_path)
+
+        elif config_name == "MVAEConfig":
+            from ..mvae import MVAEConfig
+
+            model_config = MVAEConfig.from_json_file(json_path)
+
         else:
             raise NameError(
                 "Cannot reload automatically the model configuration... "
