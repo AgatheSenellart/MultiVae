@@ -21,7 +21,6 @@ class cca_loss():
         eps = 1e-9
         H1, H2 = H_list[0], H_list[1]
         H1, H2 = H1.t(), H2.t()
-        device = H1.device
         # assert torch.isnan(H1).sum().item() == 0
         # assert torch.isnan(H2).sum().item() == 0
 

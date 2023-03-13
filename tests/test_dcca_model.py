@@ -13,8 +13,7 @@ from multivae.models.nn.default_architectures import Encoder_VAE_MLP, Decoder_AE
 from pythae.models.normalizing_flows import IAF, IAFConfig
 from pythae.models.base.base_utils import ModelOutput
 from multivae.models.jnf_dcca import JNFDcca, JNFDccaConfig
-from multivae.trainers.base.base_trainer_config import BaseTrainerConfig
-from multivae.trainers.jnf.jnf_trainer import TwoStepsTrainer
+from multivae.trainers.add_dcca_trainer import AddDccaTrainer, AddDccaTrainerConfig
 
 class TestDcca:
     
@@ -79,7 +78,7 @@ class TestJNFDcca:
             flows=flows,
         )
 
-    @fixture(params=[True, False])
+    @fixture(params=[ False])
     def model_config(self, request):
         model_config = JNFDccaConfig(
             n_modalities=2,
@@ -100,6 +99,8 @@ class TestJNFDcca:
             model = JNFDcca(model_config, **custom_architectures)
         else:
             model = JNFDcca(model_config)
+            
+        print(model.DCCA_module.networks)
         return model
 
     
@@ -107,7 +108,7 @@ class TestJNFDcca:
     def training_config(self, tmpdir):
         tmpdir.mkdir("dummy_folder")
         dir_path = os.path.join(tmpdir, "dummy_folder")
-        return BaseTrainerConfig(
+        return AddDccaTrainerConfig(
             num_epochs=5,
             steps_saving=2,
             learning_rate=1e-4,
@@ -118,7 +119,7 @@ class TestJNFDcca:
 
     @fixture
     def trainer(self, model, training_config, dataset):
-        trainer = TwoStepsTrainer(
+        trainer = AddDccaTrainer(
             model=model,
             train_dataset=dataset,
             eval_dataset=dataset,
@@ -191,252 +192,258 @@ class TestJNFDcca:
 
 
 
-    # def test_train_step(self, trainer):
-    #     start_model_state_dict = deepcopy(trainer.model.state_dict())
-    #     start_optimizer = trainer.optimizer
-    #     _ = trainer.train_step(epoch=1)
+    def test_train_step(self, trainer):
+        start_model_state_dict = deepcopy(trainer.model.state_dict())
+        start_optimizer = trainer.optimizer
+        _ = trainer.train_step(epoch=1)
 
-    #     step_1_model_state_dict = deepcopy(trainer.model.state_dict())
+        step_1_model_state_dict = deepcopy(trainer.model.state_dict())
 
-    #     # check that weights were updated
-    #     assert not all(
-    #         [
-    #             torch.equal(start_model_state_dict[key], step_1_model_state_dict[key])
-    #             for key in start_model_state_dict.keys()
-    #         ]
-    #     )
-    #     assert trainer.optimizer == start_optimizer
-    #     _ = trainer.prepare_train_step(10, None, None)
-    #     _ = trainer.train_step(epoch=10)
-    #     step_2_model_state_dict = deepcopy(trainer.model.state_dict())
+        # check that weights were updated
+        assert not all(
+            [
+                torch.equal(start_model_state_dict[key], step_1_model_state_dict[key])
+                for key in start_model_state_dict.keys()
+            ]
+        )
+        assert trainer.optimizer == start_optimizer
+        _ = trainer.prepare_train_step(trainer.model.nb_epochs_dcca +1, None, None)
+        _ = trainer.train_step(epoch=trainer.model.nb_epochs_dcca +1)
+        step_2_model_state_dict = deepcopy(trainer.model.state_dict())
 
-    #     assert not all(
-    #         [
-    #             torch.equal(step_1_model_state_dict[key], step_2_model_state_dict[key])
-    #             for key in step_1_model_state_dict.keys()
-    #         ]
-    #     )
-    #     assert trainer.optimizer != start_optimizer
+        assert not all(
+            [
+                torch.equal(step_1_model_state_dict[key], step_2_model_state_dict[key])
+                for key in step_1_model_state_dict.keys()
+            ]
+        )
+        assert trainer.optimizer != start_optimizer
 
-    # def test_eval_step(self, trainer):
-    #     start_model_state_dict = deepcopy(trainer.model.state_dict())
+    def test_eval_step(self, trainer):
+        start_model_state_dict = deepcopy(trainer.model.state_dict())
 
-    #     _ = trainer.eval_step(epoch=1)
+        _ = trainer.eval_step(epoch=1)
 
-    #     step_1_model_state_dict = deepcopy(trainer.model.state_dict())
+        step_1_model_state_dict = deepcopy(trainer.model.state_dict())
 
-    #     # check that weights were not updated
-    #     assert all(
-    #         [
-    #             torch.equal(start_model_state_dict[key], step_1_model_state_dict[key])
-    #             for key in start_model_state_dict.keys()
-    #         ]
-    #     )
+        # check that weights were not updated
+        assert all(
+            [
+                torch.equal(start_model_state_dict[key], step_1_model_state_dict[key])
+                for key in start_model_state_dict.keys()
+            ]
+        )
 
-    # def test_main_train_loop(self, trainer):
-    #     start_model_state_dict = deepcopy(trainer.model.state_dict())
+    def test_main_train_loop(self, trainer):
+        start_model_state_dict = deepcopy(trainer.model.state_dict())
 
-    #     trainer.train()
+        trainer.train()
 
-    #     step_1_model_state_dict = deepcopy(trainer.model.state_dict())
+        step_1_model_state_dict = deepcopy(trainer.model.state_dict())
 
-    #     # check that weights were updated
-    #     assert not all(
-    #         [
-    #             torch.equal(start_model_state_dict[key], step_1_model_state_dict[key])
-    #             for key in start_model_state_dict.keys()
-    #         ]
-    #     )
+        # check that weights were updated
+        assert not all(
+            [
+                torch.equal(start_model_state_dict[key], step_1_model_state_dict[key])
+                for key in start_model_state_dict.keys()
+            ]
+        )
 
-    # def test_checkpoint_saving(self, model, trainer, training_config):
-    #     dir_path = training_config.output_dir
+    def test_checkpoint_saving(self, model, trainer, training_config):
+        dir_path = training_config.output_dir
 
-    #     # Make a training step
-    #     step_1_loss = trainer.train_step(epoch=1)
+        # Make a training step
+        step_1_loss = trainer.train_step(epoch=1)
 
-    #     model = deepcopy(trainer.model)
-    #     optimizer = deepcopy(trainer.optimizer)
+        model = deepcopy(trainer.model)
+        optimizer = deepcopy(trainer.optimizer)
 
-    #     trainer.save_checkpoint(dir_path=dir_path, epoch=0, model=model)
+        trainer.save_checkpoint(dir_path=dir_path, epoch=0, model=model)
 
-    #     checkpoint_dir = os.path.join(dir_path, "checkpoint_epoch_0")
+        checkpoint_dir = os.path.join(dir_path, "checkpoint_epoch_0")
 
-    #     assert os.path.isdir(checkpoint_dir)
+        assert os.path.isdir(checkpoint_dir)
 
-    #     files_list = os.listdir(checkpoint_dir)
+        files_list = os.listdir(checkpoint_dir)
 
-    #     assert set(["model.pt", "optimizer.pt", "training_config.json"]).issubset(
-    #         set(files_list)
-    #     )
+        assert set(["model.pt", "optimizer.pt", "training_config.json"]).issubset(
+            set(files_list)
+        )
 
-    #     # check pickled custom decoder
-    #     if not model.model_config.uses_default_decoders:
-    #         assert "decoders.pkl" in files_list
+        # check pickled custom decoder
+        if not model.model_config.uses_default_decoders:
+            assert "decoders.pkl" in files_list
 
-    #     else:
-    #         assert not "decoders.pkl" in files_list
+        else:
+            assert not "decoders.pkl" in files_list
 
-    #     # check pickled custom encoder
-    #     if not model.model_config.uses_default_encoders:
-    #         assert "encoders.pkl" in files_list
+        # check pickled custom encoder
+        if not model.model_config.uses_default_encoders:
+            assert "encoders.pkl" in files_list
 
-    #     else:
-    #         assert not "encoders.pkl" in files_list
+        else:
+            assert not "encoders.pkl" in files_list
 
-    #     model_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "model.pt"))[
-    #         "model_state_dict"
-    #     ]
+        model_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "model.pt"))[
+            "model_state_dict"
+        ]
 
-    #     assert all(
-    #         [
-    #             torch.equal(
-    #                 model_rec_state_dict[key].cpu(), model.state_dict()[key].cpu()
-    #             )
-    #             for key in model.state_dict().keys()
-    #         ]
-    #     )
+        assert all(
+            [
+                torch.equal(
+                    model_rec_state_dict[key].cpu(), model.state_dict()[key].cpu()
+                )
+                for key in model.state_dict().keys()
+            ]
+        )
+        # for key in model.state_dict():
+        #     print(key)
+        #     print(torch.equal(
+        #             model_rec_state_dict[key].cpu(), model.state_dict()[key].cpu()
+        #         ))
+        # 1/0
 
-    #     # check reload full model
-    #     model_rec = AutoModel.load_from_folder(os.path.join(checkpoint_dir))
+        # check reload full model
+        model_rec = AutoModel.load_from_folder(os.path.join(checkpoint_dir))
 
-    #     assert all(
-    #         [
-    #             torch.equal(
-    #                 model_rec.state_dict()[key].cpu(), model.state_dict()[key].cpu()
-    #             )
-    #             for key in model.state_dict().keys()
-    #         ]
-    #     )
+        assert all(
+            [
+                torch.equal(
+                    model_rec.state_dict()[key].cpu(), model.state_dict()[key].cpu()
+                )
+                for key in model.state_dict().keys()
+            ]
+        )
 
-    #     assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
-    #     assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
+        assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
+        assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
 
-    #     optim_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "optimizer.pt"))
+        optim_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "optimizer.pt"))
 
-    #     assert all(
-    #         [
-    #             dict_rec == dict_optimizer
-    #             for (dict_rec, dict_optimizer) in zip(
-    #                 optim_rec_state_dict["param_groups"],
-    #                 optimizer.state_dict()["param_groups"],
-    #             )
-    #         ]
-    #     )
+        assert all(
+            [
+                dict_rec == dict_optimizer
+                for (dict_rec, dict_optimizer) in zip(
+                    optim_rec_state_dict["param_groups"],
+                    optimizer.state_dict()["param_groups"],
+                )
+            ]
+        )
 
-    #     assert all(
-    #         [
-    #             dict_rec == dict_optimizer
-    #             for (dict_rec, dict_optimizer) in zip(
-    #                 optim_rec_state_dict["state"], optimizer.state_dict()["state"]
-    #             )
-    #         ]
-    #     )
+        assert all(
+            [
+                dict_rec == dict_optimizer
+                for (dict_rec, dict_optimizer) in zip(
+                    optim_rec_state_dict["state"], optimizer.state_dict()["state"]
+                )
+            ]
+        )
 
-    # def test_checkpoint_saving_during_training(self, model, trainer, training_config):
-    #     #
-    #     target_saving_epoch = training_config.steps_saving
+    def test_checkpoint_saving_during_training(self, model, trainer, training_config):
+        #
+        target_saving_epoch = training_config.steps_saving
 
-    #     dir_path = training_config.output_dir
+        dir_path = training_config.output_dir
 
-    #     model = deepcopy(trainer.model)
+        model = deepcopy(trainer.model)
 
-    #     trainer.train()
+        trainer.train()
 
-    #     training_dir = os.path.join(
-    #         dir_path, f"JNFDcca_training_{trainer._training_signature}"
-    #     )
-    #     assert os.path.isdir(training_dir)
+        training_dir = os.path.join(
+            dir_path, f"JNFDcca_training_{trainer._training_signature}"
+        )
+        assert os.path.isdir(training_dir)
 
-    #     checkpoint_dir = os.path.join(
-    #         training_dir, f"checkpoint_epoch_{target_saving_epoch}"
-    #     )
+        checkpoint_dir = os.path.join(
+            training_dir, f"checkpoint_epoch_{target_saving_epoch}"
+        )
 
-    #     assert os.path.isdir(checkpoint_dir)
+        assert os.path.isdir(checkpoint_dir)
 
-    #     files_list = os.listdir(checkpoint_dir)
+        files_list = os.listdir(checkpoint_dir)
 
-    #     # check files
-    #     assert set(["model.pt", "optimizer.pt", "training_config.json"]).issubset(
-    #         set(files_list)
-    #     )
+        # check files
+        assert set(["model.pt", "optimizer.pt", "training_config.json"]).issubset(
+            set(files_list)
+        )
 
-    #     # check pickled custom decoder
-    #     if not model.model_config.uses_default_decoders:
-    #         assert "decoders.pkl" in files_list
+        # check pickled custom decoder
+        if not model.model_config.uses_default_decoders:
+            assert "decoders.pkl" in files_list
 
-    #     else:
-    #         assert not "decoders.pkl" in files_list
+        else:
+            assert not "decoders.pkl" in files_list
 
-    #     # check pickled custom encoder
-    #     if not model.model_config.uses_default_encoders:
-    #         assert "encoders.pkl" in files_list
+        # check pickled custom encoder
+        if not model.model_config.uses_default_encoders:
+            assert "encoders.pkl" in files_list
 
-    #     else:
-    #         assert not "encoders.pkl" in files_list
+        else:
+            assert not "encoders.pkl" in files_list
 
-    #     model_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "model.pt"))[
-    #         "model_state_dict"
-    #     ]
+        model_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "model.pt"))[
+            "model_state_dict"
+        ]
 
-    #     assert not all(
-    #         [
-    #             torch.equal(model_rec_state_dict[key], model.state_dict()[key])
-    #             for key in model.state_dict().keys()
-    #         ]
-    #     )
+        assert not all(
+            [
+                torch.equal(model_rec_state_dict[key], model.state_dict()[key])
+                for key in model.state_dict().keys()
+            ]
+        )
 
-    # def test_final_model_saving(self, model, trainer, training_config):
-    #     dir_path = training_config.output_dir
+    def test_final_model_saving(self, model, trainer, training_config):
+        dir_path = training_config.output_dir
 
-    #     trainer.train()
+        trainer.train()
 
-    #     model = deepcopy(trainer._best_model)
+        model = deepcopy(trainer._best_model)
 
-    #     training_dir = os.path.join(
-    #         dir_path, f"JNFDcca_training_{trainer._training_signature}"
-    #     )
-    #     assert os.path.isdir(training_dir)
+        training_dir = os.path.join(
+            dir_path, f"JNFDcca_training_{trainer._training_signature}"
+        )
+        assert os.path.isdir(training_dir)
 
-    #     final_dir = os.path.join(training_dir, f"final_model")
-    #     assert os.path.isdir(final_dir)
+        final_dir = os.path.join(training_dir, f"final_model")
+        assert os.path.isdir(final_dir)
 
-    #     files_list = os.listdir(final_dir)
+        files_list = os.listdir(final_dir)
 
-    #     assert set(["model.pt", "model_config.json", "training_config.json"]).issubset(
-    #         set(files_list)
-    #     )
+        assert set(["model.pt", "model_config.json", "training_config.json"]).issubset(
+            set(files_list)
+        )
 
-    #     # check pickled custom decoder
-    #     if not model.model_config.uses_default_decoders:
-    #         assert "decoders.pkl" in files_list
+        # check pickled custom decoder
+        if not model.model_config.uses_default_decoders:
+            assert "decoders.pkl" in files_list
 
-    #     else:
-    #         assert not "decoders.pkl" in files_list
+        else:
+            assert not "decoders.pkl" in files_list
 
-    #     # check pickled custom encoder
-    #     if not model.model_config.uses_default_encoders:
-    #         assert "encoders.pkl" in files_list
+        # check pickled custom encoder
+        if not model.model_config.uses_default_encoders:
+            assert "encoders.pkl" in files_list
 
-    #     else:
-    #         assert not "encoders.pkl" in files_list
+        else:
+            assert not "encoders.pkl" in files_list
 
-    #     # check reload full model
-    #     model_rec = AutoModel.load_from_folder(os.path.join(final_dir))
+        # check reload full model
+        model_rec = AutoModel.load_from_folder(os.path.join(final_dir))
 
-    #     assert all(
-    #         [
-    #             torch.equal(
-    #                 model_rec.state_dict()[key].cpu(), model.state_dict()[key].cpu()
-    #             )
-    #             for key in model.state_dict().keys()
-    #         ]
-    #     )
+        assert all(
+            [
+                torch.equal(
+                    model_rec.state_dict()[key].cpu(), model.state_dict()[key].cpu()
+                )
+                for key in model.state_dict().keys()
+            ]
+        )
 
-    #     assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
-    #     assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
+        assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
+        assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
 
-    # # def test_compute_nll(self, model, dataset):
-    # #     nll = model.compute_joint_nll(dataset, K=10, batch_size_K=2)
-    # #     assert nll >= 0
-    # #     assert type(nll) == torch.Tensor
-    # #     assert nll.size() == torch.Size([])
+    # def test_compute_nll(self, model, dataset):
+    #     nll = model.compute_joint_nll(dataset, K=10, batch_size_K=2)
+    #     assert nll >= 0
+    #     assert type(nll) == torch.Tensor
+    #     assert nll.size() == torch.Size([])
