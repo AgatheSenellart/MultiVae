@@ -49,6 +49,7 @@ class TELBO(BaseJointModel):
 
         self.model_name = "TELBO"
         self.warmup = model_config.warmup
+        self.reset_optimizer_epochs = [self.warmup]
 
         if model_config.lambda_factors is None:
             self.lambda_factors = self.rescale_factors
@@ -91,7 +92,7 @@ class TELBO(BaseJointModel):
         # Compute the KLD to the prior
         KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
 
-        if epoch < self.warmup:
+        if epoch <= self.warmup:
             return ModelOutput(
                 recon_loss=recon_loss / len_batch,
                 KLD=KLD / len_batch,

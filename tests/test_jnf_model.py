@@ -6,11 +6,8 @@ import pytest
 import torch
 from pythae.models.base import BaseAEConfig
 from pythae.models.base.base_utils import ModelOutput
-from pythae.models.nn.benchmarks.mnist.convnets import (
-    Decoder_Conv_AE_MNIST,
-    Encoder_Conv_AE_MNIST,
-)
-from pythae.models.nn.default_architectures import Encoder_VAE_MLP
+
+from multivae.models.nn.default_architectures import Encoder_VAE_MLP
 from pythae.models.normalizing_flows import IAF, IAFConfig
 from torch import nn
 

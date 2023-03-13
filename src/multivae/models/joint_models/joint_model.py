@@ -42,7 +42,8 @@ class BaseJointModel(BaseMultiVAE):
         if joint_encoder is None:
             # Create a MultiHead Joint Encoder MLP
             joint_encoder = MultipleHeadJointEncoder(self.encoders, model_config)
-            model_config.use_default_joint = True
+        else:
+            model_config.use_default_joint = False
 
         self.set_joint_encoder(joint_encoder)
 
