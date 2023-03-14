@@ -479,3 +479,8 @@ class BaseMultiVAE(nn.Module):
                     "Trying to reload a model saved with python3.8+ with python3.7. "
                     "Please create a virtual env with python 3.8+ to reload this model."
                 )
+
+    def compute_joint_nll(
+        self, inputs: MultimodalBaseDataset, K: int = 1000, batch_size_K: int = 100
+    ):
+        raise NotImplementedError
