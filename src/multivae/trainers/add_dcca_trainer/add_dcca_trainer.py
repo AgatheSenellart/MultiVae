@@ -2,16 +2,15 @@ import logging
 from typing import List, Optional
 
 import torch
+from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
 
 from multivae.data.datasets.base import MultimodalBaseDataset
 from multivae.models.jnf_dcca import JNFDcca
 from multivae.trainers.base.callbacks import TrainingCallback
-from torch.utils.data import DataLoader
-from torch.utils.data.distributed import DistributedSampler
 
 from ..base import BaseTrainer
 from .add_dcca_trainer_config import AddDccaTrainerConfig
-
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +18,6 @@ logger = logging.getLogger(__name__)
 console = logging.StreamHandler()
 logger.addHandler(console)
 logger.setLevel(logging.INFO)
-
 
 
 class AddDccaTrainer(BaseTrainer):
@@ -32,21 +30,22 @@ class AddDccaTrainer(BaseTrainer):
         callbacks: List[TrainingCallback] = None,
     ):
         super().__init__(model, train_dataset, eval_dataset, training_config, callbacks)
-        
-        training_config.per_device_dcca_train_batch_size = min( len(train_dataset), 
-                                                               training_config.per_device_dcca_train_batch_size )
-        training_config.per_device_dcca_eval_batch_size = min( len(train_dataset), 
-                                                               training_config.per_device_dcca_eval_batch_size )
-        
-        #TODO : maybe check that the chosen batch size is large enough and 
+
+        training_config.per_device_dcca_train_batch_size = min(
+            len(train_dataset), training_config.per_device_dcca_train_batch_size
+        )
+        training_config.per_device_dcca_eval_batch_size = min(
+            len(train_dataset), training_config.per_device_dcca_eval_batch_size
+        )
+
+        # TODO : maybe check that the chosen batch size is large enough and
         # that the chosen dcca batch size does'nt result in a large loss of data
 
-        
         self.train_loader_vae = self.train_loader
         self.train_loader = self.get_train_dataloader_dcca(train_dataset)
         self.eval_loader_vae = self.eval_loader
-        self.eval_loader = self.get_eval_dataloader_dcca(eval_dataset)        
-    
+        self.eval_loader = self.get_eval_dataloader_dcca(eval_dataset)
+
     def get_train_dataloader_dcca(
         self, train_dataset: MultimodalBaseDataset
     ) -> torch.utils.data.DataLoader:
@@ -62,7 +61,7 @@ class AddDccaTrainer(BaseTrainer):
             num_workers=self.training_config.train_dataloader_num_workers,
             shuffle=(train_sampler is None),
             sampler=train_sampler,
-            drop_last=True
+            drop_last=True,
         )
 
     def get_eval_dataloader_dcca(
@@ -80,34 +79,36 @@ class AddDccaTrainer(BaseTrainer):
             num_workers=self.training_config.eval_dataloader_num_workers,
             shuffle=(eval_sampler is None),
             sampler=eval_sampler,
-            drop_last=True
+            drop_last=True,
         )
-
-        
 
     def prepare_train_step(self, epoch, best_train_loss, best_eval_loss):
         """
         Function to operate changes between train_steps such as resetting the optimizer and
         the best losses values.
         """
-        
-        if epoch == self.model.nb_epochs_dcca + 1 :
-            logger.info("End the training of the DCCA module and move on to the joint VAE.")
+
+        if epoch == self.model.nb_epochs_dcca + 1:
+            logger.info(
+                "End the training of the DCCA module and move on to the joint VAE."
+            )
             # Change the train and eval_loader and reset the optimizer
-            
+
             self.train_loader = self.train_loader_vae
             self.train_loader = self.eval_loader_vae
             self.set_optimizer()
             best_train_loss = 1e10
             best_eval_loss = 1e10
-        
-        elif epoch == self.model.nb_epochs_dcca + self.model.warmup +2 :
+
+        elif epoch == self.model.nb_epochs_dcca + self.model.warmup + 2:
             # Just reset the optimizer
-            logger.info("End the training of the joint VAE and move on to learning the unimodal "
-                        " posteriors.")
+            logger.info(
+                "End the training of the joint VAE and move on to learning the unimodal "
+                " posteriors."
+            )
 
             self.set_optimizer()
             best_train_loss = 1e10
             best_eval_loss = 1e10
-        
+
         return best_train_loss, best_eval_loss

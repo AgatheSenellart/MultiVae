@@ -1,6 +1,6 @@
+from .add_dcca_trainer import AddDccaTrainer, AddDccaTrainerConfig
 from .base import BaseTrainer, BaseTrainerConfig
 from .jnf import TwoStepsTrainer, TwoStepsTrainerConfig
-from .add_dcca_trainer import AddDccaTrainer,AddDccaTrainerConfig
 
 __all__ = [
     "BaseTrainer",
@@ -8,5 +8,5 @@ __all__ = [
     "TwoStepsTrainer",
     "TwoStepsTrainerConfig",
     "AddDccaTrainer",
-    "AddDccaTrainerConfig"
+    "AddDccaTrainerConfig",
 ]

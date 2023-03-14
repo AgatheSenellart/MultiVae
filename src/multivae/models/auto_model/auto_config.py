@@ -47,9 +47,10 @@ class AutoConfig(BaseConfig):
             from ..mvae import MVAEConfig
 
             model_config = MVAEConfig.from_json_file(json_path)
-            
+
         elif config_name == "JNFDccaConfig":
             from ..jnf_dcca import JNFDccaConfig
+
             model_config = JNFDccaConfig.from_json_file(json_path)
 
         else:

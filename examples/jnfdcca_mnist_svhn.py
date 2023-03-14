@@ -8,7 +8,7 @@ from multivae.data.utils import set_inputs_to_device
 from multivae.models import JNFDcca, JNFDccaConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
 from multivae.models.nn.svhn import Decoder_VAE_SVHN, Encoder_VAE_SVHN
-from multivae.trainers import AddDccaTrainerConfig, AddDccaTrainer
+from multivae.trainers import AddDccaTrainer, AddDccaTrainerConfig
 from multivae.trainers.base.callbacks import (
     ProgressBarCallback,
     TrainingCallback,
@@ -24,7 +24,7 @@ model_config = JNFDccaConfig(
     n_modalities=2,
     input_dims=dict(mnist=(1, 28, 28), svhn=(3, 32, 32)),
     latent_dim=20,
-    nb_epochs_dcca = 50,
+    nb_epochs_dcca=50,
     warmup=50,
     use_likelihood_rescaling=True,
 )
@@ -39,10 +39,14 @@ decoders = dict(
     svhn=Decoder_VAE_SVHN(BaseAEConfig(latent_dim=20, input_dim=(3, 32, 32))),
 )
 
-model = JNFDcca(model_config,encoders = None, decoders = decoders,dcca_networks = dcca_networks)
+model = JNFDcca(
+    model_config, encoders=None, decoders=decoders, dcca_networks=dcca_networks
+)
 
 trainer_config = AddDccaTrainerConfig(
-    num_epochs=150, learning_rate=1e-3, steps_predict=1,
+    num_epochs=150,
+    learning_rate=1e-3,
+    steps_predict=1,
     per_device_dcca_train_batch_size=500,
 )
 

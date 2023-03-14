@@ -5,10 +5,10 @@ from .auto_model import AutoConfig, AutoModel
 from .base import BaseMultiVAE, BaseMultiVAEConfig
 from .jmvae import JMVAE, JMVAEConfig
 from .jnf import JNF, JNFConfig
+from .jnf_dcca import JNFDcca, JNFDccaConfig
 from .mmvae import MMVAE, MMVAEConfig
 from .mvae import MVAE, MVAEConfig
 from .telbo import TELBO, TELBOConfig
-from .jnf_dcca import JNFDcca, JNFDccaConfig
 
 __all__ = [
     "BaseMultiVAEConfig",
@@ -26,5 +26,5 @@ __all__ = [
     "MMVAEConfig",
     "MMVAE",
     "JNFDcca",
-    "JNFDccaConfig"
+    "JNFDccaConfig",
 ]

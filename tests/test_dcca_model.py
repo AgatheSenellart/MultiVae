@@ -1,58 +1,62 @@
-
-from copy import deepcopy
 import os
+from copy import deepcopy
+
 import numpy as np
+import torch
+from pytest import fixture
+from pythae.models.base import BaseAEConfig
+from pythae.models.base.base_utils import ModelOutput
+from pythae.models.normalizing_flows import IAF, IAFConfig
+
+from multivae.data.datasets import MultimodalBaseDataset
 from multivae.models.auto_model.auto_model import AutoModel
 from multivae.models.dcca import DCCA, DCCAConfig
-from pytest import fixture
-import torch
-from multivae.models.nn.default_architectures import BaseDictEncoders
-from multivae.data.datasets import MultimodalBaseDataset
-from pythae.models.base import BaseAEConfig
-from multivae.models.nn.default_architectures import Encoder_VAE_MLP, Decoder_AE_MLP
-from pythae.models.normalizing_flows import IAF, IAFConfig
-from pythae.models.base.base_utils import ModelOutput
 from multivae.models.jnf_dcca import JNFDcca, JNFDccaConfig
+from multivae.models.nn.default_architectures import (
+    BaseDictEncoders,
+    Decoder_AE_MLP,
+    Encoder_VAE_MLP,
+)
 from multivae.trainers.add_dcca_trainer import AddDccaTrainer, AddDccaTrainerConfig
 
-class TestDcca:
-    
-    @fixture(
-        params = [
-            dict(n_modalities = 2, embedding_dim = 5, use_all_singular_values=False),
-            dict(n_modalities = 5, embedding_dim = 10, use_all_singular_values=False),
 
+class TestDcca:
+    @fixture(
+        params=[
+            dict(n_modalities=2, embedding_dim=5, use_all_singular_values=False),
+            dict(n_modalities=5, embedding_dim=10, use_all_singular_values=False),
         ]
     )
     def inputs(self, request):
-        n_mod = request.param['n_modalities']
-        embed_dim = request.param['embedding_dim']
-        networks = BaseDictEncoders({'mod'+str(k): (k,) for k in range(1,n_mod+1)},embed_dim)
-        
-        data = {'mod'+str(k): torch.ones((10,k)) for k in range(1,n_mod+1)}
-        return networks,DCCAConfig(**request.param), MultimodalBaseDataset(data)
-    
-  
+        n_mod = request.param["n_modalities"]
+        embed_dim = request.param["embedding_dim"]
+        networks = BaseDictEncoders(
+            {"mod" + str(k): (k,) for k in range(1, n_mod + 1)}, embed_dim
+        )
+
+        data = {"mod" + str(k): torch.ones((10, k)) for k in range(1, n_mod + 1)}
+        return networks, DCCAConfig(**request.param), MultimodalBaseDataset(data)
+
     def test(self, inputs):
         networks, config, data = inputs
-        model = DCCA(config,networks)
-        
+        model = DCCA(config, networks)
+
         assert model.latent_dim == config.embedding_dim
         assert model.use_all_singular_values == config.use_all_singular_values
-        
+
         output = model(data)
-        assert hasattr(output, 'loss')
-        
+        assert hasattr(output, "loss")
+
+
 class TestJNFDcca:
-    
     @fixture
     def dataset(self):
         # Create simple small dataset with 2 modalities
         data = dict(
-            mod1=torch.rand((200,2)),
-            mod2=torch.rand((200,3)),
+            mod1=torch.rand((200, 2)),
+            mod2=torch.rand((200, 3)),
         )
-        labels = np.random.randint(2,size=200)
+        labels = np.random.randint(2, size=200)
         dataset = MultimodalBaseDataset(data, labels)
         return dataset
 
@@ -61,11 +65,13 @@ class TestJNFDcca:
         # Create custom instances for the dcca_networks and decoders
         config_dcca_1 = BaseAEConfig(input_dim=(2,), latent_dim=2)
         config_dcca_2 = BaseAEConfig(input_dim=(3,), latent_dim=2)
-        
+
         config1 = BaseAEConfig(input_dim=(2,), latent_dim=5)
         config2 = BaseAEConfig(input_dim=(3,), latent_dim=5)
 
-        dcca_networks = dict(mod1=Encoder_VAE_MLP(config_dcca_1), mod2=Encoder_VAE_MLP(config_dcca_2))
+        dcca_networks = dict(
+            mod1=Encoder_VAE_MLP(config_dcca_1), mod2=Encoder_VAE_MLP(config_dcca_2)
+        )
 
         decoders = dict(mod1=Decoder_AE_MLP(config1), mod2=Decoder_AE_MLP(config2))
 
@@ -78,7 +84,7 @@ class TestJNFDcca:
             flows=flows,
         )
 
-    @fixture(params=[ False])
+    @fixture(params=[False])
     def model_config(self, request):
         model_config = JNFDccaConfig(
             n_modalities=2,
@@ -99,11 +105,10 @@ class TestJNFDcca:
             model = JNFDcca(model_config, **custom_architectures)
         else:
             model = JNFDcca(model_config)
-            
+
         print(model.DCCA_module.networks)
         return model
 
-    
     @fixture
     def training_config(self, tmpdir):
         tmpdir.mkdir("dummy_folder")
@@ -129,7 +134,7 @@ class TestJNFDcca:
         trainer.prepare_training()
 
         return trainer
-    
+
     def test_model_forward(self, model, dataset, model_config):
         assert model.warmup == model_config.warmup
         assert model.nb_epochs_dcca == model_config.nb_epochs_dcca
@@ -142,9 +147,9 @@ class TestJNFDcca:
         assert type(loss) == torch.Tensor
         assert loss.size() == torch.Size([])
         assert loss.requires_grad
-        
+
         # Test forward method during joint vae training
-        output = model(dataset, epoch=model_config.nb_epochs_dcca+1)
+        output = model(dataset, epoch=model_config.nb_epochs_dcca + 1)
         assert hasattr(output, "recon_loss")
         assert hasattr(output, "KLD")
         loss = output.loss
@@ -153,7 +158,9 @@ class TestJNFDcca:
         assert loss.requires_grad
 
         # Test forward method during flows training
-        output = model(dataset, epoch=model_config.nb_epochs_dcca+model_config.warmup + 2)
+        output = model(
+            dataset, epoch=model_config.nb_epochs_dcca + model_config.warmup + 2
+        )
         assert hasattr(output, "ljm")
         loss = output.loss
         assert type(loss) == torch.Tensor
@@ -171,7 +178,7 @@ class TestJNFDcca:
         embeddings = model.encode(dataset, cond_mod=["mod1"]).z
         assert embeddings.shape == (200, model_config.latent_dim)
         embeddings = model.encode(dataset, cond_mod="mod2", N=10).z
-        assert embeddings.shape == (10, 200,model_config.latent_dim )
+        assert embeddings.shape == (10, 200, model_config.latent_dim)
         embeddings = model.encode(dataset, cond_mod=["mod2", "mod1"]).z
         assert embeddings.shape == (200, model_config.latent_dim)
 
@@ -190,8 +197,6 @@ class TestJNFDcca:
         assert Y.mod1.shape == (200 * 10, 2)
         assert Y.mod2.shape == (200 * 10, 3)
 
-
-
     def test_train_step(self, trainer):
         start_model_state_dict = deepcopy(trainer.model.state_dict())
         start_optimizer = trainer.optimizer
@@ -207,8 +212,8 @@ class TestJNFDcca:
             ]
         )
         assert trainer.optimizer == start_optimizer
-        _ = trainer.prepare_train_step(trainer.model.nb_epochs_dcca +1, None, None)
-        _ = trainer.train_step(epoch=trainer.model.nb_epochs_dcca +1)
+        _ = trainer.prepare_train_step(trainer.model.nb_epochs_dcca + 1, None, None)
+        _ = trainer.train_step(epoch=trainer.model.nb_epochs_dcca + 1)
         step_2_model_state_dict = deepcopy(trainer.model.state_dict())
 
         assert not all(

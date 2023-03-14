@@ -9,12 +9,15 @@ from pythae.models.normalizing_flows.base import BaseNF, BaseNFConfig
 from pythae.models.normalizing_flows.maf import MAF, MAFConfig
 from torch.nn import ModuleDict
 
-from multivae.models.nn.default_architectures import BaseDictEncoders, MultipleHeadJointEncoder
+from multivae.models.nn.default_architectures import (
+    BaseDictEncoders,
+    MultipleHeadJointEncoder,
+)
 
 from ...data.datasets.base import MultimodalBaseDataset
+from ..dcca import DCCA, DCCAConfig
 from ..joint_models import BaseJointModel
 from .jnf_dcca_config import JNFDccaConfig
-from ..dcca import DCCA, DCCAConfig
 
 
 class JNFDcca(BaseJointModel):
@@ -38,9 +41,9 @@ class JNFDcca(BaseJointModel):
 
         flows (Dict[str,BaseNF]) : A dictionary containing the modalities names and the flows to use for
             each modality. If None is provided, a default MAF flow is used for each modality.
-            
+
         dcca_networks (Dict[str, BaseEncoder]) : A dictionary containing the networks to use in the DCCA module
-            for each modality. If None is provided, default MLPs are used. 
+            for each modality. If None is provided, default MLPs are used.
 
     """
 
@@ -51,15 +54,15 @@ class JNFDcca(BaseJointModel):
         decoders: Dict[str, BaseDecoder] = None,
         joint_encoder: Union[BaseEncoder, None] = None,
         flows: Dict[str, BaseNF] = None,
-        dcca_networks : Dict[str, BaseEncoder] = None,
+        dcca_networks: Dict[str, BaseEncoder] = None,
         **kwargs,
     ):
-        
-        
-        self.dcca_config = DCCAConfig(n_modalities=model_config.n_modalities,
-                                      embedding_dim=model_config.embedding_dcca_dim,
-                                      use_all_singular_values=model_config.use_all_singular_values)
-        
+        self.dcca_config = DCCAConfig(
+            n_modalities=model_config.n_modalities,
+            embedding_dim=model_config.embedding_dcca_dim,
+            use_all_singular_values=model_config.use_all_singular_values,
+        )
+
         if dcca_networks is None:
             if model_config.input_dims is None:
                 raise AttributeError(
@@ -72,18 +75,21 @@ class JNFDcca(BaseJointModel):
                         f"The provided number of input_dims {len(model_config.input_dims.keys())} doesn't"
                         f"match the number of modalities ({model_config.n_modalities} in model config "
                     )
-                dcca_networks = BaseDictEncoders(model_config.input_dims, model_config.embedding_dcca_dim)
+                dcca_networks = BaseDictEncoders(
+                    model_config.input_dims, model_config.embedding_dcca_dim
+                )
         else:
             model_config.use_default_dcca_network = False
-            
-        
+
         # The default encoders for this model have (embedding_dcca_dim, ) as input_size
         if encoders is None:
-            encoders_input_dims = {k: (model_config.embedding_dcca_dim,) for k in dcca_networks}
-            encoders = BaseDictEncoders(encoders_input_dims,model_config.latent_dim)
-        else :
+            encoders_input_dims = {
+                k: (model_config.embedding_dcca_dim,) for k in dcca_networks
+            }
+            encoders = BaseDictEncoders(encoders_input_dims, model_config.latent_dim)
+        else:
             model_config.uses_default_encoders = False
-            
+
         # The default joint_encoder for this model is engineered from the DCCA networks and
         # not from the encoders
         if joint_encoder is None:
@@ -91,10 +97,9 @@ class JNFDcca(BaseJointModel):
             joint_encoder = MultipleHeadJointEncoder(dcca_networks, model_config)
         else:
             model_config.use_default_joint = False
-            
-        super().__init__(model_config, encoders, decoders, joint_encoder, **kwargs)
-        self.DCCA_module = DCCA(self.dcca_config,dcca_networks)
 
+        super().__init__(model_config, encoders, decoders, joint_encoder, **kwargs)
+        self.DCCA_module = DCCA(self.dcca_config, dcca_networks)
 
         if flows is None:
             flows = dict()
@@ -107,11 +112,11 @@ class JNFDcca(BaseJointModel):
         self.model_name = "JNFDcca"
         self.warmup = model_config.warmup
         self.nb_epochs_dcca = model_config.nb_epochs_dcca
-        self.reset_optimizer_epochs = [self.nb_epochs_dcca,
-                                       self.nb_epochs_dcca+self.warmup]
+        self.reset_optimizer_epochs = [
+            self.nb_epochs_dcca,
+            self.nb_epochs_dcca + self.warmup,
+        ]
 
-        
-        
     def set_flows(self, flows: Dict[str, BaseNF]):
         # check that the keys corresponds with the encoders keys
         if flows.keys() != self.encoders.keys():
@@ -129,8 +134,10 @@ class JNFDcca(BaseJointModel):
             if isinstance(flows[m], BaseNF):
                 if flows[m].input_dim == (self.latent_dim,):
                     self.flows[m] = flows[m]
-                else :
-                    raise AttributeError("The provided flows don't have the right input dim.")
+                else:
+                    raise AttributeError(
+                        "The provided flows don't have the right input dim."
+                    )
             else:
                 raise AttributeError(
                     "The provided flows must be instances of the Pythae's BaseNF "
@@ -142,15 +149,13 @@ class JNFDcca(BaseJointModel):
         # After the warmup, we freeze the architecture of the joint encoder and decoders
         self.joint_encoder.requires_grad_(False)
         self.decoders.requires_grad_(False)
-    
 
     def _set_torch_no_grad_on_dcca_module(self):
         self.DCCA_module.requires_grad_(False)
-        
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs):
         epoch = kwargs.pop("epoch", 1)
-        
+
         if epoch <= self.nb_epochs_dcca:
             return self.DCCA_module(inputs)
         else:
@@ -225,8 +230,6 @@ class JNFDcca(BaseJointModel):
         N: int = 1,
         **kwargs,
     ) -> ModelOutput:
-        
-
         if type(cond_mod) == list and len(cond_mod) == 1:
             cond_mod = cond_mod[0]
 
@@ -250,7 +253,9 @@ class JNFDcca(BaseJointModel):
             )
 
         if cond_mod in self.input_dims.keys():
-            dcca_embed = self.DCCA_module.networks[cond_mod](inputs.data[cond_mod]).embedding
+            dcca_embed = self.DCCA_module.networks[cond_mod](
+                inputs.data[cond_mod]
+            ).embedding
             output = self.encoders[cond_mod](dcca_embed)
             sample_shape = [] if N == 1 else [N]
 

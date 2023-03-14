@@ -1,5 +1,6 @@
-from ..base import BaseMultiVAEConfig
 from typing import Literal
+
+from ..base import BaseMultiVAEConfig
 
 
 class MMVAEConfig(BaseMultiVAEConfig):

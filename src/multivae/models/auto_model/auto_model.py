@@ -60,7 +60,7 @@ class AutoModel(nn.Module):
             from ..mvae import MVAE
 
             model = MVAE.load_from_folder(dir_path)
-            
+
         elif model_name == "JNFDccaConfig":
             from ..jnf_dcca import JNFDcca
 
