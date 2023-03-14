@@ -24,8 +24,8 @@ model_config = JNFDccaConfig(
     n_modalities=2,
     input_dims=dict(mnist=(1, 28, 28), svhn=(3, 32, 32)),
     latent_dim=20,
-    nb_epochs_dcca = 10,
-    warmup=10,
+    nb_epochs_dcca = 50,
+    warmup=50,
     use_likelihood_rescaling=True,
 )
 
@@ -42,7 +42,7 @@ decoders = dict(
 model = JNFDcca(model_config,encoders = None, decoders = decoders,dcca_networks = dcca_networks)
 
 trainer_config = AddDccaTrainerConfig(
-    num_epochs=30, learning_rate=1e-3, steps_predict=1,
+    num_epochs=150, learning_rate=1e-3, steps_predict=1,
     per_device_dcca_train_batch_size=500,
 )
 

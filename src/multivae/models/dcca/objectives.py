@@ -21,6 +21,7 @@ class cca_loss():
         eps = 1e-9
         H1, H2 = H_list[0], H_list[1]
         H1, H2 = H1.t(), H2.t()
+        device = H1.device
         # assert torch.isnan(H1).sum().item() == 0
         # assert torch.isnan(H2).sum().item() == 0
 
@@ -36,9 +37,9 @@ class cca_loss():
 
         SigmaHat12 = (1.0 / (m - 1)) * torch.matmul(H1bar, H2bar.t())
         SigmaHat11 = (1.0 / (m - 1)) * torch.matmul(H1bar,
-                                                    H1bar.t()) + r1 * torch.eye(o1)
+                                                    H1bar.t()) + r1 * torch.eye(o1).to(device)
         SigmaHat22 = (1.0 / (m - 1)) * torch.matmul(H2bar,
-                                                    H2bar.t()) + r2 * torch.eye(o2)
+                                                    H2bar.t()) + r2 * torch.eye(o2).to(device)
         # assert torch.isnan(SigmaHat11).sum().item() == 0
         # assert torch.isnan(SigmaHat12).sum().item() == 0
         # assert torch.isnan(SigmaHat22).sum().item() == 0
@@ -64,9 +65,9 @@ class cca_loss():
         # print(posInd2.size())
 
         SigmaHat11RootInv = torch.matmul(
-            torch.matmul(V1, torch.diag(D1 ** -0.5)), V1.t())
+            torch.matmul(V1, torch.diag(D1 ** -0.5).to(device)), V1.t())
         SigmaHat22RootInv = torch.matmul(
-            torch.matmul(V2, torch.diag(D2 ** -0.5)), V2.t())
+            torch.matmul(V2, torch.diag(D2 ** -0.5).to(device)), V2.t())
 
         Tval = torch.matmul(torch.matmul(SigmaHat11RootInv,
                                          SigmaHat12), SigmaHat22RootInv)
@@ -80,9 +81,9 @@ class cca_loss():
         else:
             # just the top self.outdim_size singular values are used
             trace_TT = torch.matmul(Tval.t(), Tval)
-            trace_TT = torch.add(trace_TT, (torch.eye(trace_TT.shape[0])*r1)) # regularization for more stability
+            trace_TT = torch.add(trace_TT, (torch.eye(trace_TT.shape[0]).to(device)*r1)) # regularization for more stability
             U = torch.linalg.eigvalsh(trace_TT, UPLO='U')
-            U = torch.where(U>eps, U, (torch.ones(U.shape).double()*eps))
+            U = torch.where(U>eps, U, (torch.ones(U.shape).double().to(device)*eps))
             U = U.topk(self.outdim_size)[0]
             corr = torch.sum(torch.sqrt(U))
         return -corr
