@@ -1,8 +1,8 @@
 from typing import Literal
-
+from pydantic.dataclasses import dataclass
 from ..base import BaseMultiVAEConfig
 
-
+@dataclass
 class MMVAEConfig(BaseMultiVAEConfig):
 
     """
@@ -13,7 +13,7 @@ class MMVAEConfig(BaseMultiVAEConfig):
 
 
     Args :
-        K (int) : the number of samples to use in the DreG loss. Default to 1.
+        K (int) : the number of samples to use in the DreG loss. Default to 10.
         use_likelihood_rescaling (bool) : Use likelihood rescaling to mitigate modality collapse.
             Default to True.
         prior_and_posterior_dist (str) : The type of distribution to use for posterior and prior.

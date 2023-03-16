@@ -97,6 +97,7 @@ class AddDccaTrainer(BaseTrainer):
             self.train_loader = self.train_loader_vae
             self.train_loader = self.eval_loader_vae
             self.set_optimizer()
+            self.set_scheduler()
             best_train_loss = 1e10
             best_eval_loss = 1e10
 
@@ -108,6 +109,7 @@ class AddDccaTrainer(BaseTrainer):
             )
 
             self.set_optimizer()
+            self.set_scheduler()
             best_train_loss = 1e10
             best_eval_loss = 1e10
 

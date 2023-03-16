@@ -27,6 +27,7 @@ class TwoStepsTrainer(BaseTrainer):
         if epoch in self.model.reset_optimizer_epochs:
             # Reset the optimizer
             self.set_optimizer()
+            self.set_scheduler()
             best_train_loss = 1e10
             best_eval_loss = 1e10
         return best_train_loss, best_eval_loss

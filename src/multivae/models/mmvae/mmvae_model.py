@@ -28,7 +28,6 @@ class MMVAE(BaseMultiVAE):
         super().__init__(model_config, encoders, decoders)
 
         self.K = model_config.K
-
         if model_config.prior_and_posterior_dist == "laplace_with_softmax":
             self.post_dist = Laplace
             self.prior_dist = Laplace

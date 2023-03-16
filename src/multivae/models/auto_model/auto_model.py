@@ -33,7 +33,6 @@ class AutoModel(nn.Module):
             - | a ``model_config.json``, a ``model.pt`` and a ``encoders.pkl`` (resp.
                 ``decoders.pkl``) if a custom encoders (resp. decoders) were provided
         """
-
         with open(os.path.join(dir_path, "model_config.json")) as f:
             model_name = json.load(f)["name"]
 

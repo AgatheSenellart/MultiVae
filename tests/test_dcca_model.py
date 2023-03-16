@@ -55,6 +55,7 @@ class TestJNFDcca:
         data = dict(
             mod1=torch.rand((200, 2)),
             mod2=torch.rand((200, 3)),
+            mod3=torch.rand((200, 4))
         )
         labels = np.random.randint(2, size=200)
         dataset = MultimodalBaseDataset(data, labels)
@@ -65,18 +66,28 @@ class TestJNFDcca:
         # Create custom instances for the dcca_networks and decoders
         config_dcca_1 = BaseAEConfig(input_dim=(2,), latent_dim=2)
         config_dcca_2 = BaseAEConfig(input_dim=(3,), latent_dim=2)
+        config_dcca_3 = BaseAEConfig(input_dim=(4,), latent_dim=2)
+
 
         config1 = BaseAEConfig(input_dim=(2,), latent_dim=5)
         config2 = BaseAEConfig(input_dim=(3,), latent_dim=5)
+        config3 = BaseAEConfig(input_dim=(4,), latent_dim=5)
+
 
         dcca_networks = dict(
-            mod1=Encoder_VAE_MLP(config_dcca_1), mod2=Encoder_VAE_MLP(config_dcca_2)
+            mod1=Encoder_VAE_MLP(config_dcca_1), 
+            mod2=Encoder_VAE_MLP(config_dcca_2),
+            mod3=Encoder_VAE_MLP(config_dcca_3)
         )
 
-        decoders = dict(mod1=Decoder_AE_MLP(config1), mod2=Decoder_AE_MLP(config2))
+        decoders = dict(mod1=Decoder_AE_MLP(config1), 
+                        mod2=Decoder_AE_MLP(config2),
+                        mod3=Decoder_AE_MLP(config3))
 
         flows = dict(
-            mod1=IAF(IAFConfig(input_dim=(5,))), mod2=IAF(IAFConfig(input_dim=(5,)))
+            mod1=IAF(IAFConfig(input_dim=(5,))), 
+            mod2=IAF(IAFConfig(input_dim=(5,))),
+            mod3 = IAF(IAFConfig(input_dim=(5,)))
         )
         return dict(
             dcca_networks=dcca_networks,
@@ -87,9 +98,9 @@ class TestJNFDcca:
     @fixture(params=[False])
     def model_config(self, request):
         model_config = JNFDccaConfig(
-            n_modalities=2,
+            n_modalities=3,
             latent_dim=5,
-            input_dims=dict(mod1=(2,), mod2=(3,)),
+            input_dims=dict(mod1=(2,), mod2=(3,), mod3=(4,)),
             use_all_singular_values=request.param,
             embedding_dcca_dim=2,
             nb_epochs_dcca=2,
@@ -431,6 +442,13 @@ class TestJNFDcca:
 
         else:
             assert not "encoders.pkl" in files_list
+            
+        # check pickled custom encoder
+        if not model.model_config.use_default_dcca_network:
+            assert "dcca_networks.pkl" in files_list
+
+        else:
+            assert not "dcca_networks.pkl" in files_list
 
         # check reload full model
         model_rec = AutoModel.load_from_folder(os.path.join(final_dir))
@@ -446,6 +464,8 @@ class TestJNFDcca:
 
         assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
         assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
+        assert type(model_rec.DCCA_module.networks.cpu()) == type(model.DCCA_module.networks.cpu())
+
 
     def test_compute_nll(self, model, dataset):
         nll = model.compute_joint_nll(dataset, K=10, batch_size_K=2)
