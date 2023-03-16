@@ -18,11 +18,16 @@ class Test:
         return dict(data_path=data_path, split=split)
 
     def test_create_dataset(self, input_dataset_test):
-        dataset = MMNISTDataset(**input_dataset_test)
-        assert isinstance(dataset, MultimodalBaseDataset)
-        sample = dataset[0]
-        assert type(sample) == DatasetOutput
-        assert isinstance(sample.data['m0'],torch.Tensor)
-        assert torch.max(sample.data['m0'])==1
-        assert sample.data['m0'].size() == torch.Size([3,28,28])
-        assert len(dataset) == 10000
+        
+        if not os.path.exists(input_dataset_test['data_path']):
+            Warning("The MMNIST dataset is not available")
+            return
+        else :
+            dataset = MMNISTDataset(**input_dataset_test)
+            assert isinstance(dataset, MultimodalBaseDataset)
+            sample = dataset[0]
+            assert type(sample) == DatasetOutput
+            assert isinstance(sample.data['m0'],torch.Tensor)
+            assert torch.max(sample.data['m0'])==1
+            assert sample.data['m0'].size() == torch.Size([3,28,28])
+            assert len(dataset) == 10000
