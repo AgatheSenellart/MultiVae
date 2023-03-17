@@ -224,8 +224,8 @@ class TestTraining:
             ]
         )
         assert trainer.optimizer == start_optimizer
-        _ = trainer.prepare_train_step(10, None, None)
-        _ = trainer.train_step(epoch=10)
+        _ = trainer.prepare_train_step(self.model.warmup+1, None, None)
+        _ = trainer.train_step(epoch=self.model.warmup+1)
         step_2_model_state_dict = deepcopy(trainer.model.state_dict())
 
         assert not all(
