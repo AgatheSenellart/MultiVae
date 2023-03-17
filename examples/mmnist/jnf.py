@@ -28,7 +28,6 @@ model_config = JNFConfig(
     input_dims={k : (3,28,28) for k in modalities},
     latent_dim=128,
     warmup=400,
-    use_likelihood_rescaling=True,
 )
 
 modalities
@@ -41,6 +40,8 @@ decoders = {
 
 model = JNF(
     model_config, encoders=encoders, decoders=decoders)
+
+print(model.reset_optimizer_epochs)
 
 
 trainer_config = TwoStepsTrainerConfig(

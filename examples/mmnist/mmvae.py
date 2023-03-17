@@ -27,7 +27,7 @@ model_config = MMVAEConfig(
     n_modalities=5,
     input_dims={k : (3,28,28) for k in modalities},
     latent_dim=128,
-    K = 1,
+    K = 10,
 )
 
 modalities

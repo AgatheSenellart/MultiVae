@@ -45,7 +45,7 @@ trainer_config = BaseTrainerConfig(
     num_epochs=800,
     learning_rate=1e-4,
     steps_predict=1,
-    start_keep_best=model_config.warmup +1,
+    start_keep_best_epoch=model_config.warmup +1,
     per_device_train_batch_size=128
 )
 

@@ -484,3 +484,7 @@ class BaseMultiVAE(nn.Module):
         self, inputs: MultimodalBaseDataset, K: int = 1000, batch_size_K: int = 100
     ):
         raise NotImplementedError
+
+    def compute_cond_nll(self, inputs: MultimodalBaseDataset,cond_mod:str,pred_mod:str,
+                         K: int = 1000, batch_size_K: int = 100):
+        raise NotImplementedError

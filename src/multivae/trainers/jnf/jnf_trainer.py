@@ -1,3 +1,4 @@
+import logging
 from typing import List, Optional
 
 from multivae.data.datasets.base import MultimodalBaseDataset
@@ -7,6 +8,12 @@ from multivae.trainers.base.callbacks import TrainingCallback
 from ..base import BaseTrainer
 from .jnf_trainer_config import TwoStepsTrainerConfig
 
+logger = logging.getLogger(__name__)
+
+# make it print to the console.
+console = logging.StreamHandler()
+logger.addHandler(console)
+logger.setLevel(logging.INFO)
 
 class TwoStepsTrainer(BaseTrainer):
     def __init__(
@@ -25,9 +32,10 @@ class TwoStepsTrainer(BaseTrainer):
         the best losses values.
         """
         if epoch in self.model.reset_optimizer_epochs:
+            logger.info(f"Epoch {epoch} : reset the optimizer and losses.")
             # Reset the optimizer
             self.set_optimizer()
             self.set_scheduler()
-            best_train_loss = 1e10
-            best_eval_loss = 1e10
+            best_train_loss = 1e12
+            best_eval_loss = 1e12
         return best_train_loss, best_eval_loss

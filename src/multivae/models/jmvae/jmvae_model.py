@@ -348,3 +348,60 @@ class JMVAE(BaseJointModel):
         z = z.detach().resize(*sh)
         return z.detach()
             
+
+    def compute_cond_nll(self, inputs: MultimodalBaseDataset, cond_mod: str, pred_mods: list, K: int = 1000, batch_size_K: int = 100):
+        
+        """Compute the conditional likelihoods ln p(x|y) , ln p(y|x) with MonteCarlo Sampling and the approximation :
+
+                ln p(x|y) = \sum_{z ~ q(z|y)} ln p(x|z)
+
+        Args:
+            inputs (MultimodalBaseDataset): the data to compute the likelihood on.
+            cond_mod (str): the modality to condition on
+            gen_mod (str): the modality to condition on
+            K (int, optional): number of samples per batch. Defaults to 1000.
+            batch_size_K (int, optional): _description_. Defaults to 100.
+
+        Returns:
+            dict: _description_
+        """
+        raise NotImplementedError
+
+        # Compute K samples for each datapoint
+        o = self.encode(inputs, cond_mod,N=K)
+        
+        # Compute the negative recon_log_prob for each datapoint
+        ll = {k : 0 for k in pred_mods}
+
+        n_data = len(inputs.data[list(inputs.data.keys())[0]])
+        for i in range(n_data):
+            start_idx, stop_index = 0, batch_size_K
+            lnpxs = []
+
+            while stop_index <= K:
+
+                # Encode with the conditional VAE
+                latents = o.z[start:indei]
+
+                # Decode with the opposite decoder
+                recon = self.vaes[gen_mod].decoder(latents).reconstruction
+
+                # Compute lnp(y|z)
+
+
+                if self.px_z[gen_mod] == dist.Bernoulli:
+                    lpx_z = self.px_z[gen_mod](recon).log_prob(data[gen_mod][i]).sum(dim=(1, 2, 3))
+                else:
+                    lpx_z = self.px_z[gen_mod](recon, scale=1).log_prob(data[gen_mod][i]).sum(dim=(1, 2, 3))
+
+                lnpxs.append(torch.logsumexp(lpx_z,dim=0))
+                # next batch
+                start_idx += batch_size_K
+                stop_index += batch_size_K
+
+            ll.append(torch.logsumexp(torch.Tensor(lnpxs), dim=0) - np.log(K))
+
+        return {f'cond_likelihood_{cond_mod}_{gen_mod}': torch.sum(torch.tensor(ll))/len(ll)}, torch.tensor(ll)
+
+
+

@@ -367,7 +367,7 @@ class JNFDcca(BaseJointModel):
             return lnqzs
 
 
-    def sample_from_poe_subset(self,subset,data, ax=None, mcmc_steps=100, n_lf=10, eps_lf=0.01, K=1, divide_prior=True):
+    def sample_from_poe_subset(self,subset,data, ax=None, mcmc_steps=300, n_lf=10, eps_lf=0.01, K=1, divide_prior=True):
         """Sample from the product of experts using Hamiltonian sampling.
 
         Args:

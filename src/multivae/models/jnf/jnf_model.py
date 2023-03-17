@@ -61,7 +61,7 @@ class JNF(BaseJointModel):
 
         self.model_name = "JNF"
         self.warmup = model_config.warmup
-        self.reset_optimizer_epochs = [self.warmup]
+        self.reset_optimizer_epochs = [self.warmup+1]
 
     def set_flows(self, flows: Dict[str, BaseNF]):
         # check that the keys corresponds with the encoders keys
