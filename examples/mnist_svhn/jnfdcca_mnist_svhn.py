@@ -15,7 +15,7 @@ from multivae.trainers.base.callbacks import (
     WandbCallback,
 )
 
-train_data = MnistSvhn(split="test")
+train_data = MnistSvhn(split="train")
 train_data, eval_data = random_split(
     train_data, [0.8, 0.2], generator=torch.Generator().manual_seed(42)
 )
@@ -24,8 +24,8 @@ model_config = JNFDccaConfig(
     n_modalities=2,
     input_dims=dict(mnist=(1, 28, 28), svhn=(3, 32, 32)),
     latent_dim=20,
-    nb_epochs_dcca=50,
-    warmup=50,
+    nb_epochs_dcca=100,
+    warmup=100,
     use_likelihood_rescaling=True,
 )
 
@@ -44,7 +44,7 @@ model = JNFDcca(
 )
 
 trainer_config = AddDccaTrainerConfig(
-    num_epochs=150,
+    num_epochs=300,
     learning_rate=1e-3,
     steps_predict=1,
     per_device_dcca_train_batch_size=500,
@@ -52,7 +52,7 @@ trainer_config = AddDccaTrainerConfig(
 
 # Set up callbacks
 wandb_cb = WandbCallback()
-wandb_cb.setup(trainer_config, model_config, project_name="package")
+wandb_cb.setup(trainer_config, model_config, project_name="package_mnist_svhn")
 
 callbacks = [TrainingCallback(), ProgressBarCallback(), wandb_cb]
 

@@ -485,6 +485,62 @@ class BaseMultiVAE(nn.Module):
     ):
         raise NotImplementedError
 
-    def compute_cond_nll(self, inputs: MultimodalBaseDataset,cond_mod:str,pred_mod:str,
-                         K: int = 1000, batch_size_K: int = 100):
-        raise NotImplementedError
+
+        
+    def compute_cond_nll(self, inputs: MultimodalBaseDataset, cond_mod: str, pred_mods: list, K: int = 1000, batch_size_K: int = 100):
+        
+        """Compute the conditional likelihoods ln p(x|y) , ln p(y|x) with MonteCarlo Sampling and the approximation :
+
+                ln p(x|y) = \sum_{z ~ q(z|y)} ln p(x|z)
+
+        Args:
+            inputs (MultimodalBaseDataset): the data to compute the likelihood on.
+            cond_mod (str): the modality to condition on
+            gen_mod (str): the modality to condition on
+            K (int, optional): number of samples per batch. Defaults to 1000.
+            batch_size_K (int, optional): _description_. Defaults to 100.
+
+        Returns:
+            dict: _description_
+        """
+
+        # Compute K samples for each datapoint
+        o = self.encode(inputs, cond_mod,N=K)
+        
+        # Compute the negative recon_log_prob for each datapoint
+        ll = {k : [] for k in pred_mods}
+
+        n_data = len(inputs.data[list(inputs.data.keys())[0]])
+        for i in range(n_data):
+            start_idx, stop_index = 0, batch_size_K
+            lnpxs = {k : [] for k in pred_mods}
+            
+            while stop_index <= K:
+
+                # Encode with the conditional VAE
+                latents = o.z[start_idx:stop_index]
+
+                # Decode with the opposite decoder
+                for k in pred_mods:
+                    target=inputs.data[k][i]
+                    recon = self.decoders[k](latents).reconstruction
+                    # Compute lnp(y|z)
+                    lpxz = self.recon_log_probs[k](target, recon)
+                    lnpxs[k].append(torch.logsumexp(lpxz,dim=0))
+
+                # next batch
+                start_idx += batch_size_K
+                stop_index += batch_size_K
+            for k in pred_mods:
+                print(lnpxs[k])
+                ll[k].append(torch.logsumexp(torch.Tensor(lnpxs[k]), dim=0) - np.log(K))
+                
+        results = {}
+        for k in pred_mods:
+            results['ll' + cond_mod + '_' +k] = torch.sum(torch.tensor(ll[k]))/len(ll[k])
+        
+        return ModelOutput(**results)
+
+
+
+

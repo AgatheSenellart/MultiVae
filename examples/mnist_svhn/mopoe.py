@@ -2,12 +2,11 @@ import torch
 from pythae.models.base.base_config import BaseAEConfig
 from torch.utils.data import DataLoader, random_split
 
-from multivae.data.datasets import MMNISTDataset
+from multivae.data.datasets import MnistSvhn
 from multivae.data.datasets.utils import save_all_images
 from multivae.data.utils import set_inputs_to_device
-from multivae.models import MMVAE,MMVAEConfig
+from multivae.models import MoPoE, MoPoEConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
-from multivae.models.nn.mmnist import Encoder_ResNet_VAE_MMNIST,Decoder_ResNet_AE_MNIST
 from multivae.models.nn.svhn import Decoder_VAE_SVHN, Encoder_VAE_SVHN
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 from multivae.trainers.base.callbacks import (
@@ -16,44 +15,44 @@ from multivae.trainers.base.callbacks import (
     WandbCallback,
 )
 
-train_data = MMNISTDataset(data_path = "../../../data/MMNIST",split="train")
+train_data = MnistSvhn(split="test")
 train_data, eval_data = random_split(
     train_data, [0.8, 0.2], generator=torch.Generator().manual_seed(42)
 )
-print(len(train_data), len(eval_data))
-modalities = ['m0','m1','m2', 'm3','m4']
 
-model_config = MMVAEConfig(
-    n_modalities=5,
-    input_dims={k : (3,28,28) for k in modalities},
-    latent_dim=128,
-    K = 1,
-    prior_and_posterior_dist='normal',
-    learn_prior=False
+model_config = MoPoEConfig(
+    n_modalities=2,
+    input_dims=dict(mnist=(1, 28, 28), svhn=(3, 32, 32)),
+    latent_dim=20,
+    uses_likelihood_rescaling=True,
+    recon_losses = dict(mnist='l1',svhn='l1')
+    
 )
 
-modalities
+encoders = dict(
+    mnist=Encoder_VAE_MLP(BaseAEConfig(latent_dim=20, input_dim=(1, 28, 28))),
+    svhn=Encoder_VAE_SVHN(BaseAEConfig(latent_dim=20, input_dim=(3, 32, 32))),
+)
 
-encoders = { k : Encoder_ResNet_VAE_MMNIST(BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3, 28, 28))) for k in modalities}
+decoders = dict(
+    mnist=Decoder_AE_MLP(BaseAEConfig(latent_dim=20, input_dim=(1, 28, 28))),
+    svhn=Decoder_VAE_SVHN(BaseAEConfig(latent_dim=20, input_dim=(3, 32, 32))),
+)
 
-decoders = {
-    k :Decoder_ResNet_AE_MNIST(BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3, 28, 28))) for k in modalities
-}
-
-model = MMVAE(
-    model_config, encoders=encoders, decoders=decoders)
+model = MoPoE(model_config, encoders, decoders)
 
 trainer_config = BaseTrainerConfig(
-    num_epochs=400,
-    learning_rate=1e-4,
+    num_epochs=200,
+    learning_rate=1e-3,
     steps_predict=1,
-    per_device_train_batch_size=128,
+    per_device_train_batch_size=64,
+    per_device_eval_batch_size=64,
     steps_saving=20
 )
 
 # Set up callbacks
 wandb_cb = WandbCallback()
-wandb_cb.setup(trainer_config, model_config, project_name="mmnist")
+wandb_cb.setup(trainer_config, model_config=model_config, project_name="package")
 
 callbacks = [TrainingCallback(), ProgressBarCallback(), wandb_cb]
 
@@ -62,7 +61,7 @@ trainer = BaseTrainer(
     train_dataset=train_data,
     eval_dataset=eval_data,
     training_config=trainer_config,
-    callbacks=callbacks,
+    callbacks=callbacks
 )
 trainer.train()
 

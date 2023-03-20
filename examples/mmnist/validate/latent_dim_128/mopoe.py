@@ -61,7 +61,7 @@ def load_mmnist_classifiers(data_path =  "../../../data/clf",device='cuda'):
 
 test_set = MMNISTDataset(data_path = "../../../data/MMNIST",split="test")
 
-data_path ='dummy_output_dir/JNF_training_2023-03-17_15-29-58/final_model'
+data_path ='dummy_output_dir/MoPoE_training_2023-03-19_11-23-59/checkpoint_epoch_140'
 
 clfs = load_mmnist_classifiers()
 
@@ -71,5 +71,5 @@ eval = CoherenceEvaluator(model,clfs,test_set,data_path)
 
 eval.pair_accuracies()
 eval.all_one_accuracies()
-eval.joint_nll()
+# eval.joint_nll()
 

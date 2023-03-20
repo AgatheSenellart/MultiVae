@@ -438,3 +438,7 @@ class TestTraining:
         assert nll >= 0
         assert type(nll) == torch.Tensor
         assert nll.size() == torch.Size([])
+        
+        cond_ll = model.compute_cond_nll(input_dataset,'mod1',['mod2'])
+        assert isinstance(cond_ll, ModelOutput)
+        assert cond_ll.ll_mod1_mod2.size() == torch.size([])

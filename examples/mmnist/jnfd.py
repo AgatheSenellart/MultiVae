@@ -27,7 +27,7 @@ model_config = JNFDccaConfig(
     n_modalities=5,
     input_dims={k : (3,28,28) for k in modalities},
     latent_dim=128,
-    nb_epochs_dcca=100,
+    nb_epochs_dcca=200,
     warmup=400,
     use_likelihood_rescaling=True,
 )

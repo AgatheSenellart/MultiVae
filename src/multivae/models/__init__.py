@@ -9,6 +9,7 @@ from .jnf_dcca import JNFDcca, JNFDccaConfig
 from .mmvae import MMVAE, MMVAEConfig
 from .mvae import MVAE, MVAEConfig
 from .telbo import TELBO, TELBOConfig
+from .mopoe import MoPoEConfig, MoPoE
 
 __all__ = [
     "BaseMultiVAEConfig",
@@ -27,4 +28,6 @@ __all__ = [
     "MMVAE",
     "JNFDcca",
     "JNFDccaConfig",
+    "MoPoE",
+    "MoPoEConfig"
 ]
