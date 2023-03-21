@@ -16,4 +16,4 @@ class BaseJointModelConfig(BaseMultiVAEConfig):
 
     """
 
-    use_default_joint: bool = False
+    use_default_joint: bool = True

@@ -24,7 +24,7 @@ class TwoStepsTrainer(BaseTrainer):
         Function to operate changes between train_steps such as resetting the optimizer and
         the best losses values.
         """
-        if epoch == self.model.warmup:
+        if epoch in self.model.reset_optimizer_epochs:
             # Reset the optimizer
             self.set_optimizer()
             best_train_loss = 1e10

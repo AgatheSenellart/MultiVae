@@ -19,6 +19,7 @@ class BaseMultiVAEConfig(BaseConfig):
         recon_losses (Dict[str, Union[function, str]]). The reconstruction loss to use per modality.
             Per modality, you can provide a string in ['mse','bce','l1']. If None is provided, an Mean-Square-Error (mse)
             is used for each modality.
+        
     """
 
     n_modalities: Union[int, None] = None
@@ -28,6 +29,7 @@ class BaseMultiVAEConfig(BaseConfig):
     uses_default_decoders: bool = True
     uses_likelihood_rescaling: bool = False
     recon_losses: dict = None
+    
 
 
 @dataclass

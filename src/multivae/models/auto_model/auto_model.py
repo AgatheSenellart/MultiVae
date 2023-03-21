@@ -61,6 +61,11 @@ class AutoModel(nn.Module):
 
             model = MVAE.load_from_folder(dir_path)
 
+        elif model_name == "JNFDccaConfig":
+            from ..jnf_dcca import JNFDcca
+
+            model = JNFDcca.load_from_folder(dir_path)
+
         else:
             raise NameError(
                 "Cannot reload automatically the model... "

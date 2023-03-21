@@ -2,223 +2,119 @@ import os
 from copy import deepcopy
 
 import numpy as np
-import pytest
 import torch
+from pytest import fixture
 from pythae.models.base import BaseAEConfig
 from pythae.models.base.base_utils import ModelOutput
-from pythae.models.nn.benchmarks.mnist.convnets import (
-    Decoder_Conv_AE_MNIST,
-    Encoder_Conv_AE_MNIST,
-)
-from pythae.models.nn.default_architectures import Encoder_VAE_MLP
 from pythae.models.normalizing_flows import IAF, IAFConfig
-from torch import nn
 
-from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
-from multivae.data.utils import set_inputs_to_device
-from multivae.models import MVAE, AutoModel, MVAEConfig
-from multivae.models.nn.default_architectures import Decoder_AE_MLP
-from multivae.trainers import BaseTrainer, BaseTrainerConfig
+from multivae.data.datasets import MultimodalBaseDataset
+from multivae.models.auto_model.auto_model import AutoModel
+from multivae.models.dcca import DCCA, DCCAConfig
+from multivae.models.jnf_dcca import JNFDcca, JNFDccaConfig
+from multivae.models.nn.default_architectures import (
+    BaseDictEncoders,
+    Decoder_AE_MLP,
+    Encoder_VAE_MLP,
+)
+from multivae.trainers.add_dcca_trainer import AddDccaTrainer, AddDccaTrainerConfig
 
 
-class Test:
-    @pytest.fixture(params=["complete", "incomplete"])
-    def dataset(self, request):
-        # Create simple small dataset
-        data = dict(
-            mod1=torch.Tensor([[1.0, 2.0], [4.0, 5.0]]),
-            mod2=torch.Tensor([[67.1, 2.3, 3.0], [1.3, 2.0, 3.0]]),
-            mod3=torch.Tensor([[37, 2, 4, 1], [8, 9, 7, 0]]),
-            mod4=torch.Tensor([[37, 2, 4, 1], [8, 9, 7, 0]]),
-        )
-        labels = np.array([0, 1, 0, 0])
-        if request.param == "complete":
-            dataset = MultimodalBaseDataset(data, labels)
-        else:
-            masks = dict(
-                mod1=torch.Tensor([True, False]),
-                mod2=torch.Tensor([True, True]),
-                mod3=torch.Tensor([True, True]),
-                mod4=torch.Tensor([True, True]),
-            )
-            dataset = IncompleteDataset(data=data, masks=masks, labels=labels)
-
-        return dataset
-
-    @pytest.fixture
-    def custom_architectures(self):
-        # Create an instance of mvae model
-        config1 = BaseAEConfig(input_dim=(2,), latent_dim=5)
-        config2 = BaseAEConfig(input_dim=(3,), latent_dim=5)
-        config3 = BaseAEConfig(input_dim=(4,), latent_dim=5)
-
-        encoders = dict(
-            mod1=Encoder_VAE_MLP(config1),
-            mod2=Encoder_VAE_MLP(config2),
-            mod3=Encoder_VAE_MLP(config3),
-            mod4=Encoder_VAE_MLP(config3),
-        )
-
-        decoders = dict(
-            mod1=Decoder_AE_MLP(config1),
-            mod2=Decoder_AE_MLP(config2),
-            mod3=Decoder_AE_MLP(config3),
-            mod4=Decoder_AE_MLP(config3),
-        )
-
-        return dict(
-            encoders=encoders,
-            decoders=decoders,
-        )
-
-    @pytest.fixture(params=[0, 1, 2])
-    def model_config(self, request):
-        model_config = MVAEConfig(
-            n_modalities=4,
-            latent_dim=5,
-            input_dims=dict(mod1=(2,), mod2=(3,), mod3=(4,), mod4=(4,)),
-            k=request.param,
-        )
-
-        return model_config
-
-    @pytest.fixture(params=[True, False])
-    def model(self, custom_architectures, model_config, request):
-        custom = request.param
-        if custom:
-            model = MVAE(model_config, **custom_architectures)
-        else:
-            model = MVAE(model_config)
-        return model
-
-    def test(self, model, dataset, model_config):
-        assert model.k == model_config.k
-
-        expected_subsets = [
-            ("mod1", "mod2"),
-            ("mod2", "mod3"),
-            ("mod1", "mod3"),
-            ("mod1", "mod4"),
-            ("mod1", "mod2", "mod3"),
-            ("mod1", "mod2", "mod4"),
+class TestDcca:
+    @fixture(
+        params=[
+            dict(n_modalities=2, embedding_dim=5, use_all_singular_values=False),
+            dict(n_modalities=5, embedding_dim=10, use_all_singular_values=False),
         ]
-        for s in expected_subsets:
-            assert s in model.subsets
-
-        output = model(dataset, epoch=2)
-        loss = output.loss
-        assert type(loss) == torch.Tensor
-        assert loss.size() == torch.Size([])
-        assert loss.requires_grad
-
-        # Try encoding and prediction
-        print(dataset[0])
-        outputs = model.encode(dataset[0])
-        assert outputs.one_latent_space
-        embeddings = outputs.z
-        assert isinstance(outputs, ModelOutput)
-        assert embeddings.shape == (1, 5)
-        embeddings = model.encode(dataset[0], N=2).z
-        assert embeddings.shape == (2, 1, 5)
-        embeddings = model.encode(dataset, cond_mod=["mod2"]).z
-        assert embeddings.shape == (2, 5)
-        embeddings = model.encode(dataset, cond_mod="mod3", N=10).z
-        assert embeddings.shape == (10, 2, 5)
-        embeddings = model.encode(dataset, cond_mod=["mod2", "mod4"]).z
-        assert embeddings.shape == (2, 5)
-
-        Y = model.predict(dataset, cond_mod="mod2")
-        assert isinstance(Y, ModelOutput)
-        assert Y.mod1.shape == (2, 2)
-        assert Y.mod2.shape == (2, 3)
-
-        Y = model.predict(dataset, cond_mod="mod2", N=10)
-        assert isinstance(Y, ModelOutput)
-        assert Y.mod1.shape == (10, 2, 2)
-        assert Y.mod2.shape == (10, 2, 3)
-
-        Y = model.predict(dataset, cond_mod="mod2", N=10, flatten=True)
-        assert isinstance(Y, ModelOutput)
-        assert Y.mod1.shape == (2 * 10, 2)
-        assert Y.mod2.shape == (2 * 10, 3)
-
-
-class TestTraining:
-    @pytest.fixture(params=["complete", "incomplete"])
-    def dataset(self, request):
-        # Create simple small dataset
-        data = dict(
-            mod1=torch.Tensor([[1.0, 2.0], [4.0, 5.0]]),
-            mod2=torch.Tensor([[67.1, 2.3, 3.0], [1.3, 2.0, 3.0]]),
-            mod3=torch.Tensor([[37, 2, 4, 1], [8, 9, 7, 0]]),
-            mod4=torch.Tensor([[37, 2, 4, 1], [8, 9, 7, 0]]),
+    )
+    def inputs(self, request):
+        n_mod = request.param["n_modalities"]
+        embed_dim = request.param["embedding_dim"]
+        networks = BaseDictEncoders(
+            {"mod" + str(k): (k,) for k in range(1, n_mod + 1)}, embed_dim
         )
-        labels = np.array([0, 1, 0, 0])
-        if request.param == "complete":
-            dataset = MultimodalBaseDataset(data, labels)
-        else:
-            masks = dict(
-                mod1=torch.Tensor([True, False]),
-                mod2=torch.Tensor([True, True]),
-                mod3=torch.Tensor([True, True]),
-                mod4=torch.Tensor([True, True]),
-            )
-            dataset = IncompleteDataset(data=data, masks=masks, labels=labels)
 
+        data = {"mod" + str(k): torch.ones((10, k)) for k in range(1, n_mod + 1)}
+        return networks, DCCAConfig(**request.param), MultimodalBaseDataset(data)
+
+    def test(self, inputs):
+        networks, config, data = inputs
+        model = DCCA(config, networks)
+
+        assert model.latent_dim == config.embedding_dim
+        assert model.use_all_singular_values == config.use_all_singular_values
+
+        output = model(data)
+        assert hasattr(output, "loss")
+
+
+class TestJNFDcca:
+    @fixture
+    def dataset(self):
+        # Create simple small dataset with 2 modalities
+        data = dict(
+            mod1=torch.rand((200, 2)),
+            mod2=torch.rand((200, 3)),
+        )
+        labels = np.random.randint(2, size=200)
+        dataset = MultimodalBaseDataset(data, labels)
         return dataset
 
-    @pytest.fixture
+    @fixture
     def custom_architectures(self):
-        # Create an instance of mmvae model
+        # Create custom instances for the dcca_networks and decoders
+        config_dcca_1 = BaseAEConfig(input_dim=(2,), latent_dim=2)
+        config_dcca_2 = BaseAEConfig(input_dim=(3,), latent_dim=2)
+
         config1 = BaseAEConfig(input_dim=(2,), latent_dim=5)
         config2 = BaseAEConfig(input_dim=(3,), latent_dim=5)
-        config3 = BaseAEConfig(input_dim=(4,), latent_dim=5)
 
-        encoders = dict(
-            mod1=Encoder_VAE_MLP(config1),
-            mod2=Encoder_VAE_MLP(config2),
-            mod3=Encoder_VAE_MLP(config3),
-            mod4=Encoder_VAE_MLP(config3),
+        dcca_networks = dict(
+            mod1=Encoder_VAE_MLP(config_dcca_1), mod2=Encoder_VAE_MLP(config_dcca_2)
         )
 
-        decoders = dict(
-            mod1=Decoder_AE_MLP(config1),
-            mod2=Decoder_AE_MLP(config2),
-            mod3=Decoder_AE_MLP(config3),
-            mod4=Decoder_AE_MLP(config3),
-        )
+        decoders = dict(mod1=Decoder_AE_MLP(config1), mod2=Decoder_AE_MLP(config2))
 
+        flows = dict(
+            mod1=IAF(IAFConfig(input_dim=(5,))), mod2=IAF(IAFConfig(input_dim=(5,)))
+        )
         return dict(
-            encoders=encoders,
+            dcca_networks=dcca_networks,
             decoders=decoders,
+            flows=flows,
         )
 
-    @pytest.fixture(params=[0, 1, 2])
+    @fixture(params=[False])
     def model_config(self, request):
-        model_config = MVAEConfig(
-            n_modalities=4,
+        model_config = JNFDccaConfig(
+            n_modalities=2,
             latent_dim=5,
-            input_dims=dict(mod1=(2,), mod2=(3,), mod3=(4,), mod4=(4,)),
-            k=request.param,
+            input_dims=dict(mod1=(2,), mod2=(3,)),
+            use_all_singular_values=request.param,
+            embedding_dcca_dim=2,
+            nb_epochs_dcca=2,
+            warmup=2,
         )
 
         return model_config
 
-    @pytest.fixture(params=[True, False])
+    @fixture(params=[True, False])
     def model(self, custom_architectures, model_config, request):
         custom = request.param
         if custom:
-            model = MVAE(model_config, **custom_architectures)
+            model = JNFDcca(model_config, **custom_architectures)
         else:
-            model = MVAE(model_config)
+            model = JNFDcca(model_config)
+
+        print(model.DCCA_module.networks)
         return model
 
-    @pytest.fixture
+    @fixture
     def training_config(self, tmpdir):
         tmpdir.mkdir("dummy_folder")
         dir_path = os.path.join(tmpdir, "dummy_folder")
-        return BaseTrainerConfig(
-            num_epochs=3,
+        return AddDccaTrainerConfig(
+            num_epochs=5,
             steps_saving=2,
             learning_rate=1e-4,
             optimizer_cls="AdamW",
@@ -226,9 +122,9 @@ class TestTraining:
             output_dir=dir_path,
         )
 
-    @pytest.fixture
+    @fixture
     def trainer(self, model, training_config, dataset):
-        trainer = BaseTrainer(
+        trainer = AddDccaTrainer(
             model=model,
             train_dataset=dataset,
             eval_dataset=dataset,
@@ -238,6 +134,68 @@ class TestTraining:
         trainer.prepare_training()
 
         return trainer
+
+    def test_model_forward(self, model, dataset, model_config):
+        assert model.warmup == model_config.warmup
+        assert model.nb_epochs_dcca == model_config.nb_epochs_dcca
+
+        # Test forward method during dcca training
+        output = model(dataset, epoch=1)
+        assert not hasattr(output, "recon_loss")
+        assert not hasattr(output, "KLD")
+        loss = output.loss
+        assert type(loss) == torch.Tensor
+        assert loss.size() == torch.Size([])
+        assert loss.requires_grad
+
+        # Test forward method during joint vae training
+        output = model(dataset, epoch=model_config.nb_epochs_dcca + 1)
+        assert hasattr(output, "recon_loss")
+        assert hasattr(output, "KLD")
+        loss = output.loss
+        assert type(loss) == torch.Tensor
+        assert loss.size() == torch.Size([])
+        assert loss.requires_grad
+
+        # Test forward method during flows training
+        output = model(
+            dataset, epoch=model_config.nb_epochs_dcca + model_config.warmup + 2
+        )
+        assert hasattr(output, "ljm")
+        loss = output.loss
+        assert type(loss) == torch.Tensor
+        assert loss.size() == torch.Size([])
+        assert loss.requires_grad
+
+        # Try encoding and prediction
+        outputs = model.encode(dataset)
+        assert outputs.one_latent_space
+        embeddings = outputs.z
+        assert isinstance(outputs, ModelOutput)
+        assert embeddings.shape == (200, model_config.latent_dim)
+        embeddings = model.encode(dataset, N=2).z
+        assert embeddings.shape == (2, 200, model_config.latent_dim)
+        embeddings = model.encode(dataset, cond_mod=["mod1"]).z
+        assert embeddings.shape == (200, model_config.latent_dim)
+        embeddings = model.encode(dataset, cond_mod="mod2", N=10).z
+        assert embeddings.shape == (10, 200, model_config.latent_dim)
+        embeddings = model.encode(dataset, cond_mod=["mod2", "mod1"]).z
+        assert embeddings.shape == (200, model_config.latent_dim)
+
+        Y = model.predict(dataset, cond_mod="mod1")
+        assert isinstance(Y, ModelOutput)
+        assert Y.mod1.shape == (200, 2)
+        assert Y.mod2.shape == (200, 3)
+
+        Y = model.predict(dataset, cond_mod="mod1", N=10)
+        assert isinstance(Y, ModelOutput)
+        assert Y.mod1.shape == (10, 200, 2)
+        assert Y.mod2.shape == (10, 200, 3)
+
+        Y = model.predict(dataset, cond_mod="mod1", N=10, flatten=True)
+        assert isinstance(Y, ModelOutput)
+        assert Y.mod1.shape == (200 * 10, 2)
+        assert Y.mod2.shape == (200 * 10, 3)
 
     def test_train_step(self, trainer):
         start_model_state_dict = deepcopy(trainer.model.state_dict())
@@ -254,6 +212,17 @@ class TestTraining:
             ]
         )
         assert trainer.optimizer == start_optimizer
+        _ = trainer.prepare_train_step(trainer.model.nb_epochs_dcca + 1, None, None)
+        _ = trainer.train_step(epoch=trainer.model.nb_epochs_dcca + 1)
+        step_2_model_state_dict = deepcopy(trainer.model.state_dict())
+
+        assert not all(
+            [
+                torch.equal(step_1_model_state_dict[key], step_2_model_state_dict[key])
+                for key in step_1_model_state_dict.keys()
+            ]
+        )
+        assert trainer.optimizer != start_optimizer
 
     def test_eval_step(self, trainer):
         start_model_state_dict = deepcopy(trainer.model.state_dict())
@@ -332,6 +301,12 @@ class TestTraining:
                 for key in model.state_dict().keys()
             ]
         )
+        # for key in model.state_dict():
+        #     print(key)
+        #     print(torch.equal(
+        #             model_rec_state_dict[key].cpu(), model.state_dict()[key].cpu()
+        #         ))
+        # 1/0
 
         # check reload full model
         model_rec = AutoModel.load_from_folder(os.path.join(checkpoint_dir))
@@ -380,7 +355,7 @@ class TestTraining:
         trainer.train()
 
         training_dir = os.path.join(
-            dir_path, f"MVAE_training_{trainer._training_signature}"
+            dir_path, f"JNFDcca_training_{trainer._training_signature}"
         )
         assert os.path.isdir(training_dir)
 
@@ -430,7 +405,7 @@ class TestTraining:
         model = deepcopy(trainer._best_model)
 
         training_dir = os.path.join(
-            dir_path, f"MVAE_training_{trainer._training_signature}"
+            dir_path, f"JNFDcca_training_{trainer._training_signature}"
         )
         assert os.path.isdir(training_dir)
 
