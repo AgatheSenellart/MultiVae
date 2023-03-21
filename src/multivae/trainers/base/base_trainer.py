@@ -431,8 +431,8 @@ class BaseTrainer:
             logger.info("Successfully launched training !\n")
 
         # set best losses for early stopping
-        best_train_loss = 1e10
-        best_eval_loss = 1e10
+        best_train_loss = torch.inf
+        best_eval_loss = torch.inf
 
         for epoch in range(1, self.training_config.num_epochs + 1):
             self.callback_handler.on_epoch_begin(

@@ -55,6 +55,11 @@ class AutoConfig(BaseConfig):
         elif config_name == "MoPoEConfig":
             from ..mopoe import MoPoEConfig
             model_config = MoPoEConfig.from_json_file(json_path)
+            
+        elif config_name == "MVTCAEConfig":
+            from ..mvtcae import MVTCAEConfig
+            
+            model_config = MVTCAEConfig.from_json_file(json_path)
 
         else:
             raise NameError(

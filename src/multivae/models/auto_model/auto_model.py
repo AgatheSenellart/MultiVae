@@ -69,6 +69,11 @@ class AutoModel(nn.Module):
             from ..mopoe import MoPoE
             
             model = MoPoE.load_from_folder(dir_path)
+            
+        elif model_name == "MVTCAEConfig":
+            from ..mvtcae import MVTCAE
+            
+            model = MVTCAE.load_from_folder(dir_path)
 
         else:
             raise NameError(
