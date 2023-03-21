@@ -1,5 +1,8 @@
 import torch
-import torch
+import os
+import hostlist
+import logging
+
 from pythae.models.base.base_config import BaseAEConfig
 from torch.utils.data import DataLoader, random_split
 
@@ -16,9 +19,6 @@ from multivae.trainers.base.callbacks import (
     WandbCallback,
 )
 
-import os
-import hostlist
-import logging
 
 logger = logging.getLogger(__name__)
 console = logging.StreamHandler()
@@ -53,14 +53,14 @@ model = MVAE(model_config, encoders, decoders)
 
 gpu_ids = os.environ["SLURM_STEP_GPUS"].split(",")
 
-training_config = BaseTrainerConfig(
-    num_epochs=100,
-    output_dir="my_models_on_mnist",
-    per_device_train_batch_size=256,
-    per_device_eval_batch_size=256,
+trainer_config = BaseTrainerConfig(
+    num_epochs=60,
+    output_dir="mvae_example",
+    per_device_train_batch_size=64,
+    per_device_eval_batch_size=64,
     learning_rate=1e-3,
     steps_saving=None,
-    steps_predict=None,
+    steps_predict=1,
     no_cuda=False,
     world_size=int(os.environ["SLURM_NTASKS"]),
     dist_backend="nccl",
@@ -72,25 +72,17 @@ training_config = BaseTrainerConfig(
 
 if int(os.environ["SLURM_PROCID"]) == 0:
     logger.info(model)
-    logger.info(f"Training config: {training_config}\n")
+    logger.info(f"Training config: {trainer_config}\n")
 
-trainer_config = BaseTrainerConfig(
-    num_epochs=60,
-    learning_rate=1e-3,
-    steps_predict=1,
-    per_device_train_batch_size=64,
-    per_device_eval_batch_size=64,
-)
+callbacks = [TrainingCallback(), ProgressBarCallback()]
 
-callbacks = []
-
-if (training_config.rank == 0 or training_config.rank == -1):
+if (trainer_config.rank == 0 or trainer_config.rank == -1):
 
     # Set up callbacks
     wandb_cb = WandbCallback()
     wandb_cb.setup(trainer_config, model_config=model_config, project_name="package")
 
-    callbacks.extend([TrainingCallback(), ProgressBarCallback(), wandb_cb])
+    callbacks.extend([wandb_cb])
 
 trainer = BaseTrainer(
     model,
@@ -100,7 +92,3 @@ trainer = BaseTrainer(
     callbacks=callbacks,
 )
 trainer.train()
-
-# data = set_inputs_to_device(eval_data[:100], device="cuda")
-# nll = model.compute_joint_nll(data)
-# print(nll)
