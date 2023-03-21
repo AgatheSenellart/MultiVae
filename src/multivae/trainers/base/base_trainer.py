@@ -714,7 +714,10 @@ class BaseTrainer:
         # os.makedirs(recon_dir,exist_ok=True)
         all_recons = dict()
         for mod in inputs.data:
-            recon = model.predict(inputs, mod, "all", N=8, flatten=True)
+            if self.distributed:
+                recon = model.module.predict(inputs, mod, "all", N=8, flatten=True)
+            else:
+                recon = model.predict(inputs, mod, "all", N=8, flatten=True)
             recon["true_data"] = inputs.data[mod]
             recon, shape = adapt_shape(recon)
             recon_image = [recon["true_data"]] + [
