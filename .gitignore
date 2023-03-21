@@ -133,3 +133,5 @@ dmypy.json
 
 wandb
 dummy_output_dir
+data
+trained_models
