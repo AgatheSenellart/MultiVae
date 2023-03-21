@@ -27,7 +27,7 @@ class JNFDcca(BaseJointModel):
 
     Args:
 
-        model_config (JNFConfig): An instance of JNFConfig in which any model's parameters is
+        model_config (JNFDccaConfig): An instance of JNFConfig in which any model's parameters is
             made available.
 
         encoders (Dict[str,BaseEncoder]): A dictionary containing the modalities names and the encoders for each

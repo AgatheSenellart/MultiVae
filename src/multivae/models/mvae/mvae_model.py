@@ -186,6 +186,7 @@ class MVAE(BaseMultiVAE):
         K: int = 1000,
         batch_size_K: int = 100,
     ):
+        
         # Only keep the complete samples
         all_modalities = list(self.encoders.keys())
         if hasattr(inputs, "masks"):
@@ -195,24 +196,29 @@ class MVAE(BaseMultiVAE):
         else:
             filtered_inputs = inputs.data
 
-        # Compute the parameters of the joint posterior
-        mu, log_var = self._compute_mu_logvar_subset(filtered_inputs, all_modalities)
-
-        sigma = torch.exp(0.5 * log_var)
-        qz_xy = dist.Normal(mu, sigma)
-        # And sample from the posterior
-        z_joint = qz_xy.rsample([K])  # shape K x n_data x latent_dim
-        z_joint = z_joint.permute(1, 0, 2)
-        n_data, _, latent_dim = z_joint.shape
+        
 
         # Then iter on each datapoint to compute the iwae estimate of ln(p(x))
         ll = 0
+        n_data = len(filtered_inputs[list(filtered_inputs.keys())[0]])
         for i in range(n_data):
             start_idx = 0
             stop_idx = min(start_idx + batch_size_K, K)
             lnpxs = []
+            
+            # Compute the parameters of the joint posterior
+            mu, log_var = self._compute_mu_logvar_subset({k:filtered_inputs[k][i] for k in filtered_inputs},
+                                                         all_modalities)
+            assert(mu.shape==(1,self.latent_dim))
+            sigma = torch.exp(0.5 * log_var)
+            qz_xy = dist.Normal(mu, sigma)
+            # And sample from the posterior
+            z_joint = qz_xy.rsample([K]).squeeze()  # shape K x latent_dim
+            print(z_joint.shape)
+
+            
             while start_idx < stop_idx:
-                latents = z_joint[i][start_idx:stop_idx]
+                latents = z_joint[start_idx:stop_idx]
 
                 # Compute p(x_m|z) for z in latents and for each modality m
                 lpx_zs = 0  # ln(p(x,y|z))
@@ -231,7 +237,7 @@ class MVAE(BaseMultiVAE):
                 lpz = prior.log_prob(latents).sum(dim=-1)
 
                 # Compute posteriors -ln(q(z|x,y))
-                qz_xy = dist.Normal(mu[i], sigma[i])
+                qz_xy = dist.Normal(mu.squeeze(), sigma.squeeze())
                 lqz_xy = qz_xy.log_prob(latents).sum(dim=-1)
 
                 ln_px = torch.logsumexp(lpx_zs + lpz - lqz_xy, dim=0)
