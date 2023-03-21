@@ -84,7 +84,7 @@ trainer_config = BaseTrainerConfig(
 
 callbacks = []
 
-if (training_config.rank == 0 or training_config.rank == -1)
+if (training_config.rank == 0 or training_config.rank == -1):
 
     # Set up callbacks
     wandb_cb = WandbCallback()
