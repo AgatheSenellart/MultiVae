@@ -179,6 +179,7 @@ class BaseTrainer:
             num_workers=self.training_config.train_dataloader_num_workers,
             shuffle=(train_sampler is None),
             sampler=train_sampler,
+            drop_last=self.training_config.drop_last
         )
 
     def get_eval_dataloader(

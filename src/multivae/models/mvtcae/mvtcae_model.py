@@ -31,6 +31,7 @@ class MVTCAE(BaseMultiVAE):
         
         self.alpha = model_config.alpha
         self.beta = model_config.beta
+        self.decoder_scale = model_config.decoder_scale
         self.model_name = 'MVTCAE'
         
 
@@ -56,14 +57,13 @@ class MVTCAE(BaseMultiVAE):
         results['joint_divergence'] = joint_kld
 
         # Compute the reconstruction losses for each modality
-        results_rec = dict();
         loss_rec = 0
         for m, m_key in enumerate(self.encoders.keys()):
             # reconstruct this modality from the shared embeddings representation
             recon = self.decoders[m_key](shared_embeddings).reconstruction
-            m_rec = self.recon_losses[m_key](recon, inputs.data[m_key])* self.rescale_factors[m_key]
+            m_rec = self.recon_losses[m_key](recon, inputs.data[m_key])* self.rescale_factors[m_key]/self.decoder_scale
             
-            results_rec[m_key] = m_rec.sum()
+            results[m_key] = m_rec.sum()
             loss_rec += m_rec.sum()
         
         latent_modalities = latents['modalities'];
@@ -75,7 +75,7 @@ class MVTCAE(BaseMultiVAE):
             kld_losses += results['kld_' + key]
 
         rec_weight = (self.n_modalities - self.alpha) / self.n_modalities
-        cvib_weight = self.alpha / self.n_modalities  
+        cvib_weight = self.alpha / self.n_modalities  # 1/6
         vib_weight = 1 - self.alpha  # 0.1
 
         kld_weighted = cvib_weight * kld_losses + vib_weight * joint_kld
@@ -111,6 +111,21 @@ class MVTCAE(BaseMultiVAE):
         pd_var = 1. / torch.sum(T, dim=0)
         pd_logvar = torch.log(pd_var)
         return pd_mu, pd_logvar
+    
+    def poe_fusion(self, mus, logvars, weights=None):
+        # self.flags.modality_poe or
+        if ( mus.shape[0] == self.n_modalities ):
+            num_samples = mus[0].shape[0];
+            mus = torch.cat((mus, torch.zeros(1, num_samples,
+                             self.flags.class_dim).to(self.flags.device)),
+                             dim=0);
+            logvars = torch.cat((logvars, torch.zeros(1, num_samples,
+                                 self.flags.class_dim).to(self.flags.device)),
+                                 dim=0);
+        #mus = torch.cat(mus, dim=0);
+        #logvars = torch.cat(logvars, dim=0);
+        mu_poe, logvar_poe = self.poe(mus, logvars);
+        return [mu_poe, logvar_poe];
     
     def ivw_fusion(self, mus : torch.Tensor, logvars : torch.Tensor, weights=None):
 
@@ -162,23 +177,23 @@ class MVTCAE(BaseMultiVAE):
             mus_mod = enc_mods[mod].embedding
             log_vars_mod = enc_mods[mod].log_covariance
 
-            mus_subset = torch.cat((mus,
+            mus = torch.cat((mus,
                                     mus_mod.unsqueeze(0)),
                                 dim=0)
 
             
 
-            logvars_subset = torch.cat((logvars,
+            logvars = torch.cat((logvars,
                                         log_vars_mod.unsqueeze(0)),
                                     dim=0)
                     
         # Case with only one sample : adapt the shape
-        if len(mus_subset.shape)==2:
+        if len(mus.shape)==2:
             mus_subset = mus_subset.unsqueeze(1)
             logvars_subset = logvars_subset.unsqueeze(1)
         
-        joint_mu, joint_logvar = self.ivw_fusion(mus_subset,
-                                                logvars_subset)
+        joint_mu, joint_logvar = self.ivw_fusion(mus,
+                                                logvars)
 
 
 
@@ -206,10 +221,15 @@ class MVTCAE(BaseMultiVAE):
         # If the dataset is incomplete, keep only the samples availables in all cond_mod 
         # modalities
         if isinstance(inputs, IncompleteDataset):
-            inputs, filter = self._filter_inputs_with_masks(inputs,cond_mod)
+            cond_inputs, filter = self._filter_inputs_with_masks(inputs,cond_mod)
+        else :
+            # Only keep the relevant modalities for prediction
+            cond_inputs = MultimodalBaseDataset(
+            data = {k : inputs.data[k] for k in cond_mod},
+        )
             
         
-        latents_subsets = self.inference(inputs)
+        latents_subsets = self.inference(cond_inputs)
         mu, log_var = latents_subsets['joint']
         sample_shape = [N] if N>1 else []
         z = dist.Normal(mu, torch.exp(0.5*log_var)).rsample(sample_shape)
@@ -220,40 +240,7 @@ class MVTCAE(BaseMultiVAE):
         return ModelOutput(z=z, one_latent_space=True)
         
     
-    def moe_fusion(self, mus, logvars, weights=None):
-        if weights is None:
-            weights = torch.ones((mus.shape[0],)).to(mus.device)
-        weights = weights / weights.sum()
-        #mus = torch.cat(mus, dim=0);
-        #logvars = torch.cat(logvars, dim=0);
-        mu_moe, logvar_moe = self.mixture_component_selection(
-                                                               mus,
-                                                               logvars,
-                                                               weights);
-        return [mu_moe, logvar_moe];
-
-    def mixture_component_selection(self, mus, logvars, w_modalities):
-        #if not defined, take pre-defined weights
-        num_components = mus.shape[0];
-        num_samples = mus.shape[1];
-        
-        idx_start = [];
-        idx_end = []
-        for k in range(0, num_components):
-            if k == 0:
-                i_start = 0;
-            else:
-                i_start = int(idx_end[k-1]);
-            if k == w_modalities.shape[0]-1:
-                i_end = num_samples;
-            else:
-                i_end = i_start + int(torch.floor(num_samples*w_modalities[k]));
-            idx_start.append(i_start);
-            idx_end.append(i_end);
-        idx_end[-1] = num_samples;
-        mu_sel = torch.cat([mus[k, idx_start[k]:idx_end[k], :] for k in range(w_modalities.shape[0])]);
-        logvar_sel = torch.cat([logvars[k, idx_start[k]:idx_end[k], :] for k in range(w_modalities.shape[0])]);
-        return [mu_sel, logvar_sel];
+   
 
     def compute_joint_nll(
         self,

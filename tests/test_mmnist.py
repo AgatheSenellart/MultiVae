@@ -10,10 +10,12 @@ import torch
 
 
 class Test:
-    @pytest.fixture
-    def input_dataset_test(self):
+    @pytest.fixture(
+        params=[ 'test']
+    )
+    def input_dataset_test(self,request):
         data_path = "../../../data/MMNIST"
-        split = "test"
+        split = request.param
 
         return dict(data_path=data_path, split=split)
 
@@ -28,6 +30,20 @@ class Test:
             sample = dataset[0]
             assert type(sample) == DatasetOutput
             assert isinstance(sample.data['m0'],torch.Tensor)
-            assert torch.max(sample.data['m0'])==1
+            assert torch.min(sample.data['m0'])>=0
+            assert torch.max(sample.data['m0'])<=1
+            
+            assert torch.min(sample.data['m1'])>=0
+            assert torch.max(sample.data['m1'])<=1
+            
+            assert torch.min(sample.data['m2'])>=0
+            assert torch.max(sample.data['m2'])<=1
+            assert torch.min(sample.data['m3'])>=0
+            assert torch.max(sample.data['m3'])<=1
+            
+            assert torch.min(sample.data['m4'])>=0
+            assert torch.max(sample.data['m4'])<=1
+            
+            
             assert sample.data['m0'].size() == torch.Size([3,28,28])
             assert len(dataset) == 10000

@@ -28,16 +28,17 @@ model_config = MoPoEConfig(
     n_modalities=5,
     input_dims={k : (3,28,28) for k in modalities},
     latent_dim=128,
-    # recon_losses={m : 'l1' for m in modalities },
-    beta=1.5
+    recon_losses={m : 'l1' for m in modalities },
+    beta=2.5,
+    decoder_scale=0.75
     
 )
 
 
-encoders = { k : Encoder_VAE_MLP(BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3, 28, 28))) for k in modalities}
+encoders = { k : Encoder_ResNet_VAE_MMNIST(BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3, 28, 28))) for k in modalities}
 
 decoders = {
-    k :Decoder_AE_MLP(BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3, 28, 28))) for k in modalities
+    k :Decoder_ResNet_AE_MNIST(BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3, 28, 28))) for k in modalities
 }
 
 model = MoPoE(
@@ -47,8 +48,8 @@ trainer_config = BaseTrainerConfig(
     num_epochs=800,
     learning_rate=1e-4,
     steps_predict=1,
-    per_device_train_batch_size=128,
-    steps_saving=20
+    per_device_train_batch_size=256,
+    drop_last=True
     
 )
 

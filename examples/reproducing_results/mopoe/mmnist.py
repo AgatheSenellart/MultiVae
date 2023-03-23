@@ -92,7 +92,7 @@ class DecoderImg(BaseDecoder):
 
 train_data = MMNISTDataset(data_path = "../../../data/MMNIST",split="train")
 train_data, eval_data = random_split(
-    train_data, [0.8, 0.2], generator=torch.Generator().manual_seed(42)
+    train_data, [0.9, 0.1], generator=torch.Generator().manual_seed(42)
 )
 print(len(train_data), len(eval_data))
 
@@ -103,7 +103,8 @@ model_config = MoPoEConfig(
     input_dims={k : (3,28,28) for k in modalities},
     latent_dim=512,
     recon_losses={m : 'l1' for m in modalities },
-    beta=2.5*0.75 # The std deviation of decoder in original implementation is 0.75
+    decoder_scale=0.75,
+    beta=2.5 # The std deviation of decoder in original implementation is 0.75
     
 )
 
@@ -120,12 +121,10 @@ model = MoPoE(
 
 trainer_config = BaseTrainerConfig(
     num_epochs=300,
-    learning_rate=0.5*1e-4,
+    learning_rate=0.5e-4,
     steps_predict=1,
     per_device_train_batch_size=256,
-    steps_saving=20,
-    output_dir='reproduce/mopoe'
-    
+    drop_last=True,
 )
 
 # Set up callbacks

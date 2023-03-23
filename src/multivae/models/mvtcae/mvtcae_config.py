@@ -16,4 +16,5 @@ class MVTCAEConfig(BaseMultiVAEConfig):
     
     alpha : float = 0.1
     beta: float = 2.5
+    decoder_scale: float = 1.0
     

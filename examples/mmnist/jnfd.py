@@ -7,7 +7,7 @@ from multivae.data.datasets.utils import save_all_images
 from multivae.data.utils import set_inputs_to_device
 from multivae.models import JNFDcca, JNFDccaConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
-from multivae.models.nn.mmnist import Encoder_ResNet_VAE_MMNIST,Decoder_ResNet_AE_MNIST
+from multivae.models.nn.mmnist import Encoder_ResNet_VAE_MMNIST, Decoder_ResNet_AE_MNIST
 from multivae.models.nn.svhn import Decoder_VAE_SVHN, Encoder_VAE_SVHN
 from multivae.trainers import AddDccaTrainer, AddDccaTrainerConfig
 from multivae.trainers.base.callbacks import (
@@ -18,7 +18,7 @@ from multivae.trainers.base.callbacks import (
 
 train_data = MMNISTDataset(data_path = "../../../data/MMNIST",split="train")
 train_data, eval_data = random_split(
-    train_data, [0.8, 0.2], generator=torch.Generator().manual_seed(42)
+    train_data, [0.9, 0.1], generator=torch.Generator().manual_seed(42)
 )
 print(len(train_data))
 modalities = ['m0','m1','m2', 'm3','m4']
@@ -26,10 +26,12 @@ modalities = ['m0','m1','m2', 'm3','m4']
 model_config = JNFDccaConfig(
     n_modalities=5,
     input_dims={k : (3,28,28) for k in modalities},
-    latent_dim=128,
-    nb_epochs_dcca=200,
-    warmup=400,
+    latent_dim=512,
+    nb_epochs_dcca=100,
+    warmup=300,
     use_likelihood_rescaling=True,
+    recon_losses={k : 'l1' for k in modalities},
+    embedding_dcca_dim=20
 )
 
 modalities
@@ -45,11 +47,11 @@ model = JNFDcca(
 )
 
 trainer_config = AddDccaTrainerConfig(
-    num_epochs=100+400+400,
+    num_epochs=100+300+300,
     learning_rate=1e-4,
     steps_predict=1,
     per_device_dcca_train_batch_size=800,
-    per_device_train_batch_size=128,
+    per_device_train_batch_size=256,
 )
 
 # Set up callbacks

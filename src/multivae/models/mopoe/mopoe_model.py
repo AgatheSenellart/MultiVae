@@ -37,6 +37,7 @@ class MoPoE(BaseMultiVAE):
         elif type(list_subsets) == dict:
             list_subsets = list(self.model_config.subsets.values())
         self.set_subsets(list_subsets)
+        self.decoder_scale = model_config.decoder_scale
         
     def all_subsets(self):
         """
@@ -61,6 +62,7 @@ class MoPoE(BaseMultiVAE):
             subsets[key] = mods;
         self.subsets = subsets
         self.model_config.subsets = subsets
+        print("self.subsets has been set to ", self.subsets)
         return 
         
     def reparameterize(self, mu, logvar):
@@ -142,17 +144,16 @@ class MoPoE(BaseMultiVAE):
         div = self.calc_joint_divergence(latents['mus'],
                                         latents['logvars'],
                                         latents['weights'],
-                                        normalization = len(latents['mus'][0]))
+                                        normalization = ndata) 
         for k, key in enumerate(div.keys()):
             results[key] = div[key]
 
         # Compute the reconstruction losses for each modality
-        results_rec = dict();
         loss = 0
         for m, m_key in enumerate(self.encoders.keys()):
             # reconstruct this modality from the shared embeddings representation
             recon = self.decoders[m_key](shared_embeddings).reconstruction
-            m_rec = self.recon_losses[m_key](recon, inputs.data[m_key])* self.rescale_factors[m_key]
+            m_rec = self.recon_losses[m_key](recon, inputs.data[m_key])* self.rescale_factors[m_key]/self.decoder_scale
             
             # m_s_mu, m_s_logvar = enc_mods[m_key + '_style'];
             # if self.flags.factorized_representation:
@@ -160,11 +161,11 @@ class MoPoE(BaseMultiVAE):
             # else:
             #     m_s_embeddings = None;
             # m_rec = self.lhoods[m_key](*self.decoders[m_key](m_s_embeddings, class_embeddings));
-            results_rec[m_key] = m_rec.sum()
-            loss += m_rec.sum()
+            results['recon_' +  m_key] = m_rec.sum()/ndata
+            loss += m_rec.sum()/ndata
         loss = loss + self.beta * results['joint_divergence']
 
-        return ModelOutput(loss=loss/ndata,metrics = results)
+        return ModelOutput(loss=loss,metrics = results)
 
     def modality_encode(self, inputs: Union[MultimodalBaseDataset,IncompleteDataset], **kwargs):
         """Computes for each modality, the parameters mu and logvar of the 
@@ -283,9 +284,9 @@ class MoPoE(BaseMultiVAE):
                                                     log_vars_mod.unsqueeze(0)),
                                                 dim=0);
                         
-                    # Compute the subset posterior parameters
-                    weights_subset = ((1/float(len(mus_subset)))*
-                                      torch.ones(len(mus_subset)).to(device))
+                    # Compute the subset posterior parameters : not used in PoE fusion
+                    # weights_subset = ((1/float(len(mus_subset)))*
+                    #                   torch.ones(len(mus_subset)).to(device))
                     
                     # Case with only one sample : adapt the shape
                     if len(mus_subset.shape)==2:
@@ -293,8 +294,7 @@ class MoPoE(BaseMultiVAE):
                         logvars_subset = logvars_subset.unsqueeze(1)
                     
                     s_mu, s_logvar = self.poe_fusion(mus_subset,
-                                                          logvars_subset,
-                                                          weights_subset)
+                                                          logvars_subset)
                     
 
                     
@@ -304,14 +304,7 @@ class MoPoE(BaseMultiVAE):
                     mus = torch.cat((mus, s_mu.unsqueeze(0)), dim=0)
                     logvars = torch.cat((logvars, s_logvar.unsqueeze(0)),
                                             dim=0)
-        # if self.flags.modality_jsd:
-        #     mus = torch.cat((mus, torch.zeros(1, num_samples,
-        #                               self.flags.class_dim).to(self.flags.device)),
-        #                     dim=0);
-        #     logvars = torch.cat((logvars, torch.zeros(1, num_samples,
-        #                                   self.flags.class_dim).to(self.flags.device)),
-        #                         dim=0);
-        #weights = (1/float(len(mus)))*torch.ones(len(mus)).to(self.flags.device);
+       
         weights = (1/float(mus.shape[0]))*torch.ones(mus.shape[0]).to(device);
         joint_mu, joint_logvar = self.moe_fusion(mus, logvars, weights);
         #mus = torch.cat(mus, dim=0);
@@ -367,7 +360,7 @@ class MoPoE(BaseMultiVAE):
         #mus = torch.cat(mus, dim=0);
         #logvars = torch.cat(logvars, dim=0);
         mu_moe, logvar_moe = self.mixture_component_selection(
-                                                               mus,
+                                                                mus,
                                                                logvars,
                                                                weights);
         return [mu_moe, logvar_moe];

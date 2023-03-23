@@ -74,6 +74,7 @@ class BaseTrainerConfig(BaseConfig):
     master_addr: str = field(default="localhost")
     master_port: str = field(default="12345")
     start_keep_best_epoch: int = 0
+    drop_last: bool = False
 
 
     def __post_init__(self):
