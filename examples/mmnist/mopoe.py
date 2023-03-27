@@ -45,8 +45,8 @@ model = MoPoE(
     model_config, encoders=encoders, decoders=decoders)
 
 trainer_config = BaseTrainerConfig(
-    num_epochs=800,
-    learning_rate=1e-4,
+    num_epochs=300,
+    learning_rate=1e-3,
     steps_predict=1,
     per_device_train_batch_size=256,
     drop_last=True

@@ -61,7 +61,7 @@ def load_mmnist_classifiers(data_path =  "../../../data/clf",device='cuda'):
 
 test_set = MMNISTDataset(data_path = "../../../data/MMNIST",split="test")
 
-data_path ='dummy_output_dir/MoPoE_training_2023-03-23_16-22-16/final_model'
+data_path ='dummy_output_dir/MoPoE_training_2023-03-23_13-54-03/final_model'
 
 clfs = load_mmnist_classifiers()
 

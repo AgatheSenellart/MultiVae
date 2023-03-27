@@ -16,6 +16,7 @@ class CoherenceEvaluator():
         self.test_loader = DataLoader(test_dataset,batch_size=eval_config.batch_size)
         if output is not None:
             self.f = open(output + '/metrics.txt',"w+")
+            print("Writing results in ", self.f)
             
         
         for k in self.clfs:
