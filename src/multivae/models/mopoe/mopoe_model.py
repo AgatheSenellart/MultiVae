@@ -37,7 +37,6 @@ class MoPoE(BaseMultiVAE):
         elif type(list_subsets) == dict:
             list_subsets = list(self.model_config.subsets.values())
         self.set_subsets(list_subsets)
-        self.decoder_scale = model_config.decoder_scale
         
     def all_subsets(self):
         """
@@ -152,7 +151,7 @@ class MoPoE(BaseMultiVAE):
         for m, m_key in enumerate(self.encoders.keys()):
             # reconstruct this modality from the shared embeddings representation
             recon = self.decoders[m_key](shared_embeddings).reconstruction
-            m_rec = self.recon_losses[m_key](recon, inputs.data[m_key])* self.rescale_factors[m_key]/self.decoder_scale
+            m_rec = -self.recon_log_probs[m_key](recon, inputs.data[m_key])* self.rescale_factors[m_key]
             
             # m_s_mu, m_s_logvar = enc_mods[m_key + '_style'];
             # if self.flags.factorized_representation:

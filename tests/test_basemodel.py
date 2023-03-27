@@ -7,7 +7,7 @@ from pythae.models.nn.benchmarks.mnist.convnets import (
     Decoder_Conv_AE_MNIST,
     Encoder_Conv_AE_MNIST,
 )
-from pythae.models.nn.default_architectures import Encoder_AE_MLP, Encoder_VAE_MLP
+from multivae.models.nn.default_architectures import Encoder_VAE_MLP
 from torch import nn
 
 from multivae.models.base import BaseMultiVAE, BaseMultiVAEConfig
@@ -19,7 +19,7 @@ class Test_BaseMultiVAE:
     def input_model1(self):
         model_config = BaseMultiVAEConfig(n_modalities=2, latent_dim=10)
         config = BaseAEConfig(input_dim=(10, 2), latent_dim=10)
-        encoders = dict(mod1=Encoder_AE_MLP(config), mod2=Encoder_Conv_AE_MNIST(config))
+        encoders = dict(mod1=Encoder_VAE_MLP(config), mod2=Encoder_Conv_AE_MNIST(config))
         decoders = dict(mod1=Decoder_AE_MLP(config), mod2=Decoder_Conv_AE_MNIST(config))
         return dict(model_config=model_config, encoders=encoders, decoders=decoders)
 
@@ -35,7 +35,7 @@ class Test_BaseMultiVAE:
         model = BaseMultiVAE(**input_model1)
 
         assert type(model.encoders) == nn.ModuleDict
-        assert isinstance(model.encoders["mod1"], Encoder_AE_MLP)
+        assert isinstance(model.encoders["mod1"], Encoder_VAE_MLP)
         assert isinstance(model.encoders["mod2"], Encoder_Conv_AE_MNIST)
         assert type(model.decoders) == nn.ModuleDict
         assert isinstance(model.decoders["mod1"], Decoder_AE_MLP)

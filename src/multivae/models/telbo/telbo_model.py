@@ -86,7 +86,7 @@ class TELBO(BaseJointModel):
             len_batch = len(x_mod)
             recon_mod = self.decoders[mod](z_joint).reconstruction
             recon_loss += (
-                self.recon_losses[mod](recon_mod, x_mod) * self.lambda_factors[mod]
+                -self.recon_log_probs[mod](recon_mod, x_mod) * self.lambda_factors[mod]
             ).sum()
 
         # Compute the KLD to the prior
@@ -115,7 +115,7 @@ class TELBO(BaseJointModel):
 
                 mod_recon = self.decoders[mod](mod_z).reconstruction
                 mod_recon_loss = (
-                    self.recon_losses[mod](mod_recon, inputs.data[mod])
+                    -self.recon_log_probs[mod](mod_recon, inputs.data[mod])
                     * self.gamma_factors[mod]
                 )
 

@@ -15,4 +15,4 @@ class MoPoEConfig(BaseMultiVAEConfig):
     
     subsets : Union[Dict[str, list],List[list]] = None
     beta : float = 1.0
-    decoder_scale : float = 0.75
+    

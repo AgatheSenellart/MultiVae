@@ -33,7 +33,6 @@ class MVTCAE(BaseMultiVAE):
         
         self.alpha = model_config.alpha
         self.beta = model_config.beta
-        self.decoder_scale = model_config.decoder_scale
         self.model_name = 'MVTCAE'
         
 
@@ -63,7 +62,7 @@ class MVTCAE(BaseMultiVAE):
         for m, m_key in enumerate(self.encoders.keys()):
             # reconstruct this modality from the shared embeddings representation
             recon = self.decoders[m_key](shared_embeddings).reconstruction
-            m_rec = self.recon_losses[m_key](recon, inputs.data[m_key])* self.rescale_factors[m_key]/self.decoder_scale
+            m_rec = -self.recon_log_probs[m_key](recon, inputs.data[m_key])* self.rescale_factors[m_key]
             
             results[m_key] = m_rec.sum()
             loss_rec += m_rec.sum()

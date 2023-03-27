@@ -113,7 +113,7 @@ class JNF(BaseJointModel):
             len_batch = len(x_mod)
             recon_mod = self.decoders[mod](z_joint).reconstruction
             recon_loss += (
-                self.recon_losses[mod](recon_mod, x_mod) * self.rescale_factors[mod]
+                -self.recon_log_probs[mod](recon_mod, x_mod) * self.rescale_factors[mod]
             ).sum()
 
         # Compute the KLD to the prior

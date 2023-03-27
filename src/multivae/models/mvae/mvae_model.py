@@ -74,7 +74,7 @@ class MVAE(BaseMultiVAE):
             if mod in subset:
                 len_batch = len(data[mod])
                 recon = self.decoders[mod](z).reconstruction
-                elbo_sub += self.recon_losses[mod](recon, data[mod]).sum()
+                elbo_sub += -self.recon_log_probs[mod](recon, data[mod]).sum()
         elbo_sub += self.kl_prior(sub_mu, torch.exp(0.5 * sub_log_var)) * beta
         return elbo_sub / len_batch
 

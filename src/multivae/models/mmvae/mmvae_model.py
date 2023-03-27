@@ -101,8 +101,8 @@ class MMVAE(BaseMultiVAE):
             for recon_mod in reconstructions[mod]:
                 x_recon = reconstructions[mod][recon_mod]
                 K, n_batch = x_recon.shape[0], x_recon.shape[1]
-                lpx_z -= (
-                    self.recon_losses[recon_mod](
+                lpx_z += (
+                    self.recon_log_probs[recon_mod](
                         x_recon, torch.stack([inputs.data[recon_mod]] * K)
                     )
                     .reshape(K, n_batch, -1)

@@ -201,7 +201,7 @@ class JNFDcca(BaseJointModel):
             len_batch = len(x_mod)
             recon_mod = self.decoders[mod](z_joint).reconstruction
             recon_loss += (
-                self.recon_losses[mod](recon_mod, x_mod) * self.rescale_factors[mod]
+                -self.recon_log_probs[mod](recon_mod, x_mod) * self.rescale_factors[mod]
             ).sum()
 
         # Compute the KLD to the prior
@@ -483,7 +483,7 @@ class JNFDcca(BaseJointModel):
         
         if not self.model_config.use_default_dcca_network:
             with open(os.path.join(dir_path, "dcca_networks.pkl"), "wb") as fp:
-                cloudpickle.register_pickle_by_value(inspect.getmodule(self.encoders))
+                cloudpickle.register_pickle_by_value(inspect.getmodule(self.DCCA_module.networks))
                 cloudpickle.dump(self.DCCA_module.networks, fp)
                 
     @classmethod

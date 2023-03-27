@@ -131,7 +131,9 @@ class BaseMultiVAE(nn.Module):
         # Set the reconstruction losses
         if model_config.recon_losses is None:
             model_config.recon_losses = {k: "mse" for k in self.encoders}
-        self.set_recon_losses(model_config.recon_losses)
+        if model_config.decoder_dist_params is None:
+            model_config.decoder_dist_params = {}
+        self.set_recon_losses(model_config.recon_losses, model_config.decoder_dist_params)
 
     def set_recon_losses(self, recon_dict, dist_params_dict):
         """Set the reconstruction losses functions recon_losses
@@ -139,7 +141,6 @@ class BaseMultiVAE(nn.Module):
         recon_log_probs is the normalized negative version of recon_loss and is used only for
         likelihood estimation.
         """
-        self.recon_losses = {}
         self.recon_log_probs = {}
 
         for k in recon_dict:
@@ -149,19 +150,19 @@ class BaseMultiVAE(nn.Module):
                 self.recon_log_probs[k] = lambda input, target: dist.Normal(
                     input, scale
                 ).log_prob(target)
-                self.recon_losses[k] = MSELoss(reduction="none")
+                
             elif recon_dict[k] == "bce":
                 self.recon_log_probs[k] = lambda input, target: dist.Bernoulli(
                     logits=input
                 ).log_prob(target)
-                self.recon_losses[k] = BCEWithLogitsLoss(reduction="none")
+                
             elif recon_dict[k] == "l1":
                 params_mod = dist_params_dict.pop(k, {})
                 scale = params_mod.pop('scale',1)
                 self.recon_log_probs[k] = lambda input, target: dist.Laplace(
                     input, scale
                 ).log_prob(target)
-                self.recon_losses[k] = L1Loss(reduction="none")
+                
             else:
                 raise AttributeError(
                     'Reconstructions losses must be either "mse","bce" or "l1"'
@@ -354,6 +355,10 @@ class BaseMultiVAE(nn.Module):
             with open(os.path.join(dir_path, "decoders.pkl"), "wb") as fp:
                 cloudpickle.register_pickle_by_value(inspect.getmodule(self.decoders))
                 cloudpickle.dump(self.decoders, fp)
+                
+        # For models with more architectural blocks save them too
+        
+        
 
         torch.save(model_dict, os.path.join(dir_path, "model.pt"))
 
