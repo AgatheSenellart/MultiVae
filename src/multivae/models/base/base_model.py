@@ -146,7 +146,7 @@ class BaseMultiVAE(nn.Module):
         for k in recon_dict:
             if recon_dict[k] == "mse":
                 params_mod = dist_params_dict.pop(k, {})
-                scale = params_mod.pop('scale',1)
+                scale = params_mod.pop('scale',1.0)
                 self.recon_log_probs[k] = lambda input, target: dist.Normal(
                     input, scale
                 ).log_prob(target)
@@ -158,7 +158,7 @@ class BaseMultiVAE(nn.Module):
                 
             elif recon_dict[k] == "l1":
                 params_mod = dist_params_dict.pop(k, {})
-                scale = params_mod.pop('scale',1)
+                scale = params_mod.pop('scale',1.0)
                 self.recon_log_probs[k] = lambda input, target: dist.Laplace(
                     input, scale
                 ).log_prob(target)
@@ -547,7 +547,9 @@ class BaseMultiVAE(nn.Module):
                     target=inputs.data[k][i]
                     recon = self.decoders[k](latents).reconstruction
                     # Compute lnp(y|z)
-                    lpxz = self.recon_log_probs[k](target, recon)
+                    dim_reduce = tuple(range(1, len(recon.shape)))
+                    lpxz = self.recon_log_probs[k](target, recon).sum(dim=dim_reduce)
+                    print(lpxz.shape)
                     lnpxs[k].append(torch.logsumexp(lpxz,dim=0))
 
                 # next batch
@@ -555,11 +557,11 @@ class BaseMultiVAE(nn.Module):
                 stop_index += batch_size_K
             for k in pred_mods:
                 print(lnpxs[k])
-                ll[k].append(torch.logsumexp(torch.Tensor(lnpxs[k]), dim=0) - np.log(K))
+                ll[k].append(torch.logsumexp(torch.tensor(lnpxs[k]), dim=0) - np.log(K))
                 
         results = {}
         for k in pred_mods:
-            results['ll' + cond_mod + '_' +k] = torch.sum(torch.tensor(ll[k]))/len(ll[k])
+            results['ll_' + cond_mod + '_' +k] = torch.sum(torch.tensor(ll[k]))/len(ll[k])
         
         return ModelOutput(**results)
     

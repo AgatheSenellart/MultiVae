@@ -441,4 +441,4 @@ class TestTraining:
         
         cond_ll = model.compute_cond_nll(input_dataset,'mod1',['mod2'])
         assert isinstance(cond_ll, ModelOutput)
-        assert cond_ll.ll_mod1_mod2.size() == torch.size([])
+        assert cond_ll.ll_mod1_mod2.size() == torch.Size([])
