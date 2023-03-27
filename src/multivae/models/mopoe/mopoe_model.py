@@ -62,7 +62,6 @@ class MoPoE(BaseMultiVAE):
             subsets[key] = mods;
         self.subsets = subsets
         self.model_config.subsets = subsets
-        print("self.subsets has been set to ", self.subsets)
         return 
         
     def reparameterize(self, mu, logvar):

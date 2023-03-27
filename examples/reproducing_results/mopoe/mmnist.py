@@ -120,7 +120,7 @@ model = MoPoE(
     model_config, encoders=encoders, decoders=decoders)
 
 trainer_config = BaseTrainerConfig(
-    num_epochs=300,
+    num_epochs=5,
     learning_rate=0.5e-3,
     steps_predict=1,
     per_device_train_batch_size=256,
@@ -140,8 +140,6 @@ trainer = BaseTrainer(
     training_config=trainer_config,
     callbacks=callbacks
 )
-trainer.train()
+# trainer.train()
 
-# data = set_inputs_to_device(eval_data[:100], device="cuda")
-# nll = model.compute_joint_nll(data)
-# print(nll)
+model.push_to_hf_hub('asenella/test')

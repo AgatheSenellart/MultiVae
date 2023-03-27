@@ -17,11 +17,13 @@ from .mvtcae_config import MVTCAEConfig
 
 class MVTCAE(BaseMultiVAE):
     
-    """ Implementation for the Mixture of Product of experts model from 
-    'Generalized Multimodal ELBO' Sutter 2021 (https://arxiv.org/abs/2105.02470)
+    """ 
     
-    This implementation is heavily based on the official one at 
-    https://github.com/thomassutter/MoPoE
+    Implementation for 'Multi-View Representation Learning via Total Correlation Objective'.
+    Hwang et al, 2021. 
+    
+    This code is heavily based on the official implementation that can be found here :
+    https://github.com/gr8joo/MVTCAE.
     
 
     """
@@ -189,8 +191,8 @@ class MVTCAE(BaseMultiVAE):
                     
         # Case with only one sample : adapt the shape
         if len(mus.shape)==2:
-            mus_subset = mus_subset.unsqueeze(1)
-            logvars_subset = logvars_subset.unsqueeze(1)
+            mus = mus.unsqueeze(1)
+            logvars = logvars.unsqueeze(1)
         
         joint_mu, joint_logvar = self.ivw_fusion(mus,
                                                 logvars)

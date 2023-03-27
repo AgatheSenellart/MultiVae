@@ -1,8 +1,12 @@
+import importlib
 import inspect
+import logging
 import os
+import shutil
 import sys
 from copy import deepcopy
 from http.cookiejar import LoadError
+import tempfile
 from typing import Union
 
 import cloudpickle
@@ -19,6 +23,15 @@ from ...data.datasets.base import MultimodalBaseDataset
 from ..auto_model import AutoConfig
 from ..nn.default_architectures import BaseDictDecoders, BaseDictEncoders
 from .base_config import BaseMultiVAEConfig, EnvironmentConfig
+from .base_utils import hf_hub_is_available, model_card_template
+
+
+logger = logging.getLogger(__name__)
+console = logging.StreamHandler()
+logger.addHandler(console)
+logger.setLevel(logging.INFO)
+
+
 
 
 class BaseMultiVAE(nn.Module):
@@ -120,7 +133,7 @@ class BaseMultiVAE(nn.Module):
             model_config.recon_losses = {k: "mse" for k in self.encoders}
         self.set_recon_losses(model_config.recon_losses)
 
-    def set_recon_losses(self, recon_dict):
+    def set_recon_losses(self, recon_dict, dist_params_dict):
         """Set the reconstruction losses functions recon_losses
         and the log_probabilites functions recon_log_probs.
         recon_log_probs is the normalized negative version of recon_loss and is used only for
@@ -131,8 +144,10 @@ class BaseMultiVAE(nn.Module):
 
         for k in recon_dict:
             if recon_dict[k] == "mse":
+                params_mod = dist_params_dict.pop(k, {})
+                scale = params_mod.pop('scale',1)
                 self.recon_log_probs[k] = lambda input, target: dist.Normal(
-                    input, 1
+                    input, scale
                 ).log_prob(target)
                 self.recon_losses[k] = MSELoss(reduction="none")
             elif recon_dict[k] == "bce":
@@ -141,8 +156,10 @@ class BaseMultiVAE(nn.Module):
                 ).log_prob(target)
                 self.recon_losses[k] = BCEWithLogitsLoss(reduction="none")
             elif recon_dict[k] == "l1":
+                params_mod = dist_params_dict.pop(k, {})
+                scale = params_mod.pop('scale',1)
                 self.recon_log_probs[k] = lambda input, target: dist.Laplace(
-                    input, 1
+                    input, scale
                 ).log_prob(target)
                 self.recon_losses[k] = L1Loss(reduction="none")
             else:
@@ -540,7 +557,96 @@ class BaseMultiVAE(nn.Module):
             results['ll' + cond_mod + '_' +k] = torch.sum(torch.tensor(ll[k]))/len(ll[k])
         
         return ModelOutput(**results)
+    
+    
+    
+    
+    def push_to_hf_hub(self, hf_hub_path: str):  # pragma: no cover
+        """Method allowing to save your model directly on the huggung face hub.
+        You will need to have the `huggingface_hub` package installed and a valid Hugging Face
+        account. You can install the package using
 
+        .. code-block:: bash
+
+            python -m pip install huggingface_hub
+
+        end then login using
+
+        .. code-block:: bash
+
+            huggingface-cli login
+
+        Args:
+            hf_hub_path (str): path to your repo on the Hugging Face hub.
+        """
+        if not hf_hub_is_available():
+            raise ModuleNotFoundError(
+                "`huggingface_hub` package must be installed to push your model to the HF hub. "
+                "Run `python -m pip install huggingface_hub` and log in to your account with "
+                "`huggingface-cli login`."
+            )
+
+        else:
+            from huggingface_hub import CommitOperationAdd, HfApi
+
+        logger.info(
+            f"Uploading {self.model_name} model to {hf_hub_path} repo in HF hub..."
+        )
+
+        tempdir = tempfile.mkdtemp()
+
+        self.save(tempdir)
+
+        model_files = os.listdir(tempdir)
+
+        api = HfApi()
+        hf_operations = []
+
+        for file in model_files:
+            hf_operations.append(
+                CommitOperationAdd(
+                    path_in_repo=file,
+                    path_or_fileobj=f"{str(os.path.join(tempdir, file))}",
+                )
+            )
+
+        with open(os.path.join(tempdir, "model_card.md"), "w") as f:
+            f.write(model_card_template)
+
+        hf_operations.append(
+            CommitOperationAdd(
+                path_in_repo="README.md",
+                path_or_fileobj=os.path.join(tempdir, "model_card.md"),
+            )
+        )
+
+        try:
+            api.create_commit(
+                commit_message=f"Uploading {self.model_name} in {hf_hub_path}",
+                repo_id=hf_hub_path,
+                operations=hf_operations,
+            )
+            logger.info(
+                f"Successfully uploaded {self.model_name} to {hf_hub_path} repo in HF hub!"
+            )
+
+        except:
+            from huggingface_hub import create_repo
+
+            repo_name = os.path.basename(os.path.normpath(hf_hub_path))
+            logger.info(
+                f"Creating {repo_name} in the HF hub since it does not exist..."
+            )
+            create_repo(repo_id=repo_name)
+            logger.info(f"Successfully created {repo_name} in the HF hub!")
+
+            api.create_commit(
+                commit_message=f"Uploading {self.model_name} in {hf_hub_path}",
+                repo_id=hf_hub_path,
+                operations=hf_operations,
+            )
+
+        shutil.rmtree(tempdir)
 
 
 
