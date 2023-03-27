@@ -146,55 +146,55 @@ class MultipleHeadJointEncoder(BaseEncoder):
         return output
 
 
-class Encoder_VAE_MLP(BaseEncoder):
-    def __init__(self, args: dict):
-        BaseEncoder.__init__(self)
-        self.input_dim = args.input_dim
-        self.latent_dim = args.latent_dim
+# class Encoder_VAE_MLP(BaseEncoder):
+#     def __init__(self, args: dict):
+#         BaseEncoder.__init__(self)
+#         self.input_dim = args.input_dim
+#         self.latent_dim = args.latent_dim
 
-        layers = nn.ModuleList()
+#         layers = nn.ModuleList()
 
-        layers.append(nn.Sequential(nn.Linear(np.prod(args.input_dim), 512), nn.ReLU()))
+#         layers.append(nn.Sequential(nn.Linear(np.prod(args.input_dim), 512), nn.ReLU()))
 
-        self.layers = layers
-        self.depth = len(layers)
+#         self.layers = layers
+#         self.depth = len(layers)
 
-        self.embedding = nn.Linear(512, self.latent_dim)
-        self.log_var = nn.Linear(512, self.latent_dim)
+#         self.embedding = nn.Linear(512, self.latent_dim)
+#         self.log_var = nn.Linear(512, self.latent_dim)
 
-    def forward(self, x, output_layer_levels: List[int] = None):
-        output = ModelOutput()
+#     def forward(self, x, output_layer_levels: List[int] = None):
+#         output = ModelOutput()
 
-        max_depth = self.depth
+#         max_depth = self.depth
 
-        if output_layer_levels is not None:
+#         if output_layer_levels is not None:
 
-            assert all(
-                self.depth >= levels > 0 or levels == -1
-                for levels in output_layer_levels
-            ), (
-                f"Cannot output layer deeper than depth ({self.depth}). "
-                f"Got ({output_layer_levels})."
-            )
+#             assert all(
+#                 self.depth >= levels > 0 or levels == -1
+#                 for levels in output_layer_levels
+#             ), (
+#                 f"Cannot output layer deeper than depth ({self.depth}). "
+#                 f"Got ({output_layer_levels})."
+#             )
 
-            if -1 in output_layer_levels:
-                max_depth = self.depth
-            else:
-                max_depth = max(output_layer_levels)
-        if len(x.shape) == 1:
+#             if -1 in output_layer_levels:
+#                 max_depth = self.depth
+#             else:
+#                 max_depth = max(output_layer_levels)
+#         if len(x.shape) == 1:
             
-            out = x.reshape(np.prod(self.input_dim),)
-        else:
-            out = x.reshape(-1,np.prod(self.input_dim),)
+#             out = x.reshape(np.prod(self.input_dim),)
+#         else:
+#             out = x.reshape(-1,np.prod(self.input_dim),)
 
-        for i in range(max_depth):
-            out = self.layers[i](out)
+#         for i in range(max_depth):
+#             out = self.layers[i](out)
 
-            if output_layer_levels is not None:
-                if i + 1 in output_layer_levels:
-                    output[f"embedding_layer_{i+1}"] = out
-            if i + 1 == self.depth:
-                output["embedding"] = self.embedding(out)
-                output["log_covariance"] = self.log_var(out)
+#             if output_layer_levels is not None:
+#                 if i + 1 in output_layer_levels:
+#                     output[f"embedding_layer_{i+1}"] = out
+#             if i + 1 == self.depth:
+#                 output["embedding"] = self.embedding(out)
+#                 output["log_covariance"] = self.log_var(out)
 
-        return output
+#         return output

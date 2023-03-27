@@ -62,6 +62,7 @@ class BaseMultiVAE(nn.Module):
         self.model_config = model_config
         self.n_modalities = model_config.n_modalities
         self.input_dims = model_config.input_dims
+        # self.model_config.load_from_pkl = []
 
         if encoders is None:
             if self.input_dims is None:
