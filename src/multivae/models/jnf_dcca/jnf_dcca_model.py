@@ -86,6 +86,8 @@ class JNFDcca(BaseJointModel):
             use_all_singular_values=model_config.use_all_singular_values,
         )
 
+        model_config.custom_architectures = []
+        
         if dcca_networks is None:
             if model_config.input_dims is None:
                 raise AttributeError(
@@ -102,7 +104,7 @@ class JNFDcca(BaseJointModel):
                     model_config.input_dims, model_config.embedding_dcca_dim
                 )
         else:
-            model_config.use_default_dcca_network = False
+            model_config.custom_architectures.append('dcca_networks')
 
         # The default encoders for this model have (embedding_dcca_dim, ) as input_size
         if encoders is None:
@@ -111,7 +113,7 @@ class JNFDcca(BaseJointModel):
             }
             encoders = BaseDictEncoders(encoders_input_dims, model_config.latent_dim)
         else:
-            model_config.uses_default_encoders = False
+            model_config.custom_architectures.append('encoders')
 
         # The default joint_encoder for this model is engineered from the DCCA networks and
         # not from the encoders
@@ -119,17 +121,21 @@ class JNFDcca(BaseJointModel):
             # Create a MultiHead Joint Encoder MLP
             joint_encoder = MultipleHeadJointEncoder(dcca_networks, model_config)
         else:
-            model_config.use_default_joint = False
+            model_config.custom_architectures.append('joint_encoder')
+
 
         super().__init__(model_config, encoders, decoders, joint_encoder, **kwargs)
         self.DCCA_module = DCCA(self.dcca_config, dcca_networks)
+        self.dcca_networks = self.DCCA_module.networks
+
 
         if flows is None:
             flows = dict()
             for modality in self.encoders:
                 flows[modality] = MAF(MAFConfig(input_dim=(model_config.latent_dim,)))
         else:
-            self.model_config.use_default_flow = False
+            model_config.custom_architectures.append('flows')
+
 
         self.set_flows(flows)
         self.model_name = "JNFDcca"
@@ -478,72 +484,4 @@ class JNFDcca(BaseJointModel):
             
 
     
-    def save(self, dir_path: str):
-        super().save(dir_path)
-        
-        if not self.model_config.use_default_dcca_network:
-            with open(os.path.join(dir_path, "dcca_networks.pkl"), "wb") as fp:
-                cloudpickle.register_pickle_by_value(inspect.getmodule(self.DCCA_module.networks))
-                cloudpickle.dump(self.DCCA_module.networks, fp)
-                
-    @classmethod
-    def load_from_folder(cls, dir_path: str):
-        """Class method to be used to load the model from a specific folder
-
-        Args:
-            dir_path (str): The path where the model should have been be saved.
-
-        .. note::
-            This function requires the folder to contain:
-
-            - | a ``model_config.json`` and a ``model.pt`` if no custom architectures were provided
-
-            **or**
-
-            - | a ``model_config.json``, a ``model.pt`` and a ``encoders.pkl`` (resp.
-                ``decoders.pkl``) if a custom encoders (resp. decoders) were provided
-        """
-
-        model_config = cls._load_model_config_from_folder(dir_path)
-        model_weights = cls._load_model_weights_from_folder(dir_path)
-
-        if not model_config.uses_default_encoders:
-            encoders = cls._load_custom_encoders_from_folder(dir_path)
-
-        else:
-            encoders = None
-
-        if not model_config.uses_default_decoders:
-            decoders = cls._load_custom_decoders_from_folder(dir_path)
-
-        else:
-            decoders = None
-        
-        if not model_config.use_default_dcca_network:
-            dcca_networks = cls._load_custom_dcca_networks_from_folder(dir_path)
-
-        else:
-            dcca_networks = None
-
-        model = cls(model_config, encoders=encoders, decoders=decoders,dcca_networks=dcca_networks)
-        model.load_state_dict(model_weights)
-
-        return model
     
-    @classmethod
-    def _load_custom_dcca_networks_from_folder(cls, dir_path):
-        file_list = os.listdir(dir_path)
-        cls._check_python_version_from_folder(dir_path=dir_path)
-
-        if "dcca_networks.pkl" not in file_list:
-            raise FileNotFoundError(
-                f"Missing encoder pkl file ('encoders.pkl') in"
-                f"{dir_path}... This file is needed to rebuild custom encoders."
-                " Cannot perform model building."
-            )
-
-        else:
-            with open(os.path.join(dir_path, "dcca_networks.pkl"), "rb") as fp:
-                encoder = CPU_Unpickler(fp).load()
-
-        return encoder

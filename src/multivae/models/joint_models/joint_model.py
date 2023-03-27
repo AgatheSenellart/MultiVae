@@ -43,7 +43,8 @@ class BaseJointModel(BaseMultiVAE):
             # Create a MultiHead Joint Encoder MLP
             joint_encoder = MultipleHeadJointEncoder(self.encoders, model_config)
         else:
-            model_config.use_default_joint = False
+            self.model_config.custom_architectures.append('joint_encoder')
+            
 
         self.set_joint_encoder(joint_encoder)
 

@@ -10,10 +10,8 @@ class BaseJointModelConfig(BaseMultiVAEConfig):
     """
     This is the base config for joint models.
 
-    Args :
-        use_default_joint (bool) :  A boolean encoding if the joint encoder used is the default one.
 
 
     """
 
-    use_default_joint: bool = True
+    pass

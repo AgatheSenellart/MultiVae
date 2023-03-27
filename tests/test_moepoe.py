@@ -302,19 +302,10 @@ class TestTraining:
             set(files_list)
         )
 
-        # check pickled custom decoder
-        if not model.model_config.uses_default_decoders:
-            assert "decoders.pkl" in files_list
+         # check pickled custom architectures
+        for archi in model.model_config.custom_architectures :
+            assert archi + ".pkl" in files_list
 
-        else:
-            assert not "decoders.pkl" in files_list
-
-        # check pickled custom encoder
-        if not model.model_config.uses_default_encoders:
-            assert "encoders.pkl" in files_list
-
-        else:
-            assert not "encoders.pkl" in files_list
 
         model_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "model.pt"))[
             "model_state_dict"
@@ -393,19 +384,10 @@ class TestTraining:
             set(files_list)
         )
 
-        # check pickled custom decoder
-        if not model.model_config.uses_default_decoders:
-            assert "decoders.pkl" in files_list
+         # check pickled custom architectures
+        for archi in model.model_config.custom_architectures :
+            assert archi + ".pkl" in files_list
 
-        else:
-            assert not "decoders.pkl" in files_list
-
-        # check pickled custom encoder
-        if not model.model_config.uses_default_encoders:
-            assert "encoders.pkl" in files_list
-
-        else:
-            assert not "encoders.pkl" in files_list
 
         model_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "model.pt"))[
             "model_state_dict"
@@ -439,19 +421,10 @@ class TestTraining:
             set(files_list)
         )
 
-        # check pickled custom decoder
-        if not model.model_config.uses_default_decoders:
-            assert "decoders.pkl" in files_list
+         # check pickled custom architectures
+        for archi in model.model_config.custom_architectures :
+            assert archi + ".pkl" in files_list
 
-        else:
-            assert not "decoders.pkl" in files_list
-
-        # check pickled custom encoder
-        if not model.model_config.uses_default_encoders:
-            assert "encoders.pkl" in files_list
-
-        else:
-            assert not "encoders.pkl" in files_list
 
         # check reload full model
         model_rec = AutoModel.load_from_folder(os.path.join(final_dir))

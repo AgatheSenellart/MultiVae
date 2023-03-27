@@ -62,7 +62,6 @@ class BaseMultiVAE(nn.Module):
         self.model_config = model_config
         self.n_modalities = model_config.n_modalities
         self.input_dims = model_config.input_dims
-        # self.model_config.load_from_pkl = []
 
         if encoders is None:
             if self.input_dims is None:
@@ -77,7 +76,7 @@ class BaseMultiVAE(nn.Module):
                     )
                 encoders = BaseDictEncoders(self.input_dims, model_config.latent_dim)
         else:
-            self.model_config.uses_default_encoders = False
+            self.model_config.custom_architectures.append('encoders')
 
         if decoders is None:
             if self.input_dims is None:
@@ -92,7 +91,8 @@ class BaseMultiVAE(nn.Module):
                     )
                 decoders = BaseDictDecoders(self.input_dims, model_config.latent_dim)
         else:
-            self.model_config.uses_default_decoders = False
+            self.model_config.custom_architectures.append('decoders')
+
 
         self.sanity_check(encoders, decoders)
 
@@ -345,22 +345,14 @@ class BaseMultiVAE(nn.Module):
                 raise e
 
         self.model_config.save_json(dir_path, "model_config")
-
-        # only save .pkl if custom architecture provided
-        if not self.model_config.uses_default_encoders:
-            with open(os.path.join(dir_path, "encoders.pkl"), "wb") as fp:
-                cloudpickle.register_pickle_by_value(inspect.getmodule(self.encoders))
-                cloudpickle.dump(self.encoders, fp)
-
-        if not self.model_config.uses_default_decoders:
-            with open(os.path.join(dir_path, "decoders.pkl"), "wb") as fp:
-                cloudpickle.register_pickle_by_value(inspect.getmodule(self.decoders))
-                cloudpickle.dump(self.decoders, fp)
+        
+        print(self.model_config.custom_architectures)
+        
+        for archi in self.model_config.custom_architectures:
+            with open(os.path.join(dir_path, archi + ".pkl"), "wb") as fp:
+                cloudpickle.register_pickle_by_value(inspect.getmodule(self.__getattr__(archi)))
+                cloudpickle.dump(self.__getattr__(archi), fp)
                 
-        # For models with more architectural blocks save them too
-        
-        
-
         torch.save(model_dict, os.path.join(dir_path, "model.pt"))
 
     @classmethod
@@ -408,41 +400,27 @@ class BaseMultiVAE(nn.Module):
 
         return model_weights
 
+
+    
     @classmethod
-    def _load_custom_encoders_from_folder(cls, dir_path):
+    def _load_custom_archi_from_folder(cls, dir_path, archi:str):
         file_list = os.listdir(dir_path)
         cls._check_python_version_from_folder(dir_path=dir_path)
 
-        if "encoders.pkl" not in file_list:
+        if archi + ".pkl" not in file_list:
             raise FileNotFoundError(
-                f"Missing encoder pkl file ('encoders.pkl') in"
+                f"Missing architecture pkl file ('{archi}.pkl') in"
                 f"{dir_path}... This file is needed to rebuild custom encoders."
                 " Cannot perform model building."
             )
 
         else:
-            with open(os.path.join(dir_path, "encoders.pkl"), "rb") as fp:
-                encoder = CPU_Unpickler(fp).load()
+            with open(os.path.join(dir_path, archi+".pkl"), "rb") as fp:
+                archi = CPU_Unpickler(fp).load()
 
-        return encoder
+        return archi
 
-    @classmethod
-    def _load_custom_decoders_from_folder(cls, dir_path):
-        file_list = os.listdir(dir_path)
-        cls._check_python_version_from_folder(dir_path=dir_path)
 
-        if "decoders.pkl" not in file_list:
-            raise FileNotFoundError(
-                f"Missing decoder pkl file ('decoders.pkl') in"
-                f"{dir_path}... This file is needed to rebuild custom decoders."
-                " Cannot perform model building."
-            )
-
-        else:
-            with open(os.path.join(dir_path, "decoders.pkl"), "rb") as fp:
-                decoder = CPU_Unpickler(fp).load()
-
-        return decoder
 
     @classmethod
     def load_from_folder(cls, dir_path: str):
@@ -464,20 +442,14 @@ class BaseMultiVAE(nn.Module):
 
         model_config = cls._load_model_config_from_folder(dir_path)
         model_weights = cls._load_model_weights_from_folder(dir_path)
+        
+        custom_architectures = {}
+        for archi in model_config.custom_architectures:
+            custom_architectures[archi] = cls._load_custom_archi_from_folder(dir_path,archi)
+            
 
-        if not model_config.uses_default_encoders:
-            encoders = cls._load_custom_encoders_from_folder(dir_path)
 
-        else:
-            encoders = None
-
-        if not model_config.uses_default_decoders:
-            decoders = cls._load_custom_decoders_from_folder(dir_path)
-
-        else:
-            decoders = None
-
-        model = cls(model_config, encoders=encoders, decoders=decoders)
+        model = cls(model_config, **custom_architectures)
         model.load_state_dict(model_weights)
 
         return model

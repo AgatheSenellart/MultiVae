@@ -55,7 +55,7 @@ class JNF(BaseJointModel):
             for modality in self.encoders:
                 flows[modality] = MAF(MAFConfig(input_dim=(model_config.latent_dim,)))
         else:
-            self.model_config.use_default_flow = False
+            self.model_config.custom_architectures.append('flows')
 
         self.set_flows(flows)
 

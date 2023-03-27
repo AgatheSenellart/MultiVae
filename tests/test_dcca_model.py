@@ -15,7 +15,7 @@ from multivae.models.jnf_dcca import JNFDcca, JNFDccaConfig
 from multivae.models.nn.default_architectures import (
     BaseDictEncoders,
     Decoder_AE_MLP,
-    Encoder_VAE_MLP,
+    Encoder_test,
 )
 from multivae.trainers.add_dcca_trainer import AddDccaTrainer, AddDccaTrainerConfig
 
@@ -75,9 +75,9 @@ class TestJNFDcca:
 
 
         dcca_networks = dict(
-            mod1=Encoder_VAE_MLP(config_dcca_1), 
-            mod2=Encoder_VAE_MLP(config_dcca_2),
-            mod3=Encoder_VAE_MLP(config_dcca_3)
+            mod1=Encoder_test(config_dcca_1), 
+            mod2=Encoder_test(config_dcca_2),
+            mod3=Encoder_test(config_dcca_3)
         )
 
         decoders = dict(mod1=Decoder_AE_MLP(config1), 
@@ -147,6 +147,7 @@ class TestJNFDcca:
         return trainer
 
     def test_model_forward(self, model, dataset, model_config):
+        assert hasattr(model,'dcca_networks')
         assert model.warmup == model_config.warmup
         assert model.nb_epochs_dcca == model_config.nb_epochs_dcca
 
@@ -266,12 +267,16 @@ class TestJNFDcca:
         )
 
     def test_checkpoint_saving(self, model, trainer, training_config):
+        assert hasattr(trainer.model, 'dcca_networks')
         dir_path = training_config.output_dir
 
         # Make a training step
         step_1_loss = trainer.train_step(epoch=1)
 
         model = deepcopy(trainer.model)
+        
+        assert hasattr(trainer.model, 'dcca_networks')
+
         optimizer = deepcopy(trainer.optimizer)
 
         trainer.save_checkpoint(dir_path=dir_path, epoch=0, model=model)
@@ -286,19 +291,12 @@ class TestJNFDcca:
             set(files_list)
         )
 
-        # check pickled custom decoder
-        if not model.model_config.uses_default_decoders:
-            assert "decoders.pkl" in files_list
+        # check pickled custom architectures
+        for archi in model.model_config.custom_architectures :
+            assert archi + ".pkl" in files_list
 
-        else:
-            assert not "decoders.pkl" in files_list
 
-        # check pickled custom encoder
-        if not model.model_config.uses_default_encoders:
-            assert "encoders.pkl" in files_list
-
-        else:
-            assert not "encoders.pkl" in files_list
+        
 
         model_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "model.pt"))[
             "model_state_dict"
@@ -312,12 +310,7 @@ class TestJNFDcca:
                 for key in model.state_dict().keys()
             ]
         )
-        # for key in model.state_dict():
-        #     print(key)
-        #     print(torch.equal(
-        #             model_rec_state_dict[key].cpu(), model.state_dict()[key].cpu()
-        #         ))
-        # 1/0
+
 
         # check reload full model
         model_rec = AutoModel.load_from_folder(os.path.join(checkpoint_dir))
@@ -383,19 +376,10 @@ class TestJNFDcca:
             set(files_list)
         )
 
-        # check pickled custom decoder
-        if not model.model_config.uses_default_decoders:
-            assert "decoders.pkl" in files_list
+        # check pickled custom architectures
+        for archi in model.model_config.custom_architectures :
+            assert archi + ".pkl" in files_list
 
-        else:
-            assert not "decoders.pkl" in files_list
-
-        # check pickled custom encoder
-        if not model.model_config.uses_default_encoders:
-            assert "encoders.pkl" in files_list
-
-        else:
-            assert not "encoders.pkl" in files_list
 
         model_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "model.pt"))[
             "model_state_dict"
@@ -412,7 +396,7 @@ class TestJNFDcca:
         dir_path = training_config.output_dir
 
         trainer.train()
-
+        
         model = deepcopy(trainer._best_model)
 
         training_dir = os.path.join(
@@ -429,27 +413,8 @@ class TestJNFDcca:
             set(files_list)
         )
 
-        # check pickled custom decoder
-        if not model.model_config.uses_default_decoders:
-            assert "decoders.pkl" in files_list
-
-        else:
-            assert not "decoders.pkl" in files_list
-
-        # check pickled custom encoder
-        if not model.model_config.uses_default_encoders:
-            assert "encoders.pkl" in files_list
-
-        else:
-            assert not "encoders.pkl" in files_list
-            
-        # check pickled custom encoder
-        if not model.model_config.use_default_dcca_network:
-            assert "dcca_networks.pkl" in files_list
-
-        else:
-            assert not "dcca_networks.pkl" in files_list
-
+        
+                
         # check reload full model
         model_rec = AutoModel.load_from_folder(os.path.join(final_dir))
 

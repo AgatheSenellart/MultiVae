@@ -1,4 +1,5 @@
 from typing import Dict, Tuple, Union
+from dataclasses import field
 
 from pydantic.dataclasses import dataclass
 from pythae.config import BaseConfig
@@ -30,11 +31,11 @@ class BaseMultiVAEConfig(BaseConfig):
     n_modalities: Union[int, None] = None
     latent_dim: int = 10
     input_dims: dict = None
-    uses_default_encoders: bool = True
-    uses_default_decoders: bool = True
     uses_likelihood_rescaling: bool = False
     recon_losses: dict = None
     decoder_dist_params: dict = None
+    custom_architectures: list = field(default_factory=lambda: [])
+
 
 
 @dataclass

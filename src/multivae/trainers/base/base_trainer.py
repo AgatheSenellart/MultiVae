@@ -504,6 +504,7 @@ class BaseTrainer:
                 and epoch % self.training_config.steps_saving == 0
             ):
                 if self.is_main_process:
+
                     self.save_checkpoint(
                         model=best_model, dir_path=self.training_dir, epoch=epoch
                     )
