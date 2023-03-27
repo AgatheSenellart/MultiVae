@@ -16,6 +16,21 @@ from .mvae_config import MVAEConfig
 
 
 class MVAE(BaseMultiVAE):
+    """
+    The Multi-modal VAE model.
+
+    Args:
+        model_config (MVAEConfig): An instance of MVAEConfig in which any model's 
+            parameters is made available.
+
+        encoders (Dict[str, ~pythae.models.nn.base_architectures.BaseEncoder]): A dictionary containing 
+            the modalities names and the encoders for each modality. Each encoder is an instance of 
+            Pythae's BaseEncoder. Default: None.
+
+        decoder (Dict[str, ~pythae.models.nn.base_architectures.BaseDecoder]): A dictionary containing 
+            the modalities names and the decoders for each modality. Each decoder is an instance of 
+            Pythae's BaseDecoder.
+    """
     def __init__(
         self, model_config: MVAEConfig, encoders: dict = None, decoders: dict = None
     ):
