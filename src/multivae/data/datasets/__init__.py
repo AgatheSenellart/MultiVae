@@ -1,5 +1,5 @@
 from .base import MultimodalBaseDataset
-from .mnist_svhn import MnistSvhn
 from .mmnist import MMNISTDataset
+from .mnist_svhn import MnistSvhn
 
-__all__ = ["MultimodalBaseDataset", "MnistSvhn", 'MMNISTDataset']
+__all__ = ["MultimodalBaseDataset", "MnistSvhn", "MMNISTDataset"]

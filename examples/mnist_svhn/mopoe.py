@@ -25,8 +25,7 @@ model_config = MoPoEConfig(
     input_dims=dict(mnist=(1, 28, 28), svhn=(3, 32, 32)),
     latent_dim=20,
     uses_likelihood_rescaling=True,
-    recon_losses = dict(mnist='l1',svhn='l1')
-    
+    recon_losses=dict(mnist="l1", svhn="l1"),
 )
 
 encoders = dict(
@@ -47,7 +46,7 @@ trainer_config = BaseTrainerConfig(
     steps_predict=1,
     per_device_train_batch_size=64,
     per_device_eval_batch_size=64,
-    steps_saving=20
+    steps_saving=20,
 )
 
 # Set up callbacks
@@ -61,7 +60,7 @@ trainer = BaseTrainer(
     train_dataset=train_data,
     eval_dataset=eval_data,
     training_config=trainer_config,
-    callbacks=callbacks
+    callbacks=callbacks,
 )
 trainer.train()
 

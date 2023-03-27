@@ -16,30 +16,36 @@ from multivae.trainers.base.callbacks import (
     WandbCallback,
 )
 
-train_data = MMNISTDataset(data_path = "../../../data/MMNIST",split="train")
+train_data = MMNISTDataset(data_path="../../../data/MMNIST", split="train")
 train_data, eval_data = random_split(
     train_data, [0.9, 0.1], generator=torch.Generator().manual_seed(42)
 )
 print(len(train_data))
-modalities = ['m0','m1','m2', 'm3','m4']
+modalities = ["m0", "m1", "m2", "m3", "m4"]
 
 model_config = JNFDccaConfig(
     n_modalities=5,
-    input_dims={k : (3,28,28) for k in modalities},
+    input_dims={k: (3, 28, 28) for k in modalities},
     latent_dim=512,
     nb_epochs_dcca=100,
     warmup=300,
     use_likelihood_rescaling=True,
-    recon_losses={k : 'l1' for k in modalities},
-    embedding_dcca_dim=20
+    recon_losses={k: "l1" for k in modalities},
+    embedding_dcca_dim=20,
 )
 
 modalities
 
-dcca_networks = { k : Encoder_ResNet_VAE_MMNIST(BaseAEConfig(latent_dim=20, input_dim=(3, 28, 28))) for k in modalities}
+dcca_networks = {
+    k: Encoder_ResNet_VAE_MMNIST(BaseAEConfig(latent_dim=20, input_dim=(3, 28, 28)))
+    for k in modalities
+}
 
 decoders = {
-    k :Decoder_ResNet_AE_MNIST(BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3, 28, 28))) for k in modalities
+    k: Decoder_ResNet_AE_MNIST(
+        BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3, 28, 28))
+    )
+    for k in modalities
 }
 
 model = JNFDcca(
@@ -47,7 +53,7 @@ model = JNFDcca(
 )
 
 trainer_config = AddDccaTrainerConfig(
-    num_epochs=100+300+300,
+    num_epochs=100 + 300 + 300,
     learning_rate=1e-4,
     steps_predict=1,
     per_device_dcca_train_batch_size=800,

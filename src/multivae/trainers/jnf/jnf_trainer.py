@@ -15,6 +15,7 @@ console = logging.StreamHandler()
 logger.addHandler(console)
 logger.setLevel(logging.INFO)
 
+
 class TwoStepsTrainer(BaseTrainer):
     def __init__(
         self,

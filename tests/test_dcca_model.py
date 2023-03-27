@@ -55,7 +55,7 @@ class TestJNFDcca:
         data = dict(
             mod1=torch.rand((200, 2)),
             mod2=torch.rand((200, 3)),
-            mod3=torch.rand((200, 4))
+            mod3=torch.rand((200, 4)),
         )
         labels = np.random.randint(2, size=200)
         dataset = MultimodalBaseDataset(data, labels)
@@ -68,26 +68,26 @@ class TestJNFDcca:
         config_dcca_2 = BaseAEConfig(input_dim=(3,), latent_dim=2)
         config_dcca_3 = BaseAEConfig(input_dim=(4,), latent_dim=2)
 
-
         config1 = BaseAEConfig(input_dim=(2,), latent_dim=5)
         config2 = BaseAEConfig(input_dim=(3,), latent_dim=5)
         config3 = BaseAEConfig(input_dim=(4,), latent_dim=5)
 
-
         dcca_networks = dict(
-            mod1=Encoder_test(config_dcca_1), 
+            mod1=Encoder_test(config_dcca_1),
             mod2=Encoder_test(config_dcca_2),
-            mod3=Encoder_test(config_dcca_3)
+            mod3=Encoder_test(config_dcca_3),
         )
 
-        decoders = dict(mod1=Decoder_AE_MLP(config1), 
-                        mod2=Decoder_AE_MLP(config2),
-                        mod3=Decoder_AE_MLP(config3))
+        decoders = dict(
+            mod1=Decoder_AE_MLP(config1),
+            mod2=Decoder_AE_MLP(config2),
+            mod3=Decoder_AE_MLP(config3),
+        )
 
         flows = dict(
-            mod1=IAF(IAFConfig(input_dim=(5,))), 
+            mod1=IAF(IAFConfig(input_dim=(5,))),
             mod2=IAF(IAFConfig(input_dim=(5,))),
-            mod3 = IAF(IAFConfig(input_dim=(5,)))
+            mod3=IAF(IAFConfig(input_dim=(5,))),
         )
         return dict(
             dcca_networks=dcca_networks,
@@ -147,7 +147,7 @@ class TestJNFDcca:
         return trainer
 
     def test_model_forward(self, model, dataset, model_config):
-        assert hasattr(model,'dcca_networks')
+        assert hasattr(model, "dcca_networks")
         assert model.warmup == model_config.warmup
         assert model.nb_epochs_dcca == model_config.nb_epochs_dcca
 
@@ -267,15 +267,15 @@ class TestJNFDcca:
         )
 
     def test_checkpoint_saving(self, model, trainer, training_config):
-        assert hasattr(trainer.model, 'dcca_networks')
+        assert hasattr(trainer.model, "dcca_networks")
         dir_path = training_config.output_dir
 
         # Make a training step
         step_1_loss = trainer.train_step(epoch=1)
 
         model = deepcopy(trainer.model)
-        
-        assert hasattr(trainer.model, 'dcca_networks')
+
+        assert hasattr(trainer.model, "dcca_networks")
 
         optimizer = deepcopy(trainer.optimizer)
 
@@ -292,11 +292,8 @@ class TestJNFDcca:
         )
 
         # check pickled custom architectures
-        for archi in model.model_config.custom_architectures :
+        for archi in model.model_config.custom_architectures:
             assert archi + ".pkl" in files_list
-
-
-        
 
         model_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "model.pt"))[
             "model_state_dict"
@@ -310,7 +307,6 @@ class TestJNFDcca:
                 for key in model.state_dict().keys()
             ]
         )
-
 
         # check reload full model
         model_rec = AutoModel.load_from_folder(os.path.join(checkpoint_dir))
@@ -377,9 +373,8 @@ class TestJNFDcca:
         )
 
         # check pickled custom architectures
-        for archi in model.model_config.custom_architectures :
+        for archi in model.model_config.custom_architectures:
             assert archi + ".pkl" in files_list
-
 
         model_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "model.pt"))[
             "model_state_dict"
@@ -396,7 +391,7 @@ class TestJNFDcca:
         dir_path = training_config.output_dir
 
         trainer.train()
-        
+
         model = deepcopy(trainer._best_model)
 
         training_dir = os.path.join(
@@ -413,8 +408,6 @@ class TestJNFDcca:
             set(files_list)
         )
 
-        
-                
         # check reload full model
         model_rec = AutoModel.load_from_folder(os.path.join(final_dir))
 
@@ -429,8 +422,9 @@ class TestJNFDcca:
 
         assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
         assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
-        assert type(model_rec.DCCA_module.networks.cpu()) == type(model.DCCA_module.networks.cpu())
-
+        assert type(model_rec.DCCA_module.networks.cpu()) == type(
+            model.DCCA_module.networks.cpu()
+        )
 
     def test_compute_nll(self, model, dataset):
         nll = model.compute_joint_nll(dataset, K=10, batch_size_K=2)

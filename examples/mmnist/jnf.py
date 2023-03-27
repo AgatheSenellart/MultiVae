@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader, random_split
 from multivae.data.datasets import MMNISTDataset
 from multivae.data.datasets.utils import save_all_images
 from multivae.data.utils import set_inputs_to_device
-from multivae.models import JNF,JNFConfig
+from multivae.models import JNF, JNFConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
 from multivae.models.nn.mmnist import EncoderImg, DecoderImg
 from multivae.models.nn.svhn import Decoder_VAE_SVHN, Encoder_VAE_SVHN
@@ -16,30 +16,37 @@ from multivae.trainers.base.callbacks import (
     WandbCallback,
 )
 
-train_data = MMNISTDataset(data_path = "../../../data/MMNIST",split="train")
+train_data = MMNISTDataset(data_path="../../../data/MMNIST", split="train")
 train_data, eval_data = random_split(
     train_data, [0.9, 0.1], generator=torch.Generator().manual_seed(42)
 )
 print(len(train_data), len(eval_data))
-modalities = ['m0','m1','m2', 'm3','m4']
+modalities = ["m0", "m1", "m2", "m3", "m4"]
 
 model_config = JNFConfig(
     n_modalities=5,
-    input_dims={k : (3,28,28) for k in modalities},
+    input_dims={k: (3, 28, 28) for k in modalities},
     latent_dim=512,
     warmup=300,
 )
 
 modalities
 
-encoders = { k : EncoderImg(BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3, 28, 28))) for k in modalities}
-
-decoders = {
-    k :DecoderImg(BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3, 28, 28))) for k in modalities
+encoders = {
+    k: EncoderImg(
+        BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3, 28, 28))
+    )
+    for k in modalities
 }
 
-model = JNF(
-    model_config, encoders=encoders, decoders=decoders)
+decoders = {
+    k: DecoderImg(
+        BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3, 28, 28))
+    )
+    for k in modalities
+}
+
+model = JNF(model_config, encoders=encoders, decoders=decoders)
 
 print(model.reset_optimizer_epochs)
 
@@ -49,7 +56,6 @@ trainer_config = TwoStepsTrainerConfig(
     learning_rate=1e-4,
     steps_predict=1,
     per_device_train_batch_size=256,
-
 )
 
 # Set up callbacks

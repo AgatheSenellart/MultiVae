@@ -64,15 +64,15 @@ class AutoModel(nn.Module):
             from ..jnf_dcca import JNFDcca
 
             model = JNFDcca.load_from_folder(dir_path)
-            
+
         elif model_name == "MoPoEConfig":
             from ..mopoe import MoPoE
-            
+
             model = MoPoE.load_from_folder(dir_path)
-            
+
         elif model_name == "MVTCAEConfig":
             from ..mvtcae import MVTCAE
-            
+
             model = MVTCAE.load_from_folder(dir_path)
 
         else:

@@ -1,6 +1,9 @@
 from typing import Literal
+
 from pydantic.dataclasses import dataclass
+
 from ..base import BaseMultiVAEConfig
+
 
 @dataclass
 class MMVAEConfig(BaseMultiVAEConfig):

@@ -1,21 +1,9 @@
-import os
-from typing import Dict, Tuple, Union
-
-import numpy as np
-import torch
-import torch.distributions as dist
-from pythae.models.base.base_utils import ModelOutput
-from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
-from pythae.models.normalizing_flows.base import BaseNF, BaseNFConfig
-from pythae.models.normalizing_flows.maf import MAF, MAFConfig
-from torch.nn import ModuleDict
-
 import inspect
 import os
 import sys
 from copy import deepcopy
 from http.cookiejar import LoadError
-from typing import Union
+from typing import Dict, Tuple, Union
 
 import cloudpickle
 import numpy as np
@@ -24,13 +12,11 @@ import torch.distributions as dist
 import torch.nn as nn
 from pythae.models.base.base_utils import CPU_Unpickler, ModelOutput
 from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
+from pythae.models.normalizing_flows.base import BaseNF, BaseNFConfig
+from pythae.models.normalizing_flows.maf import MAF, MAFConfig
+from torch.nn import ModuleDict
 from torch.nn import functional as F
 from torch.nn.modules.loss import BCEWithLogitsLoss, L1Loss, MSELoss
-
-from ...data.datasets.base import MultimodalBaseDataset
-from ..auto_model import AutoConfig
-from ..nn.default_architectures import BaseDictDecoders, BaseDictEncoders
-
 
 from multivae.models.nn.default_architectures import (
     BaseDictEncoders,
@@ -38,8 +24,10 @@ from multivae.models.nn.default_architectures import (
 )
 
 from ...data.datasets.base import MultimodalBaseDataset
+from ..auto_model import AutoConfig
 from ..dcca import DCCA, DCCAConfig
 from ..joint_models import BaseJointModel
+from ..nn.default_architectures import BaseDictDecoders, BaseDictEncoders
 from .jnf_dcca_config import JNFDccaConfig
 
 
@@ -87,7 +75,7 @@ class JNFDcca(BaseJointModel):
         )
 
         model_config.custom_architectures = []
-        
+
         if dcca_networks is None:
             if model_config.input_dims is None:
                 raise AttributeError(
@@ -104,7 +92,7 @@ class JNFDcca(BaseJointModel):
                     model_config.input_dims, model_config.embedding_dcca_dim
                 )
         else:
-            model_config.custom_architectures.append('dcca_networks')
+            model_config.custom_architectures.append("dcca_networks")
 
         # The default encoders for this model have (embedding_dcca_dim, ) as input_size
         if encoders is None:
@@ -113,7 +101,7 @@ class JNFDcca(BaseJointModel):
             }
             encoders = BaseDictEncoders(encoders_input_dims, model_config.latent_dim)
         else:
-            model_config.custom_architectures.append('encoders')
+            model_config.custom_architectures.append("encoders")
 
         # The default joint_encoder for this model is engineered from the DCCA networks and
         # not from the encoders
@@ -121,21 +109,18 @@ class JNFDcca(BaseJointModel):
             # Create a MultiHead Joint Encoder MLP
             joint_encoder = MultipleHeadJointEncoder(dcca_networks, model_config)
         else:
-            model_config.custom_architectures.append('joint_encoder')
-
+            model_config.custom_architectures.append("joint_encoder")
 
         super().__init__(model_config, encoders, decoders, joint_encoder, **kwargs)
         self.DCCA_module = DCCA(self.dcca_config, dcca_networks)
         self.dcca_networks = self.DCCA_module.networks
-
 
         if flows is None:
             flows = dict()
             for modality in self.encoders:
                 flows[modality] = MAF(MAFConfig(input_dim=(model_config.latent_dim,)))
         else:
-            model_config.custom_architectures.append('flows')
-
+            model_config.custom_architectures.append("flows")
 
         self.set_flows(flows)
         self.model_name = "JNFDcca"
@@ -276,9 +261,16 @@ class JNFDcca(BaseJointModel):
             return ModelOutput(z=z, one_latent_space=True)
 
         if type(cond_mod) == list and len(cond_mod) != 1:
-            z = self.sample_from_poe_subset(cond_mod,inputs.data, 
-                                        ax=None, mcmc_steps=100, 
-                                        n_lf=10, eps_lf=0.01, K=N, divide_prior=True)
+            z = self.sample_from_poe_subset(
+                cond_mod,
+                inputs.data,
+                ax=None,
+                mcmc_steps=100,
+                n_lf=10,
+                eps_lf=0.01,
+                K=N,
+                divide_prior=True,
+            )
             if N > 1 and kwargs.pop("flatten", False):
                 N, l, d = z.shape
                 z = z.reshape(l * N, d)
@@ -309,33 +301,36 @@ class JNFDcca(BaseJointModel):
                 f"Modality of name {cond_mod} not handled. The"
                 f" modalities that can be encoded are {list(self.encoders.keys())}"
             )
-            
-    def sample_from_moe_subset(self, subset : list ,data : dict):
+
+    def sample_from_moe_subset(self, subset: list, data: dict):
         """Sample z from the mixture of posteriors from the subset.
         Torch no grad is activated, so that no gradient are computed durin the forward pass of the encoders.
 
         Args:
             subset (list): the modalities to condition on
-            data (list): The data 
+            data (list): The data
             K (int) : the number of samples per datapoint
         """
         # Choose randomly one modality for each sample
         n_batch = len(data[list(data.keys())[0]])
 
-        indices = np.random.choice(subset, size=n_batch) 
-        zs = torch.zeros((n_batch, self.latent_dim)).to(data[list(data.keys())[0]].device)
-        
+        indices = np.random.choice(subset, size=n_batch)
+        zs = torch.zeros((n_batch, self.latent_dim)).to(
+            data[list(data.keys())[0]].device
+        )
+
         for m in subset:
             with torch.no_grad():
-                encoder_output = self.encoders[m](self.DCCA_module.networks[m](data[m][indices == m]).embedding)
+                encoder_output = self.encoders[m](
+                    self.DCCA_module.networks[m](data[m][indices == m]).embedding
+                )
                 mu, log_var = encoder_output.embedding, encoder_output.log_covariance
-                zs[indices==m] = dist.Normal(
-                mu, torch.exp(0.5 * log_var)).rsample()
+                zs[indices == m] = dist.Normal(mu, torch.exp(0.5 * log_var)).rsample()
         return zs
-            
 
-    
-    def compute_poe_posterior(self, subset : list,z_ : torch.Tensor,data : list, divide_prior = True, grad=True):
+    def compute_poe_posterior(
+        self, subset: list, z_: torch.Tensor, data: list, divide_prior=True, grad=True
+    ):
         """Compute the log density of the product of experts for Hamiltonian sampling.
 
         Args:
@@ -347,101 +342,122 @@ class JNFDcca(BaseJointModel):
         Returns:
             tuple : likelihood and gradients
         """
-        
+
         lnqzs = 0
 
         z = z_.clone().detach().requires_grad_(grad)
-        
+
         if divide_prior:
             # print('Dividing by the prior')
-            lnqzs += (0.5* (torch.pow(z,2) + np.log(2*np.pi))).sum(dim=1)
-        
+            lnqzs += (0.5 * (torch.pow(z, 2) + np.log(2 * np.pi))).sum(dim=1)
+
         for m in subset:
             # Compute lnqz
-            flow_output = self.flows[m](z) 
-            vae_output = self.encoders[m](self.DCCA_module.networks[m](data[m]).embedding)
-            mu, log_var, z0 = vae_output.embedding, vae_output.log_covariance, flow_output.out
+            flow_output = self.flows[m](z)
+            vae_output = self.encoders[m](
+                self.DCCA_module.networks[m](data[m]).embedding
+            )
+            mu, log_var, z0 = (
+                vae_output.embedding,
+                vae_output.log_covariance,
+                flow_output.out,
+            )
 
-            log_q_z0 = (-0.5 * (log_var + np.log(2*np.pi) + torch.pow(z0 - mu, 2) / torch.exp(log_var))).sum(dim=1)
-            lnqzs += (log_q_z0 + flow_output.log_abs_det_jac) # n_data_points x 1
+            log_q_z0 = (
+                -0.5
+                * (
+                    log_var
+                    + np.log(2 * np.pi)
+                    + torch.pow(z0 - mu, 2) / torch.exp(log_var)
+                )
+            ).sum(dim=1)
+            lnqzs += log_q_z0 + flow_output.log_abs_det_jac  # n_data_points x 1
 
-        
         if grad:
             g = torch.autograd.grad(lnqzs.sum(), z)[0]
             return lnqzs, g
         else:
             return lnqzs
 
-
-    def sample_from_poe_subset(self,subset,data, ax=None, mcmc_steps=300, n_lf=10, eps_lf=0.01, K=1, divide_prior=True):
+    def sample_from_poe_subset(
+        self,
+        subset,
+        data,
+        ax=None,
+        mcmc_steps=300,
+        n_lf=10,
+        eps_lf=0.01,
+        K=1,
+        divide_prior=True,
+    ):
         """Sample from the product of experts using Hamiltonian sampling.
 
         Args:
-            subset (List[int]): 
-            gen_mod (int): 
-            data (dict or MultimodalDataset): 
+            subset (List[int]):
+            gen_mod (int):
+            data (dict or MultimodalDataset):
             K (int, optional): . Defaults to 100.
         """
-        print('starting to sample from poe_subset, divide prior = ', divide_prior)
-        
+        print("starting to sample from poe_subset, divide prior = ", divide_prior)
+
         # Multiply the data to have multiple samples per datapoints
         n_data = len(data[list(data.keys())[0]])
-        data = {d:torch.cat([data[d]]*K) for d in data}
+        data = {d: torch.cat([data[d]] * K) for d in data}
         device = data[list(data.keys())[0]].device
-        
+
         n_samples = len(data[list(data.keys())[0]])
         acc_nbr = torch.zeros(n_samples, 1).to(device)
 
         # First we need to sample an initial point from the mixture of experts
-        z0 = self.sample_from_moe_subset(subset,data)
+        z0 = self.sample_from_moe_subset(subset, data)
         z = z0
-        
+
         # fig, ax = plt.subplots()
         pos = []
         grad = []
         for i in range(mcmc_steps):
             pos.append(z[0].detach().cpu())
 
-            #print(i)
+            # print(i)
             gamma = torch.randn_like(z, device=device)
-            rho = gamma# / self.beta_zero_sqrt
-            
+            rho = gamma  # / self.beta_zero_sqrt
+
             # Compute ln q(z|X_s)
-            ln_q_zxs, g = self.compute_poe_posterior(subset,z,data, divide_prior=divide_prior)
-            
+            ln_q_zxs, g = self.compute_poe_posterior(
+                subset, z, data, divide_prior=divide_prior
+            )
+
             grad.append(g[0].detach().cpu())
 
             H0 = -ln_q_zxs + 0.5 * torch.norm(rho, dim=1) ** 2
             # print(H0)
             # print(model.G_inv(z).det())
             for k in range(n_lf):
+                # z = z.clone().detach().requires_grad_(True)
+                # log_det = G(z).det().log()
 
-                #z = z.clone().detach().requires_grad_(True)
-                #log_det = G(z).det().log()
-
-                #g = torch.zeros(n_samples, model.latent_dim).cuda()
-                #for i in range(n_samples):
+                # g = torch.zeros(n_samples, model.latent_dim).cuda()
+                # for i in range(n_samples):
                 #    g[0] = -grad(log_det, z)[0][0]
 
-
                 # step 1
-                rho_ = rho - (eps_lf / 2) *(-g)
+                rho_ = rho - (eps_lf / 2) * (-g)
 
                 # step 2
                 z = z + eps_lf * rho_
 
-                #z_ = z_.clone().detach().requires_grad_(True)
-                #log_det = 0.5 * G(z).det().log()
-                #log_det = G(z_).det().log()
+                # z_ = z_.clone().detach().requires_grad_(True)
+                # log_det = 0.5 * G(z).det().log()
+                # log_det = G(z_).det().log()
 
-                #g = torch.zeros(n_samples, model.latent_dim).cuda()
-                #for i in range(n_samples):
+                # g = torch.zeros(n_samples, model.latent_dim).cuda()
+                # for i in range(n_samples):
                 #    g[0] = -grad(log_det, z_)[0][0]
 
                 # Compute the updated gradient
-                ln_q_zxs, g = self.compute_poe_posterior(subset,z,data, divide_prior)
-                
-                #print(g)
+                ln_q_zxs, g = self.compute_poe_posterior(subset, z, data, divide_prior)
+
+                # print(g)
                 # g = (Sigma_inv @ (z - mu).T).reshape(n_samples, 2)
 
                 # step 3
@@ -450,17 +466,16 @@ class JNFDcca(BaseJointModel):
                 # tempering
                 beta_sqrt = 1
 
-                rho =  rho__
-                #beta_sqrt_old = beta_sqrt
+                rho = rho__
+                # beta_sqrt_old = beta_sqrt
 
             H = -ln_q_zxs + 0.5 * torch.norm(rho, dim=1) ** 2
             # print(H, H0)
-    
-            alpha = torch.exp(H0-H) 
-            # print(alpha)
-            
 
-            #print(-log_pi(best_model, z, best_model.G), 0.5 * torch.norm(rho, dim=1) ** 2)
+            alpha = torch.exp(H0 - H)
+            # print(alpha)
+
+            # print(-log_pi(best_model, z, best_model.G), 0.5 * torch.norm(rho, dim=1) ** 2)
             acc = torch.rand(n_samples).to(device)
             moves = (acc < alpha).type(torch.int).reshape(n_samples, 1)
 
@@ -468,20 +483,16 @@ class JNFDcca(BaseJointModel):
 
             z = z * moves + (1 - moves) * z0
             z0 = z
-            
+
         pos = torch.stack(pos)
         grad = torch.stack(grad)
         if ax is not None:
-            ax.plot(pos[:,0], pos[:,1])
-            ax.quiver(pos[:,0], pos[:,1], grad[:,0], grad[:,1])
+            ax.plot(pos[:, 0], pos[:, 1])
+            ax.quiver(pos[:, 0], pos[:, 1], grad[:, 0], grad[:, 1])
 
             # plt.savefig('monitor_hmc.png')
         # 1/0
-        print(acc_nbr[:10]/mcmc_steps)
-        sh = (n_data,self.latent_dim) if K==1 else (K,n_data,self.latent_dim)
+        print(acc_nbr[:10] / mcmc_steps)
+        sh = (n_data, self.latent_dim) if K == 1 else (K, n_data, self.latent_dim)
         z = z.detach().resize(*sh)
         return z.detach()
-            
-
-    
-    

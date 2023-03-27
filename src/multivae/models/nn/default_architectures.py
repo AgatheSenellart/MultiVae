@@ -148,6 +148,7 @@ class MultipleHeadJointEncoder(BaseEncoder):
 
 class Encoder_test(BaseEncoder):
     """Simple MLPs different than the default one for testing."""
+
     def __init__(self, args: dict):
         BaseEncoder.__init__(self)
         self.input_dim = args.input_dim
@@ -158,7 +159,6 @@ class Encoder_test(BaseEncoder):
 
         for i in range(1):
             layers.append(nn.Sequential(nn.Linear(512, 512), nn.ReLU()))
-
 
         self.layers = layers
         self.depth = len(layers)
@@ -172,7 +172,6 @@ class Encoder_test(BaseEncoder):
         max_depth = self.depth
 
         if output_layer_levels is not None:
-
             assert all(
                 self.depth >= levels > 0 or levels == -1
                 for levels in output_layer_levels
@@ -185,8 +184,11 @@ class Encoder_test(BaseEncoder):
                 max_depth = self.depth
             else:
                 max_depth = max(output_layer_levels)
-        
-        out = x.reshape(-1,np.prod(self.input_dim),)
+
+        out = x.reshape(
+            -1,
+            np.prod(self.input_dim),
+        )
 
         for i in range(max_depth):
             out = self.layers[i](out)

@@ -76,7 +76,6 @@ class BaseTrainerConfig(BaseConfig):
     start_keep_best_epoch: int = 0
     drop_last: bool = False
 
-
     def __post_init__(self):
         super().__post_init__()
         env_local_rank = int(os.environ.get("LOCAL_RANK", -1))

@@ -4,9 +4,9 @@ import logging
 import os
 import shutil
 import sys
+import tempfile
 from copy import deepcopy
 from http.cookiejar import LoadError
-import tempfile
 from typing import Union
 
 import cloudpickle
@@ -25,13 +25,10 @@ from ..nn.default_architectures import BaseDictDecoders, BaseDictEncoders
 from .base_config import BaseMultiVAEConfig, EnvironmentConfig
 from .base_utils import hf_hub_is_available, model_card_template
 
-
 logger = logging.getLogger(__name__)
 console = logging.StreamHandler()
 logger.addHandler(console)
 logger.setLevel(logging.INFO)
-
-
 
 
 class BaseMultiVAE(nn.Module):
@@ -76,7 +73,7 @@ class BaseMultiVAE(nn.Module):
                     )
                 encoders = BaseDictEncoders(self.input_dims, model_config.latent_dim)
         else:
-            self.model_config.custom_architectures.append('encoders')
+            self.model_config.custom_architectures.append("encoders")
 
         if decoders is None:
             if self.input_dims is None:
@@ -91,8 +88,7 @@ class BaseMultiVAE(nn.Module):
                     )
                 decoders = BaseDictDecoders(self.input_dims, model_config.latent_dim)
         else:
-            self.model_config.custom_architectures.append('decoders')
-
+            self.model_config.custom_architectures.append("decoders")
 
         self.sanity_check(encoders, decoders)
 
@@ -134,7 +130,9 @@ class BaseMultiVAE(nn.Module):
             model_config.recon_losses = {k: "mse" for k in self.encoders}
         if model_config.decoder_dist_params is None:
             model_config.decoder_dist_params = {}
-        self.set_recon_losses(model_config.recon_losses, model_config.decoder_dist_params)
+        self.set_recon_losses(
+            model_config.recon_losses, model_config.decoder_dist_params
+        )
 
     def set_recon_losses(self, recon_dict, dist_params_dict):
         """Set the reconstruction losses functions recon_losses
@@ -147,23 +145,23 @@ class BaseMultiVAE(nn.Module):
         for k in recon_dict:
             if recon_dict[k] == "mse":
                 params_mod = dist_params_dict.pop(k, {})
-                scale = params_mod.pop('scale',1.0)
+                scale = params_mod.pop("scale", 1.0)
                 self.recon_log_probs[k] = lambda input, target: dist.Normal(
                     input, scale
                 ).log_prob(target)
-                
+
             elif recon_dict[k] == "bce":
                 self.recon_log_probs[k] = lambda input, target: dist.Bernoulli(
                     logits=input
                 ).log_prob(target)
-                
+
             elif recon_dict[k] == "l1":
                 params_mod = dist_params_dict.pop(k, {})
-                scale = params_mod.pop('scale',1.0)
+                scale = params_mod.pop("scale", 1.0)
                 self.recon_log_probs[k] = lambda input, target: dist.Laplace(
                     input, scale
                 ).log_prob(target)
-                
+
             else:
                 raise AttributeError(
                     'Reconstructions losses must be either "mse","bce" or "l1"'
@@ -345,14 +343,16 @@ class BaseMultiVAE(nn.Module):
                 raise e
 
         self.model_config.save_json(dir_path, "model_config")
-        
+
         print(self.model_config.custom_architectures)
-        
+
         for archi in self.model_config.custom_architectures:
             with open(os.path.join(dir_path, archi + ".pkl"), "wb") as fp:
-                cloudpickle.register_pickle_by_value(inspect.getmodule(self.__getattr__(archi)))
+                cloudpickle.register_pickle_by_value(
+                    inspect.getmodule(self.__getattr__(archi))
+                )
                 cloudpickle.dump(self.__getattr__(archi), fp)
-                
+
         torch.save(model_dict, os.path.join(dir_path, "model.pt"))
 
     @classmethod
@@ -400,10 +400,8 @@ class BaseMultiVAE(nn.Module):
 
         return model_weights
 
-
-    
     @classmethod
-    def _load_custom_archi_from_folder(cls, dir_path, archi:str):
+    def _load_custom_archi_from_folder(cls, dir_path, archi: str):
         file_list = os.listdir(dir_path)
         cls._check_python_version_from_folder(dir_path=dir_path)
 
@@ -415,12 +413,10 @@ class BaseMultiVAE(nn.Module):
             )
 
         else:
-            with open(os.path.join(dir_path, archi+".pkl"), "rb") as fp:
+            with open(os.path.join(dir_path, archi + ".pkl"), "rb") as fp:
                 archi = CPU_Unpickler(fp).load()
 
         return archi
-
-
 
     @classmethod
     def load_from_folder(cls, dir_path: str):
@@ -442,12 +438,12 @@ class BaseMultiVAE(nn.Module):
 
         model_config = cls._load_model_config_from_folder(dir_path)
         model_weights = cls._load_model_weights_from_folder(dir_path)
-        
+
         custom_architectures = {}
         for archi in model_config.custom_architectures:
-            custom_architectures[archi] = cls._load_custom_archi_from_folder(dir_path,archi)
-            
-
+            custom_architectures[archi] = cls._load_custom_archi_from_folder(
+                dir_path, archi
+            )
 
         model = cls(model_config, **custom_architectures)
         model.load_state_dict(model_weights)
@@ -480,10 +476,14 @@ class BaseMultiVAE(nn.Module):
     ):
         raise NotImplementedError
 
-
-        
-    def compute_cond_nll(self, inputs: MultimodalBaseDataset, cond_mod: str, pred_mods: list, K: int = 1000, batch_size_K: int = 100):
-        
+    def compute_cond_nll(
+        self,
+        inputs: MultimodalBaseDataset,
+        cond_mod: str,
+        pred_mods: list,
+        K: int = 1000,
+        batch_size_K: int = 100,
+    ):
         """Compute the conditional likelihoods ln p(x|y) , ln p(y|x) with MonteCarlo Sampling and the approximation :
 
                 ln p(x|y) = \sum_{z ~ q(z|y)} ln p(x|z)
@@ -500,30 +500,29 @@ class BaseMultiVAE(nn.Module):
         """
 
         # Compute K samples for each datapoint
-        o = self.encode(inputs, cond_mod,N=K)
-        
+        o = self.encode(inputs, cond_mod, N=K)
+
         # Compute the negative recon_log_prob for each datapoint
-        ll = {k : [] for k in pred_mods}
+        ll = {k: [] for k in pred_mods}
 
         n_data = len(inputs.data[list(inputs.data.keys())[0]])
         for i in range(n_data):
             start_idx, stop_index = 0, batch_size_K
-            lnpxs = {k : [] for k in pred_mods}
-            
-            while stop_index <= K:
+            lnpxs = {k: [] for k in pred_mods}
 
+            while stop_index <= K:
                 # Encode with the conditional VAE
                 latents = o.z[start_idx:stop_index]
 
                 # Decode with the opposite decoder
                 for k in pred_mods:
-                    target=inputs.data[k][i]
+                    target = inputs.data[k][i]
                     recon = self.decoders[k](latents).reconstruction
                     # Compute lnp(y|z)
                     dim_reduce = tuple(range(1, len(recon.shape)))
                     lpxz = self.recon_log_probs[k](target, recon).sum(dim=dim_reduce)
                     print(lpxz.shape)
-                    lnpxs[k].append(torch.logsumexp(lpxz,dim=0))
+                    lnpxs[k].append(torch.logsumexp(lpxz, dim=0))
 
                 # next batch
                 start_idx += batch_size_K
@@ -531,17 +530,18 @@ class BaseMultiVAE(nn.Module):
             for k in pred_mods:
                 print(lnpxs[k])
                 ll[k].append(torch.logsumexp(torch.tensor(lnpxs[k]), dim=0) - np.log(K))
-                
+
         results = {}
         for k in pred_mods:
-            results['ll_' + cond_mod + '_' +k] = torch.sum(torch.tensor(ll[k]))/len(ll[k])
-        
+            results["ll_" + cond_mod + "_" + k] = torch.sum(torch.tensor(ll[k])) / len(
+                ll[k]
+            )
+
         return ModelOutput(**results)
-    
-    
-    
-    
+
     def push_to_hf_hub(self, hf_hub_path: str):  # pragma: no cover
+        # TODO : add the load from hf hub function in AutoModel
+
         """Method allowing to save your model directly on the huggung face hub.
         You will need to have the `huggingface_hub` package installed and a valid Hugging Face
         account. You can install the package using
@@ -627,6 +627,3 @@ class BaseMultiVAE(nn.Module):
             )
 
         shutil.rmtree(tempdir)
-
-
-

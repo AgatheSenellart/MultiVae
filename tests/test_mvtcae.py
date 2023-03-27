@@ -1,22 +1,21 @@
-from copy import deepcopy
 import os
+from copy import deepcopy
+
+import numpy as np
+import pytest
+import torch
+from pythae.models.base.base_model import BaseAEConfig
+from pythae.models.base.base_utils import ModelOutput
+
 from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
 from multivae.models.auto_model.auto_model import AutoModel
 from multivae.models.mvtcae import MVTCAE, MVTCAEConfig
+from multivae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
 from multivae.trainers.base.base_trainer import BaseTrainer
 from multivae.trainers.base.base_trainer_config import BaseTrainerConfig
-import numpy as np
-import pytest 
-import torch
-from pythae.models.base.base_model import BaseAEConfig
-from multivae.models.nn.default_architectures import Encoder_VAE_MLP, Decoder_AE_MLP
-from pythae.models.base.base_utils import ModelOutput
-
 
 
 class Test_model:
-    
-    
     @pytest.fixture(params=["complete", "incomplete"])
     def dataset(self, request):
         # Create simple small dataset
@@ -89,8 +88,6 @@ class Test_model:
     def test(self, model, dataset, model_config):
         assert model.beta == model_config.beta
 
-        
-
         output = model(dataset, epoch=2)
         loss = output.loss
         assert type(loss) == torch.Tensor
@@ -127,8 +124,7 @@ class Test_model:
         assert isinstance(Y, ModelOutput)
         assert Y.mod1.shape == (2 * 10, 2)
         assert Y.mod2.shape == (2 * 10, 3)
-        
-        
+
 
 class TestTraining:
     @pytest.fixture(params=["complete", "incomplete"])
@@ -180,7 +176,7 @@ class TestTraining:
             decoders=decoders,
         )
 
-    @pytest.fixture(params=[0.5, 1., 2.])
+    @pytest.fixture(params=[0.5, 1.0, 2.0])
     def model_config(self, request):
         model_config = MVTCAEConfig(
             n_modalities=4,
@@ -293,10 +289,9 @@ class TestTraining:
             set(files_list)
         )
 
-         # check pickled custom architectures
-        for archi in model.model_config.custom_architectures :
+        # check pickled custom architectures
+        for archi in model.model_config.custom_architectures:
             assert archi + ".pkl" in files_list
-
 
         model_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "model.pt"))[
             "model_state_dict"
@@ -375,10 +370,9 @@ class TestTraining:
             set(files_list)
         )
 
-         # check pickled custom architectures
-        for archi in model.model_config.custom_architectures :
+        # check pickled custom architectures
+        for archi in model.model_config.custom_architectures:
             assert archi + ".pkl" in files_list
-
 
         model_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "model.pt"))[
             "model_state_dict"
@@ -412,10 +406,9 @@ class TestTraining:
             set(files_list)
         )
 
-         # check pickled custom architectures
-        for archi in model.model_config.custom_architectures :
+        # check pickled custom architectures
+        for archi in model.model_config.custom_architectures:
             assert archi + ".pkl" in files_list
-
 
         # check reload full model
         model_rec = AutoModel.load_from_folder(os.path.join(final_dir))

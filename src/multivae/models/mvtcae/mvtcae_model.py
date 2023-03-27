@@ -16,64 +16,75 @@ from .mvtcae_config import MVTCAEConfig
 
 
 class MVTCAE(BaseMultiVAE):
-    
-    """ 
-    
-    Implementation for 'Multi-View Representation Learning via Total Correlation Objective'.
-    Hwang et al, 2021. 
-    
-    This code is heavily based on the official implementation that can be found here :
-    https://github.com/gr8joo/MVTCAE.
-    
 
     """
-    
-    def __init__(self, model_config: MVTCAEConfig, encoders: dict = None, decoders: dict = None):
+
+    Implementation for 'Multi-View Representation Learning via Total Correlation Objective'.
+    Hwang et al, 2021.
+
+    This code is heavily based on the official implementation that can be found here :
+    https://github.com/gr8joo/MVTCAE.
+
+
+    """
+
+    def __init__(
+        self, model_config: MVTCAEConfig, encoders: dict = None, decoders: dict = None
+    ):
         super().__init__(model_config, encoders, decoders)
-        
+
         self.alpha = model_config.alpha
         self.beta = model_config.beta
-        self.model_name = 'MVTCAE'
-        
+        self.model_name = "MVTCAE"
 
-        
     def reparameterize(self, mu, logvar):
         std = logvar.mul(0.5).exp_()
         z = dist.Normal(mu, std).rsample()
         return z
-    
-    
+
     def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
-        
         # Compute latents parameters for all subsets
         latents = self.inference(inputs)
         results = dict()
 
         # Sample from the joint posterior
-        joint_mu, joint_logvar = latents['joint'][0],latents['joint'][1]
-        shared_embeddings = self.reparameterize(joint_mu,joint_logvar)
+        joint_mu, joint_logvar = latents["joint"][0], latents["joint"][1]
+        shared_embeddings = self.reparameterize(joint_mu, joint_logvar)
         ndata = len(shared_embeddings)
-        joint_kld = -0.5 * torch.sum(1 - joint_logvar.exp() - joint_mu.pow(2) + joint_logvar)
+        joint_kld = -0.5 * torch.sum(
+            1 - joint_logvar.exp() - joint_mu.pow(2) + joint_logvar
+        )
 
-        results['joint_divergence'] = joint_kld
+        results["joint_divergence"] = joint_kld
 
         # Compute the reconstruction losses for each modality
         loss_rec = 0
         for m, m_key in enumerate(self.encoders.keys()):
             # reconstruct this modality from the shared embeddings representation
             recon = self.decoders[m_key](shared_embeddings).reconstruction
-            m_rec = -self.recon_log_probs[m_key](recon, inputs.data[m_key])* self.rescale_factors[m_key]
-            
+            m_rec = (
+                -self.recon_log_probs[m_key](recon, inputs.data[m_key])
+                * self.rescale_factors[m_key]
+            )
+
             results[m_key] = m_rec.sum()
             loss_rec += m_rec.sum()
-        
-        latent_modalities = latents['modalities'];
+
+        latent_modalities = latents["modalities"]
         kld_losses = 0.0
         for m, key in enumerate(latent_modalities.keys()):
             o = latent_modalities[key]
             mu, logvar = o.embedding, o.log_covariance
-            results['kld_' + key] = -0.5 * (torch.sum(1 - joint_logvar.exp()/logvar.exp() - (joint_mu-mu).pow(2)/logvar.exp() + joint_logvar - logvar))
-            kld_losses += results['kld_' + key]
+            results["kld_" + key] = -0.5 * (
+                torch.sum(
+                    1
+                    - joint_logvar.exp() / logvar.exp()
+                    - (joint_mu - mu).pow(2) / logvar.exp()
+                    + joint_logvar
+                    - logvar
+                )
+            )
+            kld_losses += results["kld_" + key]
 
         rec_weight = (self.n_modalities - self.alpha) / self.n_modalities
         cvib_weight = self.alpha / self.n_modalities  # 1/6
@@ -82,10 +93,12 @@ class MVTCAE(BaseMultiVAE):
         kld_weighted = cvib_weight * kld_losses + vib_weight * joint_kld
         total_loss = rec_weight * loss_rec + self.beta * kld_weighted
 
-        return ModelOutput(loss=total_loss/ndata,metrics = results)
+        return ModelOutput(loss=total_loss / ndata, metrics=results)
 
-    def modality_encode(self, inputs: Union[MultimodalBaseDataset,IncompleteDataset], **kwargs):
-        """Computes for each modality, the parameters mu and logvar of the 
+    def modality_encode(
+        self, inputs: Union[MultimodalBaseDataset, IncompleteDataset], **kwargs
+    ):
+        """Computes for each modality, the parameters mu and logvar of the
         unimodal posterior.
 
         Args:
@@ -94,45 +107,54 @@ class MVTCAE(BaseMultiVAE):
         Returns:
             dict: Containing for each modality the encoder output.
         """
-        encoders_outputs = dict();
+        encoders_outputs = dict()
         for m, m_key in enumerate(inputs.data.keys()):
-
             input_modality = inputs.data[m_key]
             output = self.encoders[m_key](input_modality)
             encoders_outputs[m_key] = output
 
-
         return encoders_outputs
-    
-    def poe(self,mu, logvar, eps=1e-8):
+
+    def poe(self, mu, logvar, eps=1e-8):
         var = torch.exp(logvar) + eps
         # precision of i-th Gaussian expert at point x
-        T = 1. / var
+        T = 1.0 / var
         pd_mu = torch.sum(mu * T, dim=0) / torch.sum(T, dim=0)
-        pd_var = 1. / torch.sum(T, dim=0)
+        pd_var = 1.0 / torch.sum(T, dim=0)
         pd_logvar = torch.log(pd_var)
         return pd_mu, pd_logvar
-    
+
     def poe_fusion(self, mus, logvars, weights=None):
         # self.flags.modality_poe or
-        if ( mus.shape[0] == self.n_modalities ):
-            num_samples = mus[0].shape[0];
-            mus = torch.cat((mus, torch.zeros(1, num_samples,
-                             self.flags.class_dim).to(self.flags.device)),
-                             dim=0);
-            logvars = torch.cat((logvars, torch.zeros(1, num_samples,
-                                 self.flags.class_dim).to(self.flags.device)),
-                                 dim=0);
-        #mus = torch.cat(mus, dim=0);
-        #logvars = torch.cat(logvars, dim=0);
-        mu_poe, logvar_poe = self.poe(mus, logvars);
-        return [mu_poe, logvar_poe];
-    
-    def ivw_fusion(self, mus : torch.Tensor, logvars : torch.Tensor, weights=None):
-
+        if mus.shape[0] == self.n_modalities:
+            num_samples = mus[0].shape[0]
+            mus = torch.cat(
+                (
+                    mus,
+                    torch.zeros(1, num_samples, self.flags.class_dim).to(
+                        self.flags.device
+                    ),
+                ),
+                dim=0,
+            )
+            logvars = torch.cat(
+                (
+                    logvars,
+                    torch.zeros(1, num_samples, self.flags.class_dim).to(
+                        self.flags.device
+                    ),
+                ),
+                dim=0,
+            )
+        # mus = torch.cat(mus, dim=0);
+        # logvars = torch.cat(logvars, dim=0);
         mu_poe, logvar_poe = self.poe(mus, logvars)
         return [mu_poe, logvar_poe]
-    
+
+    def ivw_fusion(self, mus: torch.Tensor, logvars: torch.Tensor, weights=None):
+        mu_poe, logvar_poe = self.poe(mus, logvars)
+        return [mu_poe, logvar_poe]
+
     def _filter_inputs_with_masks(
         self, inputs: IncompleteDataset, subset: Union[list, tuple]
     ):
@@ -146,65 +168,57 @@ class MVTCAE(BaseMultiVAE):
             filter = torch.logical_and(filter, inputs.masks[mod])
 
         filtered_inputs = MultimodalBaseDataset(
-            data = {k : inputs.data[k][filter] for k in subset},
+            data={k: inputs.data[k][filter] for k in subset},
         )
         return filtered_inputs, filter
 
-
-
     def inference(self, inputs: MultimodalBaseDataset, **kwargs):
         """
-        This function takes all the modalities contained in inputs 
+        This function takes all the modalities contained in inputs
         and compute the product of experts of the modalities encoders.
-        
+
         Args:
-            inputs (MultimodalBaseDataset): The data. 
+            inputs (MultimodalBaseDataset): The data.
 
         Returns:
             dict : Contains the modalities' encoders and the poe parameters.
         """
-        
+
         latents = dict()
         enc_mods = self.modality_encode(inputs)
-        latents['modalities'] = enc_mods
-        
+        latents["modalities"] = enc_mods
+
         device = inputs.data[list(inputs.data.keys())[0]].device
         mus = torch.Tensor().to(device)
         logvars = torch.Tensor().to(device)
         # TODO : for an incomplete dataset, filter out the modalities that are not available for all samples
-        mods = list(inputs.data.keys()) 
+        mods = list(inputs.data.keys())
 
         for m, mod in enumerate(mods):
             mus_mod = enc_mods[mod].embedding
             log_vars_mod = enc_mods[mod].log_covariance
 
-            mus = torch.cat((mus,
-                                    mus_mod.unsqueeze(0)),
-                                dim=0)
+            mus = torch.cat((mus, mus_mod.unsqueeze(0)), dim=0)
 
-            
+            logvars = torch.cat((logvars, log_vars_mod.unsqueeze(0)), dim=0)
 
-            logvars = torch.cat((logvars,
-                                        log_vars_mod.unsqueeze(0)),
-                                    dim=0)
-                    
         # Case with only one sample : adapt the shape
-        if len(mus.shape)==2:
+        if len(mus.shape) == 2:
             mus = mus.unsqueeze(1)
             logvars = logvars.unsqueeze(1)
-        
-        joint_mu, joint_logvar = self.ivw_fusion(mus,
-                                                logvars)
 
+        joint_mu, joint_logvar = self.ivw_fusion(mus, logvars)
 
-
-        latents['joint'] = [joint_mu, joint_logvar]
+        latents["joint"] = [joint_mu, joint_logvar]
         return latents
-    
-    def encode(self, inputs: MultimodalBaseDataset, cond_mod: Union[list, str] = "all", N: int = 1, **kwargs) -> ModelOutput:
-        
 
-        
+    def encode(
+        self,
+        inputs: MultimodalBaseDataset,
+        cond_mod: Union[list, str] = "all",
+        N: int = 1,
+        **kwargs,
+    ) -> ModelOutput:
         # If the input cond_mod is a string : convert it to a list
         if type(cond_mod) == str:
             if cond_mod == "all":
@@ -216,32 +230,26 @@ class MVTCAE(BaseMultiVAE):
                     'If cond_mod is a string, it must either be "all" or a modality name'
                     f" The provided string {cond_mod} is neither."
                 )
-                
 
-        
-        # If the dataset is incomplete, keep only the samples availables in all cond_mod 
+        # If the dataset is incomplete, keep only the samples availables in all cond_mod
         # modalities
         if isinstance(inputs, IncompleteDataset):
-            cond_inputs, filter = self._filter_inputs_with_masks(inputs,cond_mod)
-        else :
+            cond_inputs, filter = self._filter_inputs_with_masks(inputs, cond_mod)
+        else:
             # Only keep the relevant modalities for prediction
             cond_inputs = MultimodalBaseDataset(
-            data = {k : inputs.data[k] for k in cond_mod},
-        )
-            
-        
+                data={k: inputs.data[k] for k in cond_mod},
+            )
+
         latents_subsets = self.inference(cond_inputs)
-        mu, log_var = latents_subsets['joint']
-        sample_shape = [N] if N>1 else []
-        z = dist.Normal(mu, torch.exp(0.5*log_var)).rsample(sample_shape)
+        mu, log_var = latents_subsets["joint"]
+        sample_shape = [N] if N > 1 else []
+        z = dist.Normal(mu, torch.exp(0.5 * log_var)).rsample(sample_shape)
         flatten = kwargs.pop("flatten", False)
         if flatten:
             z = z.reshape(-1, self.latent_dim)
 
         return ModelOutput(z=z, one_latent_space=True)
-        
-    
-   
 
     def compute_joint_nll(
         self,
@@ -255,12 +263,12 @@ class MVTCAE(BaseMultiVAE):
             filtered_inputs, filter = self._filter_inputs_with_masks(
                 inputs, all_modalities
             )
-            
+
         else:
             filtered_inputs = inputs
 
         # Compute the parameters of the joint posterior
-        mu, log_var = self.inference(filtered_inputs)['joint']
+        mu, log_var = self.inference(filtered_inputs)["joint"]
 
         sigma = torch.exp(0.5 * log_var)
         qz_xy = dist.Normal(mu, sigma)

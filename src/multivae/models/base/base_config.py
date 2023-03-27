@@ -1,5 +1,5 @@
-from typing import Dict, Tuple, Union
 from dataclasses import field
+from typing import Dict, Tuple, Union
 
 from pydantic.dataclasses import dataclass
 from pythae.config import BaseConfig
@@ -19,11 +19,11 @@ class BaseMultiVAEConfig(BaseConfig):
             which is why we include it here. Default to False.
         recon_losses (Dict[str, Union[function, str]]). The reconstruction loss to use per modality.
             Per modality, you can provide a string in ['mse','bce','l1']. If None is provided, an Mean-Square-Error (mse)
-            is used for each modality. The choice of the reconstruction loss is equivalent to the choice of 
-            the decoder distribution : 'mse' correspond to a gaussian decoder, 'l1' to a Laplace one, 'bce' to a 
+            is used for each modality. The choice of the reconstruction loss is equivalent to the choice of
+            the decoder distribution : 'mse' correspond to a gaussian decoder, 'l1' to a Laplace one, 'bce' to a
             Bernoulli distribution.
-        decoder_dist_params (Dict[str,dict]) : Parameters for the output decoder distributions, for 
-            computing the log-probability. 
+        decoder_dist_params (Dict[str,dict]) : Parameters for the output decoder distributions, for
+            computing the log-probability.
             For instance, with normal or laplace distribution, you can pass the scale in this dictionary.
             ex :  {'mod1' : {scale : 0.75}}
     """
@@ -35,7 +35,6 @@ class BaseMultiVAEConfig(BaseConfig):
     recon_losses: dict = None
     decoder_dist_params: dict = None
     custom_architectures: list = field(default_factory=lambda: [])
-
 
 
 @dataclass

@@ -7,7 +7,7 @@ from multivae.data.datasets.utils import save_all_images
 from multivae.data.utils import set_inputs_to_device
 from multivae.models import MVTCAE, MVTCAEConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
-from multivae.models.nn.mmnist import Encoder_ResNet_VAE_MMNIST,Decoder_ResNet_AE_MNIST
+from multivae.models.nn.mmnist import Encoder_ResNet_VAE_MMNIST, Decoder_ResNet_AE_MNIST
 from multivae.models.nn.svhn import Decoder_VAE_SVHN, Encoder_VAE_SVHN
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 from multivae.trainers.base.callbacks import (
@@ -16,41 +16,46 @@ from multivae.trainers.base.callbacks import (
     WandbCallback,
 )
 
-train_data = MMNISTDataset(data_path = "../../../data/MMNIST",split="train")
+train_data = MMNISTDataset(data_path="../../../data/MMNIST", split="train")
 train_data, eval_data = random_split(
     train_data, [0.8, 0.2], generator=torch.Generator().manual_seed(42)
 )
 print(len(train_data), len(eval_data))
 
-modalities = ['m0','m1','m2', 'm3','m4']
+modalities = ["m0", "m1", "m2", "m3", "m4"]
 
 model_config = MVTCAEConfig(
     n_modalities=5,
-    input_dims={k : (3,28,28) for k in modalities},
+    input_dims={k: (3, 28, 28) for k in modalities},
     latent_dim=128,
     # recon_losses={m : 'l1' for m in modalities },
-    beta=2.5*0.75,
-    alpha=5.0/6.0
-    
+    beta=2.5 * 0.75,
+    alpha=5.0 / 6.0,
 )
 
 
-encoders = { k : Encoder_VAE_MLP(BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3, 28, 28))) for k in modalities}
-
-decoders = {
-    k :Decoder_AE_MLP(BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3, 28, 28))) for k in modalities
+encoders = {
+    k: Encoder_VAE_MLP(
+        BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3, 28, 28))
+    )
+    for k in modalities
 }
 
-model = MVTCAE(
-    model_config, encoders=encoders, decoders=decoders)
+decoders = {
+    k: Decoder_AE_MLP(
+        BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3, 28, 28))
+    )
+    for k in modalities
+}
+
+model = MVTCAE(model_config, encoders=encoders, decoders=decoders)
 
 trainer_config = BaseTrainerConfig(
     num_epochs=800,
     learning_rate=1e-4,
     steps_predict=1,
     per_device_train_batch_size=128,
-    steps_saving=20
-    
+    steps_saving=20,
 )
 
 # Set up callbacks
@@ -64,7 +69,7 @@ trainer = BaseTrainer(
     train_dataset=train_data,
     eval_dataset=eval_data,
     training_config=trainer_config,
-    callbacks=callbacks
+    callbacks=callbacks,
 )
 trainer.train()
 

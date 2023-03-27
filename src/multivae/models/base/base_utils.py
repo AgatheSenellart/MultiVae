@@ -1,7 +1,4 @@
-
-
 import importlib
-
 
 model_card_template = """---
 language: en

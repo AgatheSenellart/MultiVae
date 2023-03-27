@@ -179,7 +179,7 @@ class BaseTrainer:
             num_workers=self.training_config.train_dataloader_num_workers,
             shuffle=(train_sampler is None),
             sampler=train_sampler,
-            drop_last=self.training_config.drop_last
+            drop_last=self.training_config.drop_last,
         )
 
     def get_eval_dataloader(
@@ -466,7 +466,7 @@ class BaseTrainer:
                 best_model = deepcopy(self.model)
                 self._best_model = best_model
                 logger.info("New best model saved!")
-                
+
             elif (
                 epoch_eval_loss < best_eval_loss
                 and not self.training_config.keep_best_on_train
@@ -504,7 +504,6 @@ class BaseTrainer:
                 and epoch % self.training_config.steps_saving == 0
             ):
                 if self.is_main_process:
-
                     self.save_checkpoint(
                         model=best_model, dir_path=self.training_dir, epoch=epoch
                     )
