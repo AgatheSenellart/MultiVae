@@ -23,6 +23,7 @@ class MoPoE(BaseMultiVAE):
     This implementation is heavily based on the official one at 
     https://github.com/thomassutter/MoPoE
     
+    # TODO : add the multiple latent spaces option.
 
     """
     
@@ -111,21 +112,7 @@ class MoPoE(BaseMultiVAE):
         divs['joint_divergence'] = group_div; divs['individual_divs'] = klds
         return divs
         
-    # def calc_joint_divergence(self, mus, logvars, weights):
-    #     """Compute the KL divergence between the joint distribution and the prior 
-    #     that is considered a static Normal distribution here. """
-        
 
-    #     weights = weights.clone();
-    #     weights = weights / weights.sum()
-    #     div_measures = self.calc_group_divergence_moe(
-    #                                              mus,
-    #                                              logvars,
-    #                                              weights,
-    #                                              normalization=len(mus[0]));
-    #     divs = dict();
-    #     divs['joint_divergence'] = div_measures[0]; divs['individual_divs'] = div_measures[1]
-    #     return divs;
     
     def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
         
@@ -258,12 +245,7 @@ class MoPoE(BaseMultiVAE):
                 logvars_subset = torch.Tensor().to(device)
                 
                 mods_avail = True
-                # # For a complete dataset, build a filter with masks equal to True 
-                # # for every samples
-                # if len(inputs.data[mods[0]].shape)==1: # only one sample 
-                #     filter = torch.tensor(True)
-                # else :
-                #     filter = torch.ones(len(inputs.data[mods[0]])).bool()
+
                 if hasattr(inputs, 'masks'):
                     filtered_inputs, filter = self._filter_inputs_with_masks(inputs,mods)
                     mods_avail = torch.all(filter) 
@@ -282,9 +264,7 @@ class MoPoE(BaseMultiVAE):
                                                     log_vars_mod.unsqueeze(0)),
                                                 dim=0);
                         
-                    # Compute the subset posterior parameters : not used in PoE fusion
-                    # weights_subset = ((1/float(len(mus_subset)))*
-                    #                   torch.ones(len(mus_subset)).to(device))
+
                     
                     # Case with only one sample : adapt the shape
                     if len(mus_subset.shape)==2:
