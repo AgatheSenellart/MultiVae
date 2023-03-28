@@ -8,6 +8,7 @@ import tempfile
 from copy import deepcopy
 from http.cookiejar import LoadError
 from typing import Union
+import warnings
 
 import cloudpickle
 import numpy as np
@@ -630,3 +631,79 @@ class BaseMultiVAE(nn.Module):
             )
 
         shutil.rmtree(tempdir)
+
+    @classmethod
+    def load_from_hf_hub(cls, hf_hub_path: str, allow_pickle=False):  # pragma: no cover
+        """Class method to be used to load a pretrained model from the Hugging Face hub
+
+        Args:
+            hf_hub_path (str): The path where the model should have been be saved on the
+                hugginface hub.
+
+        .. note::
+            This function requires the folder to contain:
+
+            - | a ``model_config.json`` and a ``model.pt`` if no custom architectures were provided
+
+            **or**
+
+            - | a ``model_config.json``, a ``model.pt`` and a ``encoder.pkl`` (resp.
+                ``decoder.pkl``) if a custom encoder (resp. decoder) was provided
+        """
+
+        if not hf_hub_is_available():
+            raise ModuleNotFoundError(
+                "`huggingface_hub` package must be installed to load models from the HF hub. "
+                "Run `python -m pip install huggingface_hub` and log in to your account with "
+                "`huggingface-cli login`."
+            )
+
+        else:
+            from huggingface_hub import hf_hub_download
+
+        logger.info(f"Downloading {cls.__name__} files for rebuilding...")
+
+        # _ = hf_hub_download(repo_id=hf_hub_path, filename="environment.json")
+        config_path = hf_hub_download(repo_id=hf_hub_path, filename="model_config.json")
+        dir_path = os.path.dirname(config_path)
+
+        _ = hf_hub_download(repo_id=hf_hub_path, filename="model.pt")
+
+        model_config = cls._load_model_config_from_folder(dir_path)
+
+        if (
+            cls.__name__ + "Config" != model_config.name
+            and cls.__name__ + "_Config" != model_config.name
+        ):
+            warnings.warn(
+                f"You are trying to load a "
+                f"`{ cls.__name__}` while a "
+                f"`{model_config.name}` is given."
+            )
+
+        model_weights = cls._load_model_weights_from_folder(dir_path)
+        print(model_config.custom_architectures)
+        if (
+            len(model_config.custom_architectures) >=1 
+        ) and not allow_pickle:
+            warnings.warn(
+                "You are about to download pickled files from the HF hub that may have "
+                "been created by a third party and so could potentially harm your computer. If you "
+                "are sure that you want to download them set `allow_pickle=true`."
+            )
+
+        else:
+            custom_archi_dict = {}
+            for archi in model_config.custom_architectures:
+                _ = hf_hub_download(repo_id=hf_hub_path, filename=archi + ".pkl")
+                archi_net = cls._load_custom_archi_from_folder(dir_path, archi)
+                custom_archi_dict[archi] = archi_net
+                logger.info(f"Successfully downloaded {archi} architecture.")
+            
+
+            logger.info(f"Successfully downloaded {cls.__name__} model!")
+
+            model = cls(model_config, **custom_archi_dict)
+            model.load_state_dict(model_weights)
+
+            return model
