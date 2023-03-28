@@ -115,7 +115,7 @@ model_config = MoPoEConfig(
     n_modalities=5,
     input_dims={k: (3, 28, 28) for k in modalities},
     latent_dim=512,
-    recon_losses={m: "l1" for m in modalities},
+    decoders_dist={m: "laplace" for m in modalities},
     decoder_scale=0.75,
     beta=2.5,  # The std deviation of decoder in original implementation is 0.75
 )

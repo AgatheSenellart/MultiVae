@@ -28,7 +28,7 @@ model_config = MVTCAEConfig(
     n_modalities=5,
     input_dims={k: (3, 28, 28) for k in modalities},
     latent_dim=128,
-    # recon_losses={m : 'l1' for m in modalities },
+    # decoders_dist={m : 'laplace' for m in modalities },
     beta=2.5 * 0.75,
     alpha=5.0 / 6.0,
 )

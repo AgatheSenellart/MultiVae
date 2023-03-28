@@ -30,7 +30,7 @@ model_config = JNFDccaConfig(
     nb_epochs_dcca=100,
     warmup=300,
     use_likelihood_rescaling=True,
-    recon_losses={k: "l1" for k in modalities},
+    decoders_dist={k: "laplace" for k in modalities},
     embedding_dcca_dim=20,
 )
 
