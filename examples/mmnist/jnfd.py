@@ -7,7 +7,7 @@ from multivae.data.datasets.utils import save_all_images
 from multivae.data.utils import set_inputs_to_device
 from multivae.models import JNFDcca, JNFDccaConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
-from multivae.models.nn.mmnist import Encoder_ResNet_VAE_MMNIST, Decoder_ResNet_AE_MNIST
+from multivae.models.nn.mmnist import Decoder_ResNet_AE_MNIST, Encoder_ResNet_VAE_MMNIST
 from multivae.models.nn.svhn import Decoder_VAE_SVHN, Encoder_VAE_SVHN
 from multivae.trainers import AddDccaTrainer, AddDccaTrainerConfig
 from multivae.trainers.base.callbacks import (
@@ -30,7 +30,7 @@ model_config = JNFDccaConfig(
     nb_epochs_dcca=100,
     warmup=300,
     use_likelihood_rescaling=True,
-    recon_losses={k: "l1" for k in modalities},
+    decoders_dist={k: "laplace" for k in modalities},
     embedding_dcca_dim=20,
 )
 

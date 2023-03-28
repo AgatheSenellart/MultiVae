@@ -20,17 +20,18 @@ class MVAE(BaseMultiVAE):
     The Multi-modal VAE model.
 
     Args:
-        model_config (MVAEConfig): An instance of MVAEConfig in which any model's 
+        model_config (MVAEConfig): An instance of MVAEConfig in which any model's
             parameters is made available.
 
-        encoders (Dict[str, ~pythae.models.nn.base_architectures.BaseEncoder]): A dictionary containing 
-            the modalities names and the encoders for each modality. Each encoder is an instance of 
+        encoders (Dict[str, ~pythae.models.nn.base_architectures.BaseEncoder]): A dictionary containing
+            the modalities names and the encoders for each modality. Each encoder is an instance of
             Pythae's BaseEncoder. Default: None.
 
-        decoder (Dict[str, ~pythae.models.nn.base_architectures.BaseDecoder]): A dictionary containing 
-            the modalities names and the decoders for each modality. Each decoder is an instance of 
+        decoder (Dict[str, ~pythae.models.nn.base_architectures.BaseDecoder]): A dictionary containing
+            the modalities names and the decoders for each modality. Each decoder is an instance of
             Pythae's BaseDecoder.
     """
+
     def __init__(
         self, model_config: MVAEConfig, encoders: dict = None, decoders: dict = None
     ):
@@ -210,8 +211,6 @@ class MVAE(BaseMultiVAE):
         else:
             filtered_inputs = inputs.data
 
-        
-
         # Then iter on each datapoint to compute the iwae estimate of ln(p(x))
         ll = 0
         n_data = len(filtered_inputs[list(filtered_inputs.keys())[0]])
@@ -219,18 +218,18 @@ class MVAE(BaseMultiVAE):
             start_idx = 0
             stop_idx = min(start_idx + batch_size_K, K)
             lnpxs = []
-            
+
             # Compute the parameters of the joint posterior
-            mu, log_var = self._compute_mu_logvar_subset({k:filtered_inputs[k][i] for k in filtered_inputs},
-                                                         all_modalities)
-            assert(mu.shape==(1,self.latent_dim))
+            mu, log_var = self._compute_mu_logvar_subset(
+                {k: filtered_inputs[k][i] for k in filtered_inputs}, all_modalities
+            )
+            assert mu.shape == (1, self.latent_dim)
             sigma = torch.exp(0.5 * log_var)
             qz_xy = dist.Normal(mu, sigma)
             # And sample from the posterior
             z_joint = qz_xy.rsample([K]).squeeze()  # shape K x latent_dim
             print(z_joint.shape)
 
-            
             while start_idx < stop_idx:
                 latents = z_joint[start_idx:stop_idx]
 

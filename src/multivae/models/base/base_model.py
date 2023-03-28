@@ -35,15 +35,15 @@ class BaseMultiVAE(nn.Module):
     """Base class for Multimodal VAE models.
 
     Args:
-        model_config (BaseMultiVAEConfig): An instance of BaseMultiVAEConfig in which any model's 
+        model_config (BaseMultiVAEConfig): An instance of BaseMultiVAEConfig in which any model's
             parameters is made available.
 
-        encoders (Dict[str, ~pythae.models.nn.base_architectures.BaseEncoder]): A dictionary containing 
-            the modalities names and the encoders for each modality. Each encoder is an instance of 
+        encoders (Dict[str, ~pythae.models.nn.base_architectures.BaseEncoder]): A dictionary containing
+            the modalities names and the encoders for each modality. Each encoder is an instance of
             Pythae's BaseEncoder. Default: None.
 
-        decoder (Dict[str, ~pythae.models.nn.base_architectures.BaseDecoder]): A dictionary containing 
-            the modalities names and the decoders for each modality. Each decoder is an instance of 
+        decoder (Dict[str, ~pythae.models.nn.base_architectures.BaseDecoder]): A dictionary containing
+            the modalities names and the decoders for each modality. Each decoder is an instance of
             Pythae's BaseDecoder.
 
 
@@ -62,7 +62,7 @@ class BaseMultiVAE(nn.Module):
         self.n_modalities = model_config.n_modalities
         self.input_dims = model_config.input_dims
         self.reset_optimizer_epochs = []
-        
+
         if encoders is None:
             if self.input_dims is None:
                 raise AttributeError(
@@ -129,16 +129,16 @@ class BaseMultiVAE(nn.Module):
             # above, we take the modalities keys in self.encoders as input_dims may be None
 
         # Set the reconstruction losses
-        if model_config.recon_losses is None:
-            model_config.recon_losses = {k: "mse" for k in self.encoders}
+        if model_config.decoders_dist is None:
+            model_config.decoders_dist = {k: "normal" for k in self.encoders}
         if model_config.decoder_dist_params is None:
             model_config.decoder_dist_params = {}
-        self.set_recon_losses(
-            model_config.recon_losses, model_config.decoder_dist_params
+        self.set_decoders_dist(
+            model_config.decoders_dist, model_config.decoder_dist_params
         )
 
-    def set_recon_losses(self, recon_dict, dist_params_dict):
-        """Set the reconstruction losses functions recon_losses
+    def set_decoders_dist(self, recon_dict, dist_params_dict):
+        """Set the reconstruction losses functions decoders_dist
         and the log_probabilites functions recon_log_probs.
         recon_log_probs is the normalized negative version of recon_loss and is used only for
         likelihood estimation.
@@ -146,19 +146,19 @@ class BaseMultiVAE(nn.Module):
         self.recon_log_probs = {}
 
         for k in recon_dict:
-            if recon_dict[k] == "mse":
+            if recon_dict[k] == "normal":
                 params_mod = dist_params_dict.pop(k, {})
                 scale = params_mod.pop("scale", 1.0)
                 self.recon_log_probs[k] = lambda input, target: dist.Normal(
                     input, scale
                 ).log_prob(target)
 
-            elif recon_dict[k] == "bce":
+            elif recon_dict[k] == "bernoulli":
                 self.recon_log_probs[k] = lambda input, target: dist.Bernoulli(
                     logits=input
                 ).log_prob(target)
 
-            elif recon_dict[k] == "l1":
+            elif recon_dict[k] == "laplace":
                 params_mod = dist_params_dict.pop(k, {})
                 scale = params_mod.pop("scale", 1.0)
                 self.recon_log_probs[k] = lambda input, target: dist.Laplace(
@@ -167,7 +167,7 @@ class BaseMultiVAE(nn.Module):
 
             else:
                 raise AttributeError(
-                    'Reconstructions losses must be either "mse","bce" or "l1"'
+                    'Reconstructions losses must be either "normal","bernoulli" or "laplace"'
                 )
         # TODO : add the possibility to provide custom reconstruction loss and in that case use the negative
         # reconstruction loss as the log probability.

@@ -1,6 +1,7 @@
 import os
-from torch import nn
+
 import torch
+from torch import nn
 
 
 class Flatten(torch.nn.Module):

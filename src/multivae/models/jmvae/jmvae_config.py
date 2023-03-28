@@ -18,9 +18,8 @@ class JMVAEConfig(BaseJointModelConfig):
             (see : https://proceedings.mlr.press/v162/javaloy22a.html).
             The inputs_dim must be provided to compute the likelihoods rescalings. It is used in a number of models
             which is why we include it here. Default to False.
-        recon_losses (Dict[str, Union[function, str]]). The reconstruction loss to use per modality.
-            Per modality, you can provide a string in ['mse','bce','l1']. If None is provided, an Mean-Square-Error (mse)
-            is used for each modality.
+        decoders_dist (Dict[str, Union[function, str]]). The reconstruction loss to use per modality.
+            Per modality, you can provide a string in ['normal','bernoulli','laplace']. If None is provided, a normal distribution is used for each modality.
         alpha (float):  the parameter that controls the tradeoff between the ELBO and the
             regularization term. Default to 0.1.
         warmup (int): The number of warmup epochs during training. The JMVAE model uses annealing.

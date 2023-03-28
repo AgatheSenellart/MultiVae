@@ -25,7 +25,7 @@ model_config = MoPoEConfig(
     input_dims=dict(mnist=(1, 28, 28), svhn=(3, 32, 32)),
     latent_dim=20,
     uses_likelihood_rescaling=True,
-    recon_losses=dict(mnist="l1", svhn="l1"),
+    decoders_dist=dict(mnist="laplace", svhn="laplace"),
 )
 
 encoders = dict(

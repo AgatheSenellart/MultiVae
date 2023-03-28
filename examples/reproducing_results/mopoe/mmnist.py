@@ -1,5 +1,12 @@
 import torch
+import torch.nn as nn
 from pythae.models.base.base_config import BaseAEConfig
+from pythae.models.base.base_model import (
+    BaseAEConfig,
+    BaseDecoder,
+    BaseEncoder,
+    ModelOutput,
+)
 from torch.utils.data import DataLoader, random_split
 
 from multivae.data.datasets import MMNISTDataset
@@ -12,15 +19,6 @@ from multivae.trainers.base.callbacks import (
     ProgressBarCallback,
     TrainingCallback,
     WandbCallback,
-)
-
-import torch
-import torch.nn as nn
-from pythae.models.base.base_model import (
-    BaseDecoder,
-    BaseEncoder,
-    BaseAEConfig,
-    ModelOutput,
 )
 
 
@@ -117,7 +115,7 @@ model_config = MoPoEConfig(
     n_modalities=5,
     input_dims={k: (3, 28, 28) for k in modalities},
     latent_dim=512,
-    recon_losses={m: "l1" for m in modalities},
+    decoders_dist={m: "laplace" for m in modalities},
     decoder_scale=0.75,
     beta=2.5,  # The std deviation of decoder in original implementation is 0.75
 )

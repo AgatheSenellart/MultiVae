@@ -14,21 +14,21 @@ from .jmvae_config import JMVAEConfig
 class JMVAE(BaseJointModel):
 
     """The Joint Multimodal Variational Autoencoder model.
-    
+
     Args:
-        model_config (JMVAEConfig): An instance of JMVAEConfig in which any model's 
+        model_config (JMVAEConfig): An instance of JMVAEConfig in which any model's
             parameters is made available.
 
-        encoders (Dict[str, ~pythae.models.nn.base_architectures.BaseEncoder]): A dictionary containing 
-            the modalities names and the encoders for each modality. Each encoder is an instance of 
+        encoders (Dict[str, ~pythae.models.nn.base_architectures.BaseEncoder]): A dictionary containing
+            the modalities names and the encoders for each modality. Each encoder is an instance of
             Pythae's BaseEncoder. Default: None.
 
-        decoder (Dict[str, ~pythae.models.nn.base_architectures.BaseDecoder]): A dictionary containing 
-            the modalities names and the decoders for each modality. Each decoder is an instance of 
+        decoder (Dict[str, ~pythae.models.nn.base_architectures.BaseDecoder]): A dictionary containing
+            the modalities names and the decoders for each modality. Each decoder is an instance of
             Pythae's BaseDecoder.
 
-        joint_encoder (~pythae.models.nn.base_architectures.BaseEncoder) : An instance of 
-            BaseEncoder that takes all the modalities as an input. If none is provided, one is 
+        joint_encoder (~pythae.models.nn.base_architectures.BaseEncoder) : An instance of
+            BaseEncoder that takes all the modalities as an input. If none is provided, one is
             created from the unimodal encoders. Default : None.
     """
 

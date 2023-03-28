@@ -1,5 +1,4 @@
 import torch
-import torch
 from pythae.models.base.base_config import BaseAEConfig
 from torch.utils.data import DataLoader, random_split
 
