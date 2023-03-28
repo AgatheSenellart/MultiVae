@@ -40,6 +40,7 @@ class AddDccaTrainer(BaseTrainer):
         callbacks (List[~pythae.trainers.training_callbacks.TrainingCallback]):
             A list of callbacks to use during training.
     """
+
     def __init__(
         self,
         model: JNFDcca,

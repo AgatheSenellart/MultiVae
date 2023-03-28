@@ -24,20 +24,20 @@ class JNF(BaseJointModel):
         model_config (JNFConfig): An instance of JNFConfig in which any model's parameters is
             made available.
 
-        encoders (Dict[str, ~pythae.models.nn.base_architectures.BaseEncoder]): A dictionary 
-            containing the modalities names and the encoders for each modality. Each encoder is 
+        encoders (Dict[str, ~pythae.models.nn.base_architectures.BaseEncoder]): A dictionary
+            containing the modalities names and the encoders for each modality. Each encoder is
             an instance of Pythae's BaseEncoder.
 
-        decoders (Dict[str, ~pythae.models.nn.base_architectures.BaseDecoder]): A dictionary 
-            containing the modalities names and the decoders for each modality. Each decoder is an 
+        decoders (Dict[str, ~pythae.models.nn.base_architectures.BaseDecoder]): A dictionary
+            containing the modalities names and the decoders for each modality. Each decoder is an
             instance of Pythae's BaseDecoder.
 
-        joint_encoder (~pythae.models.nn.base_architectures.BaseEncoder) : An instance of 
-            BaseEncoder that takes all the modalities as an input. If none is provided, one is 
+        joint_encoder (~pythae.models.nn.base_architectures.BaseEncoder) : An instance of
+            BaseEncoder that takes all the modalities as an input. If none is provided, one is
             created from the unimodal encoders. Default : None.
 
-        flows (Dict[str, ~pythae.models.normalizing_flows.BaseNF]) : A dictionary containing the 
-            modalities names and the flows to use for each modality. If None is provided, a 
+        flows (Dict[str, ~pythae.models.normalizing_flows.BaseNF]) : A dictionary containing the
+            modalities names and the flows to use for each modality. If None is provided, a
             default MAF flow is used for each modality.
 
 

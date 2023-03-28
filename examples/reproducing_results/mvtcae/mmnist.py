@@ -1,5 +1,12 @@
 import torch
+import torch.nn as nn
 from pythae.models.base.base_config import BaseAEConfig
+from pythae.models.base.base_model import (
+    BaseAEConfig,
+    BaseDecoder,
+    BaseEncoder,
+    ModelOutput,
+)
 from torch.utils.data import DataLoader, random_split
 
 from multivae.data.datasets import MMNISTDataset
@@ -11,15 +18,6 @@ from multivae.trainers.base.callbacks import (
     ProgressBarCallback,
     TrainingCallback,
     WandbCallback,
-)
-
-import torch
-import torch.nn as nn
-from pythae.models.base.base_model import (
-    BaseDecoder,
-    BaseEncoder,
-    BaseAEConfig,
-    ModelOutput,
 )
 
 

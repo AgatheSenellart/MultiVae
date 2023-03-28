@@ -1,14 +1,14 @@
-from multivae.models.auto_model import AutoConfig, AutoModel
-from multivae.data.datasets import MMNISTDataset
 import os
+
 import numpy as np
 import torch
-from torch.utils.data import DataLoader
-import os
 from torch import nn
-import torch
+from torch.utils.data import DataLoader
 from tqdm import tqdm
+
+from multivae.data.datasets import MMNISTDataset
 from multivae.metrics import CoherenceEvaluator
+from multivae.models.auto_model import AutoConfig, AutoModel
 
 
 class Flatten(torch.nn.Module):

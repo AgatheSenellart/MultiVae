@@ -7,7 +7,7 @@ from multivae.data.datasets.utils import save_all_images
 from multivae.data.utils import set_inputs_to_device
 from multivae.models import JNF, JNFConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
-from multivae.models.nn.mmnist import EncoderImg, DecoderImg
+from multivae.models.nn.mmnist import DecoderImg, EncoderImg
 from multivae.models.nn.svhn import Decoder_VAE_SVHN, Encoder_VAE_SVHN
 from multivae.trainers import TwoStepsTrainer, TwoStepsTrainerConfig
 from multivae.trainers.base.callbacks import (

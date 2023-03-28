@@ -41,4 +41,5 @@ class TwoStepsTrainerConfig(BaseTrainerConfig):
         master_addr (str): The master address for distributed training. Default: 'localhost'
         master_port (str): The master port for distributed training. Default: '12345'
     """
+
     name_trainer = "TwoStepsTrainerConfig"

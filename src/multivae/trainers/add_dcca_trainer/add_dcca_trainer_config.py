@@ -7,7 +7,7 @@ from ..base import BaseTrainerConfig
 class AddDccaTrainerConfig(BaseTrainerConfig):
     """Configuration for a specific trainer that handles the training of the DCCA module
     that is part of the JNFDcca model.
-    
+
     Parameters:
 
         output_dir (str): The directory where model checkpoints, configs and final
@@ -16,9 +16,9 @@ class AddDccaTrainerConfig(BaseTrainerConfig):
             Default 64
         per_device_eval_batch_size (int): The number of evaluation samples per batch and per device.
             Default 64
-        per_device_dcca_train_batch_size: The number of training samples per batch and per device 
+        per_device_dcca_train_batch_size: The number of training samples per batch and per device
             for DCCA training. Default: 500.
-        per_device_dcca_eval_batch_size: The number of evaluation samples per batch and per device 
+        per_device_dcca_eval_batch_size: The number of evaluation samples per batch and per device
             for DCCA training. Default: 500.
         num_epochs (int): The maximal number of epochs for training. Default: 100
         train_dataloader_num_workers (int): Number of subprocesses to use for train data loading.
@@ -46,8 +46,7 @@ class AddDccaTrainerConfig(BaseTrainerConfig):
         rank (int): The rank of the process for distributed training. Default: -1
         dist_backend (str): The distributed backend to use. Default: 'nccl'
         master_addr (str): The master address for distributed training. Default: 'localhost'
-        master_port (str): The master port for distributed training. Default: '12345'
-"""
+        master_port (str): The master port for distributed training. Default: '12345'"""
 
     per_device_dcca_train_batch_size: int = 500
     per_device_dcca_eval_batch_size: int = 500

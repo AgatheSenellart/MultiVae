@@ -1,8 +1,8 @@
-import torch
-import os
-import hostlist
 import logging
+import os
 
+import hostlist
+import torch
 from pythae.models.base.base_config import BaseAEConfig
 from torch.utils.data import DataLoader, random_split
 
@@ -18,7 +18,6 @@ from multivae.trainers.base.callbacks import (
     TrainingCallback,
     WandbCallback,
 )
-
 
 logger = logging.getLogger(__name__)
 console = logging.StreamHandler()
@@ -76,8 +75,7 @@ if int(os.environ["SLURM_PROCID"]) == 0:
 
 callbacks = [TrainingCallback(), ProgressBarCallback()]
 
-if (trainer_config.rank == 0 or trainer_config.rank == -1):
-
+if trainer_config.rank == 0 or trainer_config.rank == -1:
     # Set up callbacks
     wandb_cb = WandbCallback()
     wandb_cb.setup(trainer_config, model_config=model_config, project_name="package")

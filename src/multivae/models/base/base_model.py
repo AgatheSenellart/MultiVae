@@ -35,15 +35,15 @@ class BaseMultiVAE(nn.Module):
     """Base class for Multimodal VAE models.
 
     Args:
-        model_config (BaseMultiVAEConfig): An instance of BaseMultiVAEConfig in which any model's 
+        model_config (BaseMultiVAEConfig): An instance of BaseMultiVAEConfig in which any model's
             parameters is made available.
 
-        encoders (Dict[str, ~pythae.models.nn.base_architectures.BaseEncoder]): A dictionary containing 
-            the modalities names and the encoders for each modality. Each encoder is an instance of 
+        encoders (Dict[str, ~pythae.models.nn.base_architectures.BaseEncoder]): A dictionary containing
+            the modalities names and the encoders for each modality. Each encoder is an instance of
             Pythae's BaseEncoder. Default: None.
 
-        decoder (Dict[str, ~pythae.models.nn.base_architectures.BaseDecoder]): A dictionary containing 
-            the modalities names and the decoders for each modality. Each decoder is an instance of 
+        decoder (Dict[str, ~pythae.models.nn.base_architectures.BaseDecoder]): A dictionary containing
+            the modalities names and the decoders for each modality. Each decoder is an instance of
             Pythae's BaseDecoder.
 
 
@@ -62,7 +62,7 @@ class BaseMultiVAE(nn.Module):
         self.n_modalities = model_config.n_modalities
         self.input_dims = model_config.input_dims
         self.reset_optimizer_epochs = []
-        
+
         if encoders is None:
             if self.input_dims is None:
                 raise AttributeError(
