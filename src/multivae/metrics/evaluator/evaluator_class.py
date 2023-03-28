@@ -1,31 +1,64 @@
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
+from multivae.models.base import BaseMultiVAE
+from multivae.data import MultimodalBaseDataset
 
-from .evaluator_config import CoherenceEvaluatorConfig
+from .evaluator_config import EvaluatorConfig
 
 
-class CoherenceEvaluator:
+class Evaluator():
+    """
+    Base class for computing metrics. 
+    
+    Args:
+        model (BaseMultiVAE) : The model to evaluate.
+        test_dataset (MultimodalBaseDataset) : The dataset to use for computing the metrics.
+        output (str) : The folder path to save metrics. The metrics will be saved in a metrics.txt file.
+        eval_config (EvaluatorConfig) : The configuration class to specify parameters for the evaluation.
+        
+        
+    """
     def __init__(
         self,
-        model,
-        classifiers,
-        test_dataset,
-        output=None,
-        eval_config=CoherenceEvaluatorConfig(),
+        model : BaseMultiVAE,
+        test_dataset : MultimodalBaseDataset,
+        output : str =None,
+        eval_config=EvaluatorConfig(),
     ) -> None:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
         self.model = model.to(self.device)
-        self.clfs = classifiers
         self.n_data = len(test_dataset)
         self.test_loader = DataLoader(test_dataset, batch_size=eval_config.batch_size)
         if output is not None:
             self.f = open(output + "/metrics.txt", "w+")
             print("Writing results in ", self.f)
 
+        
+
+class CoherenceEvaluator(Evaluator):
+    """
+    Class for computing coherences metrics.
+    
+    Args:
+        model (BaseMultiVAE) : The model to evaluate.
+        classifiers (dict) : A dictionary containing the pretrained classifiers to use for the coherence evaluation.
+        test_dataset (MultimodalBaseDataset) : The dataset to use for computing the metrics.
+        output (str) : The folder path to save metrics. The metrics will be saved in a metrics.txt file.
+        eval_config (EvaluatorConfig) : The configuration class to specify parameters for the evaluation.
+        """
+    
+    def __init__(self, model, classifiers, test_dataset, output=None, eval_config=EvaluatorConfig()) -> None:
+        super().__init__(model, test_dataset, output, eval_config)
+        self.clfs = classifiers
         for k in self.clfs:
             self.clfs[k] = self.clfs[k].to(self.device)
+            
+    
+    def eval(self):
+        self.pair_accuracies()
+        self.all_one_accuracies()
 
     def pair_accuracies(self):
         accuracies = {}
@@ -76,6 +109,25 @@ class CoherenceEvaluator:
             self.f.write(acc.__str__() + "\n")
             self.f.write("Mean all-to-one accuracies" + str(mean_pair_acc))
         return acc
+    
+class LikelihoodsEvaluator(Evaluator):
+    """
+    Class for computing likelihood metrics.
+    
+    Args:
+        model (BaseMultiVAE) : The model to evaluate.
+        classifiers (dict) : A dictionary containing the pretrained classifiers to use for the coherence evaluation.
+        test_dataset (MultimodalBaseDataset) : The dataset to use for computing the metrics.
+        output (str) : The folder path to save metrics. The metrics will be saved in a metrics.txt file.
+        eval_config (EvaluatorConfig) : The configuration class to specify parameters for the evaluation.
+        """
+    
+    def __init__(self, model, test_dataset, output=None, eval_config=EvaluatorConfig()) -> None:
+        super().__init__(model, test_dataset, output, eval_config)
+        
+    
+    def eval(self):
+        self.joint_nll()
 
     def joint_nll(self):
         ll = 0
