@@ -1,2 +1,2 @@
-from .evaluator_class import CoherenceEvaluator
-from .evaluator_config import CoherenceEvaluatorConfig
+from .evaluator_class import CoherenceEvaluator, LikelihoodsEvaluator
+from .evaluator_config import EvaluatorConfig
