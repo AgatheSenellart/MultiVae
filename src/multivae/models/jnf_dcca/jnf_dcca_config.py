@@ -11,7 +11,18 @@ class JNFDccaConfig(BaseJointModelConfig):
     """
     This is the base config for the JNFDcca model.
 
-    Args :
+    Args:
+        n_modalities (int): The number of modalities. Default: None.
+        latent_dim (int): The dimension of the latent space. Default: None.
+        input_dims (dict[str,tuple]) : The modalities'names (str) and input shapes (tuple).
+        uses_likelihood_rescaling (bool): To mitigate modality collapse, it is possible to use likelihood rescaling.
+            (see : https://proceedings.mlr.press/v162/javaloy22a.html).
+            The inputs_dim must be provided to compute the likelihoods rescalings. It is used in a number of models
+            which is why we include it here. Default to False.
+        recon_losses (Dict[str, Union[function, str]]). The reconstruction loss to use per modality.
+            Per modality, you can provide a string in ['mse','bce','l1']. If None is provided, an Mean-Square-Error (mse)
+            is used for each modality.
+        use_default_joint (bool) :  A boolean encoding if the joint encoder used is the default one.
         warmup (int): The number of warmup epochs during training. Default to 10.
         use_likelihood_rescaling: To mitigate modality collapse, it is possible to use likelihood rescaling.
             (see : https://proceedings.mlr.press/v162/javaloy22a.html).
@@ -20,7 +31,6 @@ class JNFDccaConfig(BaseJointModelConfig):
         embedding_dcca_dim (int) : The dimension of the DCCA embedding to use. Default to 20.
         use_all_singular_values (bool) : Wether to use all the singular values for the computation of the objective.
             Using True is more unstable. Default to False.
-
 
     """
 

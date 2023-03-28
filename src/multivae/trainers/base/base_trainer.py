@@ -39,19 +39,19 @@ class BaseTrainer:
     """Base class to perform model training.
 
     Args:
-        model (BaseMultiVAE): A instance of :class:`~pythae.models.BaseMultiVAE` to train
+        model (BaseMultiVAE): A instance of :class:`~multivae.models.BaseMultiVAE` to train
 
         train_dataset (MultimodalBaseDataset): The training dataset of type
-            :class:`~pythae.data.dataset.MultimodalBaseDataset`
+            :class:`~multivae.data.datasets.MultimodalBaseDataset`
 
         eval_dataset (MultimodalBaseDataset): The evaluation dataset of type
-            :class:`~pythae.data.dataset.MultimodalBaseDataset`
+            :class:`~multivae.data.datasets.MultimodalBaseDataset`
 
         training_config (BaseTrainerConfig): The training arguments summarizing the main
             parameters used for training. If None, a basic training instance of
             :class:`BaseTrainerConfig` is used. Default: None.
 
-        callbacks (List[~pythae.trainers.training_callbacks.TrainingCallbacks]):
+        callbacks (List[~pythae.trainers.training_callbacks.TrainingCallback]):
             A list of callbacks to use during training.
     """
 

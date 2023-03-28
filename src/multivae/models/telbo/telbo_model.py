@@ -17,21 +17,22 @@ from .telbo_config import TELBOConfig
 class TELBO(BaseJointModel):
 
     """
-    The TELBO model from (arXiv:1705.10762 [cs, stat]) "Generative Models of Visually Grounded Imagination"
-    (Vedantam 2018)
+    The Triple ELBO VAE model.
 
     Args:
 
         model_config (TELBOConfig): An instance of TELBOConfig in which any model's parameters is
             made available.
 
-        encoders (Dict[str,BaseEncoder]): A dictionary containing the modalities names and the encoders for each
-            modality. Each encoder is an instance of Pythae's BaseEncoder.
+        encoders (Dict[str, ~pythae.models.nn.base_architectures.BaseEncoder]): A dictionary containing 
+            the modalities names and the encoders for each modality. Each encoder is an instance of 
+            Pythae's BaseEncoder. Default: None.
 
-        decoders (Dict[str,BaseDecoder]): A dictionary containing the modalities names and the decoders for each
-            modality. Each decoder is an instance of Pythae's BaseDecoder.
+        decoder (Dict[str, ~pythae.models.nn.base_architectures.BaseDecoder]): A dictionary containing 
+            the modalities names and the decoders for each modality. Each decoder is an instance of 
+            Pythae's BaseDecoder.
 
-        joint_encoder (BaseEncoder) : An instance of BaseEncoder that takes all the modalities as an input.
+        joint_encoder (~pythae.models.nn.base_architectures.BaseEncoder) : An instance of BaseEncoder that takes all the modalities as an input.
             If none is provided, one is created from the unimodal encoders. Default : None.
 
 

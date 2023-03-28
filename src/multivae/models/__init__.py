@@ -1,4 +1,4 @@
-"""Implementations of MultiVAE models
+"""In this section, you will find all the models that are currently implemented in `multivae` library
 """
 
 from .auto_model import AutoConfig, AutoModel

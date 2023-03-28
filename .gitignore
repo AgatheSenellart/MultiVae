@@ -133,4 +133,7 @@ dmypy.json
 
 wandb
 dummy_output_dir
-reproduce
+*.mat
+*.pt
+data/
+trained_models/

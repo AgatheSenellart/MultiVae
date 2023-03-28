@@ -15,11 +15,19 @@ from .mmvae_config import MMVAEConfig
 class MMVAE(BaseMultiVAE):
 
     """
-    Implements the MMVAE model from the paper : (Variational Mixture-of-Experts Autoencoders
-    for Multi-Modal Deep Generative Models, Shi et al 2019,
-    https://proceedings.neurips.cc/paper/2019/hash/0ae775a8cb3b499ad1fca944e6f5c836-Abstract.html)
+    The Variational Mixture-of-Experts Autoencoder model.
+    
+    Args:
+        model_config (MMVAEConfig): An instance of MMVAEConfig in which any model's 
+            parameters is made available.
 
+        encoders (Dict[str, ~pythae.models.nn.base_architectures.BaseEncoder]): A dictionary containing 
+            the modalities names and the encoders for each modality. Each encoder is an instance of 
+            Pythae's BaseEncoder. Default: None.
 
+        decoder (Dict[str, ~pythae.models.nn.base_architectures.BaseDecoder]): A dictionary containing 
+            the modalities names and the decoders for each modality. Each decoder is an instance of 
+            Pythae's BaseDecoder.
     """
 
     def __init__(

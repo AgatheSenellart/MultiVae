@@ -1,5 +1,8 @@
 import torch
-import torch
+import os
+import hostlist
+import logging
+
 from pythae.models.base.base_config import BaseAEConfig
 from torch.utils.data import DataLoader, random_split
 
@@ -15,6 +18,13 @@ from multivae.trainers.base.callbacks import (
     TrainingCallback,
     WandbCallback,
 )
+
+
+logger = logging.getLogger(__name__)
+console = logging.StreamHandler()
+logger.addHandler(console)
+logger.setLevel(logging.INFO)
+
 
 train_data = MnistSvhn(split="test")
 train_data, eval_data = random_split(
@@ -41,19 +51,38 @@ decoders = dict(
 
 model = MVAE(model_config, encoders, decoders)
 
+gpu_ids = os.environ["SLURM_STEP_GPUS"].split(",")
+
 trainer_config = BaseTrainerConfig(
     num_epochs=60,
-    learning_rate=1e-3,
-    steps_predict=1,
+    output_dir="mvae_example",
     per_device_train_batch_size=64,
     per_device_eval_batch_size=64,
+    learning_rate=1e-3,
+    steps_saving=None,
+    steps_predict=1,
+    no_cuda=False,
+    world_size=int(os.environ["SLURM_NTASKS"]),
+    dist_backend="nccl",
+    rank=int(os.environ["SLURM_PROCID"]),
+    local_rank=int(os.environ["SLURM_LOCALID"]),
+    master_addr=hostlist.expand_hostlist(os.environ["SLURM_JOB_NODELIST"])[0],
+    master_port=str(12345 + int(min(gpu_ids))),
 )
 
-# Set up callbacks
-wandb_cb = WandbCallback()
-wandb_cb.setup(trainer_config, model_config=model_config, project_name="package")
+if int(os.environ["SLURM_PROCID"]) == 0:
+    logger.info(model)
+    logger.info(f"Training config: {trainer_config}\n")
 
-callbacks = [TrainingCallback(), ProgressBarCallback(), wandb_cb]
+callbacks = [TrainingCallback(), ProgressBarCallback()]
+
+if (trainer_config.rank == 0 or trainer_config.rank == -1):
+
+    # Set up callbacks
+    wandb_cb = WandbCallback()
+    wandb_cb.setup(trainer_config, model_config=model_config, project_name="package")
+
+    callbacks.extend([wandb_cb])
 
 trainer = BaseTrainer(
     model,
@@ -63,7 +92,3 @@ trainer = BaseTrainer(
     callbacks=callbacks,
 )
 trainer.train()
-
-# data = set_inputs_to_device(eval_data[:100], device="cuda")
-# nll = model.compute_joint_nll(data)
-# print(nll)

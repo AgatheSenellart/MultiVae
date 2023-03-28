@@ -38,7 +38,7 @@ class JNFDcca(BaseJointModel):
 
     Args:
 
-        model_config (JNFConfig): An instance of JNFConfig in which any model's parameters is
+        model_config (JNFDccaConfig): An instance of JNFConfig in which any model's parameters is
             made available.
 
         encoders (Dict[str,BaseEncoder]): A dictionary containing the modalities names and the encoders for each
@@ -73,8 +73,6 @@ class JNFDcca(BaseJointModel):
             embedding_dim=model_config.embedding_dcca_dim,
             use_all_singular_values=model_config.use_all_singular_values,
         )
-
-        model_config.custom_architectures = []
 
         if dcca_networks is None:
             if model_config.input_dims is None:
