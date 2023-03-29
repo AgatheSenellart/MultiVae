@@ -9,7 +9,7 @@ from pythae.models.base.base_model import (
 )
 from torch.utils.data import DataLoader, random_split
 
-from multivae.data.datasets import MMNISTDataset
+from multivae.data.datasets.mmnist import MMNISTDataset
 from multivae.data.datasets.utils import save_all_images
 from multivae.data.utils import set_inputs_to_device
 from multivae.models import MoPoE, MoPoEConfig
@@ -21,11 +21,11 @@ from multivae.trainers.base.callbacks import (
     WandbCallback,
 )
 
+#### Architectures ####
 
 class Flatten(torch.nn.Module):
     def forward(self, x):
         return x.view(x.size(0), -1)
-
 
 class Unflatten(torch.nn.Module):
     def __init__(self, ndims):
@@ -101,6 +101,8 @@ class DecoderImg(BaseDecoder):
         return ModelOutput(
             reconstruction=x_hat
         )  # NOTE: consider learning scale param, too
+        
+### Dataset ###
 
 
 train_data = MMNISTDataset(data_path="../../../data/MMNIST", split="train")
@@ -116,8 +118,8 @@ model_config = MoPoEConfig(
     input_dims={k: (3, 28, 28) for k in modalities},
     latent_dim=512,
     decoders_dist={m: "laplace" for m in modalities},
-    decoder_scale=0.75,
-    beta=2.5,  # The std deviation of decoder in original implementation is 0.75
+    decoder_dist_params={m : {'scale' : 0.75} for m in modalities},
+    beta=2.5,  
 )
 
 
@@ -138,7 +140,7 @@ decoders = {
 model = MoPoE(model_config, encoders=encoders, decoders=decoders)
 
 trainer_config = BaseTrainerConfig(
-    num_epochs=5,
+    num_epochs=300,
     learning_rate=0.5e-3,
     steps_predict=1,
     per_device_train_batch_size=256,
@@ -147,7 +149,7 @@ trainer_config = BaseTrainerConfig(
 
 # Set up callbacks
 wandb_cb = WandbCallback()
-wandb_cb.setup(trainer_config, model_config, project_name="reproduce_mopoe")
+wandb_cb.setup(trainer_config, model_config, project_name="reproducing_mopoe")
 
 callbacks = [TrainingCallback(), ProgressBarCallback(), wandb_cb]
 
@@ -158,6 +160,7 @@ trainer = BaseTrainer(
     training_config=trainer_config,
     callbacks=callbacks,
 )
-# trainer.train()
 
-model.push_to_hf_hub("asenella/test")
+trainer.train()
+
+trainer._best_model.push_to_hf_hub("asenella/reproducing_mopoe")

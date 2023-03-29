@@ -33,7 +33,7 @@ class MMNISTDataset(MultimodalBaseDataset):
         self.transform = transform
         self.target_transform = target_transform
         self.download = download
-        self.__check_or_download_data__()
+        self.__check_or_download_data__(data_path, unimodal_datapaths)
 
         self.m0 = torch.load(unimodal_datapaths[0])
         self.m1 = torch.load(unimodal_datapaths[1])

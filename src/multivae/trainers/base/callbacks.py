@@ -408,3 +408,5 @@ class WandbCallback(TrainingCallback):  # pragma: no cover
 
     def on_train_end(self, training_config: BaseTrainerConfig, **kwargs):
         self.run.finish()
+
+

@@ -9,7 +9,7 @@ from pythae.models.base.base_model import (
 )
 from torch.utils.data import DataLoader, random_split
 
-from multivae.data.datasets import MMNISTDataset
+from multivae.data.datasets.mmnist import MMNISTDataset
 from multivae.data.datasets.utils import save_all_images
 from multivae.data.utils import set_inputs_to_device
 from multivae.models import MVTCAE, MVTCAEConfig
@@ -117,7 +117,7 @@ model_config = MVTCAEConfig(
     decoders_dist={m: "laplace" for m in modalities},
     beta=2.5,
     alpha=5.0 / 6.0,
-    decoder_scale=0.75,
+    decoder_dist_params={m : {'scale' : 0.75} for m in modalities}
 )
 
 
@@ -147,7 +147,7 @@ trainer_config = BaseTrainerConfig(
 
 # Set up callbacks
 wandb_cb = WandbCallback()
-wandb_cb.setup(trainer_config, model_config, project_name="reproduce_mvtcae")
+wandb_cb.setup(trainer_config, model_config, project_name="reproducing_mvtcae")
 
 callbacks = [TrainingCallback(), ProgressBarCallback(), wandb_cb]
 
@@ -160,6 +160,5 @@ trainer = BaseTrainer(
 )
 trainer.train()
 
-# data = set_inputs_to_device(eval_data[:100], device="cuda")
-# nll = model.compute_joint_nll(data)
-# print(nll)
+trainer._best_model.push_to_hf_hub("asenella/reproducing_mvtcae")
+
