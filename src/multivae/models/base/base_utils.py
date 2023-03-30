@@ -3,12 +3,12 @@ import importlib
 model_card_template = """---
 language: en
 tags:
-- pythae
+- multivae
 license: apache-2.0
 ---
 
 ### Downloading this model from the Hub
-This model was trained with pythae. It can be downloaded or reloaded using the method `load_from_hf_hub`
+This model was trained with multivae. It can be downloaded or reloaded using the method `load_from_hf_hub`
 ```python
 >>> from multivae.models import AutoModel
 >>> model = AutoModel.load_from_hf_hub(hf_hub_path="your_hf_username/repo_name")

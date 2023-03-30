@@ -1,5 +1,5 @@
 from dataclasses import field
-from typing import Dict, Tuple, Union
+from typing import Dict, Literal, Tuple, Union
 
 from pydantic.dataclasses import dataclass
 from pythae.config import BaseConfig
@@ -30,7 +30,7 @@ class BaseMultiVAEConfig(BaseConfig):
     latent_dim: int = 10
     input_dims: dict = None
     uses_likelihood_rescaling: bool = False
-    decoders_dist: dict = None
+    decoders_dist: Literal['normal','bernoulli','laplace'] = "normal"
     decoder_dist_params: dict = None
     custom_architectures: list = field(default_factory=lambda: [])
 

@@ -198,7 +198,7 @@ class JMVAE(BaseJointModel):
 
     def sample_from_moe_subset(self, subset: list, data: dict):
         """Sample z from the mixture of posteriors from the subset.
-        Torch no grad is activated, so that no gradient are computed durin the forward pass of the encoders.
+        Torch no grad is activated, so that no gradient are computed during the forward pass of the encoders.
 
         Args:
             subset (list): the modalities to condition on
