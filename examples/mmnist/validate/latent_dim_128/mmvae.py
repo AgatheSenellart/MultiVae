@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 import torch
+from classifiers import load_mmnist_classifiers
 from torch import nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -9,8 +10,6 @@ from tqdm import tqdm
 from multivae.data.datasets.mmnist import MMNISTDataset
 from multivae.metrics import CoherenceEvaluator
 from multivae.models.auto_model import AutoConfig, AutoModel
-from classifiers import load_mmnist_classifiers
-
 
 ##############################################################################
 

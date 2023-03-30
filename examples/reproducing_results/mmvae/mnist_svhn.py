@@ -1,17 +1,18 @@
 from math import prod
+
+import torch
+from pythae.models.base.base_model import BaseDecoder, BaseEncoder, ModelOutput
+from torch import nn
+
 from multivae.data.datasets import MnistSvhn
+from multivae.models import MMVAE, MMVAEConfig
+from multivae.models.base import BaseMultiVAEConfig
+from multivae.trainers import BaseTrainer, BaseTrainerConfig
 from multivae.trainers.base.callbacks import (
     ProgressBarCallback,
     TrainingCallback,
     WandbCallback,
 )
-from pythae.models.base.base_model import BaseDecoder, BaseEncoder, ModelOutput
-from multivae.models.base import BaseMultiVAEConfig
-from torch import nn
-import torch
-from multivae.models import MMVAE, MMVAEConfig
-from multivae.trainers import BaseTrainer, BaseTrainerConfig
-
 
 ############ Define the architectures ##############
 
