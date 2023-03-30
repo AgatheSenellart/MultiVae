@@ -348,8 +348,6 @@ class BaseMultiVAE(nn.Module):
 
         self.model_config.save_json(dir_path, "model_config")
 
-        print(self.model_config.custom_architectures)
-
         for archi in self.model_config.custom_architectures:
             with open(os.path.join(dir_path, archi + ".pkl"), "wb") as fp:
                 cloudpickle.register_pickle_by_value(
