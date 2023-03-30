@@ -431,6 +431,83 @@ class MoPoE(BaseMultiVAE):
                     x_m = inputs.data[mod][i]  # (nb_channels, w, h)
 
                     dim_reduce = tuple(range(1, len(recon.shape)))
+                    print(self.recon_log_probs[mod](recon, x_m).shape)
+                    print(self.recon_log_probs[mod])
+                    lpx_zs += self.recon_log_probs[mod](recon, x_m).sum(dim=dim_reduce)
+
+                # Compute ln(p(z))
+                prior = dist.Normal(0, 1)
+                lpz = prior.log_prob(latents).sum(dim=-1)
+
+                # Compute posteriors -ln(q(z|x,y))
+                qz_xy = dist.Normal(mu[i], sigma[i])
+                lqz_xy = qz_xy.log_prob(latents).sum(dim=-1)
+
+                ln_px = torch.logsumexp(lpx_zs + lpz - lqz_xy, dim=0)
+                print(ln_px.shape)
+                lnpxs.append(ln_px)
+
+                # next batch
+                start_idx += batch_size_K
+                stop_idx = min(stop_idx + batch_size_K, K)
+
+            ll += torch.logsumexp(torch.Tensor(lnpxs), dim=0) - np.log(K)
+
+        return -ll / n_data
+    
+    
+    def compute_joint_nll_from_subset_encoding(
+        self,
+        subset,
+        inputs: Union[MultimodalBaseDataset, IncompleteDataset],
+        K: int = 1000,
+        batch_size_K: int = 100,
+    ):
+        
+        """ 
+        Computes the joint negative log-likelihood. 
+        I am not sure, but from the original code, it seems that the product of experts is used as inference distribution
+        for computing the nll instead of the mopoe. 
+        """
+        
+        # Only keep the samples complete with regard to the subset modalities
+        if hasattr(inputs, "masks"):
+            filtered_inputs, filter = self._filter_inputs_with_masks(
+                inputs, subset
+            )
+
+        else:
+            filtered_inputs = inputs
+        subset_name = "_".join(sorted(subset))
+        # Compute the parameters of the joint posterior
+        mu, log_var = self.inference(filtered_inputs)["subsets"][subset_name]
+
+        sigma = torch.exp(0.5 * log_var)
+        qz_xy = dist.Normal(mu, sigma)
+        # And sample from the posterior
+        z_joint = qz_xy.rsample([K])  # shape K x n_data x latent_dim
+        z_joint = z_joint.permute(1, 0, 2)
+        n_data, _, latent_dim = z_joint.shape
+
+        # Then iter on each datapoint to compute the iwae estimate of ln(p(x))
+        ll = 0
+        for i in range(n_data):
+            start_idx = 0
+            stop_idx = min(start_idx + batch_size_K, K)
+            lnpxs = []
+            while start_idx < stop_idx:
+                latents = z_joint[i][start_idx:stop_idx]
+
+                # Compute p(x_m|z) for z in latents and for each modality m
+                lpx_zs = 0  # ln(p(x,y|z))
+                for mod in inputs.data:
+                    decoder = self.decoders[mod]
+                    recon = decoder(latents)[
+                        "reconstruction"
+                    ]  # (batch_size_K, nb_channels, w, h)
+                    x_m = inputs.data[mod][i]  # (nb_channels, w, h)
+
+                    dim_reduce = tuple(range(1, len(recon.shape)))
                     lpx_zs += self.recon_log_probs[mod](recon, x_m).sum(dim=dim_reduce)
 
                 # Compute ln(p(z))
@@ -451,4 +528,6 @@ class MoPoE(BaseMultiVAE):
             ll += torch.logsumexp(torch.Tensor(lnpxs), dim=0) - np.log(K)
 
         return -ll / n_data
+    
+    
 

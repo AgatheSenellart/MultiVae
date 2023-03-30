@@ -141,7 +141,7 @@ model = MoPoE(model_config, encoders=encoders, decoders=decoders)
 
 trainer_config = BaseTrainerConfig(
     num_epochs=300,
-    learning_rate=0.5e-3,
+    learning_rate=1.0e-3,
     steps_predict=1,
     per_device_train_batch_size=256,
     drop_last=True,
@@ -163,4 +163,4 @@ trainer = BaseTrainer(
 
 trainer.train()
 
-trainer._best_model.push_to_hf_hub("asenella/reproducing_mopoe")
+trainer._best_model.push_to_hf_hub("asenella/reproducing_mopoe_2")

@@ -73,7 +73,7 @@ class MMVAE(BaseMultiVAE):
             mu, log_var = output.embedding, output.log_covariance
 
             if self.model_config.prior_and_posterior_dist == "laplace_with_softmax":
-                sigma = torch.softmax(log_var, dim=-1)
+                sigma = torch.softmax(log_var, dim=-1) + 1e-6
             else:
                 sigma = torch.exp(0.5 * log_var)
 
@@ -161,7 +161,7 @@ class MMVAE(BaseMultiVAE):
             mu, log_var = output.embedding, output.log_covariance
 
             if self.model_config.prior_and_posterior_dist == "laplace_with_softmax":
-                sigma = torch.softmax(log_var, dim=-1)
+                sigma = torch.softmax(log_var, dim=-1) + 1e-6
             else:
                 sigma = torch.exp(0.5 * log_var)
 
@@ -196,7 +196,7 @@ class MMVAE(BaseMultiVAE):
             mu, log_var = output.embedding, output.log_covariance
 
             if self.model_config.prior_and_posterior_dist == "laplace_with_softmax":
-                sigma = torch.softmax(log_var, dim=-1)
+                sigma = torch.softmax(log_var, dim=-1) + 1e-6
             else:
                 sigma = torch.exp(0.5 * log_var)
 
@@ -247,3 +247,9 @@ class MMVAE(BaseMultiVAE):
             ll += torch.logsumexp(torch.Tensor(lnpxs), dim=0) - np.log(K)
 
         return -ll / n_data
+
+    
+    def generate_from_prior(self, n_samples):
+        sample_shape = [n_samples] if n_samples >1 else []
+        z = self.prior_dist(self.prior_mean, self.prior_std).rsample(sample_shape)
+        return ModelOutput(z = z, one_latent_space=True)

@@ -293,6 +293,7 @@ class BaseMultiVAE(nn.Module):
         By default, it does nothing.
         """
         pass
+    
 
     def set_encoders(self, encoders: dict) -> None:
         """Set the encoders of the model"""
@@ -707,3 +708,14 @@ class BaseMultiVAE(nn.Module):
             model.load_state_dict(model_weights)
 
             return model
+
+    def generate_from_prior(self,n_samples):
+        
+        """
+        Generate latent samples from the prior distribution.
+        This is the base class in which we consider a static standard Normal Prior.
+        This may be overwritten in subclasses. 
+        """
+        sample_shape = [n_samples,self.latent_dim] if n_samples >1 else [self.latent_dim]
+        z = dist.Normal(0,1).rsample(sample_shape)
+        return ModelOutput(z = z, one_latent_space=True)

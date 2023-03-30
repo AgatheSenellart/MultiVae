@@ -181,7 +181,7 @@ class MVTCAE(BaseMultiVAE):
             inputs (MultimodalBaseDataset): The data.
 
         Returns:
-            dict : Contains the modalities' encoders and the poe parameters.
+            dict : Contains the modalities' encoders parameters and the poe parameters.
         """
 
         latents = dict()

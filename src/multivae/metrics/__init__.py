@@ -1,1 +1,4 @@
-from .evaluator import CoherenceEvaluator, CoherenceEvaluatorConfig
+from .coherences.coherences import CoherenceEvaluator
+from .coherences.coherences_config import CoherenceEvaluatorConfig
+from .likelihoods.likelihoods import LikelihoodsEvaluator
+from .likelihoods.likelihoods import LikelihoodsEvaluatorConfig
