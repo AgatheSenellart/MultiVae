@@ -7,7 +7,11 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from multivae.data.datasets.mmnist import MMNISTDataset
-from multivae.metrics import CoherenceEvaluator, LikelihoodsEvaluator, LikelihoodsEvaluatorConfig
+from multivae.metrics import (
+    CoherenceEvaluator,
+    LikelihoodsEvaluator,
+    LikelihoodsEvaluatorConfig,
+)
 from multivae.models.auto_model import AutoConfig, AutoModel
 
 
@@ -64,13 +68,13 @@ test_set = MMNISTDataset(data_path="../../../data/MMNIST", split="test")
 
 data_path = "dummy_output_dir/MoPoE_training_2023-03-30_12-08-11/final_model"
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+device = "cuda" if torch.cuda.is_available() else "cpu"
 clfs = load_mmnist_classifiers(device=device)
 
 model = AutoModel.load_from_folder(data_path)
 
 coherences = CoherenceEvaluator(model, clfs, test_set, data_path).eval()
 
-nll_config = LikelihoodsEvaluatorConfig(K=15,batch_size_k=15)
+nll_config = LikelihoodsEvaluatorConfig(K=15, batch_size_k=15)
 
-nlls = LikelihoodsEvaluator(model, test_set, data_path,nll_config).eval()
+nlls = LikelihoodsEvaluator(model, test_set, data_path, nll_config).eval()

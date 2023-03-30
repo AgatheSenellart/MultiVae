@@ -3,6 +3,7 @@ import logging
 import os
 
 import torch.nn as nn
+
 from ..base.base_utils import hf_hub_is_available
 
 logger = logging.getLogger(__name__)
@@ -83,7 +84,7 @@ class AutoModel(nn.Module):
             )
 
         return model
-    
+
     @classmethod
     def load_from_hf_hub(
         cls, hf_hub_path: str, allow_pickle: bool = False

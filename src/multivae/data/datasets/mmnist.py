@@ -53,8 +53,9 @@ class MMNISTDataset(MultimodalBaseDataset):
         for i in range(5):
             if not os.path.exists(unimodal_datapaths[i]) and self.download:
                 try :
-                    import gdown
                     import zipfile
+
+                    import gdown
                     gdown.download(id='1N0v31KOgZgfkSqSiPdBKAgWIkKZIzAWb', output=data_path)
                     with zipfile.ZipFile(data_path + '/PolyMNIST.zip') as zip_ref:
                         zip_ref.extractall(data_path)

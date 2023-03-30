@@ -1,6 +1,10 @@
 from math import prod
 from multivae.data.datasets import MnistSvhn
-from multivae.trainers.base.callbacks import ProgressBarCallback, TrainingCallback, WandbCallback
+from multivae.trainers.base.callbacks import (
+    ProgressBarCallback,
+    TrainingCallback,
+    WandbCallback,
+)
 from pythae.models.base.base_model import BaseDecoder, BaseEncoder, ModelOutput
 from multivae.models.base import BaseMultiVAEConfig
 from torch import nn
@@ -9,16 +13,11 @@ from multivae.models import MMVAE, MMVAEConfig
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 
 
-
-
-
-
-
 ############ Define the architectures ##############
 
+
 class EncoderMNIST(BaseEncoder):
-    
-    def __init__(self, num_hidden_layers, config : BaseMultiVAEConfig):
+    def __init__(self, num_hidden_layers, config: BaseMultiVAEConfig):
         super().__init__()
         # Constants
         self.latent_dim = config.latent_dim
@@ -26,54 +25,56 @@ class EncoderMNIST(BaseEncoder):
         data_dim = int(prod(dataSize))
         self.hidden_dim = 400
         modules = []
-        modules.append(nn.Sequential(nn.Linear(data_dim, self.hidden_dim), nn.ReLU(True)))
-        modules.extend([self.extra_hidden_layer() for _ in range(num_hidden_layers - 1)])
+        modules.append(
+            nn.Sequential(nn.Linear(data_dim, self.hidden_dim), nn.ReLU(True))
+        )
+        modules.extend(
+            [self.extra_hidden_layer() for _ in range(num_hidden_layers - 1)]
+        )
         self.enc = nn.Sequential(*modules)
         self.fc21 = nn.Linear(self.hidden_dim, config.latent_dim)
         self.fc22 = nn.Linear(self.hidden_dim, config.latent_dim)
-    
+
     def extra_hidden_layer(self):
         return nn.Sequential(nn.Linear(self.hidden_dim, self.hidden_dim), nn.ReLU(True))
 
-
     def forward(self, x):
         h = self.enc(x.view(*x.size()[:-3], -1))  # flatten data
-        return ModelOutput(embedding = self.fc21(h), log_covariance = self.fc22(h))
-    
-    
+        return ModelOutput(embedding=self.fc21(h), log_covariance=self.fc22(h))
+
 
 class DecoderMNIST(BaseDecoder):
-    """ Generate an MNIST image given a sample from the latent space. """
+    """Generate an MNIST image given a sample from the latent space."""
 
-    def __init__(self, num_hidden_layers, config:BaseMultiVAEConfig):
+    def __init__(self, num_hidden_layers, config: BaseMultiVAEConfig):
         super().__init__()
         modules = []
         self.hidden_dim = 400
         self.dataSize = torch.Size([1, 28, 28])
         data_dim = int(prod(self.dataSize))
-        modules.append(nn.Sequential(nn.Linear(config.latent_dim, self.hidden_dim), nn.ReLU(True)))
-        modules.extend([self.extra_hidden_layer() for _ in range(num_hidden_layers - 1)])
+        modules.append(
+            nn.Sequential(nn.Linear(config.latent_dim, self.hidden_dim), nn.ReLU(True))
+        )
+        modules.extend(
+            [self.extra_hidden_layer() for _ in range(num_hidden_layers - 1)]
+        )
         self.dec = nn.Sequential(*modules)
         self.fc3 = nn.Linear(self.hidden_dim, data_dim)
-    
+
     def extra_hidden_layer(self):
         return nn.Sequential(nn.Linear(self.hidden_dim, self.hidden_dim), nn.ReLU(True))
-
 
     def forward(self, z):
         p = self.fc3(self.dec(z))
         d = torch.sigmoid(p.view(*z.size()[:-1], *self.dataSize))  # reshape data
-        d = d.clamp(1e-6, 1 - 1.e-6)
+        d = d.clamp(1e-6, 1 - 1.0e-6)
 
-        return ModelOutput(reconstruction = d)
-
-    
+        return ModelOutput(reconstruction=d)
 
 
 # Classes
 class EncoderSVHN(BaseEncoder):
-
-    def __init__(self, config : BaseMultiVAEConfig):
+    def __init__(self, config: BaseMultiVAEConfig):
         super().__init__()
         dataSize = torch.Size([3, 32, 32])
         imgChans = dataSize[0]
@@ -98,14 +99,15 @@ class EncoderSVHN(BaseEncoder):
 
     def forward(self, x):
         e = self.enc(x)
-        return ModelOutput(embedding = self.c1(e).squeeze(),
-                           log_covariance = self.c2(e).squeeze())
+        return ModelOutput(
+            embedding=self.c1(e).squeeze(), log_covariance=self.c2(e).squeeze()
+        )
 
 
 class DecoderSVHN(BaseDecoder):
-    """ Generate a SVHN image given a sample from the latent space. """
+    """Generate a SVHN image given a sample from the latent space."""
 
-    def __init__(self, config:BaseMultiVAEConfig):
+    def __init__(self, config: BaseMultiVAEConfig):
         super().__init__()
         dataSize = torch.Size([3, 32, 32])
         imgChans = dataSize[0]
@@ -130,37 +132,38 @@ class DecoderSVHN(BaseDecoder):
         out = self.dec(z.view(-1, *z.size()[-3:]))
         out = out.view(*z.size()[:-3], *out.size()[1:])
         # consider also predicting the length scale
-        return ModelOutput(reconstruction = out)
-    
-    
-    
+        return ModelOutput(reconstruction=out)
+
+
 ###################################################################################
 ########### Load the dataset, configure model and training ########################
 
 # Dataset
-train_set = MnistSvhn(split='train',data_multiplication=20)
+train_set = MnistSvhn(split="train", data_multiplication=20)
 
 # Model config
 model_config = MMVAEConfig(
     n_modalities=2,
     latent_dim=20,
-    input_dims={'mnist' : (1,28,28),'svhn' : (3,32,32)},
+    input_dims={"mnist": (1, 28, 28), "svhn": (3, 32, 32)},
     uses_likelihood_rescaling=True,
-    decoders_dist={'mnist' : 'laplace','svhn' : 'laplace'},
-    decoder_dist_params={'mnist' : {'scale' : 0.75}, 'svhn' : {'scale' : 0.75}},
+    decoders_dist={"mnist": "laplace", "svhn": "laplace"},
+    decoder_dist_params={"mnist": {"scale": 0.75}, "svhn": {"scale": 0.75}},
     K=30,
-    learn_prior=True
+    learn_prior=True,
 )
 
-model = MMVAE(model_config,
-              encoders = {'mnist' : EncoderMNIST(num_hidden_layers=1,
-                                                 config=model_config),
-                          'svhn' : EncoderSVHN(model_config)},
-              decoders = {
-                  'mnist' : DecoderMNIST(num_hidden_layers=1,
-                                         config=model_config),
-                  'svhn' : DecoderSVHN(config=model_config)
-              })
+model = MMVAE(
+    model_config,
+    encoders={
+        "mnist": EncoderMNIST(num_hidden_layers=1, config=model_config),
+        "svhn": EncoderSVHN(model_config),
+    },
+    decoders={
+        "mnist": DecoderMNIST(num_hidden_layers=1, config=model_config),
+        "svhn": DecoderSVHN(config=model_config),
+    },
+)
 
 
 # Training
@@ -169,7 +172,7 @@ training_config = BaseTrainerConfig(
     per_device_train_batch_size=128,
     per_device_eval_batch_size=128,
     num_epochs=30,
-    start_keep_best_epoch=30 # save the model at each iteration without regards to the loss
+    start_keep_best_epoch=30,  # save the model at each iteration without regards to the loss
 )
 
 # Set up callbacks
@@ -178,12 +181,13 @@ wandb_cb.setup(training_config, model_config, project_name="reproducing_mmvae")
 
 callbacks = [ProgressBarCallback(), wandb_cb]
 
-trainer = BaseTrainer(model=model, 
-                      train_dataset=train_set,
-                      training_config=training_config,
-                      callbacks = callbacks)
+trainer = BaseTrainer(
+    model=model,
+    train_dataset=train_set,
+    training_config=training_config,
+    callbacks=callbacks,
+)
 
 trainer.train()
 
 trainer._best_model.push_to_hf_hub("asenella/reproducing_mmvae")
-

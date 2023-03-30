@@ -330,7 +330,7 @@ class MoPoE(BaseMultiVAE):
             inputs, filter = self._filter_inputs_with_masks(inputs, cond_mod)
 
         latents_subsets = self.inference(inputs)
-        
+
         mu, log_var = latents_subsets["subsets"][key]
         sample_shape = [N] if N > 1 else []
         z = dist.Normal(mu, torch.exp(0.5 * log_var)).rsample(sample_shape)
@@ -385,13 +385,12 @@ class MoPoE(BaseMultiVAE):
         K: int = 1000,
         batch_size_K: int = 100,
     ):
-        
-        """ 
-        Computes the joint negative log-likelihood. 
-        I am not sure, but from the original code, it seems that the product of experts is used as inference distribution
-        for computing the nll instead of the mopoe. 
         """
-        
+        Computes the joint negative log-likelihood.
+        I am not sure, but from the original code, it seems that the product of experts is used as inference distribution
+        for computing the nll instead of the mopoe.
+        """
+
         # Only keep the complete samples
         all_modalities = list(self.encoders.keys())
         if hasattr(inputs, "masks"):
@@ -454,8 +453,7 @@ class MoPoE(BaseMultiVAE):
             ll += torch.logsumexp(torch.Tensor(lnpxs), dim=0) - np.log(K)
 
         return -ll / n_data
-    
-    
+
     def compute_joint_nll_from_subset_encoding(
         self,
         subset,
@@ -463,18 +461,15 @@ class MoPoE(BaseMultiVAE):
         K: int = 1000,
         batch_size_K: int = 100,
     ):
-        
-        """ 
-        Computes the joint negative log-likelihood. 
-        I am not sure, but from the original code, it seems that the product of experts is used as inference distribution
-        for computing the nll instead of the mopoe. 
         """
-        
+        Computes the joint negative log-likelihood.
+        I am not sure, but from the original code, it seems that the product of experts is used as inference distribution
+        for computing the nll instead of the mopoe.
+        """
+
         # Only keep the samples complete with regard to the subset modalities
         if hasattr(inputs, "masks"):
-            filtered_inputs, filter = self._filter_inputs_with_masks(
-                inputs, subset
-            )
+            filtered_inputs, filter = self._filter_inputs_with_masks(inputs, subset)
 
         else:
             filtered_inputs = inputs
@@ -528,6 +523,3 @@ class MoPoE(BaseMultiVAE):
             ll += torch.logsumexp(torch.Tensor(lnpxs), dim=0) - np.log(K)
 
         return -ll / n_data
-    
-    
-

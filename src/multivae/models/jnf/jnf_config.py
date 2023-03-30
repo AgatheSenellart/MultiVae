@@ -30,4 +30,3 @@ class JNFConfig(BaseJointModelConfig):
     """
 
     warmup: int = 10
-    use_likelihood_rescaling: bool = False

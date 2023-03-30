@@ -35,7 +35,6 @@ class JNFDccaConfig(BaseJointModelConfig):
     """
 
     warmup: int = 10
-    use_likelihood_rescaling: bool = False
     nb_epochs_dcca: int = 30
     embedding_dcca_dim: int = 20
     use_all_singular_values: bool = (

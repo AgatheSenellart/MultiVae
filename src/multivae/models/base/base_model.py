@@ -5,10 +5,10 @@ import os
 import shutil
 import sys
 import tempfile
+import warnings
 from copy import deepcopy
 from http.cookiejar import LoadError
 from typing import Union
-import warnings
 
 import cloudpickle
 import numpy as np
@@ -293,7 +293,6 @@ class BaseMultiVAE(nn.Module):
         By default, it does nothing.
         """
         pass
-    
 
     def set_encoders(self, encoders: dict) -> None:
         """Set the encoders of the model"""
@@ -684,9 +683,7 @@ class BaseMultiVAE(nn.Module):
 
         model_weights = cls._load_model_weights_from_folder(dir_path)
         print(model_config.custom_architectures)
-        if (
-            len(model_config.custom_architectures) >=1 
-        ) and not allow_pickle:
+        if (len(model_config.custom_architectures) >= 1) and not allow_pickle:
             warnings.warn(
                 "You are about to download pickled files from the HF hub that may have "
                 "been created by a third party and so could potentially harm your computer. If you "
@@ -700,7 +697,6 @@ class BaseMultiVAE(nn.Module):
                 archi_net = cls._load_custom_archi_from_folder(dir_path, archi)
                 custom_archi_dict[archi] = archi_net
                 logger.info(f"Successfully downloaded {archi} architecture.")
-            
 
             logger.info(f"Successfully downloaded {cls.__name__} model!")
 
@@ -709,13 +705,14 @@ class BaseMultiVAE(nn.Module):
 
             return model
 
-    def generate_from_prior(self,n_samples):
-        
+    def generate_from_prior(self, n_samples):
         """
         Generate latent samples from the prior distribution.
         This is the base class in which we consider a static standard Normal Prior.
-        This may be overwritten in subclasses. 
+        This may be overwritten in subclasses.
         """
-        sample_shape = [n_samples,self.latent_dim] if n_samples >1 else [self.latent_dim]
-        z = dist.Normal(0,1).rsample(sample_shape)
-        return ModelOutput(z = z, one_latent_space=True)
+        sample_shape = (
+            [n_samples, self.latent_dim] if n_samples > 1 else [self.latent_dim]
+        )
+        z = dist.Normal(0, 1).rsample(sample_shape)
+        return ModelOutput(z=z, one_latent_space=True)

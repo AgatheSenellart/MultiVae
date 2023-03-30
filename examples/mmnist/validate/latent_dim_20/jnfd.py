@@ -72,4 +72,4 @@ eval = CoherenceEvaluator(model, clfs, test_set, data_path)
 
 eval.pair_accuracies()
 eval.all_one_accuracies()
-#eval.joint_nll()
+# eval.joint_nll()

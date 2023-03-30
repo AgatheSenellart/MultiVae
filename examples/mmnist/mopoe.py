@@ -73,10 +73,11 @@ trainer_config = BaseTrainerConfig(
 # )
 # trainer.train()
 
-model.push_to_hf_hub('asenella/test')
+model.push_to_hf_hub("asenella/test")
 
 from multivae.models import AutoModel
-model = AutoModel.load_from_hf_hub('asenella/test')
+
+model = AutoModel.load_from_hf_hub("asenella/test")
 
 
 # data = set_inputs_to_device(eval_data[:100], device="cuda")

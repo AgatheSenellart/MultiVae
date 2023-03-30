@@ -3,6 +3,7 @@ from copy import deepcopy
 
 import numpy as np
 import torch
+from encoders import Encoder_test
 from pytest import fixture
 from pythae.models.base import BaseAEConfig
 from pythae.models.base.base_utils import ModelOutput
@@ -12,11 +13,7 @@ from multivae.data.datasets import MultimodalBaseDataset
 from multivae.models.auto_model.auto_model import AutoModel
 from multivae.models.dcca import DCCA, DCCAConfig
 from multivae.models.jnf_dcca import JNFDcca, JNFDccaConfig
-from multivae.models.nn.default_architectures import (
-    BaseDictEncoders,
-    Decoder_AE_MLP,
-    Encoder_test,
-)
+from multivae.models.nn.default_architectures import BaseDictEncoders, Decoder_AE_MLP
 from multivae.trainers.add_dcca_trainer import AddDccaTrainer, AddDccaTrainerConfig
 
 

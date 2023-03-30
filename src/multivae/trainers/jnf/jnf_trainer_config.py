@@ -40,6 +40,8 @@ class TwoStepsTrainerConfig(BaseTrainerConfig):
         dist_backend (str): The distributed backend to use. Default: 'nccl'
         master_addr (str): The master address for distributed training. Default: 'localhost'
         master_port (str): The master port for distributed training. Default: '12345'
+        start_keep_best (int): The epoch to start keeping track of the best loss. Before that the model
+            is automatically saved.
     """
 
     name_trainer = "TwoStepsTrainerConfig"

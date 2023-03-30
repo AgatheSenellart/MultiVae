@@ -23,9 +23,11 @@ from multivae.trainers.base.callbacks import (
 
 #### Architectures ####
 
+
 class Flatten(torch.nn.Module):
     def forward(self, x):
         return x.view(x.size(0), -1)
+
 
 class Unflatten(torch.nn.Module):
     def __init__(self, ndims):
@@ -101,7 +103,8 @@ class DecoderImg(BaseDecoder):
         return ModelOutput(
             reconstruction=x_hat
         )  # NOTE: consider learning scale param, too
-        
+
+
 ### Dataset ###
 
 
@@ -118,8 +121,8 @@ model_config = MoPoEConfig(
     input_dims={k: (3, 28, 28) for k in modalities},
     latent_dim=512,
     decoders_dist={m: "laplace" for m in modalities},
-    decoder_dist_params={m : {'scale' : 0.75} for m in modalities},
-    beta=2.5,  
+    decoder_dist_params={m: {"scale": 0.75} for m in modalities},
+    beta=2.5,
 )
 
 

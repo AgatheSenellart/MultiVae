@@ -248,8 +248,7 @@ class MMVAE(BaseMultiVAE):
 
         return -ll / n_data
 
-    
     def generate_from_prior(self, n_samples):
-        sample_shape = [n_samples] if n_samples >1 else []
+        sample_shape = [n_samples] if n_samples > 1 else []
         z = self.prior_dist(self.prior_mean, self.prior_std).rsample(sample_shape)
-        return ModelOutput(z = z, one_latent_space=True)
+        return ModelOutput(z=z, one_latent_space=True)

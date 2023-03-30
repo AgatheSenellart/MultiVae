@@ -117,7 +117,7 @@ model_config = MVTCAEConfig(
     decoders_dist={m: "laplace" for m in modalities},
     beta=2.5,
     alpha=5.0 / 6.0,
-    decoder_dist_params={m : {'scale' : 0.75} for m in modalities}
+    decoder_dist_params={m: {"scale": 0.75} for m in modalities},
 )
 
 
@@ -161,4 +161,3 @@ trainer = BaseTrainer(
 trainer.train()
 
 trainer._best_model.push_to_hf_hub("asenella/reproducing_mvtcae")
-
