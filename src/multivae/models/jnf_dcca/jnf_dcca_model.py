@@ -92,24 +92,21 @@ class JNFDcca(BaseJointModel):
         else:
             model_config.custom_architectures.append("dcca_networks")
 
+        super().__init__(model_config, encoders, decoders, joint_encoder, **kwargs)
+        
         # The default encoders for this model have (embedding_dcca_dim, ) as input_size
         if encoders is None:
             encoders_input_dims = {
                 k: (model_config.embedding_dcca_dim,) for k in dcca_networks
             }
-            encoders = BaseDictEncoders(encoders_input_dims, model_config.latent_dim)
-        else:
-            model_config.custom_architectures.append("encoders")
+            self.set_encoders(BaseDictEncoders(encoders_input_dims, model_config.latent_dim))
 
         # The default joint_encoder for this model is engineered from the DCCA networks and
         # not from the encoders
         if joint_encoder is None:
             # Create a MultiHead Joint Encoder MLP
-            joint_encoder = MultipleHeadJointEncoder(dcca_networks, model_config)
-        else:
-            model_config.custom_architectures.append("joint_encoder")
-
-        super().__init__(model_config, encoders, decoders, joint_encoder, **kwargs)
+            self.set_joint_encoder(MultipleHeadJointEncoder(dcca_networks, model_config))
+        
         self.DCCA_module = DCCA(self.dcca_config, dcca_networks)
         self.dcca_networks = self.DCCA_module.networks
 
