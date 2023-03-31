@@ -33,6 +33,7 @@ trainer.train()
 model = trainer._best_model
 # validate the model
 coherences = CoherenceEvaluator(model=model,
+                                test_dataset=test_data,
                                 classifiers=load_mmnist_classifiers(device=model.device),
                                 output=trainer.training_dir)
 

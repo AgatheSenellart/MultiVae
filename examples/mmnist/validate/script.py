@@ -15,14 +15,15 @@ from multivae.models.auto_model import AutoConfig, AutoModel
 
 test_set = MMNISTDataset(data_path="../../../data/MMNIST", split="test")
 
-data_path = "dummy_output_dir/JNFDcca_training_2023-03-16_09-14-42/final_model"
+data_path = "dummy_output_dir/MVTCAE_training_2023-03-31_15-42-17/final_model"
 
-clfs = load_mmnist_classifiers()
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+clfs = load_mmnist_classifiers(device=device)
 
 model = AutoModel.load_from_folder(data_path)
 
-eval = CoherenceEvaluator(model, clfs, test_set, data_path)
+output = CoherenceEvaluator(model, clfs, test_set, data_path).eval()
+model.push_to_hf_hub('asenella/mmnist'+ model.model_name + '_config1_')
 
-eval.pair_accuracies()
-eval.all_one_accuracies()
-# eval.joint_nll()
+
+

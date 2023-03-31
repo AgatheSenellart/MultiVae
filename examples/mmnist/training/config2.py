@@ -9,16 +9,14 @@ from torch.utils.data import random_split
 
 from multivae.data.datasets.mmnist import MMNISTDataset
 from multivae.models import BaseMultiVAEConfig
-from multivae.models.nn.mmnist import Decoder_ResNet_AE_MMNIST, Encoder_ResNet_VAE_MMNIST
+from multivae.models.nn.mmnist import DecoderConvMMNIST, EncoderConvMMNIST
 from multivae.trainers import BaseTrainerConfig
-from multivae.models.nn.mmnist import Encoder_ResNet_VAE_MMNIST, Decoder_ResNet_AE_MMNIST
 from multivae.metrics import CoherenceEvaluator, CoherenceEvaluatorConfig
 
 from multivae.trainers.base.base_trainer import BaseTrainer
 from multivae.trainers.base.callbacks import WandbCallback, TrainingCallback, ProgressBarCallback
 
 train_data = MMNISTDataset(data_path="../../../data/MMNIST", split="train")
-test_data = MMNISTDataset(data_path="../../../data/MMNIST", split="test")
 train_data, eval_data = random_split(
     train_data, [0.9, 0.1], generator=torch.Generator().manual_seed(42)
 )
@@ -28,21 +26,21 @@ modalities = ["m0", "m1", "m2", "m3", "m4"]
 
 base_config = dict(
     n_modalities=len(modalities),
-    latent_dim=128,
+    latent_dim=512,
     input_dims={k: (3, 28, 28) for k in modalities},
     decoders_dist={k : 'laplace' for k in modalities },
-    
+    decoder_dist_params={k : {'scale' : 0.75} for k in modalities}
 )
-encoder_class = Encoder_ResNet_VAE_MMNIST
+
 encoders = {
-    k: Encoder_ResNet_VAE_MMNIST(
+    k: EncoderConvMMNIST(
         BaseAEConfig(latent_dim=base_config['latent_dim'], input_dim=(3, 28, 28))
     )
     for k in modalities
 }
 
 decoders = {
-    k: Decoder_ResNet_AE_MMNIST(
+    k: DecoderConvMMNIST(
         BaseAEConfig(latent_dim=base_config['latent_dim'], input_dim=(3, 28, 28))
     )
     for k in modalities
@@ -55,13 +53,11 @@ base_training_config = dict(
     num_epochs=400,
     optimizer_cls='Adam',
     optimizer_params={},
-    scheduler_cls='ReduceLROnPlateau',
-    scheduler_params={'patience' : 7},
     steps_predict=1
 )
 
 wandb_project = 'compare_on_mmnist'
-config_name = '_config1_'
+config_name = '_config2_'
 
 
 #######################################

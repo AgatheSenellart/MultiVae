@@ -12,7 +12,7 @@ model_config = JNFDccaConfig(
 )
 
 dcca_networks = {
-    k: Encoder_ResNet_VAE_MMNIST(
+    k: encoder_class(
         BaseAEConfig(latent_dim=model_config.embedding_dcca_dim, input_dim=(3, 28, 28))
     )
     for k in modalities
@@ -46,6 +46,7 @@ trainer.train()
 
 model = trainer._best_model
 coherences = CoherenceEvaluator(model=model,
+                                test_dataset=test_data,
                                 classifiers=load_mmnist_classifiers(device=model.device),
                                 output=trainer.training_dir)
 

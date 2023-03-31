@@ -57,7 +57,7 @@ class CoherenceEvaluator(Evaluator):
 
         for i in range(len(mean_accs)):
             self.logger.info(
-                f"Conditional accuracies for {i} modalities : {mean_accs[i]} +- {std_accs[i]}"
+                f"Conditional accuracies for {i+1} modalities : {mean_accs[i]} +- {std_accs[i]}"
             )
 
         return mean_accs, std_accs
