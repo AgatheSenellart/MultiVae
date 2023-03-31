@@ -198,4 +198,4 @@ trainer = BaseTrainer(
 
 trainer.train()
 
-trainer._best_model.push_to_hf_hub("asenella/reproducing_mmvae_1")
+trainer._best_model.push_to_hf_hub("asenella/reproducing_mmvae_2")

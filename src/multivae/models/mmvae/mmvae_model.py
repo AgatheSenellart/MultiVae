@@ -176,7 +176,6 @@ class MMVAE(BaseMultiVAE):
         if all([s in self.encoders.keys() for s in cond_mod]):
             # Choose one of the conditioning modalities at random
             mod = np.random.choice(cond_mod)
-            print(mod)
 
             output = self.encoders[mod](inputs.data[mod])
 

@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from typing import Union
+import numpy as np
 
 import torch
 from torchvision.datasets import MNIST, SVHN
@@ -51,14 +52,16 @@ class MnistSvhn(MultimodalBaseDataset):
 
         i_mnist = torch.load(data_path + "/mnist_svhn_idx/" + split + "/mnist_idx.pt")
         i_svhn = torch.load(data_path + "/mnist_svhn_idx/" + split + "/svhn_idx.pt")
-
+        
+        order = np.arange(len(i_mnist))
+        np.random.shuffle(order) # shuffle the samples so that they are not ordered by labels.
         labels = mnist.targets[i_mnist]
 
         # Resample the datasets
         data_mnist = (mnist.data / 255).unsqueeze(1)
         data_svhn = torch.FloatTensor(svhn.data) / 255
-        mnist = ResampleDataset(data_mnist, lambda d, i: i_mnist[i], size=len(i_mnist))
-        svhn = ResampleDataset(data_svhn, lambda d, i: i_svhn[i], size=len(i_svhn))
+        mnist = ResampleDataset(data_mnist, lambda d, i: i_mnist[order[i]], size=len(i_mnist))
+        svhn = ResampleDataset(data_svhn, lambda d, i: i_svhn[order[i]], size=len(i_svhn))
         data = dict(mnist=mnist, svhn=svhn)
 
         self.data_path = data_path

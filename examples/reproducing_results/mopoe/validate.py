@@ -71,7 +71,8 @@ data_path = "dummy_output_dir/MoPoE_training_2023-03-30_12-08-11/final_model"
 device = "cuda" if torch.cuda.is_available() else "cpu"
 clfs = load_mmnist_classifiers(device=device)
 
-model = AutoModel.load_from_folder(data_path)
+# model = AutoModel.load_from_folder(data_path)
+model = AutoModel.load_from_hf_hub('asenella/reproducing_mopoe_2', allow_pickle=True)
 
 coherences = CoherenceEvaluator(model, clfs, test_set, data_path).eval()
 

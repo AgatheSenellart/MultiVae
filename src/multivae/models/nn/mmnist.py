@@ -233,7 +233,7 @@ class Encoder_ResNet_VAE_MMNIST(BaseEncoder):
         return output
 
 
-class Decoder_ResNet_AE_MNIST(BaseDecoder):
+class Decoder_ResNet_AE_MMNIST(BaseDecoder):
     """
     A ResNet decoder suited for MNIST and Autoencoder-based
     models.

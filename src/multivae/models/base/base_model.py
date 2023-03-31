@@ -587,7 +587,7 @@ class BaseMultiVAE(nn.Module):
         for file in model_files:
             hf_operations.append(
                 CommitOperationAdd(
-                    path_in_repo=file,
+                    path_in_repo= file,
                     path_or_fileobj=f"{str(os.path.join(tempdir, file))}",
                 )
             )
