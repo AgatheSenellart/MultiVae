@@ -2,7 +2,7 @@ import torch
 from pythae.models.base.base_config import BaseAEConfig
 from torch.utils.data import DataLoader, random_split
 
-from multivae.data.datasets import MMNISTDataset
+from multivae.data.datasets.mmnist import MMNISTDataset
 from multivae.data.datasets.utils import save_all_images
 from multivae.data.utils import set_inputs_to_device
 from multivae.models import MVTCAE, MVTCAEConfig
@@ -28,21 +28,21 @@ model_config = MVTCAEConfig(
     n_modalities=5,
     input_dims={k: (3, 28, 28) for k in modalities},
     latent_dim=128,
-    # decoders_dist={m : 'laplace' for m in modalities },
-    beta=2.5 * 0.75,
-    alpha=5.0 / 6.0,
+    decoders_dist={m : 'laplace' for m in modalities },
+    beta=2.5 ,
+    alpha=5.0 / 6.0
 )
 
 
 encoders = {
-    k: Encoder_VAE_MLP(
+    k: Encoder_ResNet_VAE_MMNIST(
         BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3, 28, 28))
     )
     for k in modalities
 }
 
 decoders = {
-    k: Decoder_AE_MLP(
+    k: Decoder_ResNet_AE_MNIST(
         BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3, 28, 28))
     )
     for k in modalities
@@ -51,11 +51,10 @@ decoders = {
 model = MVTCAE(model_config, encoders=encoders, decoders=decoders)
 
 trainer_config = BaseTrainerConfig(
-    num_epochs=800,
-    learning_rate=1e-4,
+    num_epochs=300,
+    learning_rate=1e-3,
     steps_predict=1,
     per_device_train_batch_size=128,
-    steps_saving=20,
 )
 
 # Set up callbacks

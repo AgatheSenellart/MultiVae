@@ -70,4 +70,3 @@ model = AutoModel.load_from_folder(data_path)
 
 coherences = CoherenceEvaluator(model, clfs, test_set, data_path).eval()
 
-print(coherences)

@@ -141,6 +141,8 @@ class DecoderSVHN(BaseDecoder):
 
 # Dataset
 train_set = MnistSvhn(split="train", data_multiplication=20)
+test_set = MnistSvhn(split="test", data_multiplication=20)
+
 
 # Model config
 model_config = MMVAEConfig(
@@ -170,10 +172,14 @@ model = MMVAE(
 # Training
 
 training_config = BaseTrainerConfig(
+    learning_rate=1e-3,
     per_device_train_batch_size=128,
     per_device_eval_batch_size=128,
     num_epochs=30,
-    start_keep_best_epoch=30,  # save the model at each iteration without regards to the loss
+    start_keep_best_epoch=30, # save the model at each iteration without regards to the loss
+    optimizer_cls="Adam",
+    optimizer_params={'amsgrad' : True},
+    steps_predict=1
 )
 
 # Set up callbacks
@@ -185,10 +191,11 @@ callbacks = [ProgressBarCallback(), wandb_cb]
 trainer = BaseTrainer(
     model=model,
     train_dataset=train_set,
+    eval_dataset=test_set,
     training_config=training_config,
     callbacks=callbacks,
 )
 
 trainer.train()
 
-trainer._best_model.push_to_hf_hub("asenella/reproducing_mmvae")
+trainer._best_model.push_to_hf_hub("asenella/reproducing_mmvae_1")

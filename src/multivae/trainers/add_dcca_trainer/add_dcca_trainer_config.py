@@ -52,3 +52,4 @@ class AddDccaTrainerConfig(BaseTrainerConfig):
 
     per_device_dcca_train_batch_size: int = 500
     per_device_dcca_eval_batch_size: int = 500
+    learning_rate_dcca: float = 1e-4

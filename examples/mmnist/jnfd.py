@@ -2,7 +2,7 @@ import torch
 from pythae.models.base.base_config import BaseAEConfig
 from torch.utils.data import DataLoader, random_split
 
-from multivae.data.datasets import MMNISTDataset
+from multivae.data.datasets.mmnist import MMNISTDataset
 from multivae.data.datasets.utils import save_all_images
 from multivae.data.utils import set_inputs_to_device
 from multivae.models import JNFDcca, JNFDccaConfig
@@ -27,8 +27,8 @@ model_config = JNFDccaConfig(
     n_modalities=5,
     input_dims={k: (3, 28, 28) for k in modalities},
     latent_dim=512,
-    nb_epochs_dcca=100,
-    warmup=300,
+    nb_epochs_dcca=200,
+    warmup=200,
     use_likelihood_rescaling=True,
     decoders_dist={k: "laplace" for k in modalities},
     embedding_dcca_dim=20,
@@ -53,8 +53,9 @@ model = JNFDcca(
 )
 
 trainer_config = AddDccaTrainerConfig(
-    num_epochs=100 + 300 + 300,
-    learning_rate=1e-4,
+    num_epochs=200 + 200 + 200,
+    learning_rate=1e-3,
+    learning_rate_dcca=1e-4,
     steps_predict=1,
     per_device_dcca_train_batch_size=800,
     per_device_train_batch_size=256,
