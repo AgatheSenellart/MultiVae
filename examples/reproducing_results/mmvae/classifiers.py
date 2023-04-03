@@ -47,13 +47,13 @@ class MNIST_Classifier(nn.Module):
         x = self.fc2(x)
         return F.log_softmax(x, dim=-1)
 
-def load_mnist_svhn_classifiers(data_path):
+def load_mnist_svhn_classifiers(data_path, device='cuda'):
     c1 = MNIST_Classifier()
-    c1.load_state_dict(torch.load(f'{data_path}/mnist.pt'))
+    c1.load_state_dict(torch.load(f'{data_path}/mnist.pt', map_location=device))
     c2 = SVHN_Classifier()
-    c2.load_state_dict(torch.load(f'{data_path}/svhn.pt'))
-    return {'mnist' : c1,
-            'svhn' : c2}
+    c2.load_state_dict(torch.load(f'{data_path}/svhn.pt',map_location=device))
+    return {'mnist' : c1.to(device),
+            'svhn' : c2.to(device)}
 
 if __name__ == '__main__':
     

@@ -2,6 +2,7 @@ from typing import Union
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 import torch.distributions as dist
 from pythae.models.base.base_utils import ModelOutput
 from torch.distributions import Laplace, Normal
@@ -65,7 +66,7 @@ class MMVAE(BaseMultiVAE):
         """
         
         if self.model_config.prior_and_posterior_dist ==  "laplace_with_softmax":
-            return torch.softmax(log_var, dim=-1)*log_var.size(-1) + 1e-6
+            return F.softmax(log_var, dim=-1)*log_var.size(-1) + 1e-6
         else : 
             return torch.exp(0.5 * log_var)
             
@@ -80,7 +81,7 @@ class MMVAE(BaseMultiVAE):
         """
         mean =  self.prior_mean
         if self.model_config.prior_and_posterior_dist ==  "laplace_with_softmax":
-            std =  torch.softmax(self.prior_log_var, dim=-1) * self.latent_dim
+            std =  F.softmax(self.prior_log_var, dim=-1) * self.prior_log_var.size(-1)
         else : 
             std = torch.exp(0.5 * self.prior_log_var)
         return mean, std
@@ -93,6 +94,7 @@ class MMVAE(BaseMultiVAE):
         # First compute all the encodings for all modalities
         embeddings = {}
         qz_xs = {}
+        qz_xs_detach = {}
         reconstructions = {}
         n_batch = len(list(inputs.data.values())[0])
 
@@ -100,9 +102,10 @@ class MMVAE(BaseMultiVAE):
             output = self.encoders[cond_mod](inputs.data[cond_mod])
             mu, log_var = output.embedding, output.log_covariance
             sigma = self.log_var_to_std(log_var)
-            z_x = self.post_dist(mu, sigma).rsample([self.K])
+            qz_x = self.post_dist(mu, sigma)
+            z_x = qz_x.rsample([self.K])
             # The DREG loss uses detached parameters in the loss computation afterwards.
-            qz_x = self.post_dist(mu.detach(), sigma.detach())
+            qz_x_detach = self.post_dist(mu.detach(), sigma.detach())
 
             # Then compute all the cross-modal reconstructions
             reconstructions[cond_mod] = {}
@@ -113,9 +116,10 @@ class MMVAE(BaseMultiVAE):
 
             qz_xs[cond_mod] = qz_x
             embeddings[cond_mod] = z_x
+            qz_xs_detach[cond_mod] = qz_x_detach
 
         # Compute DREG loss
-        output = self.dreg_looser(qz_xs, embeddings, reconstructions, inputs)
+        output = self.dreg_looser(qz_xs_detach, embeddings, reconstructions, inputs)
         return output
 
     def dreg_looser(self, qz_xs, embeddings, reconstructions, inputs):
@@ -133,11 +137,11 @@ class MMVAE(BaseMultiVAE):
                 K, n_batch = x_recon.shape[0], x_recon.shape[1]
                 lpx_z += (
                     self.recon_log_probs[recon_mod](
-                        x_recon, torch.stack([inputs.data[recon_mod]] * K)
+                        x_recon, inputs.data[recon_mod]
                     )
-                    .reshape(K, n_batch, -1)
+                    .view(K, n_batch, -1)
+                    .mul(self.rescale_factors[recon_mod])
                     .sum(-1)
-                    * self.rescale_factors[recon_mod]
                 )
             loss = lpx_z + lpz - lqz_x
             lw.append(loss)
@@ -150,8 +154,7 @@ class MMVAE(BaseMultiVAE):
             if zss.requires_grad:  # True except when we are in eval mode
                 zss.register_hook(lambda grad: grad_wt.unsqueeze(-1) * grad)
 
-        lw = (lw * grad_wt).mean(0).sum()
-
+        lw = (grad_wt * lw).mean(0).sum()
         return ModelOutput(loss=-lw, metrics=dict())
 
     def encode(
@@ -261,5 +264,5 @@ class MMVAE(BaseMultiVAE):
 
     def generate_from_prior(self, n_samples):
         sample_shape = [n_samples] if n_samples > 1 else []
-        z = self.prior_dist(self.prior_mean, self.prior_std).rsample(sample_shape)
+        z = self.prior_dist(*self.prior_params).rsample(sample_shape)
         return ModelOutput(z=z, one_latent_space=True)

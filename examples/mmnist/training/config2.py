@@ -9,7 +9,7 @@ from torch.utils.data import random_split
 
 from multivae.data.datasets.mmnist import MMNISTDataset
 from multivae.models import BaseMultiVAEConfig
-from multivae.models.nn.mmnist import DecoderConvMMNIST, EncoderConvMMNIST
+from multivae.models.nn.mmnist import DecoderConvMMNIST, EncoderConvMMNIST_adapted
 from multivae.trainers import BaseTrainerConfig
 from multivae.metrics import CoherenceEvaluator, CoherenceEvaluatorConfig
 
@@ -17,6 +17,8 @@ from multivae.trainers.base.base_trainer import BaseTrainer
 from multivae.trainers.base.callbacks import WandbCallback, TrainingCallback, ProgressBarCallback
 
 train_data = MMNISTDataset(data_path="../../../data/MMNIST", split="train")
+test_data = MMNISTDataset(data_path="../../../data/MMNIST", split="test")
+
 train_data, eval_data = random_split(
     train_data, [0.9, 0.1], generator=torch.Generator().manual_seed(42)
 )
@@ -31,9 +33,9 @@ base_config = dict(
     decoders_dist={k : 'laplace' for k in modalities },
     decoder_dist_params={k : {'scale' : 0.75} for k in modalities}
 )
-
+encoder_class = EncoderConvMMNIST_adapted
 encoders = {
-    k: EncoderConvMMNIST(
+    k: EncoderConvMMNIST_adapted(
         BaseAEConfig(latent_dim=base_config['latent_dim'], input_dim=(3, 28, 28))
     )
     for k in modalities
@@ -53,7 +55,9 @@ base_training_config = dict(
     num_epochs=400,
     optimizer_cls='Adam',
     optimizer_params={},
-    steps_predict=1
+    steps_predict=5,
+    scheduler_cls='ReduceLROnPlateau',
+    scheduler_params={'patience' : 10}
 )
 
 wandb_project = 'compare_on_mmnist'

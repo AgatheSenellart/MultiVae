@@ -1,7 +1,7 @@
 
 from multivae.models import JNF, JNFConfig
 from multivae.trainers import TwoStepsTrainer,TwoStepsTrainerConfig
-from config1 import *
+from config2 import *
 
 
 model_config = JNFConfig(
@@ -37,6 +37,6 @@ model = trainer._best_model
 coherences = CoherenceEvaluator(model=model,
                                 test_dataset=test_data,
                                 classifiers=load_mmnist_classifiers(device=model.device),
-                                output=trainer.training_dir)
+                                output=trainer.training_dir).eval()
 
 trainer._best_model.push_to_hf_hub('asenella/mmnist'+ model.model_name + config_name)

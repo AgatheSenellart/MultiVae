@@ -47,9 +47,10 @@ class CoherenceEvaluator(Evaluator):
         modalities = list(self.model.encoders.keys())
         accs = []
         for n in range(1, self.model.n_modalities):
-            subsets_of_size_n = combinations(modalities, n)
+            subsets_of_size_n = combinations(modalities, n,)
             accs.append([])
             for s in subsets_of_size_n:
+                s = list(s)
                 _, mean_acc = self.all_accuracies_from_subset(s)
                 accs[-1].append(mean_acc)
         mean_accs = [np.mean(l) for l in accs]
