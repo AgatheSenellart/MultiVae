@@ -9,23 +9,36 @@ from classifiers import load_mmnist_classifiers
 from multivae.data.datasets.mmnist import MMNISTDataset
 import matplotlib.pyplot as plt
 
-clfs = load_mmnist_classifiers()
-test_set = MMNISTDataset(data_path="../../../data/MMNIST", split="test")
+# clfs = load_mmnist_classifiers()
+# test_set = MMNISTDataset(data_path="../../../data/MMNIST", split="test")
 
-models = {
-    # 'JNF' : ['asenella/mmnistJNF_config1_'],
-    # 'JNFDcca' : ['asenella/mmnistJNFDcca_config1_'],
-    'MVTCAE' : ['asenella/mmnistMVTCAE_config1_']
+# models = {
+#     # 'JNF' : ['asenella/mmnistJNF_config1_'],
+#     # 'JNFDcca' : ['asenella/mmnistJNFDcca_config1_'],
+#     'MVTCAE' : ['asenella/mmnistMVTCAE_config1_']
+# }
+
+# results = {}
+# for model_name in models:
+#     results[model_name] = np.zeros((len(models[model_name]),5))
+#     for i,model_instance in enumerate(models[model_name]):
+#         model = AutoModel.load_from_hf_hub(model_instance, allow_pickle=True)
+#         acc = CoherenceEvaluator(model, clfs,test_set,output=None).eval()
+#         results[model_name][i][0] += acc.joint_coherence
+#         results[model_name][i][1:] += np.array(acc.means_coherences)
+
+# config1
+results = {
+    'JNF' : [[0.08,0.65,0.76,0.84,0.85]],
+    'JNFDcca' : [[0.03,0.57,0.70,0.75,0.77]],
+    'MVTCAE' : [[0.005,0.46,0.63,0.71,0.75]]
 }
 
-results = {}
-for model_name in models:
-    results[model_name] = np.zeros((len(models[model_name]),5))
-    for i,model_instance in enumerate(models[model_name]):
-        model = AutoModel.load_from_hf_hub(model_instance, allow_pickle=True)
-        acc = CoherenceEvaluator(model, clfs,test_set,output=None).eval()
-        results[model_name][i][0] += acc.joint_coherence
-        results[model_name][i][1:] += np.array(acc.means_coherences)
+# config2
+results = {
+    'JNF' : [0.03,0.58,0.72,0.78,0.81],
+    'MVTCAE' : [0.003,0.61, 0.78,0.85,0.87]
+}
 
 # Plots
 fig = plt.figure()

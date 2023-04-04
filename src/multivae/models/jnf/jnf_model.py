@@ -168,7 +168,7 @@ class JNF(BaseJointModel):
         N: int = 1,
         **kwargs,
     ) -> ModelOutput:
-        self.eval()
+        
 
         if type(cond_mod) == list and len(cond_mod) == 1:
             cond_mod = cond_mod[0]
@@ -303,7 +303,7 @@ class JNF(BaseJointModel):
         subset,
         data,
         ax=None,
-        mcmc_steps=100,
+        mcmc_steps=300,
         n_lf=10,
         eps_lf=0.01,
         K=1,

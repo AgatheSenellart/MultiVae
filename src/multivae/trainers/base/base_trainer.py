@@ -201,7 +201,7 @@ class BaseTrainer:
 
     def set_optimizer(self):
         optimizer_cls = getattr(optim, self.training_config.optimizer_cls)
-
+        logger.info(f'Setting the optimizer with learning rate {self.training_config.learning_rate}')
         if self.training_config.optimizer_params is not None:
             optimizer = optimizer_cls(
                 self.model.parameters(),

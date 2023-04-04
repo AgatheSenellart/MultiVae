@@ -23,7 +23,7 @@ clfs = load_mmnist_classifiers(device=device)
 model = AutoModel.load_from_folder(data_path)
 
 output = CoherenceEvaluator(model, clfs, test_set, data_path).eval()
-model.push_to_hf_hub('asenella/mmnist'+ model.model_name + '_config2_')
+# model.push_to_hf_hub('asenella/mmnist'+ model.model_name + '_config2_')
 
 
 

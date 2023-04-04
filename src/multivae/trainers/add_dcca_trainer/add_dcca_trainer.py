@@ -61,9 +61,8 @@ class AddDccaTrainer(BaseTrainer):
         # TODO : maybe check that the chosen batch size is large enough and
         # that the chosen dcca batch size does'nt result in a large loss of data
 
-        self.train_loader_vae = self.train_loader
+        
         self.train_loader = self.get_train_dataloader_dcca(train_dataset)
-        self.eval_loader_vae = self.eval_loader
         self.eval_loader = self.get_eval_dataloader_dcca(eval_dataset)
         self.training_config.learning_rate_vae = self.training_config.learning_rate
         self.training_config.learning_rate = self.training_config.learning_rate_dcca
@@ -117,15 +116,19 @@ class AddDccaTrainer(BaseTrainer):
             )
             # Change the train and eval_loader and reset the optimizer
 
-            self.train_loader = self.train_loader_vae
-            self.train_loader = self.eval_loader_vae
+            self.train_loader = self.get_train_dataloader(self.train_dataset)
+            self.eval_loader = self.get_eval_dataloader(self.eval_dataset)
+            logger.info(
+                f"Using train_loader with batch_size {len(self.train_dataset)// len(self.train_loader)} \n" +
+                f"Using eval_loader with batch_size {len(self.eval_dataset)// len(self.eval_loader)} \n"
+            )
             self.training_config.learning_rate = self.training_config.learning_rate_vae
             self.set_optimizer()
             self.set_scheduler()
             best_train_loss = 1e10
             best_eval_loss = 1e10
 
-        elif epoch == self.model.nb_epochs_dcca + self.model.warmup + 2:
+        elif epoch == self.model.nb_epochs_dcca + self.model.warmup + 1:
             # Just reset the optimizer
             logger.info(
                 "End the training of the joint VAE and move on to learning the unimodal "
