@@ -23,7 +23,8 @@ model = JNFDcca(model_config, dcca_networks=dcca_networks, decoders=decoders)
 trainer_config = AddDccaTrainerConfig(
     **base_training_config,
     learning_rate_dcca=1e-4,
-    per_device_dcca_eval_batch_size=800
+    per_device_dcca_train_batch_size=500,
+    per_device_dcca_eval_batch_size=500
 )
 trainer_config.num_epochs += model_config.nb_epochs_dcca # Add the DCCA time to overall number of epochs
 

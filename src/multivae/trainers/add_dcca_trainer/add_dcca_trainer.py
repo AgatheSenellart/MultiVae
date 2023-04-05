@@ -97,7 +97,7 @@ class AddDccaTrainer(BaseTrainer):
             eval_sampler = None
         return DataLoader(
             dataset=eval_dataset,
-            batch_size=self.training_config.per_device_eval_batch_size,
+            batch_size=self.training_config.per_device_dcca_eval_batch_size,
             num_workers=self.training_config.eval_dataloader_num_workers,
             shuffle=(eval_sampler is None),
             sampler=eval_sampler,

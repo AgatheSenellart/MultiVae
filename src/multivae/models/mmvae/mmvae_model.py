@@ -50,11 +50,8 @@ class MMVAE(BaseMultiVAE):
                 f" {model_config.prior_and_posterior_dist} was provided."
             )
 
-        self.prior_mean = torch.nn.Parameter(torch.zeros((self.latent_dim,)))
-        self.prior_log_var = torch.nn.Parameter(torch.zeros((self.latent_dim,)))
-
-        self.prior_mean.requires_grad_(False) # The mean is frozen
-        self.prior_log_var.requires_grad_(model_config.learn_prior)
+        self.prior_mean = torch.nn.Parameter(torch.zeros(1,self.latent_dim), requires_grad=False)
+        self.prior_log_var = torch.nn.Parameter(torch.zeros(1,self.latent_dim), requires_grad=model_config.learn_prior)
 
         self.model_name = "MMVAE"
         
@@ -71,7 +68,7 @@ class MMVAE(BaseMultiVAE):
             return torch.exp(0.5 * log_var)
             
     @property   
-    def prior_params(self):
+    def pz_params(self):
         """ From the prior mean and log_covariance, return the mean and standard
         deviation, either applying softmax or not depending on the choice of prior 
         distribution.
@@ -81,7 +78,7 @@ class MMVAE(BaseMultiVAE):
         """
         mean =  self.prior_mean
         if self.model_config.prior_and_posterior_dist ==  "laplace_with_softmax":
-            std =  F.softmax(self.prior_log_var, dim=-1) * self.prior_log_var.size(-1)
+            std =  F.softmax(self.prior_log_var, dim=1) * self.prior_log_var.size(-1)
         else : 
             std = torch.exp(0.5 * self.prior_log_var)
         return mean, std
@@ -119,15 +116,20 @@ class MMVAE(BaseMultiVAE):
             qz_xs_detach[cond_mod] = qz_x_detach
 
         # Compute DREG loss
-        output = self.dreg_looser(qz_xs_detach, embeddings, reconstructions, inputs)
-        return output
+        loss_output = self.dreg_looser(qz_xs_detach, embeddings, reconstructions, inputs)
+        
+        # loss_output['qz_xs_detach'] = qz_xs_detach
+        # loss_output['zss'] = embeddings
+        # loss_output['recon'] = reconstructions
+        
+        return loss_output
 
     def dreg_looser(self, qz_xs, embeddings, reconstructions, inputs):
-        lw = []
+        lws = []
         zss = []
         for mod in embeddings:
             z = embeddings[mod]  # (K, n_batch, latent_dim)
-            prior = self.prior_dist(*self.prior_params)
+            prior = self.prior_dist(*self.pz_params)
             lpz = prior.log_prob(z).sum(-1)
             lqz_x = torch.stack([qz_xs[m].log_prob(z).sum(-1) for m in qz_xs])
             lqz_x = torch.logsumexp(lqz_x, dim=0) - np.log(lqz_x.size(0)) #log_mean_exp
@@ -143,19 +145,19 @@ class MMVAE(BaseMultiVAE):
                     .mul(self.rescale_factors[recon_mod])
                     .sum(-1)
                 )
-            loss = lpx_z + lpz - lqz_x
-            lw.append(loss)
+            lw = lpx_z + lpz - lqz_x
+            lws.append(lw)
             zss.append(z)
 
-        lw = torch.stack(lw)  # (n_modalities, K, n_batch)
+        lws = torch.stack(lws)  # (n_modalities, K, n_batch)
         zss = torch.stack(zss)  # (n_modalities, K, n_batch,latent_dim)
         with torch.no_grad():
-            grad_wt = (lw - torch.logsumexp(lw, 1, keepdim=True)).exp()
+            grad_wt = (lws - torch.logsumexp(lws, 1, keepdim=True)).exp()
             if zss.requires_grad:  # True except when we are in eval mode
                 zss.register_hook(lambda grad: grad_wt.unsqueeze(-1) * grad)
 
-        lw = (grad_wt * lw).mean(0).sum()
-        return ModelOutput(loss=-lw, metrics=dict())
+        lws = (grad_wt * lws).mean(0).sum()
+        return ModelOutput(loss=-lws, metrics=dict())
 
     def encode(
         self,
@@ -264,5 +266,5 @@ class MMVAE(BaseMultiVAE):
 
     def generate_from_prior(self, n_samples):
         sample_shape = [n_samples] if n_samples > 1 else []
-        z = self.prior_dist(*self.prior_params).rsample(sample_shape)
+        z = self.prior_dist(*self.pz_params).rsample(sample_shape)
         return ModelOutput(z=z, one_latent_space=True)

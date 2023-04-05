@@ -58,8 +58,9 @@ class MnistSvhn(MultimodalBaseDataset):
         labels = mnist.targets[i_mnist][order]
 
         # Resample the datasets
-        data_mnist = (mnist.data / 255).unsqueeze(1)
-        data_svhn = torch.FloatTensor(svhn.data) / 255
+
+        data_mnist = mnist.data.float().div(255).unsqueeze(1)
+        data_svhn = torch.FloatTensor(svhn.data).div(255)
         mnist = ResampleDataset(data_mnist, lambda d, i: i_mnist[order[i]], size=len(i_mnist))
         svhn = ResampleDataset(data_svhn, lambda d, i: i_svhn[order[i]], size=len(i_svhn))
         data = dict(mnist=mnist, svhn=svhn)
