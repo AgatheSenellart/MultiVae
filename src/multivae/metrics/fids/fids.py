@@ -14,6 +14,11 @@ from .inception_networks import wrapper_inception
 from torchvision.transforms import Resize
 from torch.utils.data import TensorDataset
 
+try :
+    from tqdm import tqdm
+except:
+    def tqdm(x):
+        return x
 
 class FIDEvaluator(Evaluator):
     """
@@ -55,32 +60,30 @@ class FIDEvaluator(Evaluator):
         Calculates the activations of the pool_3 layer for all images.
         """
         self.model.eval()
-
+        activations = [[],[]]
         
-        dataloader = torch.utils.data.DataLoader(self.dataset,
-                                                batch_size=self.batch_size,
-                                                shuffle=False,
-                                                drop_last=False)
-        
-        activations = [torch.tensor(), torch.tensor()]
-        
-        for batch in dataloader:
+        for batch in tqdm(self.test_loader):
             # Compute activations for true data
-            data = self.inception_transform(batch.data[mod])
+            data = self.inception_transform(batch.data[mod]).to(self.device)
             pred = self.model_fd(data)
-            activations[0] = torch.cat(activations[0],pred)
+            activations[0].append(pred)
             
             # Compute activations for generated data
             latents = generate_latent_function(n_samples= len(data))
+            latents.z = latents.z.to(self.device)
             samples = self.model.decode(latents,modalities=mod)
-            data_gen = self.inception_transform(samples.data[mod])
+            data_gen = self.inception_transform(samples[mod])
             pred_gen = self.model_fd(data_gen)
-            activations[1] = torch.cat(activations[1],pred_gen)
+            print(pred_gen.shape)
+            
+            activations[1].append(pred_gen)
+
+        activations = [np.concatenate(l, axis=0) for l in activations]
 
         # Compute activation statistics
         mus = [np.mean(act, axis=0) for act in activations]
         sigmas = [np.cov(act, rowvar=False) for act in activations]
-        
+        print(mus[0].shape, mus[1].shape)
         fd = self.calculate_frechet_distance(mus[0], sigmas[0],mus[1], sigmas[1])
         return fd
 
@@ -110,7 +113,8 @@ class FIDEvaluator(Evaluator):
         sigma2 = np.atleast_2d(sigma2)
 
         assert mu1.shape == mu2.shape, \
-            'Training and test mean vectors have different lengths'
+            f'Training and test mean vectors have different lengths. mu1 has shape {mu1.shape}'\
+            f'whereas mu2 has shape {mu2.shape}'
         assert sigma1.shape == sigma2.shape, \
             'Training and test covariances have different dimensions'
 
@@ -145,11 +149,13 @@ class FIDEvaluator(Evaluator):
         # Generate data from the prior and computes FID for each modality
         generate_function = self.model.generate_from_prior
         for mod in self.model.encoders:
+            self.logger.info(f"Start computing FID for modality {mod}")
             fd = self.get_frechet_distance(mod,generate_function)
             output[f'fd_{mod}'] = fd
             self.logger.info(f'The FD for modality {mod} is {fd}')
         
         # TODO : Comput Frechet distances for conditional generation
+        
         return output
         
                 

@@ -35,6 +35,7 @@ class Evaluator:
         self.model = model.to(self.device)
         self.n_data = len(test_dataset)
         self.batch_size = eval_config.batch_size
+        self.test_dataset = test_dataset
         self.test_loader = DataLoader(test_dataset, batch_size=eval_config.batch_size)
         self.set_logger(output)
 
