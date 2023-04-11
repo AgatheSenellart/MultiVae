@@ -703,7 +703,7 @@ class BaseMultiVAE(nn.Module):
 
             return model
 
-    def generate_from_prior(self, n_samples):
+    def generate_from_prior(self, n_samples,**kwargs):
         """
         Generate latent samples from the prior distribution.
         This is the base class in which we consider a static standard Normal Prior.

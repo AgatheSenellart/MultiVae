@@ -27,7 +27,10 @@ clfs = load_mmnist_classifiers(device=device)
 tmp_output = tempfile.mkdtemp()
 
 # output = CoherenceEvaluator(model, clfs, test_set, tmp_output).eval()
-output = FIDEvaluator(model,test_set).eval()
+output = FIDEvaluator(model,test_set, tmp_output).compute_all_cond_fid_for_mod('m0')
+output = FIDEvaluator(model,test_set, tmp_output).mvtcae_reproduce_fids('m0')
+
+# output = FIDEvaluator(model,test_set, tmp_output).eval()
 
 # api = HfApi()
 # api.upload_file(

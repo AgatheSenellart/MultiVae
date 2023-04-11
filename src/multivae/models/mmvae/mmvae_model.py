@@ -211,12 +211,12 @@ class MMVAE(BaseMultiVAE):
         )
 
         # First compute all the parameters of the joint posterior q(z|x,y)
-        qz_xs = []
+        post_params = []
         for cond_mod in self.encoders:
             output = self.encoders[cond_mod](inputs.data[cond_mod])
             mu, log_var = output.embedding, output.log_covariance
             sigma = self.log_var_to_std(log_var)
-            qz_xs.append(self.post_dist(mu, sigma))
+            post_params.append((mu, sigma))
 
         z_joint = self.encode(inputs, N=K).z
         z_joint = z_joint.permute(1, 0, 2)
@@ -244,11 +244,11 @@ class MMVAE(BaseMultiVAE):
                     lpx_zs += self.recon_log_probs[mod](recon, x_m).sum(dim=dim_reduce)
 
                 # Compute ln(p(z))
-                prior = self.prior_dist(self.prior_mean, self.prior_std)
+                prior = self.prior_dist(*self.pz_params)
                 lpz = prior.log_prob(latents).sum(dim=-1)
 
                 # Compute posteriors -ln(q(z|x,y))
-
+                qz_xs = [self.post_dist(p[0][i], p[1][i]) for p in post_params]
                 lqz_xy = torch.logsumexp(
                     torch.stack([q.log_prob(latents).sum(-1) for q in qz_xs]), dim=0
                 ) - np.log(self.n_modalities)
@@ -267,4 +267,4 @@ class MMVAE(BaseMultiVAE):
     def generate_from_prior(self, n_samples):
         sample_shape = [n_samples] if n_samples > 1 else []
         z = self.prior_dist(*self.pz_params).rsample(sample_shape)
-        return ModelOutput(z=z, one_latent_space=True)
+        return ModelOutput(z=z.squeeze(), one_latent_space=True)
