@@ -28,18 +28,28 @@ class Test:
         data = dict(
             mod1=torch.Tensor([[1.0, 2.0], [4.0, 5.0]]),
             mod2=torch.Tensor([[67.1, 2.3, 3.0], [1.3, 2.0, 3.0]]),
+            mod3=torch.Tensor([[67.1, 2.3, 3.0, 4], [1.3, 2.0, 3.0, 4]]),
         )
         labels = np.array([0, 1])
         dataset = MultimodalBaseDataset(data, labels)
 
         # Create an instance of jmvae model
-        model_config = JMVAEConfig(n_modalities=2, latent_dim=5)
+        model_config = JMVAEConfig(n_modalities=3, latent_dim=5)
         config1 = BaseAEConfig(input_dim=(2,), latent_dim=5)
         config2 = BaseAEConfig(input_dim=(3,), latent_dim=5)
+        config3 = BaseAEConfig(input_dim=(4,), latent_dim=5)
 
-        encoders = dict(mod1=Encoder_VAE_MLP(config1), mod2=Encoder_VAE_MLP(config2))
+        encoders = dict(
+            mod1=Encoder_VAE_MLP(config1),
+            mod2=Encoder_VAE_MLP(config2),
+            mod3=Encoder_VAE_MLP(config3),
+        )
 
-        decoders = dict(mod1=Decoder_AE_MLP(config1), mod2=Decoder_AE_MLP(config2))
+        decoders = dict(
+            mod1=Decoder_AE_MLP(config1),
+            mod2=Decoder_AE_MLP(config2),
+            mod3=Decoder_AE_MLP(config3),
+        )
 
         return dict(
             model_config=model_config,
@@ -52,7 +62,7 @@ class Test:
         model = JMVAE(**input1)
 
         assert model.alpha == input1["model_config"].alpha
-        assert not model.model_config.uses_default_encoders
+
         loss = model(input1["dataset"], epoch=2, warmup=2).loss
         assert type(loss) == torch.Tensor
         assert loss.size() == torch.Size([])
@@ -63,13 +73,16 @@ class Test:
         data = dict(
             mod1=torch.Tensor([[1.0, 2.0], [4.0, 5.0]]),
             mod2=torch.Tensor([[67.1, 2.3, 3.0], [1.3, 2.0, 3.0]]),
+            mod3=torch.Tensor([[67.1, 2.3, 3.0, 4], [1.3, 2.0, 3.0, 4]]),
         )
         labels = np.array([0, 1])
         dataset = MultimodalBaseDataset(data, labels)
 
         # Create an instance of jmvae model
         model_config = JMVAEConfig(
-            n_modalities=2, latent_dim=5, input_dims=dict(mod1=(2,), mod2=(3,))
+            n_modalities=3,
+            latent_dim=5,
+            input_dims=dict(mod1=(2,), mod2=(3,), mod3=(4,)),
         )
 
         return dict(model_config=model_config, dataset=dataset)
@@ -258,19 +271,9 @@ class TestTraining:
             set(files_list)
         )
 
-        # check pickled custom decoder
-        if not model.model_config.uses_default_decoders:
-            assert "decoders.pkl" in files_list
-
-        else:
-            assert not "decoders.pkl" in files_list
-
-        # check pickled custom encoder
-        if not model.model_config.uses_default_encoders:
-            assert "encoders.pkl" in files_list
-
-        else:
-            assert not "encoders.pkl" in files_list
+        # check pickled custom architectures
+        for archi in model.model_config.custom_architectures:
+            assert archi + ".pkl" in files_list
 
         model_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "model.pt"))[
             "model_state_dict"
@@ -349,19 +352,9 @@ class TestTraining:
             set(files_list)
         )
 
-        # check pickled custom decoder
-        if not model.model_config.uses_default_decoders:
-            assert "decoders.pkl" in files_list
-
-        else:
-            assert not "decoders.pkl" in files_list
-
-        # check pickled custom encoder
-        if not model.model_config.uses_default_encoders:
-            assert "encoders.pkl" in files_list
-
-        else:
-            assert not "encoders.pkl" in files_list
+        # check pickled custom architectures
+        for archi in model.model_config.custom_architectures:
+            assert archi + ".pkl" in files_list
 
         model_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "model.pt"))[
             "model_state_dict"
@@ -395,19 +388,9 @@ class TestTraining:
             set(files_list)
         )
 
-        # check pickled custom decoder
-        if not model.model_config.uses_default_decoders:
-            assert "decoders.pkl" in files_list
-
-        else:
-            assert not "decoders.pkl" in files_list
-
-        # check pickled custom encoder
-        if not model.model_config.uses_default_encoders:
-            assert "encoders.pkl" in files_list
-
-        else:
-            assert not "encoders.pkl" in files_list
+        # check pickled custom architectures
+        for archi in model.model_config.custom_architectures:
+            assert archi + ".pkl" in files_list
 
         # check reload full model
         model_rec = AutoModel.load_from_folder(os.path.join(final_dir))
@@ -429,3 +412,7 @@ class TestTraining:
         assert nll >= 0
         assert type(nll) == torch.Tensor
         assert nll.size() == torch.Size([])
+
+        cond_ll = model.compute_cond_nll(input_dataset, "mod1", ["mod2"])
+        assert isinstance(cond_ll, ModelOutput)
+        assert cond_ll.ll_mod1_mod2.size() == torch.Size([])

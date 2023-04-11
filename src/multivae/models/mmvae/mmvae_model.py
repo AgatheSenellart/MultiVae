@@ -16,17 +16,17 @@ class MMVAE(BaseMultiVAE):
 
     """
     The Variational Mixture-of-Experts Autoencoder model.
-    
+
     Args:
-        model_config (MMVAEConfig): An instance of MMVAEConfig in which any model's 
+        model_config (MMVAEConfig): An instance of MMVAEConfig in which any model's
             parameters is made available.
 
-        encoders (Dict[str, ~pythae.models.nn.base_architectures.BaseEncoder]): A dictionary containing 
-            the modalities names and the encoders for each modality. Each encoder is an instance of 
+        encoders (Dict[str, ~pythae.models.nn.base_architectures.BaseEncoder]): A dictionary containing
+            the modalities names and the encoders for each modality. Each encoder is an instance of
             Pythae's BaseEncoder. Default: None.
 
-        decoder (Dict[str, ~pythae.models.nn.base_architectures.BaseDecoder]): A dictionary containing 
-            the modalities names and the decoders for each modality. Each decoder is an instance of 
+        decoder (Dict[str, ~pythae.models.nn.base_architectures.BaseDecoder]): A dictionary containing
+            the modalities names and the decoders for each modality. Each decoder is an instance of
             Pythae's BaseDecoder.
     """
 
@@ -36,27 +36,54 @@ class MMVAE(BaseMultiVAE):
         super().__init__(model_config, encoders, decoders)
 
         self.K = model_config.K
-
         if model_config.prior_and_posterior_dist == "laplace_with_softmax":
             self.post_dist = Laplace
             self.prior_dist = Laplace
-        elif model_config.posterior_dist == "normal":
+        elif model_config.prior_and_posterior_dist == "normal":
             self.post_dist = Normal
             self.prior_dist = Normal
         else:
             raise AttributeError(
                 " The posterior_dist parameter must be "
                 " either 'laplace_with_softmax' or 'normal'. "
-                f" {model_config.posterior_dist} was provided."
+                f" {model_config.prior_and_posterior_dist} was provided."
             )
 
         self.prior_mean = torch.nn.Parameter(torch.zeros((self.latent_dim,)))
-        self.prior_std = torch.nn.Parameter(torch.ones((self.latent_dim,)))
+        self.prior_log_var = torch.nn.Parameter(torch.zeros((self.latent_dim,)))
 
-        self.prior_mean.requires_grad_(model_config.learn_prior)
-        self.prior_std.requires_grad_(model_config.learn_prior)
+        self.prior_mean.requires_grad_(False) # The mean is frozen
+        self.prior_log_var.requires_grad_(model_config.learn_prior)
 
         self.model_name = "MMVAE"
+        
+    def log_var_to_std(self, log_var):
+        """
+        For latent distributions parameters, transform the log covariance to the 
+        standard deviation of the distribution either applying softmax or not. 
+        This follows the original implementation.
+        """
+        
+        if self.model_config.prior_and_posterior_dist ==  "laplace_with_softmax":
+            return torch.softmax(log_var, dim=-1)*log_var.size(-1) + 1e-6
+        else : 
+            return torch.exp(0.5 * log_var)
+            
+    @property   
+    def prior_params(self):
+        """ From the prior mean and log_covariance, return the mean and standard
+        deviation, either applying softmax or not depending on the choice of prior 
+        distribution.
+
+        Returns:
+            tuple: mean, std
+        """
+        mean =  self.prior_mean
+        if self.model_config.prior_and_posterior_dist ==  "laplace_with_softmax":
+            std =  torch.softmax(self.prior_log_var, dim=-1) * self.latent_dim
+        else : 
+            std = torch.exp(0.5 * self.prior_log_var)
+        return mean, std
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs):
         # TODO : maybe implement a minibatch strategy for stashing the gradients before
@@ -72,12 +99,7 @@ class MMVAE(BaseMultiVAE):
         for cond_mod in self.encoders:
             output = self.encoders[cond_mod](inputs.data[cond_mod])
             mu, log_var = output.embedding, output.log_covariance
-
-            if self.model_config.prior_and_posterior_dist == "laplace_with_softmax":
-                sigma = torch.softmax(log_var, dim=-1)
-            else:
-                sigma = torch.exp(0.5 * log_var)
-
+            sigma = self.log_var_to_std(log_var)
             z_x = self.post_dist(mu, sigma).rsample([self.K])
             # The DREG loss uses detached parameters in the loss computation afterwards.
             qz_x = self.post_dist(mu.detach(), sigma.detach())
@@ -101,17 +123,16 @@ class MMVAE(BaseMultiVAE):
         zss = []
         for mod in embeddings:
             z = embeddings[mod]  # (K, n_batch, latent_dim)
-
-            prior = self.prior_dist(self.prior_mean, self.prior_std)
+            prior = self.prior_dist(*self.prior_params)
             lpz = prior.log_prob(z).sum(-1)
             lqz_x = torch.stack([qz_xs[m].log_prob(z).sum(-1) for m in qz_xs])
-            lqz_x = torch.logsumexp(lqz_x, dim=0) - np.log(self.n_modalities)
+            lqz_x = torch.logsumexp(lqz_x, dim=0) - np.log(lqz_x.size(0)) #log_mean_exp
             lpx_z = 0
             for recon_mod in reconstructions[mod]:
                 x_recon = reconstructions[mod][recon_mod]
                 K, n_batch = x_recon.shape[0], x_recon.shape[1]
-                lpx_z -= (
-                    self.recon_losses[recon_mod](
+                lpx_z += (
+                    self.recon_log_probs[recon_mod](
                         x_recon, torch.stack([inputs.data[recon_mod]] * K)
                     )
                     .reshape(K, n_batch, -1)
@@ -160,12 +181,7 @@ class MMVAE(BaseMultiVAE):
             output = self.encoders[mod](inputs.data[mod])
 
             mu, log_var = output.embedding, output.log_covariance
-
-            if self.model_config.prior_and_posterior_dist == "laplace_with_softmax":
-                sigma = torch.softmax(log_var, dim=-1)
-            else:
-                sigma = torch.exp(0.5 * log_var)
-
+            sigma = self.log_var_to_std(log_var)
             qz_x = self.post_dist(mu, sigma)
             sample_shape = torch.Size([]) if N == 1 else torch.Size([N])
             z = qz_x.rsample(sample_shape)
@@ -195,12 +211,7 @@ class MMVAE(BaseMultiVAE):
         for cond_mod in self.encoders:
             output = self.encoders[cond_mod](inputs.data[cond_mod])
             mu, log_var = output.embedding, output.log_covariance
-
-            if self.model_config.prior_and_posterior_dist == "laplace_with_softmax":
-                sigma = torch.softmax(log_var, dim=-1)
-            else:
-                sigma = torch.exp(0.5 * log_var)
-
+            sigma = self.log_var_to_std(log_var)
             qz_xs.append(self.post_dist(mu, sigma))
 
         z_joint = self.encode(inputs, N=K).z
@@ -248,3 +259,8 @@ class MMVAE(BaseMultiVAE):
             ll += torch.logsumexp(torch.Tensor(lnpxs), dim=0) - np.log(K)
 
         return -ll / n_data
+
+    def generate_from_prior(self, n_samples):
+        sample_shape = [n_samples] if n_samples > 1 else []
+        z = self.prior_dist(self.prior_mean, self.prior_std).rsample(sample_shape)
+        return ModelOutput(z=z, one_latent_space=True)

@@ -179,6 +179,7 @@ class BaseTrainer:
             num_workers=self.training_config.train_dataloader_num_workers,
             shuffle=(train_sampler is None),
             sampler=train_sampler,
+            drop_last=self.training_config.drop_last,
         )
 
     def get_eval_dataloader(
@@ -431,8 +432,8 @@ class BaseTrainer:
             logger.info("Successfully launched training !\n")
 
         # set best losses for early stopping
-        best_train_loss = 1e10
-        best_eval_loss = 1e10
+        best_train_loss = torch.inf
+        best_eval_loss = torch.inf
 
         for epoch in range(1, self.training_config.num_epochs + 1):
             self.callback_handler.on_epoch_begin(
@@ -460,8 +461,13 @@ class BaseTrainer:
             else:
                 epoch_eval_loss = best_eval_loss
                 self._schedulers_step(epoch_train_loss)
+            if epoch <= self.training_config.start_keep_best_epoch:
+                # save the model, don't keep track of the best loss
+                best_model = deepcopy(self.model)
+                self._best_model = best_model
+                logger.info("New best model saved!")
 
-            if (
+            elif (
                 epoch_eval_loss < best_eval_loss
                 and not self.training_config.keep_best_on_train
             ):

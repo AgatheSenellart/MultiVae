@@ -16,11 +16,14 @@ class MVAEConfig(BaseMultiVAEConfig):
         input_dims (dict[str,tuple]) : The modalities'names (str) and input shapes (tuple).
         uses_likelihood_rescaling (bool): To mitigate modality collapse, it is possible to use likelihood rescaling.
             (see : https://proceedings.mlr.press/v162/javaloy22a.html).
-            The inputs_dim must be provided to compute the likelihoods rescalings. It is used in a number of models
-            which is why we include it here. Default to False.
-        recon_losses (Dict[str, Union[function, str]]). The reconstruction loss to use per modality.
-            Per modality, you can provide a string in ['mse','bce','l1']. If None is provided, an Mean-Square-Error (mse)
-            is used for each modality.
+            The inputs_dim must be provided to compute the likelihoods rescalings. Default to False.
+        decoders_dist (Dict[str, Union[function, str]]). The decoder distributions to use per modality.
+            Per modality, you can provide a string in ['normal','bernoulli','laplace']. If None is provided,
+            a normal distribution is used for each modality.
+        decoder_dist_params (Dict[str,dict]) : Parameters for the output decoder distributions, for
+            computing the log-probability.
+            For instance, with normal or laplace distribution, you can pass the scale in this dictionary.
+            ex :  {'mod1' : {scale : 0.75}}
         k (int) : The number of subsets to use in the objective. The MVAE objective is the sum
             of the unimodal ELBOs, the joint ELBO and of k random subset ELBOs. Default to 1.
         warmup (int) : If warmup > 0, the MVAE model uses annealing during the first warmup epochs.

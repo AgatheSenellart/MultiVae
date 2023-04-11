@@ -23,6 +23,7 @@ class Test:
         data = dict(
             mod1=torch.Tensor([[1.0, 2.0], [4.0, 5.0]]),
             mod2=torch.Tensor([[67.1, 2.3, 3.0], [1.3, 2.0, 3.0]]),
+            mod3=torch.Tensor([[67.1, 2.3, 3.0, 4], [1.3, 2.0, 3.0, 5]]),
         )
         labels = np.array([0, 1])
         dataset = MultimodalBaseDataset(data, labels)
@@ -33,13 +34,24 @@ class Test:
         # Create an instance of jnf model
         config1 = BaseAEConfig(input_dim=(2,), latent_dim=5)
         config2 = BaseAEConfig(input_dim=(3,), latent_dim=5)
+        config3 = BaseAEConfig(input_dim=(4,), latent_dim=5)
 
-        encoders = dict(mod1=Encoder_VAE_MLP(config1), mod2=Encoder_VAE_MLP(config2))
+        encoders = dict(
+            mod1=Encoder_VAE_MLP(config1),
+            mod2=Encoder_VAE_MLP(config2),
+            mod3=Encoder_VAE_MLP(config3),
+        )
 
-        decoders = dict(mod1=Decoder_AE_MLP(config1), mod2=Decoder_AE_MLP(config2))
+        decoders = dict(
+            mod1=Decoder_AE_MLP(config1),
+            mod2=Decoder_AE_MLP(config2),
+            mod3=Decoder_AE_MLP(config3),
+        )
 
         flows = dict(
-            mod1=IAF(IAFConfig(input_dim=(5,))), mod2=IAF(IAFConfig(input_dim=(5,)))
+            mod1=IAF(IAFConfig(input_dim=(5,))),
+            mod2=IAF(IAFConfig(input_dim=(5,))),
+            mod3=IAF(IAFConfig(input_dim=(5,))),
         )
         return dict(
             encoders=encoders,
@@ -50,9 +62,9 @@ class Test:
     @pytest.fixture(params=[True, False])
     def model_config(self, request):
         model_config = JNFConfig(
-            n_modalities=2,
+            n_modalities=3,
             latent_dim=5,
-            input_dims=dict(mod1=(2,), mod2=(3,)),
+            input_dims=dict(mod1=(2,), mod2=(3,), mod3=(4,)),
             use_likelihood_rescaling=request.param,
         )
 
@@ -215,8 +227,8 @@ class TestTraining:
             ]
         )
         assert trainer.optimizer == start_optimizer
-        _ = trainer.prepare_train_step(10, None, None)
-        _ = trainer.train_step(epoch=10)
+        _ = trainer.prepare_train_step(trainer.model.warmup + 1, None, None)
+        _ = trainer.train_step(epoch=trainer.model.warmup + 1)
         step_2_model_state_dict = deepcopy(trainer.model.state_dict())
 
         assert not all(
@@ -278,19 +290,9 @@ class TestTraining:
             set(files_list)
         )
 
-        # check pickled custom decoder
-        if not model.model_config.uses_default_decoders:
-            assert "decoders.pkl" in files_list
-
-        else:
-            assert not "decoders.pkl" in files_list
-
-        # check pickled custom encoder
-        if not model.model_config.uses_default_encoders:
-            assert "encoders.pkl" in files_list
-
-        else:
-            assert not "encoders.pkl" in files_list
+        # check pickled custom architectures
+        for archi in model.model_config.custom_architectures:
+            assert archi + ".pkl" in files_list
 
         model_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "model.pt"))[
             "model_state_dict"
@@ -369,19 +371,9 @@ class TestTraining:
             set(files_list)
         )
 
-        # check pickled custom decoder
-        if not model.model_config.uses_default_decoders:
-            assert "decoders.pkl" in files_list
-
-        else:
-            assert not "decoders.pkl" in files_list
-
-        # check pickled custom encoder
-        if not model.model_config.uses_default_encoders:
-            assert "encoders.pkl" in files_list
-
-        else:
-            assert not "encoders.pkl" in files_list
+        # check pickled custom architectures
+        for archi in model.model_config.custom_architectures:
+            assert archi + ".pkl" in files_list
 
         model_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "model.pt"))[
             "model_state_dict"
@@ -415,19 +407,9 @@ class TestTraining:
             set(files_list)
         )
 
-        # check pickled custom decoder
-        if not model.model_config.uses_default_decoders:
-            assert "decoders.pkl" in files_list
-
-        else:
-            assert not "decoders.pkl" in files_list
-
-        # check pickled custom encoder
-        if not model.model_config.uses_default_encoders:
-            assert "encoders.pkl" in files_list
-
-        else:
-            assert not "encoders.pkl" in files_list
+        # check pickled custom architectures
+        for archi in model.model_config.custom_architectures:
+            assert archi + ".pkl" in files_list
 
         # check reload full model
         model_rec = AutoModel.load_from_folder(os.path.join(final_dir))

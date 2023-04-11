@@ -40,6 +40,7 @@ class AddDccaTrainer(BaseTrainer):
         callbacks (List[~pythae.trainers.training_callbacks.TrainingCallback]):
             A list of callbacks to use during training.
     """
+
     def __init__(
         self,
         model: JNFDcca,
@@ -64,6 +65,9 @@ class AddDccaTrainer(BaseTrainer):
         self.train_loader = self.get_train_dataloader_dcca(train_dataset)
         self.eval_loader_vae = self.eval_loader
         self.eval_loader = self.get_eval_dataloader_dcca(eval_dataset)
+        self.training_config.learning_rate_vae = self.training_config.learning_rate
+        self.training_config.learning_rate = self.training_config.learning_rate_dcca
+        
 
     def get_train_dataloader_dcca(
         self, train_dataset: MultimodalBaseDataset
@@ -115,7 +119,9 @@ class AddDccaTrainer(BaseTrainer):
 
             self.train_loader = self.train_loader_vae
             self.train_loader = self.eval_loader_vae
+            self.training_config.learning_rate = self.training_config.learning_rate_vae
             self.set_optimizer()
+            self.set_scheduler()
             best_train_loss = 1e10
             best_eval_loss = 1e10
 
@@ -127,6 +133,7 @@ class AddDccaTrainer(BaseTrainer):
             )
 
             self.set_optimizer()
+            self.set_scheduler()
             best_train_loss = 1e10
             best_eval_loss = 1e10
 

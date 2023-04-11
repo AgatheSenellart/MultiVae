@@ -18,6 +18,7 @@ class MnistSvhn(MultimodalBaseDataset):
         path (str) : The path where the data is saved.
         split (str) : Either 'train' or 'test'.
         download (bool) : Whether to download the data or not. Default to True.
+        data_multiplication (int) : 
 
         **kwargs:
 
@@ -30,9 +31,10 @@ class MnistSvhn(MultimodalBaseDataset):
         self,
         data_path: Union[str, Path] = "../data/",
         split: str = "train",
-        download=True,
+        download=False,
+        data_multiplication=5,
         **kwargs,
-    ):
+    ):  
         if split not in ["train", "test"]:
             raise AttributeError("Possible values for split are 'train' or 'test'")
 
@@ -40,6 +42,8 @@ class MnistSvhn(MultimodalBaseDataset):
 
         mnist = MNIST(data_path, train=(split == "train"), download=download)
         svhn = SVHN(data_path, split=split, download=download)
+
+        self.data_mul = data_multiplication
 
         # Check if a pairing already exists and if not create one
         if not self._check_pairing_exists(data_path, split):
@@ -61,25 +65,25 @@ class MnistSvhn(MultimodalBaseDataset):
         super().__init__(data, labels)
 
     def _check_pairing_exists(self, data_path, split):
-        if not os.path.exists(data_path + "/mnist_svhn_idx/" + split + "/mnist_idx.pt"):
+        if not os.path.exists(data_path + f"/mnist_svhn_idx_data_mul_{self.data_mul}/" + split + "/mnist_idx.pt"):
             return False
-        if not os.path.exists(data_path + "/mnist_svhn_idx/" + split + "/svhn_idx.pt"):
+        if not os.path.exists(data_path + f"/mnist_svhn_idx_data_mul_{self.data_mul}/" + split + "/svhn_idx.pt"):
             return False
         return True
 
-    def rand_match_on_idx(self, l1, idx1, l2, idx2, max_d=10000, dm=10):
+    def rand_match_on_idx(self, l1, idx1, l2, idx2, max_d=10000):
         _idx1, _idx2 = [], []
         for l in l1.unique():  # assuming both have same idxs
             l_idx1, l_idx2 = idx1[l1 == l], idx2[l2 == l]
             n = min(l_idx1.size(0), l_idx2.size(0), max_d)
             l_idx1, l_idx2 = l_idx1[:n], l_idx2[:n]
-            for _ in range(dm):
+            for _ in range(self.data_mul):
                 _idx1.append(l_idx1[torch.randperm(n)])
                 _idx2.append(l_idx2[torch.randperm(n)])
         return torch.cat(_idx1), torch.cat(_idx2)
 
     def create_pairing(
-        self, mnist: MNIST, svhn: SVHN, data_path: str, max_d=10000, dm=5
+        self, mnist: MNIST, svhn: SVHN, data_path: str, max_d=10000
     ):
         split = svhn.split
         # Refactor svhn labels to match mnist labels
@@ -87,7 +91,7 @@ class MnistSvhn(MultimodalBaseDataset):
         mnist_l, mnist_li = mnist.targets.sort()
         svhn_l, svhn_li = svhn.labels.sort()
         idx1, idx2 = self.rand_match_on_idx(
-            mnist_l, mnist_li, svhn_l, svhn_li, max_d=max_d, dm=dm
+            mnist_l, mnist_li, svhn_l, svhn_li, max_d=max_d
         )
 
         path = Path(data_path + "/mnist_svhn_idx/" + split)

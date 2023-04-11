@@ -1,6 +1,11 @@
+import importlib
 import inspect
+import logging
 import os
+import shutil
 import sys
+import tempfile
+import warnings
 from copy import deepcopy
 from http.cookiejar import LoadError
 from typing import Union
@@ -19,21 +24,27 @@ from ...data.datasets.base import MultimodalBaseDataset
 from ..auto_model import AutoConfig
 from ..nn.default_architectures import BaseDictDecoders, BaseDictEncoders
 from .base_config import BaseMultiVAEConfig, EnvironmentConfig
+from .base_utils import hf_hub_is_available, model_card_template
+
+logger = logging.getLogger(__name__)
+console = logging.StreamHandler()
+logger.addHandler(console)
+logger.setLevel(logging.INFO)
 
 
 class BaseMultiVAE(nn.Module):
     """Base class for Multimodal VAE models.
 
     Args:
-        model_config (BaseMultiVAEConfig): An instance of BaseMultiVAEConfig in which any model's 
+        model_config (BaseMultiVAEConfig): An instance of BaseMultiVAEConfig in which any model's
             parameters is made available.
 
-        encoders (Dict[str, ~pythae.models.nn.base_architectures.BaseEncoder]): A dictionary containing 
-            the modalities names and the encoders for each modality. Each encoder is an instance of 
+        encoders (Dict[str, ~pythae.models.nn.base_architectures.BaseEncoder]): A dictionary containing
+            the modalities names and the encoders for each modality. Each encoder is an instance of
             Pythae's BaseEncoder. Default: None.
 
-        decoder (Dict[str, ~pythae.models.nn.base_architectures.BaseDecoder]): A dictionary containing 
-            the modalities names and the decoders for each modality. Each decoder is an instance of 
+        decoder (Dict[str, ~pythae.models.nn.base_architectures.BaseDecoder]): A dictionary containing
+            the modalities names and the decoders for each modality. Each decoder is an instance of
             Pythae's BaseDecoder.
 
 
@@ -52,7 +63,7 @@ class BaseMultiVAE(nn.Module):
         self.n_modalities = model_config.n_modalities
         self.input_dims = model_config.input_dims
         self.reset_optimizer_epochs = []
-        
+
         if encoders is None:
             if self.input_dims is None:
                 raise AttributeError(
@@ -66,7 +77,7 @@ class BaseMultiVAE(nn.Module):
                     )
                 encoders = BaseDictEncoders(self.input_dims, model_config.latent_dim)
         else:
-            self.model_config.uses_default_encoders = False
+            self.model_config.custom_architectures.append("encoders")
 
         if decoders is None:
             if self.input_dims is None:
@@ -81,7 +92,7 @@ class BaseMultiVAE(nn.Module):
                     )
                 decoders = BaseDictDecoders(self.input_dims, model_config.latent_dim)
         else:
-            self.model_config.uses_default_decoders = False
+            self.model_config.custom_architectures.append("decoders")
 
         self.sanity_check(encoders, decoders)
 
@@ -119,38 +130,45 @@ class BaseMultiVAE(nn.Module):
             # above, we take the modalities keys in self.encoders as input_dims may be None
 
         # Set the reconstruction losses
-        if model_config.recon_losses is None:
-            model_config.recon_losses = {k: "mse" for k in self.encoders}
-        self.set_recon_losses(model_config.recon_losses)
+        if model_config.decoders_dist is None:
+            model_config.decoders_dist = {k: "normal" for k in self.encoders}
+        if model_config.decoder_dist_params is None:
+            model_config.decoder_dist_params = {}
+        self.set_decoders_dist(
+            model_config.decoders_dist, model_config.decoder_dist_params
+        )
 
-    def set_recon_losses(self, recon_dict):
-        """Set the reconstruction losses functions recon_losses
+    def set_decoders_dist(self, recon_dict, dist_params_dict):
+        """Set the reconstruction losses functions decoders_dist
         and the log_probabilites functions recon_log_probs.
         recon_log_probs is the normalized negative version of recon_loss and is used only for
         likelihood estimation.
         """
-        self.recon_losses = {}
         self.recon_log_probs = {}
 
         for k in recon_dict:
-            if recon_dict[k] == "mse":
+            if recon_dict[k] == "normal":
+                params_mod = dist_params_dict.pop(k, {})
+                scale = params_mod.pop("scale", 1.0)
                 self.recon_log_probs[k] = lambda input, target: dist.Normal(
-                    input, 1
+                    input, scale
                 ).log_prob(target)
-                self.recon_losses[k] = MSELoss(reduction="none")
-            elif recon_dict[k] == "bce":
+
+            elif recon_dict[k] == "bernoulli":
                 self.recon_log_probs[k] = lambda input, target: dist.Bernoulli(
                     logits=input
                 ).log_prob(target)
-                self.recon_losses[k] = BCEWithLogitsLoss(reduction="none")
-            elif recon_dict[k] == "l1":
+
+            elif recon_dict[k] == "laplace":
+                params_mod = dist_params_dict.pop(k, {})
+                scale = params_mod.pop("scale", 1.0)
                 self.recon_log_probs[k] = lambda input, target: dist.Laplace(
-                    input, 1
+                    input, scale
                 ).log_prob(target)
-                self.recon_losses[k] = L1Loss(reduction="none")
+
             else:
                 raise AttributeError(
-                    'Reconstructions losses must be either "mse","bce" or "l1"'
+                    'Reconstructions losses must be either "normal","bernoulli" or "laplace"'
                 )
         # TODO : add the possibility to provide custom reconstruction loss and in that case use the negative
         # reconstruction loss as the log probability.
@@ -330,16 +348,12 @@ class BaseMultiVAE(nn.Module):
 
         self.model_config.save_json(dir_path, "model_config")
 
-        # only save .pkl if custom architecture provided
-        if not self.model_config.uses_default_encoders:
-            with open(os.path.join(dir_path, "encoders.pkl"), "wb") as fp:
-                cloudpickle.register_pickle_by_value(inspect.getmodule(self.encoders))
-                cloudpickle.dump(self.encoders, fp)
-
-        if not self.model_config.uses_default_decoders:
-            with open(os.path.join(dir_path, "decoders.pkl"), "wb") as fp:
-                cloudpickle.register_pickle_by_value(inspect.getmodule(self.decoders))
-                cloudpickle.dump(self.decoders, fp)
+        for archi in self.model_config.custom_architectures:
+            with open(os.path.join(dir_path, archi + ".pkl"), "wb") as fp:
+                cloudpickle.register_pickle_by_value(
+                    inspect.getmodule(self.__getattr__(archi))
+                )
+                cloudpickle.dump(self.__getattr__(archi), fp)
 
         torch.save(model_dict, os.path.join(dir_path, "model.pt"))
 
@@ -389,40 +403,22 @@ class BaseMultiVAE(nn.Module):
         return model_weights
 
     @classmethod
-    def _load_custom_encoders_from_folder(cls, dir_path):
+    def _load_custom_archi_from_folder(cls, dir_path, archi: str):
         file_list = os.listdir(dir_path)
         cls._check_python_version_from_folder(dir_path=dir_path)
 
-        if "encoders.pkl" not in file_list:
+        if archi + ".pkl" not in file_list:
             raise FileNotFoundError(
-                f"Missing encoder pkl file ('encoders.pkl') in"
+                f"Missing architecture pkl file ('{archi}.pkl') in"
                 f"{dir_path}... This file is needed to rebuild custom encoders."
                 " Cannot perform model building."
             )
 
         else:
-            with open(os.path.join(dir_path, "encoders.pkl"), "rb") as fp:
-                encoder = CPU_Unpickler(fp).load()
+            with open(os.path.join(dir_path, f"{archi}.pkl" ), "rb") as fp:
+                archi = CPU_Unpickler(fp).load()
 
-        return encoder
-
-    @classmethod
-    def _load_custom_decoders_from_folder(cls, dir_path):
-        file_list = os.listdir(dir_path)
-        cls._check_python_version_from_folder(dir_path=dir_path)
-
-        if "decoders.pkl" not in file_list:
-            raise FileNotFoundError(
-                f"Missing decoder pkl file ('decoders.pkl') in"
-                f"{dir_path}... This file is needed to rebuild custom decoders."
-                " Cannot perform model building."
-            )
-
-        else:
-            with open(os.path.join(dir_path, "decoders.pkl"), "rb") as fp:
-                decoder = CPU_Unpickler(fp).load()
-
-        return decoder
+        return archi
 
     @classmethod
     def load_from_folder(cls, dir_path: str):
@@ -445,19 +441,13 @@ class BaseMultiVAE(nn.Module):
         model_config = cls._load_model_config_from_folder(dir_path)
         model_weights = cls._load_model_weights_from_folder(dir_path)
 
-        if not model_config.uses_default_encoders:
-            encoders = cls._load_custom_encoders_from_folder(dir_path)
+        custom_architectures = {}
+        for archi in model_config.custom_architectures:
+            custom_architectures[archi] = cls._load_custom_archi_from_folder(
+                dir_path, archi
+            )
 
-        else:
-            encoders = None
-
-        if not model_config.uses_default_decoders:
-            decoders = cls._load_custom_decoders_from_folder(dir_path)
-
-        else:
-            decoders = None
-
-        model = cls(model_config, encoders=encoders, decoders=decoders)
+        model = cls(model_config, **custom_architectures)
         model.load_state_dict(model_weights)
 
         return model
@@ -487,3 +477,240 @@ class BaseMultiVAE(nn.Module):
         self, inputs: MultimodalBaseDataset, K: int = 1000, batch_size_K: int = 100
     ):
         raise NotImplementedError
+
+    def compute_cond_nll(
+        self,
+        inputs: MultimodalBaseDataset,
+        cond_mod: str,
+        pred_mods: list,
+        K: int = 1000,
+        batch_size_K: int = 100,
+    ):
+        """Compute the conditional likelihoods ln p(x|y) , ln p(y|x) with MonteCarlo Sampling and the approximation :
+
+                ln p(x|y) = \sum_{z ~ q(z|y)} ln p(x|z)
+
+        Args:
+            inputs (MultimodalBaseDataset): the data to compute the likelihood on.
+            cond_mod (str): the modality to condition on
+            gen_mod (str): the modality to condition on
+            K (int, optional): number of samples per batch. Defaults to 1000.
+            batch_size_K (int, optional): _description_. Defaults to 100.
+
+        Returns:
+            dict: _description_
+        """
+
+        # Compute K samples for each datapoint
+        o = self.encode(inputs, cond_mod, N=K)
+
+        # Compute the negative recon_log_prob for each datapoint
+        ll = {k: [] for k in pred_mods}
+
+        n_data = len(inputs.data[list(inputs.data.keys())[0]])
+        for i in range(n_data):
+            start_idx, stop_index = 0, batch_size_K
+            lnpxs = {k: [] for k in pred_mods}
+
+            while stop_index <= K:
+                # Encode with the conditional VAE
+                latents = o.z[start_idx:stop_index]
+
+                # Decode with the opposite decoder
+                for k in pred_mods:
+                    target = inputs.data[k][i]
+                    recon = self.decoders[k](latents).reconstruction
+                    # Compute lnp(y|z)
+                    dim_reduce = tuple(range(1, len(recon.shape)))
+                    lpxz = self.recon_log_probs[k](target, recon).sum(dim=dim_reduce)
+                    print(lpxz.shape)
+                    lnpxs[k].append(torch.logsumexp(lpxz, dim=0))
+
+                # next batch
+                start_idx += batch_size_K
+                stop_index += batch_size_K
+            for k in pred_mods:
+                print(lnpxs[k])
+                ll[k].append(torch.logsumexp(torch.tensor(lnpxs[k]), dim=0) - np.log(K))
+
+        results = {}
+        for k in pred_mods:
+            results["ll_" + cond_mod + "_" + k] = torch.sum(torch.tensor(ll[k])) / len(
+                ll[k]
+            )
+
+        return ModelOutput(**results)
+
+    def push_to_hf_hub(self, hf_hub_path: str):  # pragma: no cover
+        # TODO : add the load from hf hub function in AutoModel
+
+        """Method allowing to save your model directly on the huggung face hub.
+        You will need to have the `huggingface_hub` package installed and a valid Hugging Face
+        account. You can install the package using
+
+        .. code-block:: bash
+
+            python -m pip install huggingface_hub
+
+        end then login using
+
+        .. code-block:: bash
+
+            huggingface-cli login
+
+        Args:
+            hf_hub_path (str): path to your repo on the Hugging Face hub.
+        """
+        if not hf_hub_is_available():
+            raise ModuleNotFoundError(
+                "`huggingface_hub` package must be installed to push your model to the HF hub. "
+                "Run `python -m pip install huggingface_hub` and log in to your account with "
+                "`huggingface-cli login`."
+            )
+
+        else:
+            from huggingface_hub import CommitOperationAdd, HfApi
+
+        logger.info(
+            f"Uploading {self.model_name} model to {hf_hub_path} repo in HF hub..."
+        )
+
+        tempdir = tempfile.mkdtemp()
+
+        self.save(tempdir)
+
+        model_files = os.listdir(tempdir)
+
+        api = HfApi()
+        hf_operations = []
+
+        for file in model_files:
+            hf_operations.append(
+                CommitOperationAdd(
+                    path_in_repo=file,
+                    path_or_fileobj=f"{str(os.path.join(tempdir, file))}",
+                )
+            )
+
+        with open(os.path.join(tempdir, "model_card.md"), "w") as f:
+            f.write(model_card_template)
+
+        hf_operations.append(
+            CommitOperationAdd(
+                path_in_repo="README.md",
+                path_or_fileobj=os.path.join(tempdir, "model_card.md"),
+            )
+        )
+
+        try:
+            api.create_commit(
+                commit_message=f"Uploading {self.model_name} in {hf_hub_path}",
+                repo_id=hf_hub_path,
+                operations=hf_operations,
+            )
+            logger.info(
+                f"Successfully uploaded {self.model_name} to {hf_hub_path} repo in HF hub!"
+            )
+
+        except:
+            from huggingface_hub import create_repo
+
+            repo_name = os.path.basename(os.path.normpath(hf_hub_path))
+            logger.info(
+                f"Creating {repo_name} in the HF hub since it does not exist..."
+            )
+            create_repo(repo_id=repo_name)
+            logger.info(f"Successfully created {repo_name} in the HF hub!")
+
+            api.create_commit(
+                commit_message=f"Uploading {self.model_name} in {hf_hub_path}",
+                repo_id=hf_hub_path,
+                operations=hf_operations,
+            )
+
+        shutil.rmtree(tempdir)
+
+    @classmethod
+    def load_from_hf_hub(cls, hf_hub_path: str, allow_pickle=False):  # pragma: no cover
+        """Class method to be used to load a pretrained model from the Hugging Face hub
+
+        Args:
+            hf_hub_path (str): The path where the model should have been be saved on the
+                hugginface hub.
+
+        .. note::
+            This function requires the folder to contain:
+
+            - | a ``model_config.json`` and a ``model.pt`` if no custom architectures were provided
+
+            **or**
+
+            - | a ``model_config.json``, a ``model.pt`` and a ``encoder.pkl`` (resp.
+                ``decoder.pkl``) if a custom encoder (resp. decoder) was provided
+        """
+
+        if not hf_hub_is_available():
+            raise ModuleNotFoundError(
+                "`huggingface_hub` package must be installed to load models from the HF hub. "
+                "Run `python -m pip install huggingface_hub` and log in to your account with "
+                "`huggingface-cli login`."
+            )
+
+        else:
+            from huggingface_hub import hf_hub_download
+
+        logger.info(f"Downloading {cls.__name__} files for rebuilding...")
+
+        # _ = hf_hub_download(repo_id=hf_hub_path, filename="environment.json")
+        config_path = hf_hub_download(repo_id=hf_hub_path, filename="model_config.json")
+        dir_path = os.path.dirname(config_path)
+
+        _ = hf_hub_download(repo_id=hf_hub_path, filename="model.pt")
+
+        model_config = cls._load_model_config_from_folder(dir_path)
+
+        if (
+            cls.__name__ + "Config" != model_config.name
+            and cls.__name__ + "_Config" != model_config.name
+        ):
+            warnings.warn(
+                f"You are trying to load a "
+                f"`{ cls.__name__}` while a "
+                f"`{model_config.name}` is given."
+            )
+
+        model_weights = cls._load_model_weights_from_folder(dir_path)
+        print(model_config.custom_architectures)
+        if (len(model_config.custom_architectures) >= 1) and not allow_pickle:
+            warnings.warn(
+                "You are about to download pickled files from the HF hub that may have "
+                "been created by a third party and so could potentially harm your computer. If you "
+                "are sure that you want to download them set `allow_pickle=true`."
+            )
+
+        else:
+            custom_archi_dict = {}
+            for archi in model_config.custom_architectures:
+                _ = hf_hub_download(repo_id=hf_hub_path, filename=archi + ".pkl")
+                archi_net = cls._load_custom_archi_from_folder(dir_path, archi)
+                custom_archi_dict[archi] = archi_net
+                logger.info(f"Successfully downloaded {archi} architecture.")
+
+            logger.info(f"Successfully downloaded {cls.__name__} model!")
+
+            model = cls(model_config, **custom_archi_dict)
+            model.load_state_dict(model_weights)
+
+            return model
+
+    def generate_from_prior(self, n_samples):
+        """
+        Generate latent samples from the prior distribution.
+        This is the base class in which we consider a static standard Normal Prior.
+        This may be overwritten in subclasses.
+        """
+        sample_shape = (
+            [n_samples, self.latent_dim] if n_samples > 1 else [self.latent_dim]
+        )
+        z = dist.Normal(0, 1).rsample(sample_shape)
+        return ModelOutput(z=z, one_latent_space=True)
