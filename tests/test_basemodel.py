@@ -9,9 +9,13 @@ from pythae.models.nn.benchmarks.mnist.convnets import (
 )
 from torch import nn
 
+from multivae.models import AutoConfig, AutoModel
 from multivae.models.base import BaseMultiVAE, BaseMultiVAEConfig
+from multivae.trainers import BaseTrainerConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
 
+
+PATH = os.path.dirname(os.path.abspath(__file__))
 
 class Test_BaseMultiVAE:
     @pytest.fixture
@@ -57,3 +61,27 @@ class Test_BaseMultiVAE:
         assert isinstance(model.decoders["mod2"], Decoder_AE_MLP)
         assert model.decoders["mod2"].input_dim == (3, 4, 4)
         assert model.latent_dim == input_model2["model_config"].latent_dim
+
+class TestIntegrateAutoConfig:
+
+    def test_autoconfig(self, tmpdir):
+        model_config = BaseMultiVAEConfig(n_modalities=14, latent_dim=3)
+        model_config.save_json(tmpdir, 'model_config')
+        reloaded_config = AutoConfig.from_json_file(os.path.join(tmpdir, 'model_config.json'))
+
+        assert model_config == reloaded_config
+
+    def test_raises_not_handled(self, tmpdir):
+        training_config = BaseTrainerConfig()
+        training_config.save_json(tmpdir, 'training_config')
+        with pytest.raises(NameError):
+            _ = AutoConfig.from_json_file(os.path.join(tmpdir, 'training_config.json'))
+
+class TestIntegrateAutoModel:
+
+    def test_build_automodel(self):
+        _ = AutoModel()
+
+    def test_raises_not_handled(self):
+        with pytest.raises(NameError):
+            _ = AutoModel.load_from_folder(os.path.join(PATH, 'tests_data', 'wrong_model'))
