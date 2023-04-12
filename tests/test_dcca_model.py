@@ -1,6 +1,7 @@
 import os
 from copy import deepcopy
 
+import pytest
 import numpy as np
 import torch
 from encoders import Encoder_test
@@ -206,6 +207,7 @@ class TestJNFDcca:
         assert Y.mod1.shape == (200 * 10, 2)
         assert Y.mod2.shape == (200 * 10, 3)
 
+    @pytest.mark.slow
     def test_train_step(self, trainer):
         start_model_state_dict = deepcopy(trainer.model.state_dict())
         start_optimizer = trainer.optimizer
@@ -233,6 +235,7 @@ class TestJNFDcca:
         )
         assert trainer.optimizer != start_optimizer
 
+    @pytest.mark.slow
     def test_eval_step(self, trainer):
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
@@ -248,6 +251,7 @@ class TestJNFDcca:
             ]
         )
 
+    @pytest.mark.slow
     def test_main_train_loop(self, trainer):
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
@@ -263,6 +267,7 @@ class TestJNFDcca:
             ]
         )
 
+    @pytest.mark.slow
     def test_checkpoint_saving(self, model, trainer, training_config):
         assert hasattr(trainer.model, "dcca_networks")
         dir_path = training_config.output_dir
@@ -341,6 +346,7 @@ class TestJNFDcca:
             ]
         )
 
+    @pytest.mark.slow
     def test_checkpoint_saving_during_training(self, model, trainer, training_config):
         #
         target_saving_epoch = training_config.steps_saving
@@ -384,6 +390,7 @@ class TestJNFDcca:
             ]
         )
 
+    @pytest.mark.slow
     def test_final_model_saving(self, model, trainer, training_config):
         dir_path = training_config.output_dir
 

@@ -125,6 +125,7 @@ class Test:
         assert Y.mod2.shape == (2 * 10, 3)
 
 
+@pytest.mark.slow
 class TestTraining:
     @pytest.fixture
     def input_dataset(self):

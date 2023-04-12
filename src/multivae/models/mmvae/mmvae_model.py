@@ -240,7 +240,7 @@ class MMVAE(BaseMultiVAE):
                     lpx_zs += self.recon_log_probs[mod](recon, x_m).sum(dim=dim_reduce)
 
                 # Compute ln(p(z))
-                prior = self.prior_dist(self.prior_mean, self.prior_std)
+                prior = self.prior_dist(*self.prior_params)
                 lpz = prior.log_prob(latents).sum(dim=-1)
 
                 # Compute posteriors -ln(q(z|x,y))
