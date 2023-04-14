@@ -133,6 +133,7 @@ class MVAE(BaseMultiVAE):
             beta = epoch / self.warmup
 
         total_loss = 0
+
         # Collect all the subsets
         # Add the unimodal subset
         subsets = [[m] for m in self.encoders]

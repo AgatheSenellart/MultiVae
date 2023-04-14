@@ -415,7 +415,7 @@ class BaseMultiVAE(nn.Module):
             )
 
         else:
-            with open(os.path.join(dir_path, f"{archi}.pkl" ), "rb") as fp:
+            with open(os.path.join(dir_path, f"{archi}.pkl"), "rb") as fp:
                 archi = CPU_Unpickler(fp).load()
 
         return archi
