@@ -1,8 +1,8 @@
 import os
 from pathlib import Path
 from typing import Union
-import numpy as np
 
+import numpy as np
 import torch
 from torchvision.datasets import MNIST, SVHN
 

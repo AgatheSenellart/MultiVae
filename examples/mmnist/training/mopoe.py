@@ -1,6 +1,7 @@
 
-from multivae.models import MoPoE, MoPoEConfig
 from config2 import *
+
+from multivae.models import MoPoE, MoPoEConfig
 
 model_config = MoPoEConfig(
     beta=2.5,

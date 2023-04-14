@@ -1,9 +1,10 @@
 from itertools import combinations
 
 import numpy as np
-from scipy import linalg
 from pythae.models.base.base_utils import ModelOutput
-from torch.utils.data import DataLoader
+from scipy import linalg
+from torch.utils.data import DataLoader, TensorDataset
+from torchvision.transforms import Resize
 
 from multivae.data import MultimodalBaseDataset
 from multivae.models.base import BaseMultiVAE
@@ -11,8 +12,6 @@ from multivae.models.base import BaseMultiVAE
 from ..base.evaluator_class import Evaluator
 from .fids_config import FIDEvaluatorConfig
 from .inception_networks import wrapper_inception
-from torchvision.transforms import Resize
-from torch.utils.data import TensorDataset
 
 try :
     from tqdm import tqdm
@@ -62,7 +61,8 @@ class FIDEvaluator(Evaluator):
         self.model.eval()
         activations = [[],[]]
         
-        for batch in tqdm(self.test_loader):
+        for batch in self.test_loader:
+            print(batch)
             batch.data = {m: batch.data[m].to(self.device) for m in batch.data}
             # Compute activations for true data
             data = self.inception_transform(batch.data[mod]).to(self.device)
@@ -175,7 +175,7 @@ class FIDEvaluator(Evaluator):
         
     def compute_all_cond_fid_for_mod(self,gen_mod):
         '''
-        For all subsets in modalities \gen mod, compute the FID when generating 
+        For all subsets in modalities/{gen mod}, compute the FID when generating 
         images from the subsets.
         '''
         
@@ -205,11 +205,11 @@ class FIDEvaluator(Evaluator):
         '''
         
         modalities = [k for k in self.model.encoders if k!=gen_mod]
-        accs = []
+        fds = []
         for n in range(1, len(modalities)+1):
             s = modalities[:n]
             fd = self.compute_fid_from_conditional_generation(s,gen_mod)
-            accs.append(fd)
+            fds.append(fd)
         
 
-        pass
+        return ModelOutput(fids = np.array(fds))

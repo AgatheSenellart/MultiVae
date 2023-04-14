@@ -1,6 +1,7 @@
 
-from multivae.models import MVTCAE, MVTCAEConfig
 from config2 import *
+
+from multivae.models import MVTCAE, MVTCAEConfig
 
 model_config = MVTCAEConfig(
     beta=2.5 ,

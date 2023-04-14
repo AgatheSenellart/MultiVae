@@ -7,7 +7,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import models
-
+import os
+import warnings
 
 # Inception weights ported to Pytorch from
 # http://download.tensorflow.org/models/image/imagenet/inception-2015-12-05.tgz
@@ -189,7 +190,11 @@ def fid_inception_v3(PATH_STATE_DICT):
 
     # state_dict = load_state_dict_from_url(FID_WEIGHTS_URL, progress=True)
     # inception.load_state_dict(state_dict)
-    inception.load_state_dict(torch.load(PATH_STATE_DICT))
+    if os.path.exists(PATH_STATE_DICT):
+        inception.load_state_dict(torch.load(PATH_STATE_DICT))
+    else :
+        warnings.warn(f"FID weights not found at provided path : {PATH_STATE_DICT}."
+                      "Using an untrained Inception Network.")
     return inception
 
 

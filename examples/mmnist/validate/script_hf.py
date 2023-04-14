@@ -1,24 +1,23 @@
 import os
+import tempfile
 
 import numpy as np
 import torch
 from classifiers import load_mmnist_classifiers
+from huggingface_hub import CommitOperationAdd, HfApi
 from torch import nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-import tempfile
 
 from multivae.data.datasets.mmnist import MMNISTDataset
 from multivae.metrics import CoherenceEvaluator, FIDEvaluator
 from multivae.models.auto_model import AutoConfig, AutoModel
-from huggingface_hub import CommitOperationAdd, HfApi
-
 
 ##############################################################################
 
 test_set = MMNISTDataset(data_path="../../../data/MMNIST", split="test")
 
-hf_repo = "asenella/mmnistMVTCAE_config1_"
+hf_repo = "asenella/reproducing_mvtcae"
 model = AutoModel.load_from_hf_hub(hf_repo, allow_pickle=True)
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -27,7 +26,7 @@ clfs = load_mmnist_classifiers(device=device)
 tmp_output = tempfile.mkdtemp()
 
 # output = CoherenceEvaluator(model, clfs, test_set, tmp_output).eval()
-output = FIDEvaluator(model,test_set, tmp_output).compute_all_cond_fid_for_mod('m0')
+# output = FIDEvaluator(model,test_set, tmp_output).compute_all_cond_fid_for_mod('m0')
 output = FIDEvaluator(model,test_set, tmp_output).mvtcae_reproduce_fids('m0')
 
 # output = FIDEvaluator(model,test_set, tmp_output).eval()

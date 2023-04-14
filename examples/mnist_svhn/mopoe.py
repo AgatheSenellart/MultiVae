@@ -1,4 +1,5 @@
 import torch
+from config1 import *
 from pythae.models.base.base_config import BaseAEConfig
 from torch.utils.data import DataLoader, random_split
 
@@ -15,17 +16,9 @@ from multivae.trainers.base.callbacks import (
     WandbCallback,
 )
 
-train_data = MnistSvhn(split="test")
-train_data, eval_data = random_split(
-    train_data, [0.8, 0.2], generator=torch.Generator().manual_seed(42)
-)
-
 model_config = MoPoEConfig(
-    n_modalities=2,
-    input_dims=dict(mnist=(1, 28, 28), svhn=(3, 32, 32)),
-    latent_dim=20,
-    uses_likelihood_rescaling=True,
-    decoders_dist=dict(mnist="laplace", svhn="laplace"),
+    **base_model_config,
+    beta=2.5
 )
 
 encoders = dict(

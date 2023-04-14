@@ -2,8 +2,8 @@ from typing import Union
 
 import numpy as np
 import torch
-import torch.nn.functional as F
 import torch.distributions as dist
+import torch.nn.functional as F
 from pythae.models.base.base_utils import ModelOutput
 from torch.distributions import Laplace, Normal
 

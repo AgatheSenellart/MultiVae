@@ -3,18 +3,21 @@ Store in this file all the shared variables for the benchmark on mmnist.
 '''
 
 import torch
-from torch import nn
 from pythae.models.base.base_config import BaseAEConfig
+from torch import nn
 from torch.utils.data import random_split
 
 from multivae.data.datasets.mmnist import MMNISTDataset
+from multivae.metrics import CoherenceEvaluator, CoherenceEvaluatorConfig
 from multivae.models import BaseMultiVAEConfig
 from multivae.models.nn.mmnist import DecoderConvMMNIST, EncoderConvMMNIST_adapted
 from multivae.trainers import BaseTrainerConfig
-from multivae.metrics import CoherenceEvaluator, CoherenceEvaluatorConfig
-
 from multivae.trainers.base.base_trainer import BaseTrainer
-from multivae.trainers.base.callbacks import WandbCallback, TrainingCallback, ProgressBarCallback
+from multivae.trainers.base.callbacks import (
+    ProgressBarCallback,
+    TrainingCallback,
+    WandbCallback,
+)
 
 train_data = MMNISTDataset(data_path="../../../data/MMNIST", split="train")
 test_data = MMNISTDataset(data_path="../../../data/MMNIST", split="test")

@@ -1,13 +1,11 @@
 import os
-from torch import nn, optim
+
 import torch
+import torch.nn.functional as F
+from torch import nn, optim
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST, SVHN
 from torchvision.transforms import ToTensor
-import torch.nn.functional as F
-
-
-
 
 
 class SVHN_Classifier(nn.Module):

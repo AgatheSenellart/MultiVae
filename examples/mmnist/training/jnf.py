@@ -1,8 +1,8 @@
 
-from multivae.models import JNF, JNFConfig
-from multivae.trainers import TwoStepsTrainer,TwoStepsTrainerConfig
 from config2 import *
 
+from multivae.models import JNF, JNFConfig
+from multivae.trainers import TwoStepsTrainer, TwoStepsTrainerConfig
 
 model_config = JNFConfig(
     **base_config,

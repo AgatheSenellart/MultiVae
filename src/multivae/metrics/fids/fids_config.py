@@ -15,10 +15,8 @@ class FIDEvaluatorConfig(EvaluatorConfig):
             '../../../fid_model/model.pt'.
         dims_inception (int) : Select the embedding layer of the Inception network
             defined by its output_size. Default to 2048.
-        resize (bool) : Whether to resize the images before computing the Inception 
-            embeddings. Default to True. 
+
     """
 
     inception_weights_path : str = '../../../fid_model/model.pt'
     dims_inception : int = 2048
-    resize : bool = True

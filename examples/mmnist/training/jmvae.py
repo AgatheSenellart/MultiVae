@@ -1,7 +1,5 @@
 from config1 import *
 
-
-
 model_config = JMVAEConfig(
     n_modalities=5,
     input_dims={k: (3, 28, 28) for k in modalities},

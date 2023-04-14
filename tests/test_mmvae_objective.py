@@ -1,12 +1,15 @@
 '''Test functions in the MMVAE model'''
 
 import math
-from multivae.data.datasets.base import MultimodalBaseDataset
+
 import numpy as np
-import torch
-from multivae.models import MMVAE, MMVAEConfig
 import pytest
+import torch
 import torch.distributions as dist
+
+from multivae.data.datasets.base import MultimodalBaseDataset
+from multivae.models import MMVAE, MMVAEConfig
+
 
 def is_multidata(dataB):
     return isinstance(dataB, list) or isinstance(dataB, tuple)
