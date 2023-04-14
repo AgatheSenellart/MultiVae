@@ -166,10 +166,6 @@ class BaseMultiVAE(nn.Module):
                     input, scale
                 ).log_prob(target)
 
-            else:
-                raise AttributeError(
-                    'Reconstructions losses must be either "normal","bernoulli" or "laplace"'
-                )
         # TODO : add the possibility to provide custom reconstruction loss and in that case use the negative
         # reconstruction loss as the log probability.
 

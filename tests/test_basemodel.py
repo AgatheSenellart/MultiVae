@@ -1,5 +1,5 @@
 import os
-
+import torch
 import numpy as np
 import pytest
 from pythae.models.base import BaseAEConfig
@@ -7,9 +7,11 @@ from pythae.models.nn.benchmarks.mnist.convnets import (
     Decoder_Conv_AE_MNIST,
     Encoder_Conv_AE_MNIST,
 )
+from pythae.models.base.base_utils import ModelOutput
 from torch import nn
 
 from multivae.models import AutoConfig, AutoModel
+from multivae.data.datasets import MultimodalBaseDataset
 from multivae.models.base import BaseMultiVAE, BaseMultiVAEConfig
 from multivae.trainers import BaseTrainerConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
@@ -62,6 +64,210 @@ class Test_BaseMultiVAE:
         assert model.decoders["mod2"].input_dim == (3, 4, 4)
         assert model.latent_dim == input_model2["model_config"].latent_dim
 
+    def test_raise_missing_input_dim(self, input_model1):
+        # Test missing modality with
+        model_config = BaseMultiVAEConfig(
+            n_modalities=2, latent_dim=10, input_dims=dict(mod2=(3, 4, 4))
+        )
+    
+        with pytest.raises(AttributeError):
+            BaseMultiVAE(model_config)
+
+        model_config = BaseMultiVAEConfig(
+            n_modalities=2, latent_dim=10, input_dims=None)
+    
+        with pytest.raises(AttributeError):
+            BaseMultiVAE(model_config)
+
+        # Test missing modality with given encoders
+        model_config = BaseMultiVAEConfig(
+            n_modalities=2, latent_dim=10, input_dims=dict(mod2=(3, 4, 4))
+        )
+
+        with pytest.raises(AttributeError):
+            BaseMultiVAE(model_config, encoders=input_model1['encoders'])
+
+        model_config = BaseMultiVAEConfig(
+            n_modalities=2, latent_dim=10, input_dims=None)
+    
+        with pytest.raises(AttributeError):
+            BaseMultiVAE(model_config, encoders=input_model1['encoders'])
+
+        model_config = BaseMultiVAEConfig(
+            n_modalities=2, latent_dim=10, input_dims=None, uses_likelihood_rescaling=True)
+
+        with pytest.raises(AttributeError):
+            BaseMultiVAE(model_config, encoders=input_model1['encoders'], decoders=input_model1['decoders'])
+
+    def test_raises_wrong_encoders(self, input_model1):
+        # create dummy model
+        model = BaseMultiVAE(**input_model1)
+
+        encoders = dict(
+            mod1=ModelOutput(),
+            mod2=ModelOutput()
+        )
+
+        with pytest.raises(AttributeError):
+            model.set_encoders(encoders)
+
+        decoders = dict(
+            mod1=ModelOutput(),
+            mod2=ModelOutput()
+        )
+
+        with pytest.raises(AttributeError):
+            model.set_decoders(decoders)
+
+
+    def test_raises_key_error(self):
+        model_config = BaseMultiVAEConfig(
+            n_modalities=1, latent_dim=10, input_dims=dict(wrong_names=(3, 4, 4))
+        )
+
+        config = BaseAEConfig(input_dim=(10, 2), latent_dim=10)
+
+        encoders = dict(
+            mod1=Encoder_VAE_MLP(config)
+        )
+
+        decoders = dict(
+            mod1=Decoder_Conv_AE_MNIST(config)
+        )
+    
+        with pytest.raises(KeyError):
+            BaseMultiVAE(model_config, encoders=encoders, decoders=decoders)
+
+    def test_recon_dist(self):
+        model_config = BaseMultiVAEConfig(
+            n_modalities=3,
+            latent_dim=10,
+            input_dims=dict(mod1=(3,), mod2=(3, 4),mod3=(3, 4, 4)),
+            decoders_dist=dict(mod1="normal", mod2="bernoulli", mod3="laplace"),
+            decoder_dist_params=dict(
+                mod1=dict(scale=12),
+                mod2=None,
+                mod3=dict(scale=31)
+            )
+        )
+
+        model = BaseMultiVAE(model_config)
+
+        dumb_x1 = torch.randn(2, 3)
+        dumb_x2 = torch.rand(2, 3, 4)
+        dumb_x2_target = torch.randint(0, 2, (2, 3, 4)).float()
+        dumb_x3 = torch.randn(2, 3, 4, 4)
+
+        assert model.recon_log_probs["mod1"](dumb_x1, dumb_x1).shape == dumb_x1.shape
+        assert model.recon_log_probs["mod2"](dumb_x2, dumb_x2_target).shape == dumb_x2.shape
+        assert model.recon_log_probs["mod3"](dumb_x3, dumb_x3).shape == dumb_x3.shape
+
+
+    def test_raises_sanity_check_flags(self):
+        model_config = BaseMultiVAEConfig(
+            n_modalities=2, latent_dim=10, input_dims=dict(mod1=(3, 4, 4), mod2=(3, 4))
+        )
+
+        config = BaseAEConfig(input_dim=(10, 2), latent_dim=10)
+
+        encoders = dict(
+            wrong_name=Encoder_VAE_MLP(config)
+        )
+
+        with pytest.raises(AttributeError):
+            BaseMultiVAE(model_config, encoders=encoders)
+
+        decoders = dict(
+            wrong_name=Decoder_Conv_AE_MNIST(config)
+        )
+
+        with pytest.raises(AttributeError):
+            BaseMultiVAE(model_config, decoders=decoders)
+    
+        
+        encoders = dict(
+            wrong_name1=Encoder_VAE_MLP(config),
+            wrong_name2=Encoder_VAE_MLP(config)
+        )
+
+        with pytest.raises(AttributeError):
+            BaseMultiVAE(model_config, encoders=encoders)
+
+        decoders = dict(
+            wrong_name_1=Decoder_Conv_AE_MNIST(config),
+            wrong_name_2=Decoder_Conv_AE_MNIST(config)
+        )
+        
+        with pytest.raises(AttributeError):
+            BaseMultiVAE(model_config, encoders=encoders, decoders=decoders)
+
+
+    def test_raises_encode_error(self, input_model1):
+        model = BaseMultiVAE(**input_model1)
+
+        inputs = MultimodalBaseDataset(data=dict(
+            mod1=torch.randn(3, 10, 2),
+            mod2=torch.rand(3, 10, 2)
+        ))
+        
+        with pytest.raises(AttributeError):
+            model.encode(inputs, cond_mod="mod1")
+
+        with pytest.raises(NotImplementedError):
+            model.encode(inputs, [])
+
+    def test_raises_decode_error(self, input_model1):
+        model = BaseMultiVAE(**input_model1)
+
+        out = ModelOutput(z=torch.randn(3, input_model1["model_config"].latent_dim), one_latent_space=True)
+        output = model.decode(out, modalities=["mod1"])
+
+        assert tuple(output.mod1.shape) == (3, 10, 2)
+
+        out = ModelOutput(z=torch.randn(3, input_model1["model_config"].latent_dim), one_latent_space=False)
+
+        with pytest.raises(NotImplementedError):
+            output = model.decode(out, modalities=["mod1"])
+
+    def test_raises_fwd_not_implemented(self, input_model1):
+        model = BaseMultiVAE(**input_model1)
+
+        with pytest.raises(NotImplementedError):
+            model(None)
+
+    def test_raises_nll_not_implemented(self, input_model1):
+        model = BaseMultiVAE(**input_model1)
+
+        with pytest.raises(NotImplementedError):
+            model.compute_joint_nll(None)
+
+    def test_generate_from_prior(self, input_model1):
+        model = BaseMultiVAE(**input_model1)
+        output = model.generate_from_prior(11)
+        assert output.z.shape == (11, input_model1["model_config"].latent_dim)
+        
+
+    def test_dummy_model_saving(self, input_model1, tmpdir):
+        model = BaseMultiVAE(**input_model1)
+
+        assert not os.path.exists(os.path.join(tmpdir, 'model_save'))
+        model.save(os.path.join(tmpdir, 'model_save'))
+        assert os.path.exists(os.path.join(tmpdir, 'model_save'))
+
+        with pytest.raises(FileNotFoundError):
+            model._load_model_config_from_folder(tmpdir)
+
+        with pytest.raises(FileNotFoundError):
+            model._load_model_weights_from_folder(tmpdir)
+
+        torch.save({"wrong_key": torch.ones(2)}, os.path.join(tmpdir, 'model.pt'))
+        with pytest.raises(KeyError):
+            model._load_model_weights_from_folder(tmpdir)
+
+        with pytest.raises(FileNotFoundError):
+            model._load_custom_archi_from_folder(tmpdir, 'encoders')
+
+        
 class TestIntegrateAutoConfig:
 
     def test_autoconfig(self, tmpdir):
