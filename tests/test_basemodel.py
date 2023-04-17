@@ -227,7 +227,7 @@ class Test_BaseMultiVAE:
         out = ModelOutput(z=torch.randn(3, input_model1["model_config"].latent_dim), one_latent_space=False)
 
         with pytest.raises(NotImplementedError):
-            output = model.decode(out, modalities=["mod1"])
+            output = model.decode(out, modalities="mod1")
 
     def test_raises_fwd_not_implemented(self, input_model1):
         model = BaseMultiVAE(**input_model1)
