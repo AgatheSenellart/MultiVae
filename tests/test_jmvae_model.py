@@ -100,13 +100,13 @@ class Test:
         embeddings = outputs.z
         assert isinstance(outputs, ModelOutput)
         assert embeddings.shape == (2, 5)
-        embeddings = model.encode(input2["dataset"], N=2).z
-        assert embeddings.shape == (2, 2, 5)
+        embeddings = model.encode(input2["dataset"], N=2, flatten=True).z
+        assert embeddings.shape == (4, 5)
         embeddings = model.encode(input2["dataset"], cond_mod=["mod1"]).z
         assert embeddings.shape == (2, 5)
         embeddings = model.encode(input2["dataset"], cond_mod="mod2", N=10).z
         assert embeddings.shape == (10, 2, 5)
-        embeddings = model.encode(input2["dataset"], cond_mod=["mod2", "mod1"]).z
+        embeddings = model.encode(input2["dataset"], cond_mod=["mod2", "mod1"], mcmc_steps=2).z
         assert embeddings.shape == (2, 5)
 
         Y = model.predict(input2["dataset"], cond_mod="mod1")
@@ -123,6 +123,12 @@ class Test:
         assert isinstance(Y, ModelOutput)
         assert Y.mod1.shape == (2 * 10, 2)
         assert Y.mod2.shape == (2 * 10, 3)
+
+    def test_encoder_raises_error(self, input2):
+        model = JMVAE(**input2)
+
+        with pytest.raises(AttributeError):
+            model.encode(input2["dataset"], cond_mod="wrong_mod")
 
 
 @pytest.mark.slow

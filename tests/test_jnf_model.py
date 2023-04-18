@@ -110,7 +110,7 @@ class Test:
         assert embeddings.shape == (2, 5)
         embeddings = model.encode(dataset, cond_mod="mod2", N=10).z
         assert embeddings.shape == (10, 2, 5)
-        embeddings = model.encode(dataset, cond_mod=["mod2", "mod1"]).z
+        embeddings = model.encode(dataset, cond_mod=["mod2", "mod1"], mcmc_steps=2).z
         assert embeddings.shape == (2, 5)
 
         Y = model.predict(dataset, cond_mod="mod1")

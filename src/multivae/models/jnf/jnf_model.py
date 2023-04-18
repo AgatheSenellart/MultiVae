@@ -170,6 +170,10 @@ class JNF(BaseJointModel):
     ) -> ModelOutput:
         self.eval()
 
+        mcmc_steps = kwargs.pop("mcmc_steps", 100)
+        n_lf = kwargs.pop("n_lf", 10)
+        eps_lf = kwargs.pop("eps_lf", 0.01)
+
         if type(cond_mod) == list and len(cond_mod) == 1:
             cond_mod = cond_mod[0]
 
@@ -191,9 +195,9 @@ class JNF(BaseJointModel):
                 cond_mod,
                 inputs.data,
                 ax=None,
-                mcmc_steps=100,
-                n_lf=10,
-                eps_lf=0.01,
+                mcmc_steps=mcmc_steps,
+                n_lf=n_lf,
+                eps_lf=eps_lf,
                 K=N,
                 divide_prior=True,
             )

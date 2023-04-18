@@ -68,11 +68,11 @@ class TestJNFDcca:
     def dataset(self):
         # Create simple small dataset with 2 modalities
         data = dict(
-            mod1=torch.rand((20, 2)),
-            mod2=torch.rand((20, 3)),
-            mod3=torch.rand((20, 4)),
+            mod1=torch.rand((200, 2)),
+            mod2=torch.rand((200, 3)),
+            mod3=torch.rand((200, 4)),
         )
-        labels = np.random.randint(2, size=20)
+        labels = np.random.randint(2, size=200)
         dataset = MultimodalBaseDataset(data, labels)
         return dataset
 
@@ -200,30 +200,30 @@ class TestJNFDcca:
         assert outputs.one_latent_space
         embeddings = outputs.z
         assert isinstance(outputs, ModelOutput)
-        assert embeddings.shape == (20, model_config.latent_dim)
+        assert embeddings.shape == (200, model_config.latent_dim)
         embeddings = model.encode(dataset, N=2).z
-        assert embeddings.shape == (2, 20, model_config.latent_dim)
+        assert embeddings.shape == (2, 200, model_config.latent_dim)
         embeddings = model.encode(dataset, cond_mod=["mod1"]).z
-        assert embeddings.shape == (20, model_config.latent_dim)
+        assert embeddings.shape == (200, model_config.latent_dim)
         embeddings = model.encode(dataset, cond_mod="mod2", N=10).z
-        assert embeddings.shape == (10, 20, model_config.latent_dim)
+        assert embeddings.shape == (10, 200, model_config.latent_dim)
         embeddings = model.encode(dataset, cond_mod=["mod2", "mod1"], mcmc_steps=2).z
-        assert embeddings.shape == (20, model_config.latent_dim)
+        assert embeddings.shape == (200, model_config.latent_dim)
 
         Y = model.predict(dataset, cond_mod="mod1")
         assert isinstance(Y, ModelOutput)
-        assert Y.mod1.shape == (20, 2)
-        assert Y.mod2.shape == (20, 3)
+        assert Y.mod1.shape == (200, 2)
+        assert Y.mod2.shape == (200, 3)
 
         Y = model.predict(dataset, cond_mod="mod1", N=10)
         assert isinstance(Y, ModelOutput)
-        assert Y.mod1.shape == (10, 20, 2)
-        assert Y.mod2.shape == (10, 20, 3)
+        assert Y.mod1.shape == (10, 200, 2)
+        assert Y.mod2.shape == (10, 200, 3)
 
         Y = model.predict(dataset, cond_mod="mod1", N=10, flatten=True)
         assert isinstance(Y, ModelOutput)
-        assert Y.mod1.shape == (20 * 10, 2)
-        assert Y.mod2.shape == (20 * 10, 3)
+        assert Y.mod1.shape == (200 * 10, 2)
+        assert Y.mod2.shape == (200 * 10, 3)
 
 
     @pytest.mark.slow
