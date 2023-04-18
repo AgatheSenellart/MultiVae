@@ -6,17 +6,15 @@ import pytest
 import torch
 from torch import nn
 
-from multivae.data.datasets import MnistSvhn
 from multivae.data.datasets.base import MultimodalBaseDataset
-from multivae.data.utils import set_inputs_to_device
-from multivae.models import JMVAE, AutoModel, JMVAEConfig
+from multivae.models import JMVAE, JMVAEConfig, MoPoE, MoPoEConfig
 from multivae.metrics.base import EvaluatorConfig, Evaluator
 from multivae.metrics.coherences import CoherenceEvaluator, CoherenceEvaluatorConfig
 from multivae.metrics.likelihoods import LikelihoodsEvaluator, LikelihoodsEvaluatorConfig
 from tests_data.classifiers import SVHN_Classifier, MNIST_Classifier
 
 @pytest.fixture
-def model():
+def jmvae_model():
     return JMVAE(JMVAEConfig(n_modalities=2, input_dims=dict(
         mnist=(1, 28, 28),
         svhn=(3, 32, 32))
@@ -41,9 +39,9 @@ class TestBaseMetric:
         config = EvaluatorConfig(batch_size=batch_size)
         assert config.batch_size == batch_size
 
-    def test_evaluator_class(self, batch_size, model, output_logger_file, dataset):
+    def test_evaluator_class(self, batch_size, jmvae_model, output_logger_file, dataset):
         config = EvaluatorConfig(batch_size=batch_size)
-        evaluator = Evaluator(model, dataset, output=output_logger_file, eval_config=config)
+        evaluator = Evaluator(jmvae_model, dataset, output=output_logger_file, eval_config=config)
 
         assert evaluator.n_data == len(dataset.data["mnist"])
         assert os.path.exists(os.path.join(output_logger_file, 'metrics.log'))
@@ -75,7 +73,7 @@ class TestCoherences:
         assert config.include_recon == config_params["include_recon"]
         assert config.nb_samples_for_joint == config_params["nb_samples_for_joint"]
 
-    def test_cross_coherence_compute(self, model, config_params, classifiers, output_logger_file, dataset):
+    def test_cross_coherence_compute(self, jmvae_model, config_params, classifiers, output_logger_file, dataset):
 
         config = CoherenceEvaluatorConfig(
             include_recon=config_params["include_recon"],
@@ -83,7 +81,7 @@ class TestCoherences:
         )
 
         evaluator = CoherenceEvaluator(
-            model=model,
+            model=jmvae_model,
             classifiers=classifiers,
             output=output_logger_file,
             test_dataset=dataset,
@@ -93,7 +91,7 @@ class TestCoherences:
         cross_coherences = evaluator.cross_coherences()
         assert all([0 <= cc_score[0] <= 1 for cc_score in cross_coherences])
 
-    def test_joint_coherence_compute(self, model, config_params, classifiers, output_logger_file, dataset):
+    def test_joint_coherence_compute(self, jmvae_model, config_params, classifiers, output_logger_file, dataset):
 
         config = CoherenceEvaluatorConfig(
             include_recon=config_params["include_recon"],
@@ -101,7 +99,7 @@ class TestCoherences:
         )
 
         evaluator = CoherenceEvaluator(
-            model=model,
+            model=jmvae_model,
             classifiers=classifiers,
             output=output_logger_file,
             test_dataset=dataset,
@@ -111,7 +109,7 @@ class TestCoherences:
         joint_coherence = evaluator.joint_coherence()
         assert 0 <= joint_coherence <= 1
 
-    def test_eval(self, model, config_params, classifiers, output_logger_file, dataset):
+    def test_eval(self, jmvae_model, config_params, classifiers, output_logger_file, dataset):
 
         config = CoherenceEvaluatorConfig(
             include_recon=config_params["include_recon"],
@@ -119,7 +117,7 @@ class TestCoherences:
         )
 
         evaluator = CoherenceEvaluator(
-            model=model,
+            model=jmvae_model,
             classifiers=classifiers,
             output=output_logger_file,
             test_dataset=dataset,
@@ -128,5 +126,96 @@ class TestCoherences:
 
         metrics = evaluator.eval()
 
-        assert 0, all([metric in metrics.keys() for metric in ["means_coherences", "joint_coherence"]])
+        assert all([metric in metrics.keys() for metric in ["means_coherences", "joint_coherence"]])
 
+
+class TestLikelihoods:
+
+    @pytest.fixture(
+            params=[
+                [2, 21],
+                [16, 3]
+            ]
+    )
+    def config_params(self, request):
+        return {"num_samples": request.param[0], "batch_size": request.param[1]}
+    
+    @pytest.fixture
+    def mopoe_model(self):
+        return MoPoE(MoPoEConfig(n_modalities=2, input_dims=dict(
+            mnist=(1, 28, 28),
+            svhn=(3, 32, 32))
+            ))
+   
+    def test_likelihood_config(self, config_params):
+
+        config = LikelihoodsEvaluatorConfig(
+            num_samples=config_params["num_samples"],
+            batch_size=config_params["batch_size"]
+        )
+        
+        assert config.num_samples == config_params["num_samples"]
+        assert config.batch_size == config_params["batch_size"]
+
+    def test_joint_nll(self, jmvae_model, config_params, output_logger_file, dataset):
+
+        config = LikelihoodsEvaluatorConfig(
+            num_samples=config_params["num_samples"],
+            batch_size=config_params["batch_size"]
+        )
+
+        evaluator = LikelihoodsEvaluator(
+            model=jmvae_model,
+            output=output_logger_file,
+            test_dataset=dataset,
+            eval_config=config
+        )
+
+        joint_nll = evaluator.joint_nll()
+
+        assert joint_nll > 0
+
+    def test_joint_nll_from_subset(self, mopoe_model, jmvae_model, config_params, output_logger_file, dataset):
+
+        config = LikelihoodsEvaluatorConfig(
+            num_samples=config_params["num_samples"],
+            batch_size=config_params["batch_size"]
+        )
+
+        evaluator = LikelihoodsEvaluator(
+            model=mopoe_model,
+            output=output_logger_file,
+            test_dataset=dataset,
+            eval_config=config
+        )
+
+        joint_nll_from_sub = evaluator.joint_nll_from_subset(['mnist', 'svhn'])
+        assert joint_nll_from_sub > 0
+
+        evaluator = LikelihoodsEvaluator(
+            model=jmvae_model,
+            output=output_logger_file,
+            test_dataset=dataset,
+            eval_config=config
+        )
+
+        joint_nll_from_sub = evaluator.joint_nll_from_subset(['mnist', 'svhn'])
+        assert joint_nll_from_sub is None
+
+    def test_eval(self, jmvae_model, config_params, output_logger_file, dataset):
+
+        config = LikelihoodsEvaluatorConfig(
+            num_samples=config_params["num_samples"],
+            batch_size=config_params["batch_size"]
+        )
+
+        evaluator = LikelihoodsEvaluator(
+            model=jmvae_model,
+            output=output_logger_file,
+            test_dataset=dataset,
+            eval_config=config
+        )
+
+        metrics = evaluator.eval()
+
+        assert all([metric in metrics.keys() for metric in ["joint_likelihood", "joint_likelihood_from_subset_expr"]])
