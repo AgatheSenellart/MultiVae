@@ -199,6 +199,5 @@ trainer = BaseTrainer(
     training_config=training_config,
     callbacks=callbacks,
 )
-1/0
 
 trainer.train()
