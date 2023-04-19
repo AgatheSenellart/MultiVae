@@ -33,6 +33,7 @@ class MoPoE(BaseMultiVAE):
         super().__init__(model_config, encoders, decoders)
 
         self.beta = model_config.beta
+        self.use_modality_specific_spaces = model_config.use_modality_specific_spaces
         self.model_name = "MoPoE"
         list_subsets = self.model_config.subsets
         if list_subsets is None:
@@ -146,30 +147,47 @@ class MoPoE(BaseMultiVAE):
 
         # Compute the reconstruction losses for each modality
         loss = 0
-        for m, m_key in enumerate(self.encoders.keys()):
+        kld = results["joint_divergence"]
+        for m_key in self.encoders.keys():
             # reconstruct this modality from the shared embeddings representation
-            recon = self.decoders[m_key](shared_embeddings).reconstruction
+            
+            if self.use_modality_specific_spaces:
+                style_embeddings = latents["modalities"][m_key].style_embedding
+                full_embedding = torch.cat([shared_embeddings,style_embeddings],dim=-1)
+            else :
+                full_embedding = shared_embeddings
+            
+            recon = self.decoders[m_key](full_embedding).reconstruction
             m_rec = (
                 -self.recon_log_probs[m_key](recon, inputs.data[m_key])
                 * self.rescale_factors[m_key]
             )
 
-            # m_s_mu, m_s_logvar = enc_mods[m_key + '_style'];
-            # if self.flags.factorized_representation:
-            #     m_s_embeddings = self.reparameterize(mu=m_s_mu, logvar=m_s_logvar);
-            # else:
-            #     m_s_embeddings = None;
-            # m_rec = self.lhoods[m_key](*self.decoders[m_key](m_s_embeddings, class_embeddings));
+            # reconstruction loss
             results["recon_" + m_key] = m_rec.sum() / ndata
             loss += m_rec.sum() / ndata
-        loss = loss + self.beta * results["joint_divergence"]
+            
+            # If using modality specific latent spaces, add modality specific klds
+            if self.use_modality_specific_spaces:
+                style_mu = latents["modalities"][m_key].style_embedding
+                style_log_var = latents["modalities"][m_key].style_log_covariance
+                style_kld = -0.5 * torch.sum(
+                1 - style_log_var.exp() - style_mu.pow(2) + style_log_var
+            )
+                kld += style_kld * self.model_config.beta_style
+            
+            
+        
+        loss = loss + self.beta * kld
 
         return ModelOutput(loss=loss, metrics=results)
 
     def modality_encode(
         self, inputs: Union[MultimodalBaseDataset, IncompleteDataset], **kwargs
     ):
-        """Computes for each modality, the parameters mu and logvar of the
+        """
+        
+        Computes for each modality, the parameters mu and logvar of the
         unimodal posterior.
 
         Args:
@@ -183,8 +201,7 @@ class MoPoE(BaseMultiVAE):
             input_modality = inputs.data[m_key]
             output = self.encoders[m_key](input_modality)
             encoders_outputs[m_key] = output
-            # latents[m_key + '_style'] = l[:2]
-            # latents[m_key] = l[2:]
+
 
         return encoders_outputs
 
@@ -246,6 +263,7 @@ class MoPoE(BaseMultiVAE):
         enc_mods = self.modality_encode(inputs)
         latents["modalities"] = enc_mods
         device = inputs.data[list(inputs.data.keys())[0]].device
+        
         mus = torch.Tensor().to(device)
         logvars = torch.Tensor().to(device)
         distr_subsets = dict()

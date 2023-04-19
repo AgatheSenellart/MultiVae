@@ -35,3 +35,6 @@ class MoPoEConfig(BaseMultiVAEConfig):
 
     subsets: Union[Dict[str, list], List[list]] = None
     beta: float = 1.0
+    use_modality_specific_spaces : bool = False
+    beta_style: float = 1.0
+    
