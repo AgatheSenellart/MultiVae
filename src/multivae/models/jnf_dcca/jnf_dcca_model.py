@@ -276,7 +276,7 @@ class JNFDcca(BaseJointModel):
                 z = z.reshape(l * N, d)
             return ModelOutput(z=z, one_latent_space=True)
 
-        if cond_mod in self.input_dims.keys():
+        if cond_mod in self.modalities_name:
             dcca_embed = self.DCCA_module.networks[cond_mod](
                 inputs.data[cond_mod]
             ).embedding

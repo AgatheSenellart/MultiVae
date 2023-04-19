@@ -108,7 +108,7 @@ class JMVAE(BaseJointModel):
 
         elif type(cond_mod) == list and len(cond_mod) == 1:
             cond_mod = cond_mod[0]
-        if cond_mod in self.input_dims.keys():
+        if cond_mod in self.modalities_name:
             output = self.encoders[cond_mod](inputs.data[cond_mod])
             sample_shape = [] if N == 1 else [N]
 

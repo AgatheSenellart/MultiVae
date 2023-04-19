@@ -103,6 +103,8 @@ class BaseMultiVAE(nn.Module):
         self.set_decoders(decoders)
         self.set_encoders(encoders)
 
+        self.modalities_name = list(self.decoders.keys())
+
         # Check that the modalities' name are coherent
         if self.input_dims is not None:
             if self.input_dims.keys() != self.encoders.keys():
