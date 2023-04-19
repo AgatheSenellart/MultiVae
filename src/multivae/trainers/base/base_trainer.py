@@ -713,7 +713,7 @@ class BaseTrainer:
     def predict(self, model: BaseMultiVAE, epoch: int, n_data=8):
         model.eval()
 
-        inputs = self.eval_dataset[:n_data]
+        inputs = next(iter(DataLoader(self.eval_dataset, batch_size=n_data)))
         inputs = self._set_inputs_to_device(inputs)
 
         # recon_dir = self.training_dir + '/reconstructions/'

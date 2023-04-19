@@ -11,6 +11,11 @@ from multivae.models.base import BaseMultiVAE
 from ..base.evaluator_class import Evaluator
 from .likelihoods_config import LikelihoodsEvaluatorConfig
 
+try :
+    from tqdm import tqdm
+except:
+    tqdm = lambda x:x
+
 
 class LikelihoodsEvaluator(Evaluator):
     """
@@ -41,7 +46,7 @@ class LikelihoodsEvaluator(Evaluator):
     def joint_nll(self):
         ll = 0
         nb_batch = 0
-        for batch in self.test_loader:
+        for batch in tqdm(self.test_loader):
             batch.data = {m: batch.data[m].to(self.device) for m in batch.data}
             ll += self.model.compute_joint_nll(batch, self.K, self.batch_size_k)
             nb_batch += 1

@@ -84,10 +84,10 @@ def adapt_shape(data):
         data[m] = F.pad(
             data[m],
             (
-                floor((h - hm) / 2),
-                ceil((h - hm) / 2),
                 floor((w - wm) / 2),
                 ceil((w - wm) / 2),
+                floor((h - hm) / 2),
+                ceil((h - hm) / 2),
             ),
             mode="constant",
             value=0,

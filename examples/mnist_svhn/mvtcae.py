@@ -1,30 +1,19 @@
+
 from config1 import *
-from pythae.models.base.base_config import BaseAEConfig
-from torch.utils.data import DataLoader, random_split
 
-from multivae.data.datasets import MnistSvhn
-from multivae.data.datasets.utils import save_all_images
-from multivae.data.utils import set_inputs_to_device
-from multivae.models import MoPoE, MoPoEConfig
-from multivae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
-from multivae.models.nn.svhn import Decoder_VAE_SVHN, Encoder_VAE_SVHN
-from multivae.trainers import BaseTrainer, BaseTrainerConfig
-from multivae.trainers.base.callbacks import (
-    ProgressBarCallback,
-    TrainingCallback,
-    WandbCallback,
-)
+from multivae.models import MVTCAE, MVTCAEConfig
 
-model_config = MoPoEConfig(
-    **base_model_config,
-    beta=5
+model_config = MVTCAEConfig(
+    beta=2.5 ,
+    alpha=2.0 / 3.0,
+    **base_model_config
 )
 
 
-model = MoPoE(model_config, encoders, decoders)
+model = MVTCAE(model_config, encoders=encoders, decoders=decoders)
 
 trainer_config = BaseTrainerConfig(
-    **base_training_config,
+    **base_training_config
 )
 
 # Set up callbacks
@@ -50,4 +39,3 @@ coherences = CoherenceEvaluator(model=model,
                                 output=trainer.training_dir).eval()
 
 trainer._best_model.push_to_hf_hub('asenella/ms'+ model.model_name + config_name)
-

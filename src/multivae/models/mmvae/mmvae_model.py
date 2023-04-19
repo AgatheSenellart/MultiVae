@@ -93,14 +93,16 @@ class MMVAE(BaseMultiVAE):
         qz_xs = {}
         qz_xs_detach = {}
         reconstructions = {}
-        n_batch = len(list(inputs.data.values())[0])
+        
+        compute_loss = kwargs.pop('compute_loss', True)
+        K = kwargs.pop('K', self.K)
 
         for cond_mod in self.encoders:
             output = self.encoders[cond_mod](inputs.data[cond_mod])
             mu, log_var = output.embedding, output.log_covariance
             sigma = self.log_var_to_std(log_var)
             qz_x = self.post_dist(mu, sigma)
-            z_x = qz_x.rsample([self.K])
+            z_x = qz_x.rsample([K])
             # The DREG loss uses detached parameters in the loss computation afterwards.
             qz_x_detach = self.post_dist(mu.detach(), sigma.detach())
 
@@ -116,11 +118,16 @@ class MMVAE(BaseMultiVAE):
             qz_xs_detach[cond_mod] = qz_x_detach
 
         # Compute DREG loss
-        loss_output = self.dreg_looser(qz_xs_detach, embeddings, reconstructions, inputs)
+        if compute_loss:
+            # TODO : change 
+            loss_output = self.dreg_looser(qz_xs_detach, embeddings, reconstructions, inputs)
         
-        # loss_output['qz_xs_detach'] = qz_xs_detach
-        # loss_output['zss'] = embeddings
-        # loss_output['recon'] = reconstructions
+        else :
+            loss_output = ModelOutput()
+        
+        loss_output['qz_xs'] = qz_xs
+        loss_output['zss'] = embeddings
+        loss_output['recon'] = reconstructions
         
         return loss_output
 
@@ -196,7 +203,7 @@ class MMVAE(BaseMultiVAE):
 
             return ModelOutput(z=z, one_latent_space=True)
 
-    def compute_joint_nll(
+    def compute_joint_nll_(
         self, inputs: MultimodalBaseDataset, K: int = 1000, batch_size_K: int = 100
     ):
         """Return the average estimated negative log-likelihood over the inputs.
@@ -263,6 +270,53 @@ class MMVAE(BaseMultiVAE):
             ll += torch.logsumexp(torch.Tensor(lnpxs), dim=0) - np.log(K)
 
         return -ll / n_data
+    
+    @torch.no_grad()
+    def compute_joint_nll(self, inputs: MultimodalBaseDataset, K: int = 1000, batch_size_K: int = 10):
+        '''Computes the joint likelihood like in the original dataset, using all Mixture of experts
+        samples and modality rescaling.'''
+        print('entering compute_joint_nll')
+        self.eval()
+        
+        lws = []
+        nb_computed_samples = 0
+        while nb_computed_samples < K:
+            n_samples = min(batch_size_K,K-nb_computed_samples)
+            nb_computed_samples += n_samples
+            # Compute a iwae likelihood estimate using n_samples
+            output = self.forward(inputs, compute_loss = False,K=n_samples)
+            qz_xs = output.qz_xs 
+            zss = output.zss
+            recon = output.recon
+            lw_mod = []
+            for cond_mod in zss:
+                lpz = self.prior_dist(*self.pz_params).log_prob(zss[cond_mod]).sum(-1)
+                lqz_x = torch.stack([qz_xs[m].log_prob(zss[cond_mod]).sum(-1) for m in qz_xs])
+                lqz_x = torch.logsumexp(lqz_x,dim=0) - np.log(lqz_x.size(0))
+                lpx_z = 0
+                for recon_mod in recon[cond_mod]:
+                    x_recon = recon[cond_mod][recon_mod]
+                    K, n_batch = x_recon.shape[0], x_recon.shape[1]
+                    lpx_z += (
+                        self.recon_log_probs[recon_mod](
+                            x_recon, inputs.data[recon_mod]
+                        )
+                        .view(K, n_batch, -1)
+                        .mul(self.rescale_factors[recon_mod])
+                        .sum(-1)
+                    )
+                lw = lpx_z + lpz - lqz_x # n_samples , n_batch
+                lw_mod.append(lw)
+            
+            lw_mod = torch.logsumexp(torch.stack(lw_mod),dim = 0) - np.log(len(lw_mod)) # n_samples,n_batch
+            lws.append(torch.logsumexp(lw_mod, dim=0))
+
+        ll = torch.logsumexp(torch.stack(lws), dim=0) - np.log(K) # n_batch
+        return ll.mean()
+            
+                
+        
+    
 
     def generate_from_prior(self, n_samples):
         sample_shape = [n_samples] if n_samples > 1 else []

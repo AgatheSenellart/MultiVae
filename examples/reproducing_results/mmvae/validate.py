@@ -2,7 +2,7 @@ import torch
 from classifiers import load_mnist_svhn_classifiers
 
 from multivae.data.datasets.mnist_svhn import MnistSvhn
-from multivae.metrics import CoherenceEvaluator, LikelihoodsEvaluator
+from multivae.metrics import CoherenceEvaluator, LikelihoodsEvaluator, LikelihoodsEvaluatorConfig
 from multivae.models import AutoModel
 
 # data_path = 'dummy_output_dir/MMVAE_training_2023-04-02_14-57-58/final_model'
@@ -18,5 +18,7 @@ clfs = load_mnist_svhn_classifiers('../../classifiers', device=device)
 
 test_set = MnistSvhn(split='test', data_multiplication=30)
 
-output = CoherenceEvaluator(model,clfs,test_set, data_path).eval()
-output = LikelihoodsEvaluator(model,test_set,data_path).eval()
+# output = CoherenceEvaluator(model,clfs,test_set, data_path).eval()
+
+lik_config = LikelihoodsEvaluatorConfig(batch_size=128, batch_size_k=50)
+output = LikelihoodsEvaluator(model,test_set,data_path,eval_config=lik_config ).joint_nll()

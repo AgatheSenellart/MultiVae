@@ -1,4 +1,5 @@
 from typing import Literal
+import torch
 
 from torchvision import transforms
 from torchvision.datasets import CelebA
@@ -48,7 +49,7 @@ class CelebAttr(MultimodalBaseDataset):
         
         return DatasetOutput(
             data = dict(image = img,
-                        attributes = target[self.attributes_to_keep]),
+                        attributes = target[self.attributes_to_keep].float()),
             labels = target[self.attributes_to_keep]
             
         )

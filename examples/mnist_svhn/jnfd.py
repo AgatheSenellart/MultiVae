@@ -1,31 +1,26 @@
+
 from config1 import *
-from pythae.models.base.base_config import BaseAEConfig
-from torch.utils.data import DataLoader, random_split
 
-from multivae.data.datasets import MnistSvhn
-from multivae.data.datasets.utils import save_all_images
-from multivae.data.utils import set_inputs_to_device
-from multivae.models import MoPoE, MoPoEConfig
-from multivae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
-from multivae.models.nn.svhn import Decoder_VAE_SVHN, Encoder_VAE_SVHN
-from multivae.trainers import BaseTrainer, BaseTrainerConfig
-from multivae.trainers.base.callbacks import (
-    ProgressBarCallback,
-    TrainingCallback,
-    WandbCallback,
-)
+from multivae.models import JNFDcca, JNFDccaConfig
+from multivae.trainers import AddDccaTrainer,AddDccaTrainerConfig
 
-model_config = MoPoEConfig(
+model_config = JNFDccaConfig(
     **base_model_config,
-    beta=5
+    warmup=100,
+    nb_epochs_dcca=100,
+    embedding_dcca_dim=20
 )
 
 
-model = MoPoE(model_config, encoders, decoders)
+model = JNFDcca(model_config, dcca_networks=encoders, decoders=decoders)
 
-trainer_config = BaseTrainerConfig(
+trainer_config = AddDccaTrainerConfig(
     **base_training_config,
+    per_device_dcca_train_batch_size=800,
+    per_device_dcca_eval_batch_size=800,
+    learning_rate=1e-3
 )
+trainer_config.num_epochs += model_config.nb_epochs_dcca
 
 # Set up callbacks
 wandb_cb = WandbCallback()
@@ -33,7 +28,7 @@ wandb_cb.setup(trainer_config, model_config, project_name=wandb_project)
 
 callbacks = [TrainingCallback(), ProgressBarCallback(), wandb_cb]
 
-trainer = BaseTrainer(
+trainer = AddDccaTrainer(
     model,
     train_dataset=train_data,
     eval_dataset=eval_data,
@@ -50,4 +45,3 @@ coherences = CoherenceEvaluator(model=model,
                                 output=trainer.training_dir).eval()
 
 trainer._best_model.push_to_hf_hub('asenella/ms'+ model.model_name + config_name)
-

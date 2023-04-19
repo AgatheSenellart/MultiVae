@@ -165,10 +165,10 @@ model_config = MVAEConfig(
 
 model = MVAE(
     model_config,
-    encoders=dict(image=ImageEncoder, attributes=AttributeEncoder),
-    decoders=dict(image=ImageDecoder, attributes=AttributeDecoder),
+    encoders=dict(image=ImageEncoder(model_config.latent_dim), attributes=AttributeEncoder(model_config.latent_dim)),
+    decoders=dict(image=ImageDecoder(model_config.latent_dim), attributes=AttributeDecoder(model_config.latent_dim)),
 )
-
+model.rescale_factors = dict(image = 1,attributes=50)
 
 ###########################################################
 ### Training config
@@ -184,8 +184,8 @@ training_config = BaseTrainerConfig(
 )
 
 
-train_set = CelebAttr("../data", "train")
-eval_set = CelebAttr("../data", "valid")
+train_set = CelebAttr("/scratch/asenella/data", "train",download=True)
+eval_set = CelebAttr("/scratch/asenella/data", "valid",download=True)
 
 wandb_cb = WandbCallback()
 wandb_cb.setup(training_config, model_config, project_name="reproduce_mvae")
