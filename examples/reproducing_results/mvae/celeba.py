@@ -184,8 +184,8 @@ training_config = BaseTrainerConfig(
 )
 
 
-train_set = CelebAttr("/scratch/asenella/data", "train",download=True)
-eval_set = CelebAttr("/scratch/asenella/data", "valid",download=True)
+train_set = CelebAttr("~/scratch/data", "train",download=True)
+eval_set = CelebAttr("~/scratch/data", "valid",download=True)
 
 wandb_cb = WandbCallback()
 wandb_cb.setup(training_config, model_config, project_name="reproduce_mvae")
@@ -199,6 +199,6 @@ trainer = BaseTrainer(
     training_config=training_config,
     callbacks=callbacks,
 )
-
+1/0
 
 trainer.train()
