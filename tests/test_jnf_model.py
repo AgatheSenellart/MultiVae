@@ -128,6 +128,7 @@ class Test:
         assert Y.mod1.shape == (2 * 10, 2)
         assert Y.mod2.shape == (2 * 10, 3)
 
+
 @pytest.mark.slow
 class TestTraining:
     @pytest.fixture

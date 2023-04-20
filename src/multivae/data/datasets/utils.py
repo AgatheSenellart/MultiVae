@@ -48,11 +48,6 @@ class ResampleDataset(Dataset):
             return self.dataset[idx]
 
 
-def save_all_images(data: dict, dir="", suffix=""):
-    for m in data:
-        save_image(data[m], dir + m + suffix + ".png")
-
-
 def adapt_shape(data):
     """
     Adapts the shape of the data for visualization. The output dictionary contains the same data

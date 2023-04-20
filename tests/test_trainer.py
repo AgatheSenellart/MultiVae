@@ -14,6 +14,7 @@ from multivae.data import MultimodalBaseDataset
 from multivae.models import JMVAE, JMVAEConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
+from multivae.trainers.base.callbacks import rename_logs
 
 PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -300,8 +301,9 @@ class Test_Device_Checks:
         request.param.output_dir = dir_path
         return request.param
 
-    def test_setup_device_with_no_cuda(self,  model_sample, train_dataset, training_configs):
-
+    def test_setup_device_with_no_cuda(
+        self, model_sample, train_dataset, training_configs
+    ):
         trainer = BaseTrainer(
             model=model_sample,
             train_dataset=train_dataset,
@@ -310,11 +312,10 @@ class Test_Device_Checks:
         )
 
         device = trainer._setup_devices()
-        assert device == "cpu" 
+        assert device == "cpu"
 
 
 class TestPredict:
-
     def test_default_optimizer_building(
         self, model_sample, train_dataset, training_config
     ):
@@ -331,7 +332,6 @@ class TestPredict:
 
 
 class TestSaving:
-     
     @pytest.fixture(
         params=[
             BaseTrainerConfig(num_epochs=3, no_cuda=True),
@@ -342,9 +342,7 @@ class TestSaving:
         request.param.output_dir = dir_path
         return request.param
 
-    def test_create_dir(
-        self, tmpdir, model_sample, train_dataset, training_configs
-    ):
+    def test_create_dir(self, tmpdir, model_sample, train_dataset, training_configs):
         trainer = BaseTrainer(
             model=model_sample,
             train_dataset=train_dataset,
@@ -356,11 +354,11 @@ class TestSaving:
         trainer._set_output_dir()
         assert os.path.exists(os.path.join(tmpdir, "test_output_dir"))
 
+
 class TestLogging:
-     
     @pytest.fixture
     def log_output_dir(self):
-     return "dummy_log_output_dir" 
+        return "dummy_log_output_dir"
 
     def test_create_dir(
         self, tmpdir, model_sample, train_dataset, training_config, log_output_dir
@@ -379,4 +377,22 @@ class TestLogging:
         file_logger = trainer._get_file_logger(os.path.join(tmpdir, log_output_dir))
 
         assert os.path.exists(os.path.join(tmpdir, "dummy_log_output_dir"))
-        assert os.path.exists(os.path.join(tmpdir, "dummy_log_output_dir", f"training_logs_dummy_signature.log"))
+        assert os.path.exists(
+            os.path.join(
+                tmpdir, "dummy_log_output_dir", f"training_logs_dummy_signature.log"
+            )
+        )
+
+
+class TestTrainingCallbacks:
+
+    def test_rename_logs(self):
+        dummy_metrics = {
+            "train_metric": 12,
+            "eval_metric": 13
+        }
+
+        renamed_metrics = rename_logs(dummy_metrics)
+
+        assert set(renamed_metrics.keys()).issubset(set(["train/metric", "eval/metric"]))
+

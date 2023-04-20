@@ -43,7 +43,9 @@ class LikelihoodsEvaluator(Evaluator):
         nb_batch = 0
         for batch in self.test_loader:
             batch.data = {m: batch.data[m].to(self.device) for m in batch.data}
-            ll += self.model.compute_joint_nll(batch, self.num_samples, self.batch_size_k)
+            ll += self.model.compute_joint_nll(
+                batch, self.num_samples, self.batch_size_k
+            )
             nb_batch += 1
 
         joint_nll = ll / nb_batch

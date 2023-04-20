@@ -7,13 +7,10 @@ from pythae.models.base.base_model import (
     BaseEncoder,
     ModelOutput,
 )
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import random_split
 
 from multivae.data.datasets.mmnist import MMNISTDataset
-from multivae.data.datasets.utils import save_all_images
-from multivae.data.utils import set_inputs_to_device
 from multivae.models import MoPoE, MoPoEConfig
-from multivae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 from multivae.trainers.base.callbacks import (
     ProgressBarCallback,

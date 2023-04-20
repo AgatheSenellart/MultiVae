@@ -45,33 +45,14 @@ class Decoder_AE_MLP(BaseDecoder):
         self.layers = layers
         self.depth = len(layers)
 
-    def forward(self, z: torch.Tensor, output_layer_levels: List[int] = None):
+    def forward(self, z: torch.Tensor):
         output = ModelOutput()
 
         max_depth = self.depth
-
-        if output_layer_levels is not None:
-            assert all(
-                self.depth >= levels > 0 or levels == -1
-                for levels in output_layer_levels
-            ), (
-                f"Cannot output layer deeper than depth ({self.depth}). "
-                f"Got ({output_layer_levels})."
-            )
-
-            if -1 in output_layer_levels:
-                max_depth = self.depth
-            else:
-                max_depth = max(output_layer_levels)
-
         out = z
 
         for i in range(max_depth):
             out = self.layers[i](out)
-
-            if output_layer_levels is not None:
-                if i + 1 in output_layer_levels:
-                    output[f"reconstruction_layer_{i+1}"] = out
             if i + 1 == self.depth:
                 output_shape = (*z.shape[:-1],) + self.input_dim
                 output["reconstruction"] = out.reshape(output_shape)

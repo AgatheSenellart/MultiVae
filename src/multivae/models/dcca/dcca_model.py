@@ -27,9 +27,8 @@ class DCCA(Module):
     def set_networks(self, networks):
         self.networks = ModuleDict()
         assert (
-            len(networks) == self.n_modalities,
-            "The number of provided networks doesn't match the number of modalities."
-        )
+            len(networks) == self.n_modalities
+        ), "The number of provided networks doesn't match the number of modalities."
 
         for m in networks:
             if not isinstance(networks[m], BaseEncoder):

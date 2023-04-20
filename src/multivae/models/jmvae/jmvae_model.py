@@ -376,7 +376,7 @@ class JMVAE(BaseJointModel):
 
         pos = torch.stack(pos)
         grad = torch.stack(grad)
-       
+
         sh = (n_data, self.latent_dim) if K == 1 else (K, n_data, self.latent_dim)
         z = z.detach().resize(*sh)
         return z.detach()

@@ -1,10 +1,8 @@
 import torch
 from pythae.models.base.base_config import BaseAEConfig
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import random_split
 
 from multivae.data.datasets import MnistSvhn
-from multivae.data.datasets.utils import save_all_images
-from multivae.data.utils import set_inputs_to_device
 from multivae.models import MMVAE, MMVAEConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
 from multivae.models.nn.svhn import Decoder_VAE_SVHN, Encoder_VAE_SVHN

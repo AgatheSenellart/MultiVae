@@ -1,23 +1,24 @@
 import os
-import torch
+
 import numpy as np
 import pytest
+import torch
 from pythae.models.base import BaseAEConfig
+from pythae.models.base.base_utils import ModelOutput
 from pythae.models.nn.benchmarks.mnist.convnets import (
     Decoder_Conv_AE_MNIST,
     Encoder_Conv_AE_MNIST,
 )
-from pythae.models.base.base_utils import ModelOutput
 from torch import nn
 
-from multivae.models import AutoConfig, AutoModel
 from multivae.data.datasets import MultimodalBaseDataset
+from multivae.models import AutoConfig, AutoModel
 from multivae.models.base import BaseMultiVAE, BaseMultiVAEConfig
-from multivae.trainers import BaseTrainerConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
-
+from multivae.trainers import BaseTrainerConfig
 
 PATH = os.path.dirname(os.path.abspath(__file__))
+
 
 class Test_BaseMultiVAE:
     @pytest.fixture
@@ -69,13 +70,14 @@ class Test_BaseMultiVAE:
         model_config = BaseMultiVAEConfig(
             n_modalities=2, latent_dim=10, input_dims=dict(mod2=(3, 4, 4))
         )
-    
+
         with pytest.raises(AttributeError):
             BaseMultiVAE(model_config)
 
         model_config = BaseMultiVAEConfig(
-            n_modalities=2, latent_dim=10, input_dims=None)
-    
+            n_modalities=2, latent_dim=10, input_dims=None
+        )
+
         with pytest.raises(AttributeError):
             BaseMultiVAE(model_config)
 
@@ -85,40 +87,42 @@ class Test_BaseMultiVAE:
         )
 
         with pytest.raises(AttributeError):
-            BaseMultiVAE(model_config, encoders=input_model1['encoders'])
+            BaseMultiVAE(model_config, encoders=input_model1["encoders"])
 
         model_config = BaseMultiVAEConfig(
-            n_modalities=2, latent_dim=10, input_dims=None)
-    
+            n_modalities=2, latent_dim=10, input_dims=None
+        )
+
         with pytest.raises(AttributeError):
-            BaseMultiVAE(model_config, encoders=input_model1['encoders'])
+            BaseMultiVAE(model_config, encoders=input_model1["encoders"])
 
         model_config = BaseMultiVAEConfig(
-            n_modalities=2, latent_dim=10, input_dims=None, uses_likelihood_rescaling=True)
+            n_modalities=2,
+            latent_dim=10,
+            input_dims=None,
+            uses_likelihood_rescaling=True,
+        )
 
         with pytest.raises(AttributeError):
-            BaseMultiVAE(model_config, encoders=input_model1['encoders'], decoders=input_model1['decoders'])
+            BaseMultiVAE(
+                model_config,
+                encoders=input_model1["encoders"],
+                decoders=input_model1["decoders"],
+            )
 
     def test_raises_wrong_encoders(self, input_model1):
         # create dummy model
         model = BaseMultiVAE(**input_model1)
 
-        encoders = dict(
-            mod1=ModelOutput(),
-            mod2=ModelOutput()
-        )
+        encoders = dict(mod1=ModelOutput(), mod2=ModelOutput())
 
         with pytest.raises(AttributeError):
             model.set_encoders(encoders)
 
-        decoders = dict(
-            mod1=ModelOutput(),
-            mod2=ModelOutput()
-        )
+        decoders = dict(mod1=ModelOutput(), mod2=ModelOutput())
 
         with pytest.raises(AttributeError):
             model.set_decoders(decoders)
-
 
     def test_raises_key_error(self):
         model_config = BaseMultiVAEConfig(
@@ -127,14 +131,10 @@ class Test_BaseMultiVAE:
 
         config = BaseAEConfig(input_dim=(10, 2), latent_dim=10)
 
-        encoders = dict(
-            mod1=Encoder_VAE_MLP(config)
-        )
+        encoders = dict(mod1=Encoder_VAE_MLP(config))
 
-        decoders = dict(
-            mod1=Decoder_Conv_AE_MNIST(config)
-        )
-    
+        decoders = dict(mod1=Decoder_Conv_AE_MNIST(config))
+
         with pytest.raises(KeyError):
             BaseMultiVAE(model_config, encoders=encoders, decoders=decoders)
 
@@ -142,13 +142,11 @@ class Test_BaseMultiVAE:
         model_config = BaseMultiVAEConfig(
             n_modalities=3,
             latent_dim=10,
-            input_dims=dict(mod1=(3,), mod2=(3, 4),mod3=(3, 4, 4)),
+            input_dims=dict(mod1=(3,), mod2=(3, 4), mod3=(3, 4, 4)),
             decoders_dist=dict(mod1="normal", mod2="bernoulli", mod3="laplace"),
             decoder_dist_params=dict(
-                mod1=dict(scale=12),
-                mod2=None,
-                mod3=dict(scale=31)
-            )
+                mod1=dict(scale=12), mod2=None, mod3=dict(scale=31)
+            ),
         )
 
         model = BaseMultiVAE(model_config)
@@ -159,9 +157,11 @@ class Test_BaseMultiVAE:
         dumb_x3 = torch.randn(2, 3, 4, 4)
 
         assert model.recon_log_probs["mod1"](dumb_x1, dumb_x1).shape == dumb_x1.shape
-        assert model.recon_log_probs["mod2"](dumb_x2, dumb_x2_target).shape == dumb_x2.shape
+        assert (
+            model.recon_log_probs["mod2"](dumb_x2, dumb_x2_target).shape
+            == dumb_x2.shape
+        )
         assert model.recon_log_probs["mod3"](dumb_x3, dumb_x3).shape == dumb_x3.shape
-
 
     def test_raises_sanity_check_flags(self):
         model_config = BaseMultiVAEConfig(
@@ -170,24 +170,18 @@ class Test_BaseMultiVAE:
 
         config = BaseAEConfig(input_dim=(10, 2), latent_dim=10)
 
-        encoders = dict(
-            wrong_name=Encoder_VAE_MLP(config)
-        )
+        encoders = dict(wrong_name=Encoder_VAE_MLP(config))
 
         with pytest.raises(AttributeError):
             BaseMultiVAE(model_config, encoders=encoders)
 
-        decoders = dict(
-            wrong_name=Decoder_Conv_AE_MNIST(config)
-        )
+        decoders = dict(wrong_name=Decoder_Conv_AE_MNIST(config))
 
         with pytest.raises(AttributeError):
             BaseMultiVAE(model_config, decoders=decoders)
-    
-        
+
         encoders = dict(
-            wrong_name1=Encoder_VAE_MLP(config),
-            wrong_name2=Encoder_VAE_MLP(config)
+            wrong_name1=Encoder_VAE_MLP(config), wrong_name2=Encoder_VAE_MLP(config)
         )
 
         with pytest.raises(AttributeError):
@@ -195,21 +189,19 @@ class Test_BaseMultiVAE:
 
         decoders = dict(
             wrong_name_1=Decoder_Conv_AE_MNIST(config),
-            wrong_name_2=Decoder_Conv_AE_MNIST(config)
+            wrong_name_2=Decoder_Conv_AE_MNIST(config),
         )
-        
+
         with pytest.raises(AttributeError):
             BaseMultiVAE(model_config, encoders=encoders, decoders=decoders)
-
 
     def test_raises_encode_error(self, input_model1):
         model = BaseMultiVAE(**input_model1)
 
-        inputs = MultimodalBaseDataset(data=dict(
-            mod1=torch.randn(3, 10, 2),
-            mod2=torch.rand(3, 10, 2)
-        ))
-        
+        inputs = MultimodalBaseDataset(
+            data=dict(mod1=torch.randn(3, 10, 2), mod2=torch.rand(3, 10, 2))
+        )
+
         with pytest.raises(AttributeError):
             model.encode(inputs, cond_mod="mod1")
 
@@ -219,12 +211,18 @@ class Test_BaseMultiVAE:
     def test_raises_decode_error(self, input_model1):
         model = BaseMultiVAE(**input_model1)
 
-        out = ModelOutput(z=torch.randn(3, input_model1["model_config"].latent_dim), one_latent_space=True)
+        out = ModelOutput(
+            z=torch.randn(3, input_model1["model_config"].latent_dim),
+            one_latent_space=True,
+        )
         output = model.decode(out, modalities=["mod1"])
 
         assert tuple(output.mod1.shape) == (3, 10, 2)
 
-        out = ModelOutput(z=torch.randn(3, input_model1["model_config"].latent_dim), one_latent_space=False)
+        out = ModelOutput(
+            z=torch.randn(3, input_model1["model_config"].latent_dim),
+            one_latent_space=False,
+        )
 
         with pytest.raises(NotImplementedError):
             output = model.decode(out, modalities="mod1")
@@ -245,14 +243,13 @@ class Test_BaseMultiVAE:
         model = BaseMultiVAE(**input_model1)
         output = model.generate_from_prior(11)
         assert output.z.shape == (11, input_model1["model_config"].latent_dim)
-        
 
     def test_dummy_model_saving(self, input_model1, tmpdir):
         model = BaseMultiVAE(**input_model1)
 
-        assert not os.path.exists(os.path.join(tmpdir, 'model_save'))
-        model.save(os.path.join(tmpdir, 'model_save'))
-        assert os.path.exists(os.path.join(tmpdir, 'model_save'))
+        assert not os.path.exists(os.path.join(tmpdir, "model_save"))
+        model.save(os.path.join(tmpdir, "model_save"))
+        assert os.path.exists(os.path.join(tmpdir, "model_save"))
 
         with pytest.raises(FileNotFoundError):
             model._load_model_config_from_folder(tmpdir)
@@ -260,34 +257,37 @@ class Test_BaseMultiVAE:
         with pytest.raises(FileNotFoundError):
             model._load_model_weights_from_folder(tmpdir)
 
-        torch.save({"wrong_key": torch.ones(2)}, os.path.join(tmpdir, 'model.pt'))
+        torch.save({"wrong_key": torch.ones(2)}, os.path.join(tmpdir, "model.pt"))
         with pytest.raises(KeyError):
             model._load_model_weights_from_folder(tmpdir)
 
         with pytest.raises(FileNotFoundError):
-            model._load_custom_archi_from_folder(tmpdir, 'encoders')
+            model._load_custom_archi_from_folder(tmpdir, "encoders")
 
-        
+
 class TestIntegrateAutoConfig:
-
     def test_autoconfig(self, tmpdir):
         model_config = BaseMultiVAEConfig(n_modalities=14, latent_dim=3)
-        model_config.save_json(tmpdir, 'model_config')
-        reloaded_config = AutoConfig.from_json_file(os.path.join(tmpdir, 'model_config.json'))
+        model_config.save_json(tmpdir, "model_config")
+        reloaded_config = AutoConfig.from_json_file(
+            os.path.join(tmpdir, "model_config.json")
+        )
 
         assert model_config == reloaded_config
 
     def test_raises_not_handled(self, tmpdir):
         training_config = BaseTrainerConfig()
-        training_config.save_json(tmpdir, 'training_config')
+        training_config.save_json(tmpdir, "training_config")
         with pytest.raises(NameError):
-            _ = AutoConfig.from_json_file(os.path.join(tmpdir, 'training_config.json'))
+            _ = AutoConfig.from_json_file(os.path.join(tmpdir, "training_config.json"))
+
 
 class TestIntegrateAutoModel:
-
     def test_build_automodel(self):
         _ = AutoModel()
 
     def test_raises_not_handled(self):
         with pytest.raises(NameError):
-            _ = AutoModel.load_from_folder(os.path.join(PATH, 'tests_data', 'wrong_model'))
+            _ = AutoModel.load_from_folder(
+                os.path.join(PATH, "tests_data", "wrong_model")
+            )

@@ -1,8 +1,8 @@
 import os
 from copy import deepcopy
 
-import pytest
 import numpy as np
+import pytest
 import torch
 from encoders import Encoder_test
 from pytest import fixture
@@ -52,16 +52,15 @@ class TestDcca:
         with pytest.raises(AttributeError):
             model(MultimodalBaseDataset({"unknown_modality": 10}))
 
-
     def test_set_networks(self, inputs):
-        
-        with pytest.raises(AttributeError):
+        with pytest.raises(AssertionError):
             _ = DCCA(inputs[1], {"mod1": AutoModel()})
 
-        inputs[0]['mod1'].latent_dim = inputs[1].embedding_dim + 1
+        inputs[0]["mod1"].latent_dim = inputs[1].embedding_dim + 1
 
         with pytest.raises(AttributeError):
             _ = DCCA(inputs[1], inputs[0])
+
 
 class TestJNFDcca:
     @fixture
@@ -162,7 +161,6 @@ class TestJNFDcca:
         return trainer
 
     def test_model_forward(self, model, dataset, model_config):
-       
         assert hasattr(model, "dcca_networks")
         assert model.warmup == model_config.warmup
         assert model.nb_epochs_dcca == model_config.nb_epochs_dcca
@@ -183,7 +181,7 @@ class TestJNFDcca:
         loss = output.loss
         assert type(loss) == torch.Tensor
         assert loss.size() == torch.Size([])
-        #assert loss.requires_grad
+        # assert loss.requires_grad
 
         # Test forward method during flows training
         output = model(
@@ -224,7 +222,6 @@ class TestJNFDcca:
         assert isinstance(Y, ModelOutput)
         assert Y.mod1.shape == (200 * 10, 2)
         assert Y.mod2.shape == (200 * 10, 3)
-
 
     @pytest.mark.slow
     def test_train_step(self, trainer):
