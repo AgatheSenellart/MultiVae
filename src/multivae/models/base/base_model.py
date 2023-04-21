@@ -113,7 +113,9 @@ class BaseMultiVAE(nn.Module):
 
         self.use_likelihood_rescaling = model_config.uses_likelihood_rescaling
         if self.use_likelihood_rescaling:
-            if self.input_dims is None:
+            if self.model_config.rescale_factors is not None:
+                self.rescale_factors = model_config.rescale_factors
+            elif self.input_dims is None:
                 raise AttributeError(
                     " inputs_dim = None but (use_likelihood_rescaling = True"
                     " in model_config)"
@@ -135,7 +137,7 @@ class BaseMultiVAE(nn.Module):
         if model_config.decoder_dist_params is None:
             model_config.decoder_dist_params = {}
         self.set_decoders_dist(
-            model_config.decoders_dist, model_config.decoder_dist_params
+            model_config.decoders_dist, deepcopy(model_config.decoder_dist_params)
         )
 
     def set_decoders_dist(self, recon_dict, dist_params_dict):
@@ -237,11 +239,15 @@ class BaseMultiVAE(nn.Module):
                 outputs[m] = self.decoders[m](z).reconstruction
             return outputs
         else:
-            raise NotImplementedError(
-                "The decoding function for multiple latent spaces is not implemented"
-                "yet"
-            )
-
+            z_content = embedding.z
+            outputs = ModelOutput()
+            
+            for m in modalities:
+                print(z_content.shape,embedding.modalities_z[m].shape)
+                z = torch.cat([z_content,embedding.modalities_z[m]],dim=-1)
+                outputs[m] = self.decoders[m](z).reconstruction
+            return outputs
+            
     def predict(
         self,
         inputs: MultimodalBaseDataset,

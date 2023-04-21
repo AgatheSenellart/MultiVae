@@ -50,11 +50,15 @@ class Test:
 
     @pytest.fixture(params=[True, False])
     def model_config(self, request):
-        model_config = MMVAEConfig(
+        model_config = dict(
             n_modalities=2,
             latent_dim=5,
             input_dims=dict(mod1=(2,), mod2=(3,)),
             use_likelihood_rescaling=request.param,
+            decoders_dist=dict(mod1='laplace', mod2='laplace'),
+            decoder_dist_params=dict(mod1 = {'scale' : 0.75},
+                                     mod2 = {'scale' : 0.75}
+                                     )
         )
 
         return model_config
@@ -63,12 +67,18 @@ class Test:
     def model(self, custom_architectures, model_config, request):
         custom = request.param
         if custom:
-            model = MMVAE(model_config, **custom_architectures)
+            model = MMVAE(MMVAEConfig(**model_config), **custom_architectures)
         else:
-            model = MMVAE(model_config)
+            model = MMVAE(MMVAEConfig(**model_config))
         return model
 
     def test(self, model, dataset, model_config):
+        model_config = MMVAEConfig(**model_config)
+        assert(model_config.decoders_dist==dict(mod1='laplace', mod2='laplace'))
+
+        assert(model_config.decoder_dist_params == dict(mod1 = {'scale' : 0.75},
+                                     mod2 = {'scale' : 0.75}
+                                     ) )
         assert model.K == model_config.K
 
         output = model(dataset, epoch=2)
@@ -132,6 +142,10 @@ class TestTraining:
                 mod2=tuple(input_dataset[0].data["mod2"].shape),
             ),
             warmup=10,
+            decoders_dist=dict(mod1='laplace', mod2='laplace'),
+            decoder_dist_params=dict(mod1 = {'scale' : 0.75},
+                                     mod2 = {'scale' : 0.75}
+                                     )
         )
 
     @pytest.fixture

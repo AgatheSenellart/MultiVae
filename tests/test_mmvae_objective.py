@@ -122,7 +122,7 @@ class Test_mmvae_obj:
     
     def test_forward(self, model, dataset):
         
-        out = model(dataset)
+        out = model(dataset, detailed_output=True)
         
         assert hasattr(out, 'qz_xs_detach')
         

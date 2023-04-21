@@ -1,6 +1,7 @@
 import torch.nn.functional as F
 from pythae.models.base.base_model import BaseDecoder, BaseEncoder, ModelOutput
 from torch import nn
+import torch
 
 from multivae.data.datasets.celeba import CelebAttr
 from multivae.models import MVAE, MVAEConfig
@@ -13,6 +14,7 @@ from multivae.trainers.base.callbacks import (
 
 ######## Architectures ###########
 
+torch.cudnn.benchmark = True
 
 class Swish(nn.Module):
     """https://arxiv.org/abs/1710.05941"""
@@ -158,6 +160,7 @@ model_config = MVAEConfig(
     input_dims=dict(image=(3, 64, 64), attributes=(18,)),
     latent_dim=100,
     uses_likelihood_rescaling=True,
+    rescale_factors= dict(image=1,attributes=10),
     decoder_dist=dict(image="bernoulli", attributes="bernoulli"),
     warmup=20,
 )
@@ -168,7 +171,7 @@ model = MVAE(
     encoders=dict(image=ImageEncoder(model_config.latent_dim), attributes=AttributeEncoder(model_config.latent_dim)),
     decoders=dict(image=ImageDecoder(model_config.latent_dim), attributes=AttributeDecoder(model_config.latent_dim)),
 )
-model.rescale_factors = dict(image = 1,attributes=50)
+
 
 ###########################################################
 ### Training config
@@ -181,10 +184,11 @@ training_config = BaseTrainerConfig(
     start_keep_best_epoch=model.warmup + 1,
     num_epochs=100,
     steps_predict=1,
+    steps_saving=49
 )
 
 
-train_set = CelebAttr("~/scratch/data", "train",download=True)
+train_set = CelebAttr("~/scratch/data", "train",download=True) 
 eval_set = CelebAttr("~/scratch/data", "valid",download=True)
 
 wandb_cb = WandbCallback()
@@ -201,3 +205,6 @@ trainer = BaseTrainer(
 )
 
 trainer.train()
+
+trainer._best_model.push_to_hf_hub("asenella/reproducing_mvae")
+

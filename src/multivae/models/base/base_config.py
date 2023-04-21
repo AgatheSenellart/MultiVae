@@ -5,6 +5,7 @@ from pydantic.dataclasses import dataclass
 from pythae.config import BaseConfig
 
 
+
 @dataclass
 class BaseMultiVAEConfig(BaseConfig):
     """This is the base config for a Multi-Modal VAE model.
@@ -17,6 +18,9 @@ class BaseMultiVAEConfig(BaseConfig):
             (see : https://proceedings.mlr.press/v162/javaloy22a.html).
             The inputs_dim must be provided to compute the likelihoods rescalings. It is used in a number of models
             which is why we include it here. Default to False.
+        rescale_factors (dict[str, float]): The reconstruction rescaling factors per modality. 
+            If None is provided but uses_likelihood_rescaling is True, a default value proportional to the input modality
+            size is computed. Default to None. 
         decoders_dist (Dict[str, Union[function, str]]). The decoder distributions to use per modality.
             Per modality, you can provide a string in ['normal','bernoulli','laplace']. If None is provided,
             a normal distribution is used for each modality.
@@ -30,6 +34,7 @@ class BaseMultiVAEConfig(BaseConfig):
     latent_dim: int = 10
     input_dims: dict = None
     uses_likelihood_rescaling: bool = False
+    rescale_factors: dict = None
     decoders_dist: Dict[str,Literal['normal','bernoulli','laplace']] = None
     decoder_dist_params: dict = None
     custom_architectures: list = field(default_factory=lambda: [])
@@ -38,3 +43,21 @@ class BaseMultiVAEConfig(BaseConfig):
 @dataclass
 class EnvironmentConfig(BaseConfig):
     python_version: str = "3.8"
+
+
+
+@dataclass
+class BaseAEConfig(BaseConfig):
+    """This is the base configuration instance of the models deriving from
+    :class:`~pythae.config.BaseConfig`.
+
+    Parameters:
+        input_dim (tuple): The input_data dimension (channels X x_dim X y_dim)
+        latent_dim (int): The latent space dimension. Default: None.
+    """
+
+    input_dim: Union[Tuple[int, ...], None] = None
+    latent_dim: int = 10
+    style_dim: int=10
+    uses_default_encoder: bool = True
+    uses_default_decoder: bool = True

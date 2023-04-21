@@ -64,10 +64,10 @@ class MVAE(BaseMultiVAE):
         mus = torch.stack(mus)
         joint_mu = (torch.exp(lnT) * mus).sum(dim=0) * torch.exp(lnV)
 
-        joint_std = torch.exp(0.5 * lnV)
-        return joint_mu, joint_std
+        
+        return joint_mu, lnV
 
-    def _compute_mu_logvar_subset(self, data: dict, subset: list):
+    def compute_mu_log_var_subset(self, data: dict, subset: list):
         """Computes the parameters of the posterior when conditioning on
         the modalities contained in subset."""
         mus_sub = []
@@ -78,21 +78,22 @@ class MVAE(BaseMultiVAE):
                 mu_mod, log_var_mod = output_mod.embedding, output_mod.log_covariance
                 mus_sub.append(mu_mod)
                 log_vars_sub.append(log_var_mod)
-        sub_mu, sub_log_var = self.poe(mus_sub, log_vars_sub)
-        return sub_mu, sub_log_var
+        sub_mu, sub_logvar = self.poe(mus_sub, log_vars_sub)
+        return sub_mu, sub_logvar
 
     def _compute_elbo_subset(self, data: dict, subset: list, beta: float):
-        len_batch = 0
-        sub_mu, sub_log_var = self._compute_mu_logvar_subset(data, subset)
-        z = dist.Normal(sub_mu, torch.exp(0.5 * sub_log_var)).rsample()
+        
+        sub_mu, sub_logvar = self.compute_mu_log_var_subset(data, subset)
+        sub_std = torch.exp(0.5*sub_logvar)
+        z = dist.Normal(sub_mu, sub_std).rsample()
         elbo_sub = 0
         for mod in self.decoders:
             if mod in subset:
-                len_batch = len(data[mod])
                 recon = self.decoders[mod](z).reconstruction
-                elbo_sub += -self.recon_log_probs[mod](recon, data[mod]).sum()
-        elbo_sub += self.kl_prior(sub_mu, torch.exp(0.5 * sub_log_var)) * beta
-        return elbo_sub / len_batch
+                elbo_sub += -(self.recon_log_probs[mod](recon, data[mod])*self.rescale_factors[mod]).sum()
+        KLD = -0.5 * torch.sum(1 + sub_logvar - sub_mu.pow(2) - sub_logvar.exp())
+        elbo_sub += KLD * beta
+        return elbo_sub / len(sub_mu)
 
     def _filter_inputs_with_masks(
         self, inputs: IncompleteDataset, subset: Union[list, tuple]
@@ -127,10 +128,11 @@ class MVAE(BaseMultiVAE):
         """
 
         epoch = kwargs.pop("epoch", 1)
+        batch_ratio = kwargs.pop("batch_ratio",0)
         if epoch >= self.warmup:
             beta = 1
         else:
-            beta = epoch / self.warmup
+            beta = (epoch + batch_ratio) / self.warmup
 
         total_loss = 0
 
@@ -156,9 +158,7 @@ class MVAE(BaseMultiVAE):
 
         return ModelOutput(loss=total_loss, metrics=dict())
 
-    def kl_prior(self, mu, std):
-        return kl_divergence(dist.Normal(mu, std), dist.Normal(0, 1)).sum()
-
+    
     def encode(
         self,
         inputs: Union[MultimodalBaseDataset, IncompleteDataset],
@@ -188,9 +188,10 @@ class MVAE(BaseMultiVAE):
                     " (according to the provided masks)"
                 )
 
-        sub_mu, sub_log_var = self._compute_mu_logvar_subset(inputs.data, cond_mod)
+        sub_mu, sub_logvar = self.compute_mu_log_var_subset(inputs.data, cond_mod)
+        sub_std = torch.exp(0.5*sub_logvar)
         sample_shape = [N] if N > 1 else []
-        z = dist.Normal(sub_mu, torch.exp(0.5 * sub_log_var)).rsample(sample_shape)
+        z = dist.Normal(sub_mu, sub_std).rsample(sample_shape)
         flatten = kwargs.pop("flatten", False)
         if flatten:
             z = z.reshape(-1, self.latent_dim)
@@ -221,7 +222,7 @@ class MVAE(BaseMultiVAE):
             lnpxs = []
 
             # Compute the parameters of the joint posterior
-            mu, log_var = self._compute_mu_logvar_subset(
+            mu, log_var = self.compute_mu_log_var_subset(
                 {k: filtered_inputs[k][i] for k in filtered_inputs}, all_modalities
             )
             assert mu.shape == (1, self.latent_dim)

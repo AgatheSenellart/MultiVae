@@ -95,6 +95,7 @@ class MMVAE(BaseMultiVAE):
         reconstructions = {}
         
         compute_loss = kwargs.pop('compute_loss', True)
+        detailed_output = kwargs.pop('detailed_output',False)
         K = kwargs.pop('K', self.K)
 
         for cond_mod in self.encoders:
@@ -124,10 +125,11 @@ class MMVAE(BaseMultiVAE):
         
         else :
             loss_output = ModelOutput()
-        
-        loss_output['qz_xs'] = qz_xs
-        loss_output['zss'] = embeddings
-        loss_output['recon'] = reconstructions
+        if detailed_output:
+            loss_output['qz_xs'] = qz_xs
+            loss_output['qz_xs_detach'] = qz_xs_detach
+            loss_output['zss'] = embeddings
+            loss_output['recon'] = reconstructions
         
         return loss_output
 
@@ -275,7 +277,7 @@ class MMVAE(BaseMultiVAE):
     def compute_joint_nll(self, inputs: MultimodalBaseDataset, K: int = 1000, batch_size_K: int = 10):
         '''Computes the joint likelihood like in the original dataset, using all Mixture of experts
         samples and modality rescaling.'''
-        print('entering compute_joint_nll')
+        
         self.eval()
         
         lws = []
@@ -284,7 +286,7 @@ class MMVAE(BaseMultiVAE):
             n_samples = min(batch_size_K,K-nb_computed_samples)
             nb_computed_samples += n_samples
             # Compute a iwae likelihood estimate using n_samples
-            output = self.forward(inputs, compute_loss = False,K=n_samples)
+            output = self.forward(inputs, compute_loss = False,K=n_samples, detailed_output=True)
             qz_xs = output.qz_xs 
             zss = output.zss
             recon = output.recon
@@ -312,7 +314,7 @@ class MMVAE(BaseMultiVAE):
             lws.append(torch.logsumexp(lw_mod, dim=0))
 
         ll = torch.logsumexp(torch.stack(lws), dim=0) - np.log(K) # n_batch
-        return ll.mean()
+        return -ll.mean()
             
                 
         

@@ -613,7 +613,7 @@ class BaseTrainer:
 
         epoch_loss = 0
         epoch_model_metrics = {}
-
+        batch_idx = 0
         for inputs in self.train_loader:
             inputs = self._set_inputs_to_device(inputs)
 
@@ -622,6 +622,7 @@ class BaseTrainer:
                 epoch=epoch,
                 dataset_size=len(self.train_loader.dataset),
                 uses_ddp=self.distributed,
+                batch_ratio = (batch_idx+1)/len(self.train_loader)
             )
 
             self._optimizers_step(model_output)
@@ -637,7 +638,7 @@ class BaseTrainer:
             self.callback_handler.on_train_step_end(
                 training_config=self.training_config
             )
-
+            batch_idx +=1
         # Allows model updates if needed
         if self.distributed:
             self.model.module.update()
