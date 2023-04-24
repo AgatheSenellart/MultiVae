@@ -2,7 +2,6 @@ import torch.nn.functional as F
 from pythae.models.base.base_model import BaseDecoder, BaseEncoder, ModelOutput
 from torch import nn
 import torch
-
 from multivae.data.datasets.celeba import CelebAttr
 from multivae.models import MVAE, MVAEConfig
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
@@ -14,7 +13,7 @@ from multivae.trainers.base.callbacks import (
 
 ######## Architectures ###########
 
-torch.cudnn.benchmark = True
+torch.backends.cudnn.benchmark = True
 
 class Swish(nn.Module):
     """https://arxiv.org/abs/1710.05941"""

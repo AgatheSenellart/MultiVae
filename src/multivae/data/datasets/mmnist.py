@@ -26,13 +26,20 @@ class MMNISTDataset(MultimodalBaseDataset):
                 correspond by index. Therefore the numbers of samples of all datapaths should match.
             transform: tranforms on colored MNIST digits.
             target_transform: transforms on labels.
+        
         """
+                
+        if isinstance(data_path, str):
+            data_path = os.path.expanduser(data_path)
+        
         unimodal_datapaths = [data_path + "/" + split + f"/m{i}.pt" for i in range(5)]
         self.num_modalities = len(unimodal_datapaths)
         self.unimodal_datapaths = unimodal_datapaths
         self.transform = transform
         self.target_transform = target_transform
         self.download = download
+
+        
         self.__check_or_download_data__(data_path, unimodal_datapaths)
 
         self.m0 = torch.load(unimodal_datapaths[0])
