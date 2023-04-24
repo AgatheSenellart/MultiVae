@@ -1,13 +1,11 @@
 import os
-from torch import nn, optim
+
 import torch
+import torch.nn.functional as F
+from torch import nn, optim
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST, SVHN
 from torchvision.transforms import ToTensor
-import torch.nn.functional as F
-
-
-
 
 
 class SVHN_Classifier(nn.Module):
@@ -47,29 +45,29 @@ class MNIST_Classifier(nn.Module):
         x = self.fc2(x)
         return F.log_softmax(x, dim=-1)
 
+
 def load_mnist_svhn_classifiers(data_path):
     c1 = MNIST_Classifier()
-    c1.load_state_dict(torch.load(f'{data_path}/mnist.pt'))
+    c1.load_state_dict(torch.load(f"{data_path}/mnist.pt"))
     c2 = SVHN_Classifier()
-    c2.load_state_dict(torch.load(f'{data_path}/svhn.pt'))
-    return {'mnist' : c1,
-            'svhn' : c2}
-
-if __name__ == '__main__':
-    
+    c2.load_state_dict(torch.load(f"{data_path}/svhn.pt"))
+    return {"mnist": c1, "svhn": c2}
 
 
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+if __name__ == "__main__":
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     epochs = 30
-    train_set = {'mnist' : MNIST('../data', transform=ToTensor()),
-                 'svhn' : SVHN('../data', transform=ToTensor())}
-    test_set = {'mnist' : MNIST('../data', train=False,transform=ToTensor()),
-                 'svhn' : SVHN('../data',split='test',transform=ToTensor())}
-    classifiers = {'mnist' : MNIST_Classifier(),
-                   'svhn' : SVHN_Classifier()}
-    
-    
-    for modality in ['mnist', 'svhn']:
+    train_set = {
+        "mnist": MNIST("../data", transform=ToTensor()),
+        "svhn": SVHN("../data", transform=ToTensor()),
+    }
+    test_set = {
+        "mnist": MNIST("../data", train=False, transform=ToTensor()),
+        "svhn": SVHN("../data", split="test", transform=ToTensor()),
+    }
+    classifiers = {"mnist": MNIST_Classifier(), "svhn": SVHN_Classifier()}
+
+    for modality in ["mnist", "svhn"]:
         train_loader = DataLoader(train_set[modality], batch_size=128)
         classifier = classifiers[modality].to(device)
         criterion = nn.CrossEntropyLoss()
@@ -77,7 +75,7 @@ if __name__ == '__main__':
         for epoch in range(epochs):  # loop over the dataset multiple times
             running_loss = 0.0
             total_iters = len(train_loader)
-            print('\n====> Epoch: {:03d} '.format(epoch))
+            print("\n====> Epoch: {:03d} ".format(epoch))
             for i, data in enumerate(train_loader):
                 # get the inputs
                 x, targets = data
@@ -91,9 +89,13 @@ if __name__ == '__main__':
                 # print statistics
                 running_loss += loss.item()
                 if (i + 1) % 5 == 0:
-                    print('iteration {:04d}/{:d}: loss: {:6.3f}'.format(i + 1, total_iters, running_loss / 1000))
+                    print(
+                        "iteration {:04d}/{:d}: loss: {:6.3f}".format(
+                            i + 1, total_iters, running_loss / 1000
+                        )
+                    )
                     running_loss = 0.0
-        print('Finished Training, calculating test loss...')
+        print("Finished Training, calculating test loss...")
 
         classifier.eval()
         total = 0
@@ -108,8 +110,10 @@ if __name__ == '__main__':
                 _, predicted = torch.max(outputs.data, 1)
                 total += targets.size(0)
                 correct += (predicted == targets).sum().item()
-        print('The classifier correctly classified {} out of {} examples. Accuracy: '
-              '{:.2f}%'.format(correct, total, correct / total * 100))
-        if not os.path.exists('../../classifiers'):
-            os.mkdir('../../classifiers')
-        torch.save(classifier.state_dict(), f'../../classifiers/{modality}.pt')
+        print(
+            "The classifier correctly classified {} out of {} examples. Accuracy: "
+            "{:.2f}%".format(correct, total, correct / total * 100)
+        )
+        if not os.path.exists("../../classifiers"):
+            os.mkdir("../../classifiers")
+        torch.save(classifier.state_dict(), f"../../classifiers/{modality}.pt")

@@ -2,6 +2,7 @@ import os
 
 import pytest
 import torch
+import torch.optim as optim
 from pythae.models.base import BaseAEConfig
 from pythae.models.nn.benchmarks.mnist.convnets import (
     Decoder_Conv_AE_MNIST,
@@ -13,6 +14,7 @@ from multivae.data import MultimodalBaseDataset
 from multivae.models import JMVAE, JMVAEConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
+from multivae.trainers.base.callbacks import rename_logs
 
 PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -291,7 +293,6 @@ class Test_Device_Checks:
     @pytest.fixture(
         params=[
             BaseTrainerConfig(num_epochs=3, no_cuda=True),
-            BaseTrainerConfig(num_epochs=3, no_cuda=False),
         ]
     )
     def training_configs(self, tmpdir, request):
@@ -299,3 +300,99 @@ class Test_Device_Checks:
         dir_path = os.path.join(tmpdir, "dummy_folder")
         request.param.output_dir = dir_path
         return request.param
+
+    def test_setup_device_with_no_cuda(
+        self, model_sample, train_dataset, training_configs
+    ):
+        trainer = BaseTrainer(
+            model=model_sample,
+            train_dataset=train_dataset,
+            eval_dataset=train_dataset,
+            training_config=training_configs,
+        )
+
+        device = trainer._setup_devices()
+        assert device == "cpu"
+
+
+class TestPredict:
+    def test_default_optimizer_building(
+        self, model_sample, train_dataset, training_config
+    ):
+        trainer = BaseTrainer(
+            model=model_sample,
+            train_dataset=train_dataset,
+            eval_dataset=train_dataset,
+            training_config=training_config,
+        )
+
+        all_recons = trainer.predict(model_sample, epoch=1, n_data=3)
+
+        assert list(all_recons.keys()) == model_sample.modalities_name
+
+
+class TestSaving:
+    @pytest.fixture(
+        params=[
+            BaseTrainerConfig(num_epochs=3, no_cuda=True),
+        ]
+    )
+    def training_configs(self, tmpdir, request):
+        dir_path = os.path.join(tmpdir, "test_output_dir")
+        request.param.output_dir = dir_path
+        return request.param
+
+    def test_create_dir(self, tmpdir, model_sample, train_dataset, training_configs):
+        trainer = BaseTrainer(
+            model=model_sample,
+            train_dataset=train_dataset,
+            eval_dataset=train_dataset,
+            training_config=training_configs,
+        )
+
+        assert not os.path.exists(os.path.join(tmpdir, "test_output_dir"))
+        trainer._set_output_dir()
+        assert os.path.exists(os.path.join(tmpdir, "test_output_dir"))
+
+
+class TestLogging:
+    @pytest.fixture
+    def log_output_dir(self):
+        return "dummy_log_output_dir"
+
+    def test_create_dir(
+        self, tmpdir, model_sample, train_dataset, training_config, log_output_dir
+    ):
+        trainer = BaseTrainer(
+            model=model_sample,
+            train_dataset=train_dataset,
+            eval_dataset=train_dataset,
+            training_config=training_config,
+        )
+
+        # create dummy training signature
+        trainer._training_signature = "dummy_signature"
+
+        assert not os.path.exists(os.path.join(tmpdir, "dummy_log_output_dir"))
+        file_logger = trainer._get_file_logger(os.path.join(tmpdir, log_output_dir))
+
+        assert os.path.exists(os.path.join(tmpdir, "dummy_log_output_dir"))
+        assert os.path.exists(
+            os.path.join(
+                tmpdir, "dummy_log_output_dir", f"training_logs_dummy_signature.log"
+            )
+        )
+
+
+class TestTrainingCallbacks:
+
+    def test_rename_logs(self):
+        dummy_metrics = {
+            "train_metric": 12,
+            "eval_metric": 13
+        }
+
+        renamed_metrics = rename_logs(dummy_metrics)
+
+        assert set(renamed_metrics.keys()).issubset(set(["train/metric", "eval/metric"]))
+

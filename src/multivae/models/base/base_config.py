@@ -30,7 +30,7 @@ class BaseMultiVAEConfig(BaseConfig):
     latent_dim: int = 10
     input_dims: dict = None
     uses_likelihood_rescaling: bool = False
-    decoders_dist: Dict[str,Literal['normal','bernoulli','laplace']] = None
+    decoders_dist: Dict[str, Literal["normal", "bernoulli", "laplace"]] = None
     decoder_dist_params: dict = None
     custom_architectures: list = field(default_factory=lambda: [])
 

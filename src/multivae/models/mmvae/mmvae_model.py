@@ -52,36 +52,36 @@ class MMVAE(BaseMultiVAE):
         self.prior_mean = torch.nn.Parameter(torch.zeros((self.latent_dim,)))
         self.prior_log_var = torch.nn.Parameter(torch.zeros((self.latent_dim,)))
 
-        self.prior_mean.requires_grad_(False) # The mean is frozen
+        self.prior_mean.requires_grad_(False)  # The mean is frozen
         self.prior_log_var.requires_grad_(model_config.learn_prior)
 
         self.model_name = "MMVAE"
-        
+
     def log_var_to_std(self, log_var):
         """
-        For latent distributions parameters, transform the log covariance to the 
-        standard deviation of the distribution either applying softmax or not. 
+        For latent distributions parameters, transform the log covariance to the
+        standard deviation of the distribution either applying softmax or not.
         This follows the original implementation.
         """
-        
-        if self.model_config.prior_and_posterior_dist ==  "laplace_with_softmax":
-            return torch.softmax(log_var, dim=-1)*log_var.size(-1) + 1e-6
-        else : 
+
+        if self.model_config.prior_and_posterior_dist == "laplace_with_softmax":
+            return torch.softmax(log_var, dim=-1) * log_var.size(-1) + 1e-6
+        else:
             return torch.exp(0.5 * log_var)
-            
-    @property   
+
+    @property
     def prior_params(self):
-        """ From the prior mean and log_covariance, return the mean and standard
-        deviation, either applying softmax or not depending on the choice of prior 
+        """From the prior mean and log_covariance, return the mean and standard
+        deviation, either applying softmax or not depending on the choice of prior
         distribution.
 
         Returns:
             tuple: mean, std
         """
-        mean =  self.prior_mean
-        if self.model_config.prior_and_posterior_dist ==  "laplace_with_softmax":
-            std =  torch.softmax(self.prior_log_var, dim=-1) * self.latent_dim
-        else : 
+        mean = self.prior_mean
+        if self.model_config.prior_and_posterior_dist == "laplace_with_softmax":
+            std = torch.softmax(self.prior_log_var, dim=-1) * self.latent_dim
+        else:
             std = torch.exp(0.5 * self.prior_log_var)
         return mean, std
 
@@ -126,7 +126,9 @@ class MMVAE(BaseMultiVAE):
             prior = self.prior_dist(*self.prior_params)
             lpz = prior.log_prob(z).sum(-1)
             lqz_x = torch.stack([qz_xs[m].log_prob(z).sum(-1) for m in qz_xs])
-            lqz_x = torch.logsumexp(lqz_x, dim=0) - np.log(lqz_x.size(0)) #log_mean_exp
+            lqz_x = torch.logsumexp(lqz_x, dim=0) - np.log(
+                lqz_x.size(0)
+            )  # log_mean_exp
             lpx_z = 0
             for recon_mod in reconstructions[mod]:
                 x_recon = reconstructions[mod][recon_mod]
@@ -240,7 +242,7 @@ class MMVAE(BaseMultiVAE):
                     lpx_zs += self.recon_log_probs[mod](recon, x_m).sum(dim=dim_reduce)
 
                 # Compute ln(p(z))
-                prior = self.prior_dist(self.prior_mean, self.prior_std)
+                prior = self.prior_dist(*self.prior_params)
                 lpz = prior.log_prob(latents).sum(dim=-1)
 
                 # Compute posteriors -ln(q(z|x,y))

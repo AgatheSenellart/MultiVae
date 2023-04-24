@@ -67,7 +67,6 @@ class AddDccaTrainer(BaseTrainer):
         self.eval_loader = self.get_eval_dataloader_dcca(eval_dataset)
         self.training_config.learning_rate_vae = self.training_config.learning_rate
         self.training_config.learning_rate = self.training_config.learning_rate_dcca
-        
 
     def get_train_dataloader_dcca(
         self, train_dataset: MultimodalBaseDataset

@@ -28,7 +28,7 @@ class LikelihoodsEvaluator(Evaluator):
         self, model, test_dataset, output=None, eval_config=LikelihoodsEvaluatorConfig()
     ) -> None:
         super().__init__(model, test_dataset, output, eval_config)
-        self.K = eval_config.K
+        self.num_samples = eval_config.num_samples
         self.batch_size_k = eval_config.batch_size_k
 
     def eval(self):
@@ -43,7 +43,9 @@ class LikelihoodsEvaluator(Evaluator):
         nb_batch = 0
         for batch in self.test_loader:
             batch.data = {m: batch.data[m].to(self.device) for m in batch.data}
-            ll += self.model.compute_joint_nll(batch, self.K, self.batch_size_k)
+            ll += self.model.compute_joint_nll(
+                batch, self.num_samples, self.batch_size_k
+            )
             nb_batch += 1
 
         joint_nll = ll / nb_batch
@@ -58,7 +60,7 @@ class LikelihoodsEvaluator(Evaluator):
             for batch in self.test_loader:
                 batch.data = {m: batch.data[m].to(self.device) for m in batch.data}
                 ll += self.model.compute_joint_nll_from_subset_encoding(
-                    subset, batch, self.K, self.batch_size_k
+                    subset, batch, self.num_samples, self.batch_size_k
                 )
                 nb_batch += 1
 

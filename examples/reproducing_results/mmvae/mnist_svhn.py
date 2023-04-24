@@ -176,10 +176,10 @@ training_config = BaseTrainerConfig(
     per_device_train_batch_size=128,
     per_device_eval_batch_size=128,
     num_epochs=30,
-    start_keep_best_epoch=30, # save the model at each iteration without regards to the loss
+    start_keep_best_epoch=30,  # save the model at each iteration without regards to the loss
     optimizer_cls="Adam",
-    optimizer_params={'amsgrad' : True},
-    steps_predict=1
+    optimizer_params={"amsgrad": True},
+    steps_predict=1,
 )
 
 # Set up callbacks

@@ -103,6 +103,8 @@ class BaseMultiVAE(nn.Module):
         self.set_decoders(decoders)
         self.set_encoders(encoders)
 
+        self.modalities_name = list(self.decoders.keys())
+
         # Check that the modalities' name are coherent
         if self.input_dims is not None:
             if self.input_dims.keys() != self.encoders.keys():
@@ -166,10 +168,6 @@ class BaseMultiVAE(nn.Module):
                     input, scale
                 ).log_prob(target)
 
-            else:
-                raise AttributeError(
-                    'Reconstructions losses must be either "normal","bernoulli" or "laplace"'
-                )
         # TODO : add the possibility to provide custom reconstruction loss and in that case use the negative
         # reconstruction loss as the log probability.
 
@@ -415,7 +413,7 @@ class BaseMultiVAE(nn.Module):
             )
 
         else:
-            with open(os.path.join(dir_path, f"{archi}.pkl" ), "rb") as fp:
+            with open(os.path.join(dir_path, f"{archi}.pkl"), "rb") as fp:
                 archi = CPU_Unpickler(fp).load()
 
         return archi

@@ -10,10 +10,10 @@ from multivae.data.datasets.mmnist import MMNISTDataset
 
 
 class Test:
-    @pytest.fixture(params=["test"])
-    def input_dataset_test(self, request):
-        data_path = "../../../data/MMNIST"
-        split = request.param
+    @pytest.fixture
+    def input_dataset_test(self, tmpdir):
+        data_path = os.path.join(tmpdir, "data")
+        split = "test"
 
         return dict(data_path=data_path, split=split)
 
