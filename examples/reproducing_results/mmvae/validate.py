@@ -18,7 +18,7 @@ clfs = load_mnist_svhn_classifiers('../../classifiers', device=device)
 
 test_set = MnistSvhn(split='test', data_multiplication=30)
 print(len(test_set))
-# output = CoherenceEvaluator(model,clfs,test_set, data_path).eval()
+output = CoherenceEvaluator(model,clfs,test_set, data_path).eval()
 
-lik_config = LikelihoodsEvaluatorConfig(batch_size=128, batch_size_k=50,K=1000)
-output = LikelihoodsEvaluator(model,test_set,data_path,eval_config=lik_config ).joint_nll()
+# lik_config = LikelihoodsEvaluatorConfig(batch_size=128, batch_size_k=50,K=1000)
+# output = LikelihoodsEvaluator(model,test_set,data_path,eval_config=lik_config ).joint_nll()

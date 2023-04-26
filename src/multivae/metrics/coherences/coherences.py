@@ -74,8 +74,8 @@ class CoherenceEvaluator(Evaluator):
 
         accuracies = {}
         for batch in self.test_loader:
-            batch.data = {m: batch.data[m].to(self.device) for m in batch.data}
-            batch.labels = batch.labels.to(self.device)
+            batch = MultimodalBaseDataset(data= {m: batch['data'][m].to(self.device) for m in batch['data']},
+                                          labels=batch['labels'].to(self.device))
             pred_mods = [
                 m
                 for m in self.model.encoders
@@ -118,6 +118,7 @@ class CoherenceEvaluator(Evaluator):
             all_same_labels = torch.all(
                 torch.stack([l == labels[0] for l in labels]), dim=0
             )
+            print(all_same_labels)
             all_labels = torch.cat((all_labels, all_same_labels), dim=0)
             samples_to_generate -= batch_samples
         joint_coherence = all_labels.mean()

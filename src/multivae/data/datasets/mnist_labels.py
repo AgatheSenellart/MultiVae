@@ -22,7 +22,7 @@ class BinaryMnistLabels(MultimodalBaseDataset):
         return DatasetOutput(
             data = dict(
                 images = Bernoulli(self.images[index]).sample(),
-                labels = self.labels[index].unsqueeze(1)
+                labels = self.labels[index]
             ),
             labels = self.labels[index]
         )
