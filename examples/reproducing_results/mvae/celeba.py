@@ -191,7 +191,8 @@ train_set = CelebAttr("~/scratch/data", "train",download=True)
 eval_set = CelebAttr("~/scratch/data", "valid",download=True)
 
 wandb_cb = WandbCallback()
-wandb_cb.setup(training_config, model_config, project_name="reproduce_mvae")
+run_id = 'wise-firebrand-14'
+wandb_cb.setup(training_config, model_config, project_name="reproduce_mvae",run_id=run_id, resume='must')
 
 callbacks = [ProgressBarCallback(), wandb_cb]
 
@@ -201,6 +202,8 @@ trainer = BaseTrainer(
     eval_dataset=eval_set,
     training_config=training_config,
     callbacks=callbacks,
+    checkpoint = 'dummy_output_dir/MVAE_training_2023-04-21_16-05-34/checkpoint_epoch_49'
+
 )
 
 trainer.train()

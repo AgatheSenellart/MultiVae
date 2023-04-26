@@ -8,6 +8,7 @@ from numpy.random import choice
 from pythae.models.base.base_utils import ModelOutput
 from scipy.special import comb
 from torch.distributions import kl_divergence
+from multivae.models.nn.default_architectures import BaseDictEncoders_MultiLatents, BaseDictDecodersMultiLatents
 
 from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
 
@@ -23,8 +24,6 @@ class MoPoE(BaseMultiVAE):
     This implementation is heavily based on the official one at
     https://github.com/thomassutter/MoPoE
 
-    # TODO : add the multiple latent spaces option.
-
     """
 
     def __init__(
@@ -35,12 +34,32 @@ class MoPoE(BaseMultiVAE):
         self.beta = model_config.beta
         self.use_modality_specific_spaces = model_config.use_modality_specific_spaces
         self.model_name = "MoPoE"
+        
         list_subsets = self.model_config.subsets
         if list_subsets is None:
             list_subsets = self.all_subsets()
         elif type(list_subsets) == dict:
             list_subsets = list(self.model_config.subsets.values())
         self.set_subsets(list_subsets)
+        
+        if model_config.use_modality_specific_spaces:
+            self.style_dims = model_config.modalities_specific_dim
+            if (model_config.modalities_specific_dim is  None):
+                raise AttributeError("Please provide dimensions for the modalities" 
+                                            "specific latent spaces"
+                                        )
+            if encoders is None:
+                    encoders = BaseDictEncoders_MultiLatents(input_dims=model_config.input_dims,
+                                                            latent_dim=model_config.latent_dim,
+                                                            modality_dims=model_config.modalities_specific_dim)
+                    self.set_encoders(encoders)
+            
+            if decoders is None:
+                decoders = BaseDictDecodersMultiLatents(input_dims=model_config.input_dims,
+                                                            latent_dim=model_config.latent_dim,
+                                                            modality_dims=model_config.modalities_specific_dim)
+                self.set_decoders(decoders)
+        
 
     def all_subsets(self):
         """
@@ -152,8 +171,16 @@ class MoPoE(BaseMultiVAE):
             # reconstruct this modality from the shared embeddings representation
             
             if self.use_modality_specific_spaces:
-                style_embeddings = latents["modalities"][m_key].style_embedding
-                full_embedding = torch.cat([shared_embeddings,style_embeddings],dim=-1)
+                try :
+                    style_embeddings = latents["modalities"][m_key].style_embedding
+                    full_embedding = torch.cat([shared_embeddings,style_embeddings],dim=-1)
+                except:
+                    raise AttributeError(" model_config.use_modality_specific_spaces is True "
+                                         f"but encoder output for modality {m_key} doesn't have a "
+                                         "style_embedding attribute. "
+                                         "When using multiple latent spaces, the encoders' output"
+                                         "should be of the form : ModelOuput(embedding = ...,"
+                                         "style_embedding = ...,log_covariance = ..., style_log_covariance = ...)")
             else :
                 full_embedding = shared_embeddings
             
@@ -355,8 +382,24 @@ class MoPoE(BaseMultiVAE):
         flatten = kwargs.pop("flatten", False)
         if flatten:
             z = z.reshape(-1, self.latent_dim)
+            
+        if self.use_modality_specific_spaces:
+            modalities_z = dict()
+            for m in self.encoders:
+                if m in cond_mod:
+                    mu_style = latents_subsets['modalities'][m].style_embedding
+                    log_var_style = latents_subsets['modalities'][m].style_log_covariance
+                else :
+                    mu_style = torch.zeros((len(mu), self.style_dims[m])).to(mu.device)
+                    log_var_style = torch.zeros((len(mu), self.style_dims[m])).to(mu.device)
+                modalities_z[m] = dist.Normal(mu_style, torch.exp(0.5*log_var_style)).rsample(sample_shape)
+                if flatten:
+                    modalities_z[m] = modalities_z[m].reshape(-1, self.style_dims[m])
 
-        return ModelOutput(z=z, one_latent_space=True)
+            return ModelOutput(z=z, one_latent_space=False, modalities_z=modalities_z)
+        else :
+            return ModelOutput(z=z, one_latent_space=True)
+            
 
     def moe_fusion(self, mus, logvars, weights=None):
         if weights is None:
@@ -448,8 +491,7 @@ class MoPoE(BaseMultiVAE):
                     x_m = inputs.data[mod][i]  # (nb_channels, w, h)
 
                     dim_reduce = tuple(range(1, len(recon.shape)))
-                    print(self.recon_log_probs[mod](recon, x_m).shape)
-                    print(self.recon_log_probs[mod])
+
                     lpx_zs += self.recon_log_probs[mod](recon, x_m).sum(dim=dim_reduce)
 
                 # Compute ln(p(z))
@@ -461,7 +503,6 @@ class MoPoE(BaseMultiVAE):
                 lqz_xy = qz_xy.log_prob(latents).sum(dim=-1)
 
                 ln_px = torch.logsumexp(lpx_zs + lpz - lqz_xy, dim=0)
-                print(ln_px.shape)
                 lnpxs.append(ln_px)
 
                 # next batch

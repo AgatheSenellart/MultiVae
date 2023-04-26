@@ -45,13 +45,11 @@ class LikelihoodsEvaluator(Evaluator):
 
     def joint_nll(self):
         ll = 0
-        nb_batch = 0
         for batch in tqdm(self.test_loader):
-            batch.data = {m: batch.data[m].to(self.device) for m in batch.data}
+            batch = MultimodalBaseDataset(data={m: batch['data'][m].to(self.device) for m in batch['data']})
             ll += self.model.compute_joint_nll(batch, self.K, self.batch_size_k)
-            nb_batch += 1
 
-        joint_nll = ll / nb_batch
+        joint_nll = ll / len(self.test_loader.dataset)
         self.logger.info(f"Joint likelihood : {str(joint_nll)}")
 
         return joint_nll

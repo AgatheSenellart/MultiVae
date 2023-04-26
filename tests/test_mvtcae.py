@@ -218,9 +218,21 @@ class TestTraining:
             training_config=training_config,
         )
 
-        trainer.prepare_training()
 
         return trainer
+    
+    def new_trainer(self, model, training_config, dataset,checkpoint_dir):
+        trainer = BaseTrainer(
+            model=model,
+            train_dataset=dataset,
+            eval_dataset=dataset,
+            training_config=training_config,
+            checkpoint=checkpoint_dir
+        )
+
+
+        return trainer
+    
 
     def test_train_step(self, trainer):
         start_model_state_dict = deepcopy(trainer.model.state_dict())
@@ -285,7 +297,8 @@ class TestTraining:
 
         files_list = os.listdir(checkpoint_dir)
 
-        assert set(["model.pt", "optimizer.pt", "training_config.json"]).issubset(
+        assert set(["model.pt", "optimizer.pt", "training_config.json",
+                    "info_checkpoint.json"]).issubset(
             set(files_list)
         )
 
@@ -342,7 +355,34 @@ class TestTraining:
             ]
         )
 
-    def test_checkpoint_saving_during_training(self, model, trainer, training_config):
+    def test_checkpoint_saving_during_training(self, model, trainer, training_config, dataset):
+        #
+        target_saving_epoch = training_config.steps_saving
+
+        dir_path = training_config.output_dir
+
+        trainer.train()
+
+        training_dir = os.path.join(
+            dir_path, f"MVTCAE_training_{trainer._training_signature}"
+        )
+
+        checkpoint_dir = os.path.join(
+            training_dir, f"checkpoint_epoch_{target_saving_epoch}"
+        )
+
+        # try resuming
+        new_trainer_ = self.new_trainer(model,training_config,dataset,checkpoint_dir)
+        
+        assert new_trainer_.best_train_loss == trainer.best_train_loss
+        assert new_trainer_.trained_epochs == target_saving_epoch
+        
+        new_trainer_.train()
+        
+         
+        
+        
+    def test_resume_from_checkpoint(self, model, trainer, training_config):
         #
         target_saving_epoch = training_config.steps_saving
 
@@ -384,6 +424,7 @@ class TestTraining:
                 for key in model.state_dict().keys()
             ]
         )
+
 
     def test_final_model_saving(self, model, trainer, training_config):
         dir_path = training_config.output_dir

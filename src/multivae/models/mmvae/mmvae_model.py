@@ -167,6 +167,31 @@ class MMVAE(BaseMultiVAE):
 
         lws = (grad_wt * lws).mean(0).sum()
         return ModelOutput(loss=-lws, metrics=dict())
+    
+    def iwae(self, qz_xs, zss, reconstructions, inputs):
+        lw_mod = []
+        for cond_mod in zss:
+            lpz = self.prior_dist(*self.pz_params).log_prob(zss[cond_mod]).sum(-1)
+            lqz_x = torch.stack([qz_xs[m].log_prob(zss[cond_mod]).sum(-1) for m in qz_xs])
+            lqz_x = torch.logsumexp(lqz_x,dim=0) - np.log(lqz_x.size(0))
+            lpx_z = 0
+            for recon_mod in reconstructions[cond_mod]:
+                x_recon = reconstructions[cond_mod][recon_mod]
+                K, n_batch = x_recon.shape[0], x_recon.shape[1]
+                lpx_z += (
+                    self.recon_log_probs[recon_mod](
+                        x_recon, inputs.data[recon_mod]
+                    )
+                    .view(K, n_batch, -1)
+                    .mul(self.rescale_factors[recon_mod])
+                    .sum(-1)
+                )
+            lw = lpx_z + lpz - lqz_x # n_samples , n_batch
+            lw_mod.append(lw)
+            
+        lw = torch.cat(lw_mod,dim=0)  # (n_modalities* K, n_batch)
+        lw = torch.logsumexp(lw,dim=0) - np.log(lw.size(0))
+        return ModelOutput(loss=-lw.sum(), metrics=dict())
 
     def encode(
         self,
@@ -287,34 +312,11 @@ class MMVAE(BaseMultiVAE):
             nb_computed_samples += n_samples
             # Compute a iwae likelihood estimate using n_samples
             output = self.forward(inputs, compute_loss = False,K=n_samples, detailed_output=True)
-            qz_xs = output.qz_xs 
-            zss = output.zss
-            recon = output.recon
-            lw_mod = []
-            for cond_mod in zss:
-                lpz = self.prior_dist(*self.pz_params).log_prob(zss[cond_mod]).sum(-1)
-                lqz_x = torch.stack([qz_xs[m].log_prob(zss[cond_mod]).sum(-1) for m in qz_xs])
-                lqz_x = torch.logsumexp(lqz_x,dim=0) - np.log(lqz_x.size(0))
-                lpx_z = 0
-                for recon_mod in recon[cond_mod]:
-                    x_recon = recon[cond_mod][recon_mod]
-                    K, n_batch = x_recon.shape[0], x_recon.shape[1]
-                    lpx_z += (
-                        self.recon_log_probs[recon_mod](
-                            x_recon, inputs.data[recon_mod]
-                        )
-                        .view(K, n_batch, -1)
-                        .mul(self.rescale_factors[recon_mod])
-                        .sum(-1)
-                    )
-                lw = lpx_z + lpz - lqz_x # n_samples , n_batch
-                lw_mod.append(lw)
-            
-            lw_mod = torch.logsumexp(torch.stack(lw_mod),dim = 0) - np.log(len(lw_mod)) # n_samples,n_batch
-            lws.append(torch.logsumexp(lw_mod, dim=0))
+            lw = self.iwae(output.qz_xs,output.zss,output.recon,inputs).loss
+            lws.append(lw + np.log(n_samples*self.n_modalities))
 
-        ll = torch.logsumexp(torch.stack(lws), dim=0) - np.log(K) # n_batch
-        return -ll.mean()
+        ll = torch.logsumexp(torch.stack(lws), dim=0) - np.log(nb_computed_samples*self.n_modalities) # n_batch
+        return -ll
             
                 
         

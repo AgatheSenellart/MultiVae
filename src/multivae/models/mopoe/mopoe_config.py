@@ -37,4 +37,5 @@ class MoPoEConfig(BaseMultiVAEConfig):
     beta: float = 1.0
     use_modality_specific_spaces : bool = False
     beta_style: float = 1.0
+    modalities_specific_dim : dict = None
     

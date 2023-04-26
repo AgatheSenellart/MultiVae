@@ -67,6 +67,27 @@ def _m_dreg_looser_test(qz_xs_, px_zs, zss, model:MMVAE, x,rescale_factors, K=1)
             zss.register_hook(lambda grad: grad_wt.unsqueeze(-1) * grad)
     return -(grad_wt * lw).mean(0).sum()
 
+def _m_iwae_test(qz_xs, px_zs, zss, model:MMVAE, x, rescale_factors, K=1):
+    """IWAE estimate for log p_\theta(x) for multi-modal vae -- fully vectorised
+    This version is the looser bound---with the average over modalities outside the log
+    """
+    lws = []
+    for r, qz_x in enumerate(qz_xs):
+        lpz = model.prior_dist(*model.pz_params).log_prob(zss[r]).sum(-1)
+        lqz_x = log_mean_exp(torch.stack([qz_x.log_prob(zss[r]).sum(-1) for qz_x in qz_xs]))
+        lpx_z = [px_z.log_prob(x[d]).view(*px_z.batch_shape[:2], -1)
+                     .mul(rescale_factors[d]).sum(-1)
+                 for d, px_z in enumerate(px_zs[r])]
+        lpx_z = torch.stack(lpx_z).sum(0)
+        lw = lpz + lpx_z - lqz_x
+
+        lws.append(lw)
+    lws = torch.cat(lws) # (n_modality * n_samples) x batch_size
+    print('test_iwae', lws)
+
+    return log_mean_exp(lws, dim=0).sum()
+ 
+
 
 def m_dreg_looser(model, x, K=1):
     """Computes dreg estimate for log p_\theta(x) for multi-modal vae
@@ -110,7 +131,8 @@ class Test_mmvae_obj:
             decoder_dist_params=dict(mod1 = dict(scale=0.75),
                                      mod2 = dict(scale=0.75)),
             decoders_dist=dict(mod1 = 'laplace',
-                               mod2 = 'laplace')
+                               mod2 = 'laplace'),
+            K=5
         )
 
         return model_config
@@ -127,17 +149,20 @@ class Test_mmvae_obj:
         assert hasattr(out, 'qz_xs_detach')
         
         qz_xs_detach_dict = out.qz_xs_detach
+        qz_xs_dict = out.qz_xs
+
         zss_dict = out.zss
         px_zs_dict = out.recon
         
+        qz_xs_detach = []
         qz_xs = []
         zss= []
         px_zs = []
         keys = list(zss_dict.keys())
         for i,mod in enumerate(keys):
             zss.append(zss_dict[mod])
-            qz_xs.append(qz_xs_detach_dict[mod])
-            
+            qz_xs_detach.append(qz_xs_detach_dict[mod])
+            qz_xs.append(qz_xs_dict[mod])
             px_zs.append([])
             for j,r_mod in enumerate(keys):
                 
@@ -147,7 +172,11 @@ class Test_mmvae_obj:
         
         x = [dataset.data[mod] for mod in keys]
         rescale_factors = [model.rescale_factors[mod] for mod in keys]
-        test_loss = _m_dreg_looser_test(qz_xs,px_zs,zss,model,x, rescale_factors)
+        test_loss = _m_dreg_looser_test(qz_xs_detach,px_zs,zss,model,x, rescale_factors,K=model.K)
         
         
         assert test_loss == out.loss
+        
+        test_iwae = -_m_iwae_test(qz_xs,px_zs,zss,model,x,rescale_factors,K=model.K)
+        model_iwae = model.iwae( qz_xs_dict, zss_dict, out.recon, dataset).loss
+        assert test_iwae == model_iwae
