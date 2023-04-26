@@ -9,9 +9,9 @@ from multivae.trainers.base.callbacks import WandbCallback, ProgressBarCallback
 ### Encoders & Decoders 
 
 def labels_to_binary_tensors(labels):
-        tensor_labels = torch.zeros((len(labels),10)).float()
+        tensor_labels = torch.zeros((len(labels),10)).float().to(labels.device)
         for i in range(10):
-            tensor_value = torch.zeros(10).float()
+            tensor_value = torch.zeros(10).float().to(labels.device)
             tensor_value[i]=1.0
             tensor_labels[labels==i]=tensor_value
         return tensor_labels
@@ -154,7 +154,9 @@ class LabelsDecoder(BaseDecoder):
 ### Dataset
 
 train_set = BinaryMnistLabels(data_path="../../../data",split='train')
-print(train_set[0], len(train_set))
+test_set = BinaryMnistLabels(data_path='../../../data', split='test')
+
+print(len(test_set), len(train_set))
 ######################################################
 ### Model
 
@@ -187,14 +189,15 @@ training_config = BaseTrainerConfig(
     per_device_train_batch_size=100,
     per_device_eval_batch_size=100,
     num_epochs=500,
-    start_keep_best_epoch=model_config.warmup 
+    start_keep_best_epoch=model_config.warmup ,
+    steps_predict=5
     
 )
 wandb_ = WandbCallback()
-wandb_.setup(training_config,model_config,'reproduce_jmvae','multimodal_vaes')
+wandb_.setup(training_config,model_config,project_name='reproduce_jmvae')
 callbacks = [wandb_,ProgressBarCallback()]
 
-trainer = BaseTrainer(model,train_set,
+trainer = BaseTrainer(model,train_set,eval_dataset=test_set,
                       training_config=training_config,
                       callbacks=callbacks,
                       checkpoint=None)
