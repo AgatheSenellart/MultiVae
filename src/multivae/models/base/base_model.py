@@ -167,6 +167,13 @@ class BaseMultiVAE(nn.Module):
                 self.recon_log_probs[k] = lambda input, target: dist.Laplace(
                     input, scale
                 ).log_prob(target)
+            
+            elif recon_dict[k] == "categorical":
+                
+                self.recon_log_probs[k] = lambda input, target: dist.Categorical(
+                    probs=input
+                    ).log_prob(target)
+
 
             else:
                 raise AttributeError(
