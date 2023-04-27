@@ -159,7 +159,7 @@ class TELBO(BaseJointModel):
                 "is not yet implemented."
             )
 
-        if cond_mod in self.input_dims.keys():
+        if cond_mod in self.modalities_name:
             output = self.encoders[cond_mod](inputs.data[cond_mod])
             sample_shape = [] if N == 1 else [N]
 

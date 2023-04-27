@@ -17,7 +17,8 @@ from torch.utils.data.distributed import DistributedSampler
 from torchvision.utils import make_grid
 
 from ...data import MultimodalBaseDataset
-from ...data.datasets.utils import adapt_shape, save_all_images
+from ...data.datasets.utils import adapt_shape
+from ...data.utils import set_inputs_to_device
 from ...models import BaseMultiVAE
 from .base_trainer_config import BaseTrainerConfig
 from .callbacks import (
@@ -314,7 +315,7 @@ class BaseTrainer:
     def _run_model_sanity_check(self, model, loader):
         try:
             inputs = next(iter(loader))
-            train_dataset = self._set_inputs_to_device(inputs)
+            train_dataset = set_inputs_to_device(inputs, device=self.device)
             model(train_dataset)
 
         except Exception as e:
@@ -327,46 +328,6 @@ class BaseTrainer:
                 "input data.\n"
                 f"Exception raised: {type(e)} with message: " + str(e)
             ) from e
-
-    def _set_optimizer_on_device(self, optim, device):
-        for param in optim.state.values():
-            # Not sure there are any global tensors in the state dict
-            if isinstance(param, torch.Tensor):
-                param.data = param.data.to(device)
-                if param._grad is not None:
-                    param._grad.data = param._grad.data.to(device)
-            elif isinstance(param, dict):
-                for subparam in param.values():
-                    if isinstance(subparam, torch.Tensor):
-                        subparam.data = subparam.data.to(device)
-                        if subparam._grad is not None:
-                            subparam._grad.data = subparam._grad.data.to(device)
-
-        return optim
-
-    def _set_inputs_to_device(self, inputs: Dict[str, Any]):
-        inputs_on_device = inputs
-
-        if self.device == "cuda":
-            cuda_inputs = dict.fromkeys(inputs)
-
-            for key in inputs.keys():
-                if torch.is_tensor(inputs[key]):
-                    cuda_inputs[key] = inputs[key].cuda()
-
-                elif isinstance(inputs[key], dict):
-                    cuda_inputs[key] = dict.fromkeys(inputs[key])
-                    for subkey in inputs[key].keys():
-                        if torch.is_tensor(inputs[key][subkey]):
-                            cuda_inputs[key][subkey] = inputs[key][subkey].cuda()
-                        else:
-                            cuda_inputs[key][subkey] = inputs[key][subkey]
-
-                else:
-                    cuda_inputs[key] = inputs[key]
-            inputs_on_device = cuda_inputs
-
-        return DatasetOutput(**inputs_on_device)
 
     def _optimizers_step(self, model_output=None):
         loss = model_output.loss
@@ -610,7 +571,7 @@ class BaseTrainer:
         epoch_metrics = {}
 
         for inputs in self.eval_loader:
-            inputs = self._set_inputs_to_device(inputs)
+            inputs = set_inputs_to_device(inputs, device=self.device)
 
             try:
                 with torch.no_grad():
@@ -668,7 +629,7 @@ class BaseTrainer:
         epoch_model_metrics = {}
         batch_idx = 0
         for inputs in self.train_loader:
-            inputs = self._set_inputs_to_device(inputs)
+            inputs = set_inputs_to_device(inputs, device=self.device)
 
             model_output = self.model(
                 inputs,

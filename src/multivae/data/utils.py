@@ -2,7 +2,6 @@ from typing import Any, Dict, Union
 
 import torch
 from pythae.data.datasets import DatasetOutput
-from torch import device
 
 
 def set_inputs_to_device(inputs: Dict[str, Any], device: str = "cpu"):

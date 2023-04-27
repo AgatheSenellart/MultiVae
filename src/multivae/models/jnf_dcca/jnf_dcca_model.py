@@ -93,20 +93,24 @@ class JNFDcca(BaseJointModel):
             model_config.custom_architectures.append("dcca_networks")
 
         super().__init__(model_config, encoders, decoders, joint_encoder, **kwargs)
-        
+
         # The default encoders for this model have (embedding_dcca_dim, ) as input_size
         if encoders is None:
             encoders_input_dims = {
                 k: (model_config.embedding_dcca_dim,) for k in dcca_networks
             }
-            self.set_encoders(BaseDictEncoders(encoders_input_dims, model_config.latent_dim))
+            self.set_encoders(
+                BaseDictEncoders(encoders_input_dims, model_config.latent_dim)
+            )
 
         # The default joint_encoder for this model is engineered from the DCCA networks and
         # not from the encoders
         if joint_encoder is None:
             # Create a MultiHead Joint Encoder MLP
-            self.set_joint_encoder(MultipleHeadJointEncoder(dcca_networks, model_config))
-        
+            self.set_joint_encoder(
+                MultipleHeadJointEncoder(dcca_networks, model_config)
+            )
+
         self.DCCA_module = DCCA(self.dcca_config, dcca_networks)
         self.dcca_networks = self.DCCA_module.networks
 
@@ -239,6 +243,10 @@ class JNFDcca(BaseJointModel):
         N: int = 1,
         **kwargs,
     ) -> ModelOutput:
+        mcmc_steps = kwargs.pop("mcmc_steps", 100)
+        n_lf = kwargs.pop("n_lf", 10)
+        eps_lf = kwargs.pop("eps_lf", 0.01)
+
         if type(cond_mod) == list and len(cond_mod) == 1:
             cond_mod = cond_mod[0]
 
@@ -260,9 +268,9 @@ class JNFDcca(BaseJointModel):
                 cond_mod,
                 inputs.data,
                 ax=None,
-                mcmc_steps=100,
-                n_lf=10,
-                eps_lf=0.01,
+                mcmc_steps=mcmc_steps,
+                n_lf=n_lf,
+                eps_lf=eps_lf,
                 K=N,
                 divide_prior=True,
             )
@@ -271,7 +279,7 @@ class JNFDcca(BaseJointModel):
                 z = z.reshape(l * N, d)
             return ModelOutput(z=z, one_latent_space=True)
 
-        if cond_mod in self.input_dims.keys():
+        if cond_mod in self.modalities_name:
             dcca_embed = self.DCCA_module.networks[cond_mod](
                 inputs.data[cond_mod]
             ).embedding

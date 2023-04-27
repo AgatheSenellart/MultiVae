@@ -81,7 +81,7 @@ class CoherenceEvaluator(Evaluator):
                 for m in self.model.encoders
                 if (m not in subset) or self.include_recon
             ]
-            output = self.model.predict(batch, subset, pred_mods)
+            output = self.model.predict(batch, list(subset), pred_mods)
             for pred_m in pred_mods:
                 preds = self.clfs[pred_m](output[pred_m])
                 pred_labels = torch.argmax(preds, dim=1)

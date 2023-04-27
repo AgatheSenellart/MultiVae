@@ -54,11 +54,11 @@ class MMVAE(BaseMultiVAE):
         self.prior_log_var = torch.nn.Parameter(torch.zeros(1,self.latent_dim), requires_grad=model_config.learn_prior)
 
         self.model_name = "MMVAE"
-        
+
     def log_var_to_std(self, log_var):
         """
-        For latent distributions parameters, transform the log covariance to the 
-        standard deviation of the distribution either applying softmax or not. 
+        For latent distributions parameters, transform the log covariance to the
+        standard deviation of the distribution either applying softmax or not.
         This follows the original implementation.
         """
         
@@ -141,7 +141,9 @@ class MMVAE(BaseMultiVAE):
             prior = self.prior_dist(*self.pz_params)
             lpz = prior.log_prob(z).sum(-1)
             lqz_x = torch.stack([qz_xs[m].log_prob(z).sum(-1) for m in qz_xs])
-            lqz_x = torch.logsumexp(lqz_x, dim=0) - np.log(lqz_x.size(0)) #log_mean_exp
+            lqz_x = torch.logsumexp(lqz_x, dim=0) - np.log(
+                lqz_x.size(0)
+            )  # log_mean_exp
             lpx_z = 0
             for recon_mod in reconstructions[mod]:
                 x_recon = reconstructions[mod][recon_mod]

@@ -9,10 +9,11 @@ from multivae.data.datasets.base import MultimodalBaseDataset
 from multivae.data.datasets.mnist_svhn import MnistSvhn
 
 
+@pytest.mark.slow
 class Test:
     @pytest.fixture
-    def input_dataset_test(self):
-        data_path = "../data"
+    def input_dataset_test(self, tmpdir):
+        data_path = os.path.join(tmpdir, "data")
         split = "test"
 
         return dict(data_path=data_path, split=split)
