@@ -26,7 +26,7 @@ class MMVAE(BaseMultiVAE):
             the modalities names and the encoders for each modality. Each encoder is an instance of
             Pythae's BaseEncoder. Default: None.
 
-        decoder (Dict[str, ~pythae.models.nn.base_architectures.BaseDecoder]): A dictionary containing
+        decoders (Dict[str, ~pythae.models.nn.base_architectures.BaseDecoder]): A dictionary containing
             the modalities names and the decoders for each modality. Each decoder is an instance of
             Pythae's BaseDecoder.
     """
@@ -230,14 +230,17 @@ class MMVAE(BaseMultiVAE):
 
             return ModelOutput(z=z, one_latent_space=True)
 
-    def compute_joint_nll_(
+    def compute_joint_nll(
         self, inputs: MultimodalBaseDataset, K: int = 1000, batch_size_K: int = 100
     ):
-        """Return the average estimated negative log-likelihood over the inputs.
+        """
+        Return the estimated negative log-likelihood summed over the inputs.
         The negative log-likelihood is estimated using importance sampling.
 
         Args :
-            inputs : the data to compute the joint likelihood"""
+            inputs : the data to compute the joint likelihood
+            
+        """
 
         print(
             "Started computing the negative log_likelihood on inputs. This function"
@@ -274,8 +277,7 @@ class MMVAE(BaseMultiVAE):
                     ]  # (batch_size_K, nb_channels, w, h)
                     x_m = inputs.data[mod][i]  # (nb_channels, w, h)
 
-                    dim_reduce = tuple(range(1, len(recon.shape)))
-                    lpx_zs += self.recon_log_probs[mod](recon, x_m).sum(dim=dim_reduce)
+                    lpx_zs += self.recon_log_probs[mod](recon, x_m).reshape(recon.size(0),-1).sum(-1)
 
                 # Compute ln(p(z))
                 prior = self.prior_dist(*self.pz_params)
@@ -296,10 +298,10 @@ class MMVAE(BaseMultiVAE):
 
             ll += torch.logsumexp(torch.Tensor(lnpxs), dim=0) - np.log(K)
 
-        return -ll / n_data
+        return -ll 
     
     @torch.no_grad()
-    def compute_joint_nll(self, inputs: MultimodalBaseDataset, K: int = 1000, batch_size_K: int = 10):
+    def compute_joint_nll_paper(self, inputs: MultimodalBaseDataset, K: int = 1000, batch_size_K: int = 10):
         '''Computes the joint likelihood like in the original dataset, using all Mixture of experts
         samples and modality rescaling.'''
         

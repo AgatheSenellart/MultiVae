@@ -158,7 +158,7 @@ class BaseMultiVAE(nn.Module):
 
             elif recon_dict[k] == "bernoulli":
                 self.recon_log_probs[k] = lambda input, target: dist.Bernoulli(
-                    logits=input
+                    probs=input
                 ).log_prob(target)
 
             elif recon_dict[k] == "laplace":
@@ -532,10 +532,9 @@ class BaseMultiVAE(nn.Module):
                 # Decode with the opposite decoder
                 for k in pred_mods:
                     target = inputs.data[k][i]
-                    recon = self.decoders[k](latents).reconstruction
+                    recon = self.decoders[k](latents).reconstruction # (batch_size,*recon_shape)
                     # Compute lnp(y|z)
-                    dim_reduce = tuple(range(1, len(recon.shape)))
-                    lpxz = self.recon_log_probs[k](target, recon).sum(dim=dim_reduce)
+                    lpxz = self.recon_log_probs[k](target, recon).reshape(recon.size(0),-1).sum(-1)
                     print(lpxz.shape)
                     lnpxs[k].append(torch.logsumexp(lpxz, dim=0))
 
@@ -727,3 +726,49 @@ class BaseMultiVAE(nn.Module):
         )
         z = dist.Normal(0, 1).rsample(sample_shape)
         return ModelOutput(z=z, one_latent_space=True)
+    
+    
+    
+    def cond_nll_from_subset(self,inputs : MultimodalBaseDataset, subset:Union[list, tuple],
+                             pred_mods:Union[list, tuple], 
+                             K = 1000,batch_size_k=100):
+        """
+        Compute the negative log-likelihoods of the conditional generative models : encoding
+        from one / a subset of modalities to generate others.
+        log p(x_i|x_j,x_l) = log 1/K \sum_k p(x_i|z_k). 
+        
+
+        Args:
+            inputs (MultimodalBaseDataset): The inputs to use for the estimation. 
+            subset (list, tuple): The modalities to take as inputs.
+            pred_mods (list, tuple): The modalities to take into account in the prediction.
+            K (int, optional): The number of samples. Defaults to 1000.
+            batch_size_k (int, optional): Batch size to use. Defaults to 100.
+        """
+        
+        cnll = {m : [] for m in pred_mods}
+
+        # Encode using the subset modalities
+        nb_computed_samples = 0
+        
+        while nb_computed_samples <K:
+            n_samples = min(batch_size_k,K-nb_computed_samples)
+            encode_output = self.encode(inputs,subset,N=n_samples)
+            if encode_output.one_latent_space :
+                decode_output = self.decode(encode_output,pred_mods)
+                
+                for mod in pred_mods:
+                    recon = decode_output[mod] # (batch_size_k, n_data, *recon_size )
+                    target = inputs.data[mod]
+                    lpxz = self.recon_log_probs[mod](recon, target) 
+                    cnll[mod].append(torch.logsumexp(lpxz,dim=0))
+                    
+            nb_computed_samples += n_samples
+        
+        cnll = {m : torch.logsumexp(torch.stack(cnll[mod]), dim=0) for m in cnll}
+        return cnll
+                    
+                    
+                    
+                    
+                

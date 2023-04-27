@@ -8,9 +8,12 @@ from numpy.random import choice
 from pythae.models.base.base_utils import ModelOutput
 from scipy.special import comb
 from torch.distributions import kl_divergence
-from multivae.models.nn.default_architectures import BaseDictEncoders_MultiLatents, BaseDictDecodersMultiLatents
 
 from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
+from multivae.models.nn.default_architectures import (
+    BaseDictDecodersMultiLatents,
+    BaseDictEncoders_MultiLatents,
+)
 
 from ..base import BaseMultiVAE
 from .mopoe_config import MoPoEConfig
@@ -18,7 +21,9 @@ from .mopoe_config import MoPoEConfig
 
 class MoPoE(BaseMultiVAE):
 
-    """Implementation for the Mixture of Product of experts model from
+    """
+    
+    Implementation for the Mixture of Product of experts model from
     'Generalized Multimodal ELBO' Sutter 2021 (https://arxiv.org/abs/2105.02470)
 
     This implementation is heavily based on the official one at
@@ -447,9 +452,12 @@ class MoPoE(BaseMultiVAE):
         batch_size_K: int = 100,
     ):
         """
-        Computes the joint negative log-likelihood.
-        I am not sure, but from the original code, it seems that the product of experts is used as inference distribution
-        for computing the nll instead of the mopoe.
+        Computes the joint negative log-likelihood using the MoPoE posterior as importance sampling distribution.
+        The result is summed over the input batch.
+        
+        In the original code, the product of experts is used as inference distribution
+        for computing the nll instead of the MoPoe, but that is less coherent with the definition of the
+        MoPoE definition as the joint posterior.
         """
 
         # Only keep the complete samples
@@ -490,9 +498,7 @@ class MoPoE(BaseMultiVAE):
                     ]  # (batch_size_K, nb_channels, w, h)
                     x_m = inputs.data[mod][i]  # (nb_channels, w, h)
 
-                    dim_reduce = tuple(range(1, len(recon.shape)))
-
-                    lpx_zs += self.recon_log_probs[mod](recon, x_m).sum(dim=dim_reduce)
+                    lpx_zs += self.recon_log_probs[mod](recon, x_m).reshape(recon.size(0),-1).sum(-1)
 
                 # Compute ln(p(z))
                 prior = dist.Normal(0, 1)
@@ -511,7 +517,7 @@ class MoPoE(BaseMultiVAE):
 
             ll += torch.logsumexp(torch.Tensor(lnpxs), dim=0) - np.log(K)
 
-        return -ll / n_data
+        return -ll 
 
     def compute_joint_nll_from_subset_encoding(
         self,
@@ -521,9 +527,8 @@ class MoPoE(BaseMultiVAE):
         batch_size_K: int = 100,
     ):
         """
-        Computes the joint negative log-likelihood.
-        I am not sure, but from the original code, it seems that the product of experts is used as inference distribution
-        for computing the nll instead of the mopoe.
+        Computes the joint negative log-likelihood using the PoE posterior as importance sampling distribution.
+        The result is summed over the input batch.
         """
 
         # Only keep the samples complete with regard to the subset modalities
@@ -561,8 +566,7 @@ class MoPoE(BaseMultiVAE):
                     ]  # (batch_size_K, nb_channels, w, h)
                     x_m = inputs.data[mod][i]  # (nb_channels, w, h)
 
-                    dim_reduce = tuple(range(1, len(recon.shape)))
-                    lpx_zs += self.recon_log_probs[mod](recon, x_m).sum(dim=dim_reduce)
+                    lpx_zs += self.recon_log_probs[mod](recon, x_m).reshape(recon.size(0),-1).sum(-1)
 
                 # Compute ln(p(z))
                 prior = dist.Normal(0, 1)
@@ -581,4 +585,14 @@ class MoPoE(BaseMultiVAE):
 
             ll += torch.logsumexp(torch.Tensor(lnpxs), dim=0) - np.log(K)
 
-        return -ll / n_data
+        return -ll 
+
+
+    def compute_joint_nll_paper(
+        self,
+        inputs: Union[MultimodalBaseDataset, IncompleteDataset],
+        K: int = 1000,
+        batch_size_K: int = 100):
+        
+        entire_subset = list(self.encoders.keys()) 
+        return self.compute_joint_nll_from_subset_encoding(entire_subset,inputs,K,batch_size_K)

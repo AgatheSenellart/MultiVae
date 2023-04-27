@@ -1,10 +1,12 @@
-from multivae.metrics import FIDEvaluator, FIDEvaluatorConfig
-from multivae.models import MVTCAE, MVTCAEConfig
 import pytest
-from multivae.data.datasets import MultimodalBaseDataset
-from multivae.models.nn.default_architectures import Encoder_VAE_MLP
 import torch
 from pythae.models.base.base_utils import ModelOutput
+
+from multivae.data.datasets import MultimodalBaseDataset
+from multivae.metrics import FIDEvaluator, FIDEvaluatorConfig
+from multivae.models import MVTCAE, MVTCAEConfig
+from multivae.models.nn.default_architectures import Encoder_VAE_MLP
+
 
 class Test:
     

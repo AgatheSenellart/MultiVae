@@ -1,9 +1,9 @@
 import datetime
+import json
 import logging
 import os
 from copy import deepcopy
 from typing import Any, Dict, List, Optional
-import json
 
 import torch
 import torch.distributed as dist
@@ -643,7 +643,6 @@ class BaseTrainer:
         epoch_metrics = {
             k: epoch_metrics[k] / len(self.eval_loader) for k in epoch_metrics
         }
-
         return epoch_loss, epoch_metrics
 
     def train_step(self, epoch: int):

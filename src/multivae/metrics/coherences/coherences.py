@@ -43,7 +43,7 @@ class CoherenceEvaluator(Evaluator):
         """
         Computes all the coherences from one subset of modalities to another modality.
         """
-
+        
         modalities = list(self.model.encoders.keys())
         accs = []
         for n in range(1, self.model.n_modalities):

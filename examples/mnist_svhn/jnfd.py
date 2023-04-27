@@ -2,7 +2,7 @@
 from config1 import *
 
 from multivae.models import JNFDcca, JNFDccaConfig
-from multivae.trainers import AddDccaTrainer,AddDccaTrainerConfig
+from multivae.trainers import AddDccaTrainer, AddDccaTrainerConfig
 
 model_config = JNFDccaConfig(
     **base_model_config,

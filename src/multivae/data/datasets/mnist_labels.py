@@ -1,11 +1,14 @@
 '''
 Multimodal dataset wrapper for the MNIST labels dataset.
 '''
-import torch
-from .base import MultimodalBaseDataset, DatasetOutput
 from typing import Literal
-from torchvision.datasets import MNIST
+
+import torch
 from torch.distributions import Bernoulli
+from torchvision.datasets import MNIST
+
+from .base import DatasetOutput, MultimodalBaseDataset
+
 
 class BinaryMnistLabels(MultimodalBaseDataset):
     

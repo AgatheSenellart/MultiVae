@@ -3,10 +3,10 @@ import os
 import numpy as np
 import pytest
 from pythae.data.datasets import DatasetOutput
+from torchvision.datasets import MNIST
 
 from multivae.data.datasets.base import MultimodalBaseDataset
 from multivae.data.datasets.mnist_svhn import MnistSvhn
-from torchvision.datasets import MNIST
 
 
 class Test:

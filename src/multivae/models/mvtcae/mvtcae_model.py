@@ -295,8 +295,7 @@ class MVTCAE(BaseMultiVAE):
                     ]  # (batch_size_K, nb_channels, w, h)
                     x_m = inputs.data[mod][i]  # (nb_channels, w, h)
 
-                    dim_reduce = tuple(range(1, len(recon.shape)))
-                    lpx_zs += self.recon_log_probs[mod](recon, x_m).sum(dim=dim_reduce)
+                    lpx_zs += self.recon_log_probs[mod](recon, x_m).reshape(recon.size(0),-1).sum(-1)
 
                 # Compute ln(p(z))
                 prior = dist.Normal(0, 1)
@@ -315,4 +314,4 @@ class MVTCAE(BaseMultiVAE):
 
             ll += torch.logsumexp(torch.Tensor(lnpxs), dim=0) - np.log(K)
 
-        return -ll / n_data
+        return -ll 

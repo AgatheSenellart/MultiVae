@@ -1,7 +1,8 @@
+import torch
 import torch.nn.functional as F
 from pythae.models.base.base_model import BaseDecoder, BaseEncoder, ModelOutput
 from torch import nn
-import torch
+
 from multivae.data.datasets.celeba import CelebAttr
 from multivae.models import MVAE, MVAEConfig
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
@@ -83,6 +84,7 @@ class ImageDecoder(BaseDecoder):
             nn.BatchNorm2d(32),
             Swish(),
             nn.ConvTranspose2d(32, 3, 4, 2, 1, bias=False),
+            nn.Sigmoid()
         )
 
     def forward(self, z):
@@ -142,6 +144,7 @@ class AttributeDecoder(BaseDecoder):
             nn.BatchNorm1d(512),
             Swish(),
             nn.Linear(512, 18),
+            nn.Sigmoid()
         )
 
     def forward(self, z):
@@ -202,7 +205,7 @@ trainer = BaseTrainer(
     eval_dataset=eval_set,
     training_config=training_config,
     callbacks=callbacks,
-    checkpoint = 'dummy_output_dir/MVAE_training_2023-04-21_16-05-34/checkpoint_epoch_49'
+    checkpoint = 'dummy_output_dir/MVAE_training_2023-04-21_16-05-34/checkpoint_epoch_98'
 
 )
 

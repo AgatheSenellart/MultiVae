@@ -4,17 +4,17 @@ from copy import deepcopy
 import numpy as np
 import pytest
 import torch
-from multivae.models.base.base_config import BaseAEConfig
+from encoders import Encoder_test, Encoder_test_multilatents
+from pythae.config import BaseConfig
 from pythae.models.base.base_utils import ModelOutput
 
 from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
 from multivae.models.auto_model.auto_model import AutoModel
+from multivae.models.base.base_config import BaseAEConfig
 from multivae.models.mopoe import MoPoE, MoPoEConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
 from multivae.trainers.base.base_trainer import BaseTrainer
 from multivae.trainers.base.base_trainer_config import BaseTrainerConfig
-from encoders import Encoder_test_multilatents, Encoder_test
-from pythae.config import BaseConfig
 
 
 class Test_model:

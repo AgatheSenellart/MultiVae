@@ -1,10 +1,15 @@
+import torch
+
 from multivae.data.datasets.mnist_labels import BinaryMnistLabels
 from multivae.models import JMVAE, JMVAEConfig
-
-from multivae.models.nn.default_architectures import BaseEncoder,BaseDecoder,ModelOutput
+from multivae.models.nn.default_architectures import (
+    BaseDecoder,
+    BaseEncoder,
+    ModelOutput,
+)
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
-import torch
-from multivae.trainers.base.callbacks import WandbCallback, ProgressBarCallback
+from multivae.trainers.base.callbacks import ProgressBarCallback, WandbCallback
+
 ######################################################
 ### Encoders & Decoders 
 
@@ -113,7 +118,7 @@ class ImageDecoder(BaseDecoder):
             torch.nn.Linear(512,512),
             torch.nn.ReLU(),
             torch.nn.Linear(512,28*28),
-            torch.nn.Sigmoid()
+            torch.nn.Sigmoid() 
         )
         
     def forward(self,z):
@@ -167,7 +172,7 @@ model_config = JMVAEConfig(
         images = (1,28,28),
         labels = (1,)
     ),
-    decoders_dist=dict(images = 'normal',labels='categorical'),
+    decoders_dist=dict(images = 'bernoulli',labels='categorical'),
     alpha=0.1,
     warmup=200,
     uses_likelihood_rescaling=False

@@ -32,7 +32,7 @@ class Evaluator:
         eval_config=EvaluatorConfig(),
     ) -> None:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model = model.to(self.device)
+        self.model = model.to(self.device).eval()
         self.n_data = len(test_dataset)
         self.batch_size = eval_config.batch_size
         self.test_dataset = test_dataset

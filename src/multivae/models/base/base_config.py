@@ -5,7 +5,6 @@ from pydantic.dataclasses import dataclass
 from pythae.config import BaseConfig
 
 
-
 @dataclass
 class BaseMultiVAEConfig(BaseConfig):
     """This is the base config for a Multi-Modal VAE model.
@@ -22,8 +21,8 @@ class BaseMultiVAEConfig(BaseConfig):
             If None is provided but uses_likelihood_rescaling is True, a default value proportional to the input modality
             size is computed. Default to None. 
         decoders_dist (Dict[str, Union[function, str]]). The decoder distributions to use per modality.
-            Per modality, you can provide a string in ['normal','bernoulli','laplace']. If None is provided,
-            a normal distribution is used for each modality.
+            Per modality, you can provide a string in ['normal','bernoulli','laplace']. For Bernoulli distribution, 
+            the decoder is expected to output probabilities. If None is provided, a normal distribution is used for each modality.
         decoder_dist_params (Dict[str,dict]) : Parameters for the output decoder distributions, for
             computing the log-probability.
             For instance, with normal or laplace distribution, you can pass the scale in this dictionary.

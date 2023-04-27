@@ -135,7 +135,7 @@ class MVAE(BaseMultiVAE):
             beta = (epoch + batch_ratio) / self.warmup
 
         total_loss = 0
-
+        metrics = {}
         # Collect all the subsets
         # Add the unimodal subset
         subsets = [[m] for m in self.encoders]
@@ -154,9 +154,11 @@ class MVAE(BaseMultiVAE):
                 filtered_inputs, filter = self._filter_inputs_with_masks(inputs, s)
             else:
                 filtered_inputs = inputs.data
-            total_loss += self._compute_elbo_subset(filtered_inputs, s, beta)
+            subset_elbo = self._compute_elbo_subset(filtered_inputs, s, beta)
+            total_loss += subset_elbo
+            metrics["_".join(sorted(s))] = subset_elbo
 
-        return ModelOutput(loss=total_loss, metrics=dict())
+        return ModelOutput(loss=total_loss, metrics=metrics)
 
     
     def encode(
@@ -204,6 +206,8 @@ class MVAE(BaseMultiVAE):
         K: int = 1000,
         batch_size_K: int = 100,
     ):
+        '''Computes the joint_negative_nll for a batch of inputs.'''
+        
         # Only keep the complete samples
         all_modalities = list(self.encoders.keys())
         if hasattr(inputs, "masks"):
@@ -223,11 +227,12 @@ class MVAE(BaseMultiVAE):
 
             # Compute the parameters of the joint posterior
             mu, log_var = self.compute_mu_log_var_subset(
-                {k: filtered_inputs[k][i] for k in filtered_inputs}, all_modalities
+                {k: filtered_inputs[k][i].unsqueeze(0) for k in filtered_inputs}, all_modalities
             )
             assert mu.shape == (1, self.latent_dim)
             sigma = torch.exp(0.5 * log_var)
             qz_xy = dist.Normal(mu, sigma)
+            
             # And sample from the posterior
             z_joint = qz_xy.rsample([K]).squeeze()  # shape K x latent_dim
             print(z_joint.shape)
@@ -244,8 +249,7 @@ class MVAE(BaseMultiVAE):
                     ]  # (batch_size_K, nb_channels, w, h)
                     x_m = inputs.data[mod][i]  # (nb_channels, w, h)
 
-                    dim_reduce = tuple(range(1, len(recon.shape)))
-                    lpx_zs += self.recon_log_probs[mod](recon, x_m).sum(dim=dim_reduce)
+                    lpx_zs += self.recon_log_probs[mod](recon, x_m).reshape(recon.size(0),-1).sum(-1)
 
                 # Compute ln(p(z))
                 prior = dist.Normal(0, 1)
@@ -264,4 +268,4 @@ class MVAE(BaseMultiVAE):
 
             ll += torch.logsumexp(torch.Tensor(lnpxs), dim=0) - np.log(K)
 
-        return -ll / n_data
+        return -ll 

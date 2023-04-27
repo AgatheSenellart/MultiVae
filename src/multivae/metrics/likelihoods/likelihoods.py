@@ -35,19 +35,23 @@ class LikelihoodsEvaluator(Evaluator):
         super().__init__(model, test_dataset, output, eval_config)
         self.K = eval_config.K
         self.batch_size_k = eval_config.batch_size_k
+        self.unified = eval_config.unified_implementation
 
     def eval(self):
         joint = self.joint_nll()
-        joint_from_sub = self.joint_nll_from_subset(list(self.model.encoders.keys()))
         return ModelOutput(
-            joint_likelihood=joint, joint_likelihood_from_subset_expr=joint_from_sub
+            joint_likelihood=joint
         )
 
     def joint_nll(self):
         ll = 0
         for batch in tqdm(self.test_loader):
             batch = MultimodalBaseDataset(data={m: batch['data'][m].to(self.device) for m in batch['data']})
-            ll += self.model.compute_joint_nll(batch, self.K, self.batch_size_k)
+            if self.unified or (not hasattr(self.model,"compute_joint_nll_paper")):
+                ll += self.model.compute_joint_nll(batch, self.K, self.batch_size_k)
+            else :
+                self.logger.info('Using the paper version of the joint nll.')
+                ll += self.model.compute_joint_nll_paper(batch, self.K, self.batch_size_k)
 
         joint_nll = ll / len(self.test_loader.dataset)
         self.logger.info(f"Joint likelihood : {str(joint_nll)}")
@@ -65,10 +69,15 @@ class LikelihoodsEvaluator(Evaluator):
                 )
                 nb_batch += 1
 
-            joint_nll = ll / nb_batch
+            joint_nll = ll / self.n_data
             self.logger.info(
                 f"Joint likelihood from subset {subset} : {str(joint_nll)}"
             )
             return joint_nll
         else:
             return None
+        
+    def cond_nll_from_subset(self, subset,pred_mods):
+        pass
+        
+

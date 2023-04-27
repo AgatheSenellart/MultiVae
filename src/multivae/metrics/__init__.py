@@ -6,7 +6,6 @@ from .fids.fids import FIDEvaluator
 from .fids.fids_config import FIDEvaluatorConfig
 from .likelihoods.likelihoods import LikelihoodsEvaluator, LikelihoodsEvaluatorConfig
 
-
 __all__ = [
     'CoherenceEvaluator',
     'CoherenceEvaluatorConfig',

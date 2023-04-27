@@ -3,12 +3,13 @@ This implementation of the InceptionV3 network comes from
 https://github.com/mseitzer/pytorch-fid.
 '''
 
+import os
+import warnings
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import models
-import os
-import warnings
 
 # Inception weights ported to Pytorch from
 # http://download.tensorflow.org/models/image/imagenet/inception-2015-12-05.tgz
