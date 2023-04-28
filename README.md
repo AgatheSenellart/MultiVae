@@ -1,6 +1,5 @@
+![logo](./static/multivae_logog.png)
 
-
-# Multimodal Variational Autoencoders
 
 <!-- Add buttons here -->
 [![codecov](https://codecov.io/gh/clementchadebec/multimodal_vaes/branch/main/graph/badge.svg?token=0077GYjHKo)](https://codecov.io/gh/clementchadebec/multimodal_vaes)
@@ -9,10 +8,10 @@
 
 <!-- Describe your project in brief -->
 
-This library implements some of the most common Multimodal Variational Autoencoders methods in a unifying framework for effective benchmarking and development. You can find the list of implemented models below.
-It includes ready to use datasets like MnistSvhn, CelebA and PolyMNIST, 
+This library implements some of the most common *Multimodal Variational Autoencoders* methods in a unifying framework for effective benchmarking and development. You can find the list of implemented models below.
+It includes ready to use datasets like MnistSvhn 🔢, CelebA 💁‍♀️ and PolyMNIST, 
 and the most used metrics : Coherences, Likelihoods and FID. 
-It integrates model monitoring with [Wandb](https://wandb.ai) and a quick way to save/load model from [HuggingFaceHub](https://huggingface.co/).
+It integrates model monitoring with [Wandb](https://wandb.ai) and a quick way to save/load model from [HuggingFaceHub](https://huggingface.co/)🤗.
 
 
 # Implemented models
