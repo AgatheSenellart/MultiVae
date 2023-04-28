@@ -160,7 +160,7 @@ class BaseMultiVAE(nn.Module):
 
             elif recon_dict[k] == "bernoulli":
                 self.recon_log_probs[k] = lambda input, target: dist.Bernoulli(
-                    probs=input
+                    logits=input
                 ).log_prob(target)
 
             elif recon_dict[k] == "laplace":
