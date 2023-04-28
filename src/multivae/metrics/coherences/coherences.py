@@ -43,11 +43,14 @@ class CoherenceEvaluator(Evaluator):
         """
         Computes all the coherences from one subset of modalities to another modality.
         """
-        
+
         modalities = list(self.model.encoders.keys())
         accs = []
         for n in range(1, self.model.n_modalities):
-            subsets_of_size_n = combinations(modalities, n,)
+            subsets_of_size_n = combinations(
+                modalities,
+                n,
+            )
             accs.append([])
             for s in subsets_of_size_n:
                 s = list(s)
@@ -74,8 +77,10 @@ class CoherenceEvaluator(Evaluator):
 
         accuracies = {}
         for batch in self.test_loader:
-            batch = MultimodalBaseDataset(data= {m: batch['data'][m].to(self.device) for m in batch['data']},
-                                          labels=batch['labels'].to(self.device))
+            batch = MultimodalBaseDataset(
+                data={m: batch["data"][m].to(self.device) for m in batch["data"]},
+                labels=batch["labels"].to(self.device),
+            )
             pred_mods = [
                 m
                 for m in self.model.encoders

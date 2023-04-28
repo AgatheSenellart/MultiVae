@@ -56,7 +56,7 @@ def adapt_shape(data):
     """
     # First, add dimensions if some are missing and adjust the number of channels
     for m in data:
-        if len(data[m].shape) == 1: # (n_data,)
+        if len(data[m].shape) == 1:  # (n_data,)
             data[m] = data[m].unsqueeze(1)
         if len(data[m].shape) == 2:  # (n_data, n)
             data[m] = data[m].unsqueeze(1)

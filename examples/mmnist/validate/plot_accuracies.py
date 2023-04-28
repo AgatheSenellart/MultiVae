@@ -1,6 +1,6 @@
-'''
+"""
 Plot the accuracies as a function of the number of input modalities for different models.
-'''
+"""
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -30,9 +30,9 @@ from multivae.models import AutoModel
 
 # config1
 results = {
-    'JNF' : [[0.08,0.65,0.76,0.84,0.85]],
-    'JNFDcca' : [[0.09,0.76,0.85,0.88,0.88]],
-    'MVTCAE' : [[0.005,0.46,0.63,0.71,0.75]]
+    "JNF": [[0.08, 0.65, 0.76, 0.84, 0.85]],
+    "JNFDcca": [[0.09, 0.76, 0.85, 0.88, 0.88]],
+    "MVTCAE": [[0.005, 0.46, 0.63, 0.71, 0.75]],
 }
 
 # config2
@@ -53,12 +53,10 @@ results = {
 fig = plt.figure()
 
 for m in results:
-    values = np.mean(results[m],axis=0)
+    values = np.mean(results[m], axis=0)
     stds = np.std(results[m], axis=0)
-    plt.errorbar(x=['Joint','1','2','3','4'],y=values,yerr=stds,label=m)
+    plt.errorbar(x=["Joint", "1", "2", "3", "4"], y=values, yerr=stds, label=m)
 
-plt.title('Coherences of generations')
+plt.title("Coherences of generations")
 plt.legend()
-plt.savefig('compare_mmnist.png')
-    
-
+plt.savefig("compare_mmnist.png")

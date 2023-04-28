@@ -145,7 +145,7 @@ class TestJNFDcca:
             optimizer_cls="AdamW",
             optimizer_params={"betas": (0.91, 0.995)},
             output_dir=dir_path,
-            learning_rate_dcca=1e-4
+            learning_rate_dcca=1e-4,
         )
 
     @fixture

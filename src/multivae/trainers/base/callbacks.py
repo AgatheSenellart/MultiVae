@@ -107,6 +107,7 @@ class TrainingCallback:
         """
         Event called after a checkpoint save.
         """
+
     def on_save_checkpoint(self, training_config: BaseTrainerConfig, **kwargs):
         """
         Event called after a checkpoint save.
@@ -179,7 +180,7 @@ class CallbackHandler:
 
     def on_save(self, training_config: BaseTrainerConfig, **kwargs):
         self.call_event("on_save", training_config, **kwargs)
-        
+
     def on_save_checkpoint(self, training_config: BaseTrainerConfig, **kwargs):
         self.call_event("on_save_checkpoint", training_config, **kwargs)
 
@@ -320,7 +321,7 @@ class WandbCallback(TrainingCallback):  # pragma: no cover
         project_name: str = "pythae_experiment",
         entity_name: str = None,
         run_id: str = None,
-        resume: str = 'allow',
+        resume: str = "allow",
         **kwargs,
     ):
         """
@@ -334,15 +335,17 @@ class WandbCallback(TrainingCallback):  # pragma: no cover
             project_name (str): The name of the wandb project to use.
 
             entity_name (str): The name of the wandb entity to use.
-            
+
             run_id (str): If resume training, the id of the existing wandb_run
         """
 
         self.is_initialized = True
 
         training_config_dict = training_config.to_dict()
-        
-        self.run = self._wandb.init(project=project_name, entity=entity_name,id=run_id, resume=resume)
+
+        self.run = self._wandb.init(
+            project=project_name, entity=entity_name, id=run_id, resume=resume
+        )
 
         if model_config is not None:
             model_config_dict = model_config.to_dict()
@@ -382,15 +385,13 @@ class WandbCallback(TrainingCallback):  # pragma: no cover
             image = self._wandb.Image(reconstructions[cond_mod])
             self._wandb.log({"recon_from_" + cond_mod: image})
 
-    
-    def on_save_checkpoint(self,training_config: BaseTrainerConfig, **kwargs):
-        checkpoint_dir = kwargs.pop('checkpoint_dir',training_config.training_dir)
-        with open(os.path.join(checkpoint_dir,'checkpoint_info.json'),'r') as fp:
+    def on_save_checkpoint(self, training_config: BaseTrainerConfig, **kwargs):
+        checkpoint_dir = kwargs.pop("checkpoint_dir", training_config.training_dir)
+        with open(os.path.join(checkpoint_dir, "checkpoint_info.json"), "r") as fp:
             info_dict = json.load(fp)
-            info_dict['wandb_run'] = self._wandb.run.id
-        with open(os.path.join(checkpoint_dir,'checkpoint_info.json'),'w') as fp:
-            json.dump(info_dict,fp)
-            
+            info_dict["wandb_run"] = self._wandb.run.id
+        with open(os.path.join(checkpoint_dir, "checkpoint_info.json"), "w") as fp:
+            json.dump(info_dict, fp)
 
     def on_train_end(self, training_config: BaseTrainerConfig, **kwargs):
         self.run.finish()

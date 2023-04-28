@@ -19,7 +19,7 @@ class MnistSvhn(MultimodalBaseDataset):
         path (str) : The path where the data is saved.
         split (str) : Either 'train' or 'test'.
         download (bool) : Whether to download the data or not. Default to True.
-        data_multiplication (int) : 
+        data_multiplication (int) :
 
         **kwargs:
 
@@ -35,7 +35,7 @@ class MnistSvhn(MultimodalBaseDataset):
         download=False,
         data_multiplication=5,
         **kwargs,
-    ):  
+    ):
         if split not in ["train", "test"]:
             raise AttributeError("Possible values for split are 'train' or 'test'")
 
@@ -45,24 +45,32 @@ class MnistSvhn(MultimodalBaseDataset):
         svhn = SVHN(data_path, split=split, download=download)
 
         self.data_mul = data_multiplication
-        self.path_to_idx = data_path + f"/mnist_svhn_idx_data_mul_{self.data_mul}/" + split 
+        self.path_to_idx = (
+            data_path + f"/mnist_svhn_idx_data_mul_{self.data_mul}/" + split
+        )
         # Check if a pairing already exists and if not create one
         if not self._check_pairing_exists():
             self.create_pairing(mnist, svhn)
 
-        i_mnist = torch.load(f"{self.path_to_idx}/mnist_idx_cp.pt") ## !!!!WARNING!!!
-        i_svhn = torch.load(f"{self.path_to_idx}/svhn_idx_cp.pt") ## !!!!WARNING!!!
-        
+        i_mnist = torch.load(f"{self.path_to_idx}/mnist_idx_cp.pt")  ## !!!!WARNING!!!
+        i_svhn = torch.load(f"{self.path_to_idx}/svhn_idx_cp.pt")  ## !!!!WARNING!!!
+
         order = np.arange(len(i_mnist))
-        np.random.shuffle(order) # shuffle the samples so that they are not ordered by labels.
+        np.random.shuffle(
+            order
+        )  # shuffle the samples so that they are not ordered by labels.
         labels = mnist.targets[i_mnist][order]
 
         # Resample the datasets
 
         data_mnist = mnist.data.float().div(255).unsqueeze(1)
         data_svhn = torch.FloatTensor(svhn.data).div(255)
-        mnist = ResampleDataset(data_mnist, lambda d, i: i_mnist[order[i]], size=len(i_mnist))
-        svhn = ResampleDataset(data_svhn, lambda d, i: i_svhn[order[i]], size=len(i_svhn))
+        mnist = ResampleDataset(
+            data_mnist, lambda d, i: i_mnist[order[i]], size=len(i_mnist)
+        )
+        svhn = ResampleDataset(
+            data_svhn, lambda d, i: i_svhn[order[i]], size=len(i_svhn)
+        )
         data = dict(mnist=mnist, svhn=svhn)
 
         self.data_path = data_path
@@ -70,10 +78,10 @@ class MnistSvhn(MultimodalBaseDataset):
 
     def _check_pairing_exists(self):
         if not os.path.exists(f"{self.path_to_idx}/mnist_idx.pt"):
-            print('Pairing not found.')
+            print("Pairing not found.")
             return False
         if not os.path.exists(f"{self.path_to_idx}/svhn_idx.pt"):
-            print('Pairing not found.')
+            print("Pairing not found.")
             return False
         return True
 
@@ -88,9 +96,7 @@ class MnistSvhn(MultimodalBaseDataset):
                 _idx2.append(l_idx2[torch.randperm(n)])
         return torch.cat(_idx1), torch.cat(_idx2)
 
-    def create_pairing(
-        self, mnist: MNIST, svhn: SVHN, max_d=10000
-    ):
+    def create_pairing(self, mnist: MNIST, svhn: SVHN, max_d=10000):
         print(f"Creating indices in {self.path_to_idx}")
         # Refactor svhn labels to match mnist labels
         svhn.labels = torch.LongTensor(svhn.labels.squeeze().astype(int)) % 10

@@ -169,13 +169,11 @@ class BaseMultiVAE(nn.Module):
                 self.recon_log_probs[k] = lambda input, target: dist.Laplace(
                     input, scale
                 ).log_prob(target)
-            
+
             elif recon_dict[k] == "categorical":
-                
                 self.recon_log_probs[k] = lambda input, target: dist.Categorical(
                     probs=input
-                    ).log_prob(target)
-
+                ).log_prob(target)
 
         # TODO : add the possibility to provide custom reconstruction loss and in that case use the negative
         # reconstruction loss as the log probability.
@@ -246,13 +244,13 @@ class BaseMultiVAE(nn.Module):
         else:
             z_content = embedding.z
             outputs = ModelOutput()
-            
+
             for m in modalities:
-                print(z_content.shape,embedding.modalities_z[m].shape)
-                z = torch.cat([z_content,embedding.modalities_z[m]],dim=-1)
+                print(z_content.shape, embedding.modalities_z[m].shape)
+                z = torch.cat([z_content, embedding.modalities_z[m]], dim=-1)
                 outputs[m] = self.decoders[m](z).reconstruction
             return outputs
-            
+
     def predict(
         self,
         inputs: MultimodalBaseDataset,
@@ -530,9 +528,15 @@ class BaseMultiVAE(nn.Module):
                 # Decode with the opposite decoder
                 for k in pred_mods:
                     target = inputs.data[k][i]
-                    recon = self.decoders[k](latents).reconstruction # (batch_size,*recon_shape)
+                    recon = self.decoders[k](
+                        latents
+                    ).reconstruction  # (batch_size,*recon_shape)
                     # Compute lnp(y|z)
-                    lpxz = self.recon_log_probs[k](target, recon).reshape(recon.size(0),-1).sum(-1)
+                    lpxz = (
+                        self.recon_log_probs[k](target, recon)
+                        .reshape(recon.size(0), -1)
+                        .sum(-1)
+                    )
                     print(lpxz.shape)
                     lnpxs[k].append(torch.logsumexp(lpxz, dim=0))
 
@@ -597,7 +601,7 @@ class BaseMultiVAE(nn.Module):
         for file in model_files:
             hf_operations.append(
                 CommitOperationAdd(
-                    path_in_repo= file,
+                    path_in_repo=file,
                     path_or_fileobj=f"{str(os.path.join(tempdir, file))}",
                 )
             )
@@ -713,7 +717,7 @@ class BaseMultiVAE(nn.Module):
 
             return model
 
-    def generate_from_prior(self, n_samples,**kwargs):
+    def generate_from_prior(self, n_samples, **kwargs):
         """
         Generate latent samples from the prior distribution.
         This is the base class in which we consider a static standard Normal Prior.
@@ -724,49 +728,47 @@ class BaseMultiVAE(nn.Module):
         )
         z = dist.Normal(0, 1).rsample(sample_shape)
         return ModelOutput(z=z, one_latent_space=True)
-    
-    
-    
-    def cond_nll_from_subset(self,inputs : MultimodalBaseDataset, subset:Union[list, tuple],
-                             pred_mods:Union[list, tuple], 
-                             K = 1000,batch_size_k=100):
+
+    def cond_nll_from_subset(
+        self,
+        inputs: MultimodalBaseDataset,
+        subset: Union[list, tuple],
+        pred_mods: Union[list, tuple],
+        K=1000,
+        batch_size_k=100,
+    ):
         """
         Compute the negative log-likelihoods of the conditional generative models : encoding
         from one / a subset of modalities to generate others.
-        log p(x_i|x_j,x_l) = log 1/K \sum_k p(x_i|z_k). 
-        
+        log p(x_i|x_j,x_l) = log 1/K \sum_k p(x_i|z_k).
+
 
         Args:
-            inputs (MultimodalBaseDataset): The inputs to use for the estimation. 
+            inputs (MultimodalBaseDataset): The inputs to use for the estimation.
             subset (list, tuple): The modalities to take as inputs.
             pred_mods (list, tuple): The modalities to take into account in the prediction.
             K (int, optional): The number of samples. Defaults to 1000.
             batch_size_k (int, optional): Batch size to use. Defaults to 100.
         """
-        
-        cnll = {m : [] for m in pred_mods}
+
+        cnll = {m: [] for m in pred_mods}
 
         # Encode using the subset modalities
         nb_computed_samples = 0
-        
-        while nb_computed_samples <K:
-            n_samples = min(batch_size_k,K-nb_computed_samples)
-            encode_output = self.encode(inputs,subset,N=n_samples)
-            if encode_output.one_latent_space :
-                decode_output = self.decode(encode_output,pred_mods)
-                
+
+        while nb_computed_samples < K:
+            n_samples = min(batch_size_k, K - nb_computed_samples)
+            encode_output = self.encode(inputs, subset, N=n_samples)
+            if encode_output.one_latent_space:
+                decode_output = self.decode(encode_output, pred_mods)
+
                 for mod in pred_mods:
-                    recon = decode_output[mod] # (batch_size_k, n_data, *recon_size )
+                    recon = decode_output[mod]  # (batch_size_k, n_data, *recon_size )
                     target = inputs.data[mod]
-                    lpxz = self.recon_log_probs[mod](recon, target) 
-                    cnll[mod].append(torch.logsumexp(lpxz,dim=0))
-                    
+                    lpxz = self.recon_log_probs[mod](recon, target)
+                    cnll[mod].append(torch.logsumexp(lpxz, dim=0))
+
             nb_computed_samples += n_samples
-        
-        cnll = {m : torch.logsumexp(torch.stack(cnll[mod]), dim=0) for m in cnll}
+
+        cnll = {m: torch.logsumexp(torch.stack(cnll[mod]), dim=0) for m in cnll}
         return cnll
-                    
-                    
-                    
-                    
-                

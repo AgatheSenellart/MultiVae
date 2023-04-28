@@ -11,10 +11,10 @@ from multivae.models.base import BaseMultiVAE
 from ..base.evaluator_class import Evaluator
 from .likelihoods_config import LikelihoodsEvaluatorConfig
 
-try :
+try:
     from tqdm import tqdm
 except:
-    tqdm = lambda x:x
+    tqdm = lambda x: x
 
 
 class LikelihoodsEvaluator(Evaluator):
@@ -39,19 +39,21 @@ class LikelihoodsEvaluator(Evaluator):
 
     def eval(self):
         joint = self.joint_nll()
-        return ModelOutput(
-            joint_likelihood=joint
-        )
+        return ModelOutput(joint_likelihood=joint)
 
     def joint_nll(self):
         ll = 0
         for batch in tqdm(self.test_loader):
-            batch = MultimodalBaseDataset(data={m: batch['data'][m].to(self.device) for m in batch['data']})
-            if self.unified or (not hasattr(self.model,"compute_joint_nll_paper")):
+            batch = MultimodalBaseDataset(
+                data={m: batch["data"][m].to(self.device) for m in batch["data"]}
+            )
+            if self.unified or (not hasattr(self.model, "compute_joint_nll_paper")):
                 ll += self.model.compute_joint_nll(batch, self.K, self.batch_size_k)
-            else :
-                self.logger.info('Using the paper version of the joint nll.')
-                ll += self.model.compute_joint_nll_paper(batch, self.K, self.batch_size_k)
+            else:
+                self.logger.info("Using the paper version of the joint nll.")
+                ll += self.model.compute_joint_nll_paper(
+                    batch, self.K, self.batch_size_k
+                )
 
         joint_nll = ll / len(self.test_loader.dataset)
         self.logger.info(f"Joint likelihood : {str(joint_nll)}")
@@ -76,8 +78,6 @@ class LikelihoodsEvaluator(Evaluator):
             return joint_nll
         else:
             return None
-        
-    def cond_nll_from_subset(self, subset,pred_mods):
-        pass
-        
 
+    def cond_nll_from_subset(self, subset, pred_mods):
+        pass

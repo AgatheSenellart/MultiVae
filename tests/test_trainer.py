@@ -385,14 +385,11 @@ class TestLogging:
 
 
 class TestTrainingCallbacks:
-
     def test_rename_logs(self):
-        dummy_metrics = {
-            "train_metric": 12,
-            "eval_metric": 13
-        }
+        dummy_metrics = {"train_metric": 12, "eval_metric": 13}
 
         renamed_metrics = rename_logs(dummy_metrics)
 
-        assert set(renamed_metrics.keys()).issubset(set(["train/metric", "eval/metric"]))
-
+        assert set(renamed_metrics.keys()).issubset(
+            set(["train/metric", "eval/metric"])
+        )

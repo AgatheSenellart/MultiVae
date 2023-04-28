@@ -9,23 +9,18 @@ class Test_BaseMultiVAEConfig:
     @pytest.fixture(
         params=[
             dict(
-                n_modalities = 3, 
-                 latent_dim=10,
-                 decoders_dist=dict(mod1='laplace', mod2='laplace'),
-                decoder_dist_params=dict(mod1 = {'scale' : 0.75},
-                                     mod2 = {'scale' : 0.75}
-                                     )
-                 ),
+                n_modalities=3,
+                latent_dim=10,
+                decoders_dist=dict(mod1="laplace", mod2="laplace"),
+                decoder_dist_params=dict(mod1={"scale": 0.75}, mod2={"scale": 0.75}),
+            ),
             dict(
-            n_modalities=2,
-            latent_dim=5,
-            input_dims=dict(mod1=(2,), mod2=(3,)),
-            decoders_dist=dict(mod1='laplace', mod2='laplace'),
-            decoder_dist_params=dict(mod1 = {'scale' : 0.75},
-                                     mod2 = {'scale' : 0.75}
-                                     )
-        )
-        
+                n_modalities=2,
+                latent_dim=5,
+                input_dims=dict(mod1=(2,), mod2=(3,)),
+                decoders_dist=dict(mod1="laplace", mod2="laplace"),
+                decoder_dist_params=dict(mod1={"scale": 0.75}, mod2={"scale": 0.75}),
+            ),
         ]
     )
     def input_latent_pairs(self, request):

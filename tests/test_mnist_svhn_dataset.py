@@ -19,14 +19,15 @@ class Test:
         return dict(data_path=data_path, split=split)
 
     def test_create_dataset(self, input_dataset_test):
-        
-        try :
-            mnist = MNIST(input_dataset_test['data_path'], 
-                          train=(input_dataset_test['split'] == "train"),
-                          download=False)
-        except : # If the dataset is not available don't run the test
+        try:
+            mnist = MNIST(
+                input_dataset_test["data_path"],
+                train=(input_dataset_test["split"] == "train"),
+                download=False,
+            )
+        except:  # If the dataset is not available don't run the test
             return
-        
+
         dataset = MnistSvhn(**input_dataset_test)
         assert isinstance(dataset, MultimodalBaseDataset)
         sample = dataset[0]

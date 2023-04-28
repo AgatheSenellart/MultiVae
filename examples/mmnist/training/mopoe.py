@@ -1,20 +1,13 @@
-
 from config2 import *
 
 from multivae.models import MoPoE, MoPoEConfig
 
-model_config = MoPoEConfig(
-    beta=2.5,
-    **base_config
-)
+model_config = MoPoEConfig(beta=2.5, **base_config)
 
 
 model = MoPoE(model_config, encoders=encoders, decoders=decoders)
 
-trainer_config = BaseTrainerConfig(
-    **base_training_config,
-    drop_last=True
-)
+trainer_config = BaseTrainerConfig(**base_training_config, drop_last=True)
 
 # Set up callbacks
 wandb_cb = WandbCallback()
@@ -34,9 +27,11 @@ trainer.train()
 
 model = trainer._best_model
 # validate the model
-coherences = CoherenceEvaluator(model=model,
-                                test_dataset=test_data,
-                                classifiers=load_mmnist_classifiers(device=model.device),
-                                output=trainer.training_dir).eval()
+coherences = CoherenceEvaluator(
+    model=model,
+    test_dataset=test_data,
+    classifiers=load_mmnist_classifiers(device=model.device),
+    output=trainer.training_dir,
+).eval()
 
-trainer._best_model.push_to_hf_hub('asenella/mmnist'+ model.model_name + config_name)
+trainer._best_model.push_to_hf_hub("asenella/mmnist" + model.model_name + config_name)

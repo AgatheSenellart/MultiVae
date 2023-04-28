@@ -1,4 +1,3 @@
-
 from config2 import *
 
 from multivae.models import JNF, JNFConfig
@@ -6,15 +5,13 @@ from multivae.trainers import TwoStepsTrainer, TwoStepsTrainerConfig
 
 model_config = JNFConfig(
     **base_config,
-    warmup=base_training_config['num_epochs']//2,
+    warmup=base_training_config["num_epochs"] // 2,
 )
 
 
 model = JNF(model_config, encoders=encoders, decoders=decoders)
 
-trainer_config = TwoStepsTrainerConfig(
-    **base_training_config
-)
+trainer_config = TwoStepsTrainerConfig(**base_training_config)
 
 # Set up callbacks
 wandb_cb = WandbCallback()
@@ -34,9 +31,11 @@ trainer.train()
 # validate the model and save
 
 model = trainer._best_model
-coherences = CoherenceEvaluator(model=model,
-                                test_dataset=test_data,
-                                classifiers=load_mmnist_classifiers(device=model.device),
-                                output=trainer.training_dir).eval()
+coherences = CoherenceEvaluator(
+    model=model,
+    test_dataset=test_data,
+    classifiers=load_mmnist_classifiers(device=model.device),
+    output=trainer.training_dir,
+).eval()
 
-trainer._best_model.push_to_hf_hub('asenella/mmnist'+ model.model_name + config_name)
+trainer._best_model.push_to_hf_hub("asenella/mmnist" + model.model_name + config_name)

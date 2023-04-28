@@ -61,7 +61,6 @@ class AddDccaTrainer(BaseTrainer):
         # TODO : maybe check that the chosen batch size is large enough and
         # that the chosen dcca batch size does'nt result in a large loss of data
 
-        
         self.train_loader = self.get_train_dataloader_dcca(train_dataset)
         self.eval_loader = self.get_eval_dataloader_dcca(eval_dataset)
         self.training_config.learning_rate_vae = self.training_config.learning_rate
@@ -118,8 +117,8 @@ class AddDccaTrainer(BaseTrainer):
             self.train_loader = self.get_train_dataloader(self.train_dataset)
             self.eval_loader = self.get_eval_dataloader(self.eval_dataset)
             logger.info(
-                f"Using train_loader with batch_size {len(self.train_dataset)// len(self.train_loader)} \n" +
-                f"Using eval_loader with batch_size {len(self.eval_dataset)// len(self.eval_loader)} \n"
+                f"Using train_loader with batch_size {len(self.train_dataset)// len(self.train_loader)} \n"
+                + f"Using eval_loader with batch_size {len(self.eval_dataset)// len(self.eval_loader)} \n"
             )
             self.training_config.learning_rate = self.training_config.learning_rate_vae
             self.set_optimizer()

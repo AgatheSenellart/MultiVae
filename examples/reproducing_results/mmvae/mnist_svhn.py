@@ -143,12 +143,15 @@ class DecoderSVHN(BaseDecoder):
 train_set = MnistSvhn(split="train", data_multiplication=30)
 test_set = MnistSvhn(split="test", data_multiplication=30)
 
-print(f"Bound for Mnist {torch.min(train_set[:128].data['mnist']),torch.max(train_set[:128].data['mnist'])}")
-print(f"Bound for SVHN {torch.min(train_set[:128].data['svhn']),torch.max(train_set[:128].data['svhn'])}")
+print(
+    f"Bound for Mnist {torch.min(train_set[:128].data['mnist']),torch.max(train_set[:128].data['mnist'])}"
+)
+print(
+    f"Bound for SVHN {torch.min(train_set[:128].data['svhn']),torch.max(train_set[:128].data['svhn'])}"
+)
 
 
-
-print(f'train : {len(train_set)}, test : {len(test_set)}')
+print(f"train : {len(train_set)}, test : {len(test_set)}")
 # Model config
 model_config = MMVAEConfig(
     n_modalities=2,
@@ -159,7 +162,7 @@ model_config = MMVAEConfig(
     decoder_dist_params={"mnist": {"scale": 0.75}, "svhn": {"scale": 0.75}},
     K=30,
     learn_prior=True,
-    prior_and_posterior_dist='laplace_with_softmax'
+    prior_and_posterior_dist="laplace_with_softmax",
 )
 
 

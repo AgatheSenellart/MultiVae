@@ -67,6 +67,7 @@ class Encoder_test(BaseEncoder):
 
         return output
 
+
 class Encoder_test_multilatents(BaseEncoder):
     """Simple MLPs different than the default one for testing."""
 

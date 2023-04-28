@@ -64,7 +64,6 @@ class MVAE(BaseMultiVAE):
         mus = torch.stack(mus)
         joint_mu = (torch.exp(lnT) * mus).sum(dim=0) * torch.exp(lnV)
 
-        
         return joint_mu, lnV
 
     def compute_mu_log_var_subset(self, data: dict, subset: list):
@@ -82,15 +81,17 @@ class MVAE(BaseMultiVAE):
         return sub_mu, sub_logvar
 
     def _compute_elbo_subset(self, data: dict, subset: list, beta: float):
-        
         sub_mu, sub_logvar = self.compute_mu_log_var_subset(data, subset)
-        sub_std = torch.exp(0.5*sub_logvar)
+        sub_std = torch.exp(0.5 * sub_logvar)
         z = dist.Normal(sub_mu, sub_std).rsample()
         elbo_sub = 0
         for mod in self.decoders:
             if mod in subset:
                 recon = self.decoders[mod](z).reconstruction
-                elbo_sub += -(self.recon_log_probs[mod](recon, data[mod])*self.rescale_factors[mod]).sum()
+                elbo_sub += -(
+                    self.recon_log_probs[mod](recon, data[mod])
+                    * self.rescale_factors[mod]
+                ).sum()
         KLD = -0.5 * torch.sum(1 + sub_logvar - sub_mu.pow(2) - sub_logvar.exp())
         elbo_sub += KLD * beta
         return elbo_sub / len(sub_mu)
@@ -128,7 +129,7 @@ class MVAE(BaseMultiVAE):
         """
 
         epoch = kwargs.pop("epoch", 1)
-        batch_ratio = kwargs.pop("batch_ratio",0)
+        batch_ratio = kwargs.pop("batch_ratio", 0)
         if epoch >= self.warmup:
             beta = 1
         else:
@@ -160,7 +161,6 @@ class MVAE(BaseMultiVAE):
 
         return ModelOutput(loss=total_loss, metrics=metrics)
 
-    
     def encode(
         self,
         inputs: Union[MultimodalBaseDataset, IncompleteDataset],
@@ -191,7 +191,7 @@ class MVAE(BaseMultiVAE):
                 )
 
         sub_mu, sub_logvar = self.compute_mu_log_var_subset(inputs.data, cond_mod)
-        sub_std = torch.exp(0.5*sub_logvar)
+        sub_std = torch.exp(0.5 * sub_logvar)
         sample_shape = [N] if N > 1 else []
         z = dist.Normal(sub_mu, sub_std).rsample(sample_shape)
         flatten = kwargs.pop("flatten", False)
@@ -206,8 +206,8 @@ class MVAE(BaseMultiVAE):
         K: int = 1000,
         batch_size_K: int = 100,
     ):
-        '''Computes the joint_negative_nll for a batch of inputs.'''
-        
+        """Computes the joint_negative_nll for a batch of inputs."""
+
         # Only keep the complete samples
         all_modalities = list(self.encoders.keys())
         if hasattr(inputs, "masks"):
@@ -227,12 +227,13 @@ class MVAE(BaseMultiVAE):
 
             # Compute the parameters of the joint posterior
             mu, log_var = self.compute_mu_log_var_subset(
-                {k: filtered_inputs[k][i].unsqueeze(0) for k in filtered_inputs}, all_modalities
+                {k: filtered_inputs[k][i].unsqueeze(0) for k in filtered_inputs},
+                all_modalities,
             )
             assert mu.shape == (1, self.latent_dim)
             sigma = torch.exp(0.5 * log_var)
             qz_xy = dist.Normal(mu, sigma)
-            
+
             # And sample from the posterior
             z_joint = qz_xy.rsample([K]).squeeze()  # shape K x latent_dim
             print(z_joint.shape)
@@ -249,7 +250,11 @@ class MVAE(BaseMultiVAE):
                     ]  # (batch_size_K, nb_channels, w, h)
                     x_m = inputs.data[mod][i]  # (nb_channels, w, h)
 
-                    lpx_zs += self.recon_log_probs[mod](recon, x_m).reshape(recon.size(0),-1).sum(-1)
+                    lpx_zs += (
+                        self.recon_log_probs[mod](recon, x_m)
+                        .reshape(recon.size(0), -1)
+                        .sum(-1)
+                    )
 
                 # Compute ln(p(z))
                 prior = dist.Normal(0, 1)
@@ -268,4 +273,4 @@ class MVAE(BaseMultiVAE):
 
             ll += torch.logsumexp(torch.Tensor(lnpxs), dim=0) - np.log(K)
 
-        return -ll 
+        return -ll

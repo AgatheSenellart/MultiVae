@@ -103,7 +103,11 @@ class BaseJointModel(BaseMultiVAE):
                         "reconstruction"
                     ]  # (batch_size_K, *decoder_output_shape)
                     x_m = inputs.data[mod][i]  # (*input_shape)
-                    lpx_zs += self.recon_log_probs[mod](recon, x_m).reshape(recon.size(0),-1).sum(-1)
+                    lpx_zs += (
+                        self.recon_log_probs[mod](recon, x_m)
+                        .reshape(recon.size(0), -1)
+                        .sum(-1)
+                    )
 
                 # Compute ln(p(z))
                 prior = dist.Normal(0, 1)
@@ -122,4 +126,4 @@ class BaseJointModel(BaseMultiVAE):
 
             ll += torch.logsumexp(torch.Tensor(lnpxs), dim=0) - np.log(K)
 
-        return -ll 
+        return -ll

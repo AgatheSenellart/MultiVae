@@ -18,8 +18,18 @@ from multivae.trainers.base.callbacks import (
     WandbCallback,
 )
 
-train_data = MnistSvhn(data_path = "scratch/asenella/data/",split="train", data_multiplication=5,download=True)
-test_data = MnistSvhn(data_path = "scratch/asenella/data/",split='test', data_multiplication=5,download=True)
+train_data = MnistSvhn(
+    data_path="scratch/asenella/data/",
+    split="train",
+    data_multiplication=5,
+    download=True,
+)
+test_data = MnistSvhn(
+    data_path="scratch/asenella/data/",
+    split="test",
+    data_multiplication=5,
+    download=True,
+)
 train_data, eval_data = random_split(
     train_data, [0.8, 0.2], generator=torch.Generator().manual_seed(42)
 )
@@ -33,37 +43,41 @@ base_model_config = dict(
 )
 
 encoders = dict(
-    mnist = Encoder_VAE_MLP(BaseAEConfig(latent_dim=base_model_config['latent_dim'],
-                            input_dim = (1,28,28))),
-    svhn = Encoder_VAE_SVHN(BaseAEConfig(latent_dim=base_model_config['latent_dim'],
-                                         input_dim=(3,32,32)))
-    
+    mnist=Encoder_VAE_MLP(
+        BaseAEConfig(latent_dim=base_model_config["latent_dim"], input_dim=(1, 28, 28))
+    ),
+    svhn=Encoder_VAE_SVHN(
+        BaseAEConfig(latent_dim=base_model_config["latent_dim"], input_dim=(3, 32, 32))
+    ),
 )
 
 decoders = dict(
-    mnist = Decoder_AE_MLP(BaseAEConfig(latent_dim=base_model_config['latent_dim'],
-                            input_dim = (1,28,28))),
-    svhn = Decoder_VAE_SVHN(BaseAEConfig(latent_dim=base_model_config['latent_dim'],
-                                         input_dim=(3,32,32)))
+    mnist=Decoder_AE_MLP(
+        BaseAEConfig(latent_dim=base_model_config["latent_dim"], input_dim=(1, 28, 28))
+    ),
+    svhn=Decoder_VAE_SVHN(
+        BaseAEConfig(latent_dim=base_model_config["latent_dim"], input_dim=(3, 32, 32))
+    ),
 )
 
 base_training_config = dict(
     learning_rate=1e-3,
     per_device_train_batch_size=256,
     num_epochs=200,
-    optimizer_cls='Adam',
+    optimizer_cls="Adam",
     optimizer_params={},
-    scheduler_cls='ReduceLROnPlateau',
-    scheduler_params={'patience' : 10},
-    steps_predict=1
+    scheduler_cls="ReduceLROnPlateau",
+    scheduler_params={"patience": 10},
+    steps_predict=1,
 )
 
-wandb_project = 'compare_on_mnist_svhn'
-config_name = '_config1_'
+wandb_project = "compare_on_mnist_svhn"
+config_name = "_config1_"
 
 
 #######################################################################
 ### Classifiers for evaluation
+
 
 class SVHN_Classifier(nn.Module):
     def __init__(self):
@@ -102,13 +116,13 @@ class MNIST_Classifier(nn.Module):
         x = self.fc2(x)
         return F.log_softmax(x, dim=-1)
 
-def load_mnist_svhn_classifiers(data_path, device='cuda'):
+
+def load_mnist_svhn_classifiers(data_path, device="cuda"):
     c1 = MNIST_Classifier()
-    c1.load_state_dict(torch.load(f'{data_path}/mnist.pt', map_location=device))
+    c1.load_state_dict(torch.load(f"{data_path}/mnist.pt", map_location=device))
     c2 = SVHN_Classifier()
-    c2.load_state_dict(torch.load(f'{data_path}/svhn.pt',map_location=device))
-    return {'mnist' : c1.to(device),
-            'svhn' : c2.to(device)}
+    c2.load_state_dict(torch.load(f"{data_path}/svhn.pt", map_location=device))
+    return {"mnist": c1.to(device), "svhn": c2.to(device)}
 
 
-data_path_classifiers = '../../classifiers'
+data_path_classifiers = "../../classifiers"

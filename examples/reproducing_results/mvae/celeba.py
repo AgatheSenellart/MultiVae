@@ -16,6 +16,7 @@ from multivae.trainers.base.callbacks import (
 
 torch.backends.cudnn.benchmark = True
 
+
 class Swish(nn.Module):
     """https://arxiv.org/abs/1710.05941"""
 
@@ -84,7 +85,7 @@ class ImageDecoder(BaseDecoder):
             nn.BatchNorm2d(32),
             Swish(),
             nn.ConvTranspose2d(32, 3, 4, 2, 1, bias=False),
-            nn.Sigmoid()
+            nn.Sigmoid(),
         )
 
     def forward(self, z):
@@ -144,7 +145,7 @@ class AttributeDecoder(BaseDecoder):
             nn.BatchNorm1d(512),
             Swish(),
             nn.Linear(512, 18),
-            nn.Sigmoid()
+            nn.Sigmoid(),
         )
 
     def forward(self, z):
@@ -162,7 +163,7 @@ model_config = MVAEConfig(
     input_dims=dict(image=(3, 64, 64), attributes=(18,)),
     latent_dim=100,
     uses_likelihood_rescaling=True,
-    rescale_factors= dict(image=1,attributes=10),
+    rescale_factors=dict(image=1, attributes=10),
     decoder_dist=dict(image="bernoulli", attributes="bernoulli"),
     warmup=20,
 )
@@ -170,8 +171,14 @@ model_config = MVAEConfig(
 
 model = MVAE(
     model_config,
-    encoders=dict(image=ImageEncoder(model_config.latent_dim), attributes=AttributeEncoder(model_config.latent_dim)),
-    decoders=dict(image=ImageDecoder(model_config.latent_dim), attributes=AttributeDecoder(model_config.latent_dim)),
+    encoders=dict(
+        image=ImageEncoder(model_config.latent_dim),
+        attributes=AttributeEncoder(model_config.latent_dim),
+    ),
+    decoders=dict(
+        image=ImageDecoder(model_config.latent_dim),
+        attributes=AttributeDecoder(model_config.latent_dim),
+    ),
 )
 
 
@@ -186,16 +193,22 @@ training_config = BaseTrainerConfig(
     start_keep_best_epoch=model.warmup + 1,
     num_epochs=100,
     steps_predict=1,
-    steps_saving=49
+    steps_saving=49,
 )
 
 
-train_set = CelebAttr("~/scratch/data", "train",download=True) 
-eval_set = CelebAttr("~/scratch/data", "valid",download=True)
+train_set = CelebAttr("~/scratch/data", "train", download=True)
+eval_set = CelebAttr("~/scratch/data", "valid", download=True)
 
 wandb_cb = WandbCallback()
-run_id = 'wise-firebrand-14'
-wandb_cb.setup(training_config, model_config, project_name="reproduce_mvae",run_id=run_id, resume='must')
+run_id = "wise-firebrand-14"
+wandb_cb.setup(
+    training_config,
+    model_config,
+    project_name="reproduce_mvae",
+    run_id=run_id,
+    resume="must",
+)
 
 callbacks = [ProgressBarCallback(), wandb_cb]
 
@@ -205,11 +218,9 @@ trainer = BaseTrainer(
     eval_dataset=eval_set,
     training_config=training_config,
     callbacks=callbacks,
-    checkpoint = 'dummy_output_dir/MVAE_training_2023-04-21_16-05-34/checkpoint_epoch_98'
-
+    checkpoint="dummy_output_dir/MVAE_training_2023-04-21_16-05-34/checkpoint_epoch_98",
 )
 
 trainer.train()
 
 trainer._best_model.push_to_hf_hub("asenella/reproducing_mvae")
-

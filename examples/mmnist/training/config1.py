@@ -1,6 +1,6 @@
-'''
+"""
 Store in this file all the shared variables for the benchmark on mmnist.
-'''
+"""
 
 import torch
 from pythae.models.base.base_config import BaseAEConfig
@@ -35,38 +35,37 @@ base_config = dict(
     n_modalities=len(modalities),
     latent_dim=128,
     input_dims={k: (3, 28, 28) for k in modalities},
-    decoders_dist={k : 'laplace' for k in modalities },
-    
+    decoders_dist={k: "laplace" for k in modalities},
 )
 encoder_class = Encoder_ResNet_VAE_MMNIST
 encoders = {
     k: Encoder_ResNet_VAE_MMNIST(
-        BaseAEConfig(latent_dim=base_config['latent_dim'], input_dim=(3, 28, 28))
+        BaseAEConfig(latent_dim=base_config["latent_dim"], input_dim=(3, 28, 28))
     )
     for k in modalities
 }
 
 decoders = {
     k: Decoder_ResNet_AE_MMNIST(
-        BaseAEConfig(latent_dim=base_config['latent_dim'], input_dim=(3, 28, 28))
+        BaseAEConfig(latent_dim=base_config["latent_dim"], input_dim=(3, 28, 28))
     )
     for k in modalities
-    }
+}
 
 
 base_training_config = dict(
     learning_rate=1e-3,
     per_device_train_batch_size=256,
     num_epochs=400,
-    optimizer_cls='Adam',
+    optimizer_cls="Adam",
     optimizer_params={},
-    scheduler_cls='ReduceLROnPlateau',
-    scheduler_params={'patience' : 7},
-    steps_predict=1
+    scheduler_cls="ReduceLROnPlateau",
+    scheduler_params={"patience": 7},
+    steps_predict=1,
 )
 
-wandb_project = 'compare_on_mmnist'
-config_name = '_config1_'
+wandb_project = "compare_on_mmnist"
+config_name = "_config1_"
 
 
 #######################################
@@ -118,4 +117,3 @@ def load_mmnist_classifiers(data_path="../../../data/clf", device="cuda"):
         if clf is None:
             raise ValueError("Classifier is 'None' for modality %s" % str(i))
     return clfs
-

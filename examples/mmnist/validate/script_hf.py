@@ -20,14 +20,14 @@ test_set = MMNISTDataset(data_path="../../../data/MMNIST", split="test")
 hf_repo = "asenella/reproducing_mvtcae"
 model = AutoModel.load_from_hf_hub(hf_repo, allow_pickle=True)
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+device = "cuda" if torch.cuda.is_available() else "cpu"
 clfs = load_mmnist_classifiers(device=device)
 
 tmp_output = tempfile.mkdtemp()
 
 # output = CoherenceEvaluator(model, clfs, test_set, tmp_output).eval()
 # output = FIDEvaluator(model,test_set, tmp_output).compute_all_cond_fid_for_mod('m0')
-output = FIDEvaluator(model,test_set, tmp_output).mvtcae_reproduce_fids('m0')
+output = FIDEvaluator(model, test_set, tmp_output).mvtcae_reproduce_fids("m0")
 
 # output = FIDEvaluator(model,test_set, tmp_output).eval()
 

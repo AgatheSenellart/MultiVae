@@ -40,75 +40,63 @@ class Test_model:
             dataset = IncompleteDataset(data=data, masks=masks, labels=labels)
 
         return dataset
-    
 
-
-    @pytest.fixture(
-        params = ['one_latent_space', 'multi_latent_spaces']
-    )
-    def archi_and_config(self,beta,request):
-        if request.param == 'one_latent_space':
+    @pytest.fixture(params=["one_latent_space", "multi_latent_spaces"])
+    def archi_and_config(self, beta, request):
+        if request.param == "one_latent_space":
             # Create an instance of mvae model
             config1 = BaseAEConfig(input_dim=(2,), latent_dim=5)
             config2 = BaseAEConfig(input_dim=(3,), latent_dim=5)
             config3 = BaseAEConfig(input_dim=(4,), latent_dim=5)
-            
+
             encoders = dict(
                 mod1=Encoder_test(config1),
                 mod2=Encoder_test(config2),
                 mod3=Encoder_test(config3),
                 mod4=Encoder_test(config3),
             )
-            
+
             model_config = MoPoEConfig(
                 n_modalities=4,
                 latent_dim=5,
                 input_dims=dict(mod1=(2,), mod2=(3,), mod3=(4,), mod4=(4,)),
                 beta=beta,
             )
-            
+
             decoders = dict(
-            mod1=Decoder_AE_MLP(config1),
-            mod2=Decoder_AE_MLP(config2),
-            mod3=Decoder_AE_MLP(config3),
-            mod4=Decoder_AE_MLP(config3),
-        )
-            
+                mod1=Decoder_AE_MLP(config1),
+                mod2=Decoder_AE_MLP(config2),
+                mod3=Decoder_AE_MLP(config3),
+                mod4=Decoder_AE_MLP(config3),
+            )
+
         else:
-            
             config1 = BaseAEConfig(input_dim=(2,), latent_dim=5, style_dim=1)
             config2 = BaseAEConfig(input_dim=(3,), latent_dim=5, style_dim=2)
-            config3 = BaseAEConfig(input_dim=(4,), latent_dim=5,style_dim=3)
-            
-            
+            config3 = BaseAEConfig(input_dim=(4,), latent_dim=5, style_dim=3)
+
             encoders = dict(
-            mod1=Encoder_test_multilatents(config1),
-            mod2=Encoder_test_multilatents(config2),
-            mod3=Encoder_test_multilatents(config3),
-            mod4=Encoder_test_multilatents(config3),
-        )
+                mod1=Encoder_test_multilatents(config1),
+                mod2=Encoder_test_multilatents(config2),
+                mod3=Encoder_test_multilatents(config3),
+                mod4=Encoder_test_multilatents(config3),
+            )
             model_config = MoPoEConfig(
                 n_modalities=4,
                 latent_dim=5,
                 input_dims=dict(mod1=(2,), mod2=(3,), mod3=(4,), mod4=(4,)),
                 beta=beta,
                 use_modality_specific_spaces=True,
-                modalities_specific_dim=dict(mod1=1,mod2=2,mod3=3,mod4=3)
+                modalities_specific_dim=dict(mod1=1, mod2=2, mod3=3, mod4=3),
             )
             decoders = dict(
-            mod1=Decoder_AE_MLP(BaseAEConfig(input_dim=(2,), latent_dim=6)),
-            mod2=Decoder_AE_MLP(BaseAEConfig(input_dim=(3,), latent_dim=7)),
-            mod3=Decoder_AE_MLP(BaseAEConfig(input_dim=(4,), latent_dim=8)),
-            mod4=Decoder_AE_MLP(BaseAEConfig(input_dim=(4,), latent_dim=8)),
-        )
+                mod1=Decoder_AE_MLP(BaseAEConfig(input_dim=(2,), latent_dim=6)),
+                mod2=Decoder_AE_MLP(BaseAEConfig(input_dim=(3,), latent_dim=7)),
+                mod3=Decoder_AE_MLP(BaseAEConfig(input_dim=(4,), latent_dim=8)),
+                mod4=Decoder_AE_MLP(BaseAEConfig(input_dim=(4,), latent_dim=8)),
+            )
 
-
-
-        return dict(
-            encoders=encoders,
-            decoders=decoders,
-            model_config=model_config
-        )
+        return dict(encoders=encoders, decoders=decoders, model_config=model_config)
 
     @pytest.fixture(params=[1.0, 1.5, 2.0])
     def beta(self, request):
@@ -122,19 +110,17 @@ class Test_model:
         if custom:
             model = MoPoE(**archi_and_config)
         else:
-            model = MoPoE(archi_and_config['model_config'])
+            model = MoPoE(archi_and_config["model_config"])
         return model
 
     def test(self, model, dataset, archi_and_config):
-        
-        model_config = archi_and_config['model_config']
+        model_config = archi_and_config["model_config"]
         assert model.beta == model_config.beta
-        if 'encoders' in model.model_config.custom_architectures:
+        if "encoders" in model.model_config.custom_architectures:
             if model_config.use_modality_specific_spaces:
-                assert isinstance(model.encoders['mod1'],Encoder_test_multilatents )
-            else :
-                assert isinstance(model.encoders['mod1'],Encoder_test )
-
+                assert isinstance(model.encoders["mod1"], Encoder_test_multilatents)
+            else:
+                assert isinstance(model.encoders["mod1"], Encoder_test)
 
         expected_subsets = [
             ["mod1", "mod2"],
@@ -155,9 +141,9 @@ class Test_model:
         # Try encoding and prediction
         print(dataset[0])
         outputs = model.encode(dataset[0])
-        if archi_and_config['model_config'].use_modality_specific_spaces:
+        if archi_and_config["model_config"].use_modality_specific_spaces:
             assert not outputs.one_latent_space
-        else :
+        else:
             assert outputs.one_latent_space
 
         embeddings = outputs.z

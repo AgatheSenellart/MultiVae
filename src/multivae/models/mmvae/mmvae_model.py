@@ -50,8 +50,12 @@ class MMVAE(BaseMultiVAE):
                 f" {model_config.prior_and_posterior_dist} was provided."
             )
 
-        self.prior_mean = torch.nn.Parameter(torch.zeros(1,self.latent_dim), requires_grad=False)
-        self.prior_log_var = torch.nn.Parameter(torch.zeros(1,self.latent_dim), requires_grad=model_config.learn_prior)
+        self.prior_mean = torch.nn.Parameter(
+            torch.zeros(1, self.latent_dim), requires_grad=False
+        )
+        self.prior_log_var = torch.nn.Parameter(
+            torch.zeros(1, self.latent_dim), requires_grad=model_config.learn_prior
+        )
 
         self.model_name = "MMVAE"
 
@@ -61,25 +65,25 @@ class MMVAE(BaseMultiVAE):
         standard deviation of the distribution either applying softmax or not.
         This follows the original implementation.
         """
-        
-        if self.model_config.prior_and_posterior_dist ==  "laplace_with_softmax":
-            return F.softmax(log_var, dim=-1)*log_var.size(-1) + 1e-6
-        else : 
+
+        if self.model_config.prior_and_posterior_dist == "laplace_with_softmax":
+            return F.softmax(log_var, dim=-1) * log_var.size(-1) + 1e-6
+        else:
             return torch.exp(0.5 * log_var)
-            
-    @property   
+
+    @property
     def pz_params(self):
-        """ From the prior mean and log_covariance, return the mean and standard
-        deviation, either applying softmax or not depending on the choice of prior 
+        """From the prior mean and log_covariance, return the mean and standard
+        deviation, either applying softmax or not depending on the choice of prior
         distribution.
 
         Returns:
             tuple: mean, std
         """
-        mean =  self.prior_mean
-        if self.model_config.prior_and_posterior_dist ==  "laplace_with_softmax":
-            std =  F.softmax(self.prior_log_var, dim=1) * self.prior_log_var.size(-1)
-        else : 
+        mean = self.prior_mean
+        if self.model_config.prior_and_posterior_dist == "laplace_with_softmax":
+            std = F.softmax(self.prior_log_var, dim=1) * self.prior_log_var.size(-1)
+        else:
             std = torch.exp(0.5 * self.prior_log_var)
         return mean, std
 
@@ -93,10 +97,10 @@ class MMVAE(BaseMultiVAE):
         qz_xs = {}
         qz_xs_detach = {}
         reconstructions = {}
-        
-        compute_loss = kwargs.pop('compute_loss', True)
-        detailed_output = kwargs.pop('detailed_output',False)
-        K = kwargs.pop('K', self.K)
+
+        compute_loss = kwargs.pop("compute_loss", True)
+        detailed_output = kwargs.pop("detailed_output", False)
+        K = kwargs.pop("K", self.K)
 
         for cond_mod in self.encoders:
             output = self.encoders[cond_mod](inputs.data[cond_mod])
@@ -120,17 +124,19 @@ class MMVAE(BaseMultiVAE):
 
         # Compute DREG loss
         if compute_loss:
-            # TODO : change 
-            loss_output = self.dreg_looser(qz_xs_detach, embeddings, reconstructions, inputs)
-        
-        else :
+            # TODO : change
+            loss_output = self.dreg_looser(
+                qz_xs_detach, embeddings, reconstructions, inputs
+            )
+
+        else:
             loss_output = ModelOutput()
         if detailed_output:
-            loss_output['qz_xs'] = qz_xs
-            loss_output['qz_xs_detach'] = qz_xs_detach
-            loss_output['zss'] = embeddings
-            loss_output['recon'] = reconstructions
-        
+            loss_output["qz_xs"] = qz_xs
+            loss_output["qz_xs_detach"] = qz_xs_detach
+            loss_output["zss"] = embeddings
+            loss_output["recon"] = reconstructions
+
         return loss_output
 
     def dreg_looser(self, qz_xs, embeddings, reconstructions, inputs):
@@ -149,9 +155,7 @@ class MMVAE(BaseMultiVAE):
                 x_recon = reconstructions[mod][recon_mod]
                 K, n_batch = x_recon.shape[0], x_recon.shape[1]
                 lpx_z += (
-                    self.recon_log_probs[recon_mod](
-                        x_recon, inputs.data[recon_mod]
-                    )
+                    self.recon_log_probs[recon_mod](x_recon, inputs.data[recon_mod])
                     .view(K, n_batch, -1)
                     .mul(self.rescale_factors[recon_mod])
                     .sum(-1)
@@ -169,30 +173,30 @@ class MMVAE(BaseMultiVAE):
 
         lws = (grad_wt * lws).mean(0).sum()
         return ModelOutput(loss=-lws, metrics=dict())
-    
+
     def iwae(self, qz_xs, zss, reconstructions, inputs):
         lw_mod = []
         for cond_mod in zss:
             lpz = self.prior_dist(*self.pz_params).log_prob(zss[cond_mod]).sum(-1)
-            lqz_x = torch.stack([qz_xs[m].log_prob(zss[cond_mod]).sum(-1) for m in qz_xs])
-            lqz_x = torch.logsumexp(lqz_x,dim=0) - np.log(lqz_x.size(0))
+            lqz_x = torch.stack(
+                [qz_xs[m].log_prob(zss[cond_mod]).sum(-1) for m in qz_xs]
+            )
+            lqz_x = torch.logsumexp(lqz_x, dim=0) - np.log(lqz_x.size(0))
             lpx_z = 0
             for recon_mod in reconstructions[cond_mod]:
                 x_recon = reconstructions[cond_mod][recon_mod]
                 K, n_batch = x_recon.shape[0], x_recon.shape[1]
                 lpx_z += (
-                    self.recon_log_probs[recon_mod](
-                        x_recon, inputs.data[recon_mod]
-                    )
+                    self.recon_log_probs[recon_mod](x_recon, inputs.data[recon_mod])
                     .view(K, n_batch, -1)
                     .mul(self.rescale_factors[recon_mod])
                     .sum(-1)
                 )
-            lw = lpx_z + lpz - lqz_x # n_samples , n_batch
+            lw = lpx_z + lpz - lqz_x  # n_samples , n_batch
             lw_mod.append(lw)
-            
-        lw = torch.cat(lw_mod,dim=0)  # (n_modalities* K, n_batch)
-        lw = torch.logsumexp(lw,dim=0) - np.log(lw.size(0))
+
+        lw = torch.cat(lw_mod, dim=0)  # (n_modalities* K, n_batch)
+        lw = torch.logsumexp(lw, dim=0) - np.log(lw.size(0))
         return ModelOutput(loss=-lw.sum(), metrics=dict())
 
     def encode(
@@ -241,7 +245,7 @@ class MMVAE(BaseMultiVAE):
 
         Args :
             inputs : the data to compute the joint likelihood
-            
+
         """
 
         print(
@@ -279,7 +283,11 @@ class MMVAE(BaseMultiVAE):
                     ]  # (batch_size_K, nb_channels, w, h)
                     x_m = inputs.data[mod][i]  # (nb_channels, w, h)
 
-                    lpx_zs += self.recon_log_probs[mod](recon, x_m).reshape(recon.size(0),-1).sum(-1)
+                    lpx_zs += (
+                        self.recon_log_probs[mod](recon, x_m)
+                        .reshape(recon.size(0), -1)
+                        .sum(-1)
+                    )
 
                 # Compute ln(p(z))
                 prior = self.prior_dist(*self.pz_params)
@@ -300,31 +308,33 @@ class MMVAE(BaseMultiVAE):
 
             ll += torch.logsumexp(torch.Tensor(lnpxs), dim=0) - np.log(K)
 
-        return -ll 
-    
+        return -ll
+
     @torch.no_grad()
-    def compute_joint_nll_paper(self, inputs: MultimodalBaseDataset, K: int = 1000, batch_size_K: int = 10):
-        '''Computes the joint likelihood like in the original dataset, using all Mixture of experts
-        samples and modality rescaling.'''
-        
+    def compute_joint_nll_paper(
+        self, inputs: MultimodalBaseDataset, K: int = 1000, batch_size_K: int = 10
+    ):
+        """Computes the joint likelihood like in the original dataset, using all Mixture of experts
+        samples and modality rescaling."""
+
         self.eval()
-        
+
         lws = []
         nb_computed_samples = 0
         while nb_computed_samples < K:
-            n_samples = min(batch_size_K,K-nb_computed_samples)
+            n_samples = min(batch_size_K, K - nb_computed_samples)
             nb_computed_samples += n_samples
             # Compute a iwae likelihood estimate using n_samples
-            output = self.forward(inputs, compute_loss = False,K=n_samples, detailed_output=True)
-            lw = self.iwae(output.qz_xs,output.zss,output.recon,inputs).loss
-            lws.append(lw + np.log(n_samples*self.n_modalities))
+            output = self.forward(
+                inputs, compute_loss=False, K=n_samples, detailed_output=True
+            )
+            lw = self.iwae(output.qz_xs, output.zss, output.recon, inputs).loss
+            lws.append(lw + np.log(n_samples * self.n_modalities))
 
-        ll = torch.logsumexp(torch.stack(lws), dim=0) - np.log(nb_computed_samples*self.n_modalities) # n_batch
+        ll = torch.logsumexp(torch.stack(lws), dim=0) - np.log(
+            nb_computed_samples * self.n_modalities
+        )  # n_batch
         return -ll
-            
-                
-        
-    
 
     def generate_from_prior(self, n_samples):
         sample_shape = [n_samples] if n_samples > 1 else []

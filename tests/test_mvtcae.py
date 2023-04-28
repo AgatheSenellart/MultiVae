@@ -219,21 +219,18 @@ class TestTraining:
             training_config=training_config,
         )
 
-
         return trainer
-    
-    def new_trainer(self, model, training_config, dataset,checkpoint_dir):
+
+    def new_trainer(self, model, training_config, dataset, checkpoint_dir):
         trainer = BaseTrainer(
             model=model,
             train_dataset=dataset,
             eval_dataset=dataset,
             training_config=training_config,
-            checkpoint=checkpoint_dir
+            checkpoint=checkpoint_dir,
         )
 
-
         return trainer
-    
 
     def test_train_step(self, trainer):
         start_model_state_dict = deepcopy(trainer.model.state_dict())
@@ -298,10 +295,9 @@ class TestTraining:
 
         files_list = os.listdir(checkpoint_dir)
 
-        assert set(["model.pt", "optimizer.pt", "training_config.json",
-                    "info_checkpoint.json"]).issubset(
-            set(files_list)
-        )
+        assert set(
+            ["model.pt", "optimizer.pt", "training_config.json", "info_checkpoint.json"]
+        ).issubset(set(files_list))
 
         # check pickled custom architectures
         for archi in model.model_config.custom_architectures:
@@ -356,7 +352,9 @@ class TestTraining:
             ]
         )
 
-    def test_checkpoint_saving_during_training(self, model, trainer, training_config, dataset):
+    def test_checkpoint_saving_during_training(
+        self, model, trainer, training_config, dataset
+    ):
         #
         target_saving_epoch = training_config.steps_saving
 
@@ -373,16 +371,13 @@ class TestTraining:
         )
 
         # try resuming
-        new_trainer_ = self.new_trainer(model,training_config,dataset,checkpoint_dir)
-        
+        new_trainer_ = self.new_trainer(model, training_config, dataset, checkpoint_dir)
+
         assert new_trainer_.best_train_loss == trainer.best_train_loss
         assert new_trainer_.trained_epochs == target_saving_epoch
-        
+
         new_trainer_.train()
-        
-         
-        
-        
+
     def test_resume_from_checkpoint(self, model, trainer, training_config):
         #
         target_saving_epoch = training_config.steps_saving
@@ -425,7 +420,6 @@ class TestTraining:
                 for key in model.state_dict().keys()
             ]
         )
-
 
     def test_final_model_saving(self, model, trainer, training_config):
         dir_path = training_config.output_dir
@@ -472,8 +466,9 @@ class TestTraining:
         assert nll >= 0
         assert type(nll) == torch.Tensor
         assert nll.size() == torch.Size([])
-        
-        cnll = model.cond_nll_from_subset(dataset,['mod1', 'mod2'],['mod3'],K=10, batch_size_k=2)
+
+        cnll = model.cond_nll_from_subset(
+            dataset, ["mod1", "mod2"], ["mod3"], K=10, batch_size_k=2
+        )
         assert type(cnll) == dict
-        assert 'mod3' in cnll.keys()
-        
+        assert "mod3" in cnll.keys()

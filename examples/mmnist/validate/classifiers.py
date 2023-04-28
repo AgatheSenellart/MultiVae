@@ -42,7 +42,7 @@ def load_mmnist_classifiers(data_path="../../../data/clf", device="cuda"):
     for i in range(5):
         fp = data_path + "/pretrained_img_to_digit_clf_m" + str(i)
         model_clf = ClfImg()
-        model_clf.load_state_dict(torch.load(fp,map_location=device))
+        model_clf.load_state_dict(torch.load(fp, map_location=device))
         model_clf = model_clf.to(device)
         clfs["m%d" % i] = model_clf
     for m, clf in clfs.items():
