@@ -162,7 +162,8 @@ training_config = BaseTrainerConfig(
     num_epochs=500,
     start_keep_best_epoch=model_config.warmup,
     steps_predict=5,
-    learning_rate=1e-4,
+    learning_rate=1e-3,
+    seed=0
 )
 wandb_ = WandbCallback()
 wandb_.setup(training_config, model_config, project_name="reproduce_mvae_mnist")
@@ -179,4 +180,4 @@ trainer = BaseTrainer(
 
 trainer.train()
 
-trainer._best_model.push_to_hf_hub("asenella/reproduce_mvae_mnist")
+trainer._best_model.push_to_hf_hub(f"asenella/reproduce_mvae_mnist_seed_{training_config.seed}")
