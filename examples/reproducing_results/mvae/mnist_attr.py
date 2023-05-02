@@ -149,8 +149,8 @@ model = MVAE(model_config, encoders, decoders)
 ######################################################
 ### Dataset
 
-train_set = BinaryMnistLabels(data_path="../../../data", split="train", random_binarized=False)
-test_set = BinaryMnistLabels(data_path="../../../data", split="test", random_binarized=False)
+train_set = BinaryMnistLabels(data_path="../../../data", split="train", random_binarized=True)
+test_set = BinaryMnistLabels(data_path="../../../data", split="test", random_binarized=True)
 
 ##############################################################
 #### Training
@@ -162,7 +162,7 @@ training_config = BaseTrainerConfig(
     num_epochs=500,
     start_keep_best_epoch=model_config.warmup,
     steps_predict=5,
-    learning_rate=1e-3,
+    learning_rate=1e-4,
 )
 wandb_ = WandbCallback()
 wandb_.setup(training_config, model_config, project_name="reproduce_mvae_mnist")
