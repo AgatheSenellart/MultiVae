@@ -20,20 +20,20 @@ class Test_model:
     def dataset(self, request):
         # Create simple small dataset
         data = dict(
-            mod1=torch.Tensor([[1.0, 2.0], [4.0, 5.0]]),
-            mod2=torch.Tensor([[67.1, 2.3, 3.0], [1.3, 2.0, 3.0]]),
-            mod3=torch.Tensor([[37, 2, 4, 1], [8, 9, 7, 0]]),
-            mod4=torch.Tensor([[37, 2, 4, 1], [8, 9, 7, 0]]),
+            mod1=torch.randn((6,2)),
+            mod2=torch.randn((6,3)),
+            mod3=torch.randn((6,4)),
+            mod4=torch.randn((6,4)),
         )
         labels = np.array([0, 1, 0, 0])
         if request.param == "complete":
             dataset = MultimodalBaseDataset(data, labels)
         else:
             masks = dict(
-                mod1=torch.Tensor([True, False]),
-                mod2=torch.Tensor([True, True]),
-                mod3=torch.Tensor([True, True]),
-                mod4=torch.Tensor([True, True]),
+                mod1=torch.Tensor([True]*3 + [False]*3),
+                mod2=torch.Tensor([True]*6),
+                mod3=torch.Tensor([True]*6),
+                mod4=torch.Tensor([True]*6),
             )
             dataset = IncompleteDataset(data=data, masks=masks, labels=labels)
 
@@ -104,26 +104,34 @@ class Test_model:
         embeddings = model.encode(dataset[0], N=2).z
         assert embeddings.shape == (2, 1, 5)
         embeddings = model.encode(dataset, cond_mod=["mod2"]).z
-        assert embeddings.shape == (2, 5)
+        assert embeddings.shape == (len(dataset), 5)
         embeddings = model.encode(dataset, cond_mod="mod3", N=10).z
-        assert embeddings.shape == (10, 2, 5)
+        assert embeddings.shape == (10, len(dataset), 5)
         embeddings = model.encode(dataset, cond_mod=["mod2", "mod4"]).z
-        assert embeddings.shape == (2, 5)
+        assert embeddings.shape == (len(dataset), 5)
 
         Y = model.predict(dataset, cond_mod="mod2")
         assert isinstance(Y, ModelOutput)
-        assert Y.mod1.shape == (2, 2)
-        assert Y.mod2.shape == (2, 3)
+        assert Y.mod1.shape == (len(dataset), 2)
+        assert Y.mod2.shape == (len(dataset), 3)
 
         Y = model.predict(dataset, cond_mod="mod2", N=10)
         assert isinstance(Y, ModelOutput)
-        assert Y.mod1.shape == (10, 2, 2)
-        assert Y.mod2.shape == (10, 2, 3)
+        assert Y.mod1.shape == (10, len(dataset), 2)
+        assert Y.mod2.shape == (10, len(dataset), 3)
 
         Y = model.predict(dataset, cond_mod="mod2", N=10, flatten=True)
         assert isinstance(Y, ModelOutput)
-        assert Y.mod1.shape == (2 * 10, 2)
-        assert Y.mod2.shape == (2 * 10, 3)
+        assert Y.mod1.shape == (len(dataset) * 10, 2)
+        assert Y.mod2.shape == (len(dataset)* 10, 3)
+        
+        ### Check that the grad with regard to missing modalities is null
+        output = model(dataset[:3], epoch=2)
+        loss = output.loss
+        loss.backward()
+        for param in model.encoders['mod1'].parameters():
+            print(param.grad)
+            1/0
 
 
 @pytest.mark.slow
@@ -143,7 +151,7 @@ class TestTraining:
         else:
             masks = dict(
                 mod1=torch.Tensor([True, False]),
-                mod2=torch.Tensor([True, True]),
+                mod2=torch.Tensor([True, False]),
                 mod3=torch.Tensor([True, True]),
                 mod4=torch.Tensor([True, True]),
             )
