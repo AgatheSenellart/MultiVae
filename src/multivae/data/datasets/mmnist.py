@@ -10,10 +10,10 @@ from torch.utils.data import Dataset
 from torchvision import datasets, transforms
 from torchvision.utils import save_image
 
-from .base import MultimodalBaseDataset
+from .base import IncompleteDataset
 
 
-class MMNISTDataset(MultimodalBaseDataset):
+class MMNISTDataset(IncompleteDataset):
     """
     Multimodal MMNIST Dataset to load the Polymnist Dataset from
     'Generalized Multimodal Elbo' Sutter et al 2021.
@@ -27,12 +27,19 @@ class MMNISTDataset(MultimodalBaseDataset):
         target_transform=None,
         split="train",
         download=False,
+        missing_ratio = 0
     ):
         """
-        Args: unimodal_datapaths (list): list of paths to weakly-supervised unimodal datasets with samples that
+        Args: 
+            unimodal_datapaths (list): list of paths to weakly-supervised unimodal datasets with samples that
                 correspond by index. Therefore the numbers of samples of all datapaths should match.
             transform: tranforms on colored MNIST digits.
             target_transform: transforms on labels.
+            split (Literal['train', 'test']). Which part of the data to use.
+            download (bool). Autorization to download the data if it is missing at the specified location.
+            missing_ratio (float between 0 and 1) : To create an partially observed dataset, specify a missing ratio > 0 and <= 1. 
+                Default to 0  : No missing data. 
+            
 
         """
 
@@ -45,6 +52,7 @@ class MMNISTDataset(MultimodalBaseDataset):
         self.transform = transform
         self.target_transform = target_transform
         self.download = download
+        self.missing_ratio=missing_ratio
 
         self.__check_or_download_data__(data_path, unimodal_datapaths)
 
@@ -60,6 +68,12 @@ class MMNISTDataset(MultimodalBaseDataset):
 
         assert self.m0.shape[0] == self.labels.shape[0]
         self.num_files = self.labels.shape[0]
+        
+        if missing_ratio > 0 :
+            self.masks = {}
+            for i in range(5):
+                # randomly define the missing samples. 
+                self.masks[f'm{i}'] = torch.bernoulli(torch.ones((self.num_files,))*(1-missing_ratio)).bool()
 
     def __check_or_download_data__(self, data_path, unimodal_datapaths):
         # TODO : test this function
@@ -102,8 +116,20 @@ class MMNISTDataset(MultimodalBaseDataset):
             "m3": self.m3[index],
             "m4": self.m4[index],
         }
+        if self.missing_ratio == 0:
+            return DatasetOutput(data=images_dict, labels=self.labels[index])
+        else :
+            masks_dict = {k : self.masks[k][index] for k in self.masks}
+            return DatasetOutput(
+                data = images_dict,
+                labels = self.labels[index],
+                masks = masks_dict
+            )   
 
-        return DatasetOutput(data=images_dict, labels=self.labels[index])
-
+        
     def __len__(self):
         return self.num_files
+
+
+
+

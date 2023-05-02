@@ -10,12 +10,16 @@ from multivae.data.datasets.mmnist import MMNISTDataset
 
 
 class Test:
-    @pytest.fixture
-    def input_dataset_test(self, tmpdir):
+    @pytest.fixture(
+        params=[0.5,0]
+    )
+    def input_dataset_test(self, tmpdir, request):
         data_path = os.path.join(tmpdir, "data")
         split = "test"
+        missing_ratio = request.param
 
-        return dict(data_path=data_path, split=split)
+        return dict(data_path=data_path, split=split,
+                    missing_ratio=missing_ratio)
 
     def test_create_dataset(self, input_dataset_test):
         if not os.path.exists(input_dataset_test["data_path"]):
@@ -43,3 +47,9 @@ class Test:
 
             assert sample.data["m0"].size() == torch.Size([3, 28, 28])
             assert len(dataset) == 10000
+            
+            if input_dataset_test['missing_ratio'] >0:
+                assert hasattr(sample, 'masks')
+                assert not torch.all(sample.masks == 1)
+                assert not torch.all(sample.masks == 0)
+
