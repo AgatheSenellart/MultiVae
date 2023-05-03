@@ -1,4 +1,6 @@
+import argparse
 import os
+from multivae.metrics.fids.fids import FIDEvaluator
 
 import numpy as np
 import torch
@@ -9,6 +11,10 @@ from tqdm import tqdm
 from multivae.data.datasets.mmnist import MMNISTDataset
 from multivae.metrics import CoherenceEvaluator
 from multivae.models.auto_model import AutoConfig, AutoModel
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--seed', default=8)
+args = parser.parse_args()
 
 
 class Flatten(torch.nn.Module):
@@ -60,12 +66,13 @@ def load_mmnist_classifiers(data_path="../../../data/clf", device="cuda"):
 
 ##############################################################################
 
-test_set = MMNISTDataset(data_path="../../../data/MMNIST", split="test")
+test_set = MMNISTDataset(data_path="~/scratch/data/MMNIST", split="test")
 
-data_path = "dummy_output_dir/MVTCAE_training_2023-03-29_11-26-37/final_model"
 
 clfs = load_mmnist_classifiers()
 
-model = AutoModel.load_from_folder(data_path)
+model = AutoModel.load_from_hf_hub(f'asenella/reproducing_mvtcae_seed_{args.seed}', allow_pickle=True)
 
-coherences = CoherenceEvaluator(model, clfs, test_set, data_path).eval()
+# coherences = CoherenceEvaluator(model, clfs, test_set, data_path).eval()
+
+fids = FIDEvaluator(model,test_set).mvtcae_reproduce_fids(gen_mod='m0')

@@ -48,11 +48,11 @@ class LikelihoodsEvaluator(Evaluator):
                 data={m: batch["data"][m].to(self.device) for m in batch["data"]}
             )
             if self.unified or (not hasattr(self.model, "compute_joint_nll_paper")):
-                ll += self.model.compute_joint_nll(batch, self.K, self.batch_size_k)
+                ll += self.model.compute_joint_nll(batch, self.num_samples, self.batch_size_k)
             else:
                 self.logger.info("Using the paper version of the joint nll.")
                 ll += self.model.compute_joint_nll_paper(
-                    batch, self.K, self.batch_size_k
+                    batch, self.num_samples, self.batch_size_k
                 )
 
         joint_nll = ll / len(self.test_loader.dataset)
@@ -81,3 +81,30 @@ class LikelihoodsEvaluator(Evaluator):
 
     def cond_nll_from_subset(self, subset, pred_mods):
         pass
+
+    def reproduce_mopoe_graph(self):
+        """
+        Computes all the likelihoods from a subset of modalities.
+        """
+
+        modalities = list(self.model.encoders.keys())
+        liks = []
+        for n in range(1, self.model.n_modalities+1):
+            subsets_of_size_n = combinations(
+                modalities,
+                n,
+            )
+            liks.append([])
+            for s in subsets_of_size_n:
+                s = list(s)
+                mean_joint = self.joint_nll_from_subset(s)
+                liks[-1].append(mean_joint)
+        mean_liks = [np.mean(l) for l in liks]
+        std_liks = [np.std(l) for l in liks]
+
+        for i in range(len(mean_liks)):
+            self.logger.info(
+                f"Conditional accuracies for {i+1} modalities : {mean_liks[i]} +- {std_liks[i]}"
+            )
+
+        return mean_liks, std_liks

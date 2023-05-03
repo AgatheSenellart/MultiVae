@@ -124,7 +124,6 @@ class ImageDecoder(BaseDecoder):
             torch.nn.Linear(512, 512),
             torch.nn.ReLU(),
             torch.nn.Linear(512, 28 * 28),
-            torch.nn.Sigmoid(),
         )
 
     def forward(self, z):

@@ -66,15 +66,14 @@ def load_mmnist_classifiers(data_path="../../../data/clf", device="cuda"):
 
 test_set = MMNISTDataset(data_path="~/scratch/data/MMNIST", split="test")
 
-data_path = "dummy_output_dir/MoPoE_training_2023-03-30_12-08-11/final_model"
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 clfs = load_mmnist_classifiers(device=device)
 
 data_path = None
-model = AutoModel.load_from_hf_hub("asenella/reproducing_mopoe_2", allow_pickle=True)
+model = AutoModel.load_from_hf_hub("asenella/reproducing_mopoe_seed_1", allow_pickle=True)
 
-coherences = CoherenceEvaluator(model, clfs, test_set, data_path).eval()
+# coherences = CoherenceEvaluator(model, clfs, test_set, data_path).eval()
 
 nll_config = LikelihoodsEvaluatorConfig(K=15, batch_size_k=15)
 
