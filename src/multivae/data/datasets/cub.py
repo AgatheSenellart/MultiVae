@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Union
+from typing import Union, Tuple
 import logging
 import numpy as np
 
@@ -47,7 +47,7 @@ class CUB(MultimodalBaseDataset):
         split: str = "train",
         captions_per_image: int = 10,
         max_words_in_caption=18,
-        im_size: int = (64, 64),
+        im_size: Tuple[int] = (64, 64),
         img_transform=None,
         download=False,
         data_multiplication=5,
@@ -201,7 +201,7 @@ class CUB(MultimodalBaseDataset):
         if self.img_transform is not None:
             img = self.img_transform(img)
             
-        re_img = transforms.Resize(self.imsize)(img)        
+        re_img = transforms.Resize((64, 64))(img)
         ret = self.normalize(re_img)
 
         return ret
