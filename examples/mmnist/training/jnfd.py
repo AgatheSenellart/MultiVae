@@ -3,6 +3,18 @@ from config2 import *
 from multivae.models import JNFDcca, JNFDccaConfig
 from multivae.trainers import AddDccaTrainer, AddDccaTrainerConfig
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--seed', default=8)
+parser.add_argument('--missing_ratio', default=0)
+args = parser.parse_args()
+
+train_data = MMNISTDataset(data_path="~/scratch/data/MMNIST", split="train", missing_ratio=args.missing_ratio)
+test_data = MMNISTDataset(data_path="~/scratch/data/MMNIST", split="test")
+
+train_data, eval_data = random_split(
+    train_data, [0.9, 0.1], generator=torch.Generator().manual_seed(42)
+)
+
 model_config = JNFDccaConfig(
     **base_config,
     warmup=base_training_config["num_epochs"] // 2,
@@ -24,6 +36,9 @@ trainer_config = AddDccaTrainerConfig(
     learning_rate_dcca=1e-4,
     per_device_dcca_train_batch_size=500,
     per_device_dcca_eval_batch_size=500,
+    seed=args.seed,
+    output_dir= f'compare_on_mmnist/{config_name}/{model.model_name}/seed_{args.seed}/missing_ratio_{args.missing_ratio}/'
+
 )
 trainer_config.num_epochs += (
     model_config.nb_epochs_dcca
