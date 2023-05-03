@@ -38,6 +38,8 @@ setup(
         "typing_extensions",
         "dataclasses>=0.6",
         "torchvision",
+        "pandas",
+        "nltk"
     ],
     extras_require={':python_version == "3.7.*"': ["pickle5"]},
     python_requires=">=3.7",
