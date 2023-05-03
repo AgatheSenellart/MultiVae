@@ -222,7 +222,7 @@ from multivae.models import AutoModel
 
 model = trainer._best_model
 
-ll_config = LikelihoodsEvaluatorConfig(K=1000)
+ll_config = LikelihoodsEvaluatorConfig(K=1000, unified_implementation=False)
 
 ll_module = LikelihoodsEvaluator(model, test_set, eval_config=ll_config)
 

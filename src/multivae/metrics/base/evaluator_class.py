@@ -72,8 +72,7 @@ class Evaluator:
                     "You provided a wandb_path, but `wandb` package is not installed. Run `pip install wandb`"
                 )
             
-            self.wandb_run = wandb.init(entity=entity,project=project,
-                                run_id=run_id,resume="must")
+            self.wandb_run = wandb.init(entity=entity,project=project,id=run_id ,resume="must")
             return
         
         
