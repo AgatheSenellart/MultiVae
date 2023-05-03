@@ -9,9 +9,14 @@ from multivae.models.nn.default_architectures import (
 )
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 from multivae.trainers.base.callbacks import ProgressBarCallback, WandbCallback
+import argparse
 
 ######################################################
 ### Encoders & Decoders
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--seed', default=8)
+args = parser.parse_args()
 
 
 def labels_to_binary_tensors(labels):
@@ -199,7 +204,6 @@ callbacks = [wandb_, ProgressBarCallback()]
 trainer = BaseTrainer(
     model,
     train_set,
-    eval_dataset=test_set,
     training_config=training_config,
     callbacks=callbacks,
     checkpoint=None,
@@ -207,4 +211,20 @@ trainer = BaseTrainer(
 
 trainer.train()
 
-trainer._best_model.push_to_hf_hub("asenella/reproduce_jmvae")
+trainer._best_model.push_to_hf_hub(f"asenella/reproduce_jmvae_seed_{args.seed}")
+
+
+############################################################
+### Validating
+
+from multivae.data.datasets.mnist_labels import BinaryMnistLabels
+from multivae.metrics import LikelihoodsEvaluator, LikelihoodsEvaluatorConfig
+from multivae.models import AutoModel
+
+model = trainer._best_model
+
+ll_config = LikelihoodsEvaluatorConfig(K=1000)
+
+ll_module = LikelihoodsEvaluator(model, test_set, eval_config=ll_config)
+
+ll_module.eval()

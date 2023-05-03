@@ -82,7 +82,7 @@ class MMVAE(BaseMultiVAE):
         """
         mean = self.prior_mean
         if self.model_config.prior_and_posterior_dist == "laplace_with_softmax":
-            std = F.softmax(self.prior_log_var, dim=1) * self.prior_log_var.size(-1)
+            std = F.softmax(self.prior_log_var, dim=-1) * self.prior_log_var.size(-1)
         else:
             std = torch.exp(0.5 * self.prior_log_var)
         return mean, std

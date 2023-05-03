@@ -53,8 +53,6 @@ def load_mnist_svhn_classifiers(data_path, device='cuda'):
     return {'mnist' : c1.to(device).eval(),
             'svhn' : c2.to(device).eval()}
 
-if __name__ == '__main__':
-    
 
 
 if __name__ == "__main__":
