@@ -45,3 +45,5 @@ trainer = BaseTrainer(
 )
 trainer.train()
 trainer._best_model.push_to_hf_hub("asenella/mmnist_{}_{}_{}".format(model.model_name, config_name,args.seed))
+
+eval_model(model, trainer.training_dir,test_data,wandb_cb.run.path)

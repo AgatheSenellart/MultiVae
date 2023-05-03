@@ -3,8 +3,8 @@ from config2 import *
 from multivae.models import MVAE, MVAEConfig
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--seed', default=8)
-parser.add_argument('--missing_ratio', default=0)
+parser.add_argument('--seed',type=int, default=8)
+parser.add_argument('--missing_ratio', type=float, default=0)
 args = parser.parse_args()
 
 train_data = MMNISTDataset(data_path="~/scratch/data/MMNIST", split="train", missing_ratio=args.missing_ratio)
@@ -31,7 +31,8 @@ trainer_config = BaseTrainerConfig(
 # Set up callbacks
 wandb_cb = WandbCallback()
 wandb_cb.setup(trainer_config, model_config, project_name=wandb_project)
-wandb_cb._wandb.config.add(dict(missing_ratio=args.missing_ratio))
+wandb_cb._wandb.config.update(dict(missing_ratio=args.missing_ratio))
+
 
 callbacks = [TrainingCallback(), ProgressBarCallback(), wandb_cb]
 
@@ -54,3 +55,6 @@ coherences = CoherenceEvaluator(
 ).eval()
 
 trainer._best_model.push_to_hf_hub(f"asenella/mmnist_{model.model_name}{config_name}_seed_{args.seed}_ratio_{args.missing_ratio}")
+
+
+eval_model(model, trainer.training_dir,test_data,wandb_cb.run.path)

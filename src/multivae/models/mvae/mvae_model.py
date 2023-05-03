@@ -59,9 +59,7 @@ class MVAE(BaseMultiVAE):
 
         # Compute the joint posterior
         lnT = torch.stack([-l for l in log_vars])  # Compute the inverse of variances
-        print(lnT.shape)
         lnV = -torch.logsumexp(lnT, dim=0)  # variances of the product of expert
-        print(lnV.shape)
         mus = torch.stack(mus)
         joint_mu = (torch.exp(lnT) * mus).sum(dim=0) * torch.exp(lnV)
 
@@ -93,13 +91,10 @@ class MVAE(BaseMultiVAE):
         log_vars_sub = []
         for mod in self.encoders:
             if mod in subset:
-                print('input', inputs.data[mod])
                 output_mod = self.encoders[mod](inputs.data[mod])
                 mu_mod, log_var_mod = output_mod.embedding, output_mod.log_covariance
-                print(log_var_mod.shape)
                 if hasattr(inputs,'masks'):
                     log_var_mod[(1-inputs.masks[mod].int()).bool().flatten()] = torch.inf
-                print(log_var_mod.shape)
                 
                 mus_sub.append(mu_mod)
                 log_vars_sub.append(log_var_mod)
@@ -109,13 +104,11 @@ class MVAE(BaseMultiVAE):
     def _compute_elbo_subset(self, inputs: MultimodalBaseDataset, subset: list, beta: float):
         sub_mu, sub_logvar = self.compute_mu_log_var_subset(inputs, subset)
         sub_std = torch.exp(0.5 * sub_logvar)
-        print(sub_mu.shape)
         z = dist.Normal(sub_mu, sub_std).rsample()
         elbo_sub = 0
         for mod in self.decoders:
             if mod in subset:
                 recon = self.decoders[mod](z).reconstruction
-                print(recon.size())
                 recon_mod = -(
                     self.recon_log_probs[mod](recon, inputs.data[mod])
                     * self.rescale_factors[mod]
@@ -145,7 +138,6 @@ class MVAE(BaseMultiVAE):
         filtered_masks = {}
 
         for mod in subset:
-            print(filter, inputs.data[mod])
             filtered_inputs[mod] = inputs.data[mod][filter]
             filtered_masks[mod] = inputs.masks[mod][filter]
         
@@ -281,7 +273,6 @@ class MVAE(BaseMultiVAE):
 
             # And sample from the posterior
             z_joint = qz_xy.rsample([K]).squeeze()  # shape K x latent_dim
-            print(z_joint.shape)
 
             while start_idx < stop_idx:
                 latents = z_joint[start_idx:stop_idx]

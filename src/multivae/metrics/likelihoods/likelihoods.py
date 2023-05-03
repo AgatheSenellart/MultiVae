@@ -38,8 +38,9 @@ class LikelihoodsEvaluator(Evaluator):
         self.unified = eval_config.unified_implementation
 
     def eval(self):
-        joint = self.joint_nll()
-        return ModelOutput(joint_likelihood=joint)
+        self.joint_nll()
+        self.log_to_wandb()
+        return ModelOutput(**self.metrics)
 
     def joint_nll(self):
         ll = 0
@@ -57,8 +58,8 @@ class LikelihoodsEvaluator(Evaluator):
 
         joint_nll = ll / len(self.test_loader.dataset)
         self.logger.info(f"Joint likelihood : {str(joint_nll)}")
-
-        return joint_nll
+        self.metrics['Joint Likelihood'] = joint_nll
+        return 
 
     def joint_nll_from_subset(self, subset):
         if hasattr(self.model, "compute_joint_nll_from_subset_encoding"):
@@ -75,6 +76,7 @@ class LikelihoodsEvaluator(Evaluator):
             self.logger.info(
                 f"Joint likelihood from subset {subset} : {str(joint_nll)}"
             )
+            self.metrics[f"Joint likelihood from subset {subset}"] = joint_nll
             return joint_nll
         else:
             return None
@@ -106,5 +108,9 @@ class LikelihoodsEvaluator(Evaluator):
             self.logger.info(
                 f"Conditional accuracies for {i+1} modalities : {mean_liks[i]} +- {std_liks[i]}"
             )
+            self.metrics[f"Conditional accuracies for {i+1} modalities"] = mean_liks[i]
+            self.metrics[f"Conditional accuracies for {i+1} modalities (std)"] = std_liks[i]
+        
+        self.log_to_wandb()
 
         return mean_liks, std_liks

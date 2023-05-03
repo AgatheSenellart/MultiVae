@@ -38,7 +38,9 @@ class Evaluator:
         self.test_dataset = test_dataset
         self.test_loader = DataLoader(test_dataset, batch_size=eval_config.batch_size)
         self.set_logger(output)
-
+        self.set_wandb(eval_config.wandb_path)
+        self.metrics = {}
+        
     def set_logger(self, output):
         logger = logging.getLogger()
         logger.setLevel(logging.NOTSET)
@@ -55,3 +57,40 @@ class Evaluator:
             logger.addHandler(file_handler)
 
         self.logger = logger
+        
+    
+    def set_wandb(self,wandb_path):
+        if wandb_path is None:
+            self.wandb_run = None
+            return 
+        else :
+            entity, project, run_id = tuple(wandb_path.split('/'))
+            try :
+                import wandb
+            except :
+                raise ModuleNotFoundError(
+                    "You provided a wandb_path, but `wandb` package is not installed. Run `pip install wandb`"
+                )
+            
+            self.wandb_run = wandb.init(entity=entity,project=project,
+                                run_id=run_id,resume="must")
+            return
+        
+        
+    def log_to_wandb(self):
+        if self.wandb_run is not None:
+            self.wandb_run.log(self.metrics)
+
+    
+
+        
+        
+        
+        
+
+    
+
+        
+        
+        
+    

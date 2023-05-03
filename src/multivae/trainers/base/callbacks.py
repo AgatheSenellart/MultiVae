@@ -5,6 +5,7 @@ import importlib
 import json
 import logging
 import os
+from typing import Literal
 
 import numpy as np
 from tqdm.auto import tqdm
@@ -318,10 +319,10 @@ class WandbCallback(TrainingCallback):  # pragma: no cover
         self,
         training_config: BaseTrainerConfig,
         model_config: BaseMultiVAEConfig = None,
-        project_name: str = "pythae_experiment",
+        project_name: str = "multivae_experiment",
         entity_name: str = None,
         run_id: str = None,
-        resume: str = "allow",
+        resume: Literal['allow', 'must',] = "allow",
         **kwargs,
     ):
         """
@@ -337,6 +338,8 @@ class WandbCallback(TrainingCallback):  # pragma: no cover
             entity_name (str): The name of the wandb entity to use.
 
             run_id (str): If resume training, the id of the existing wandb_run
+            
+            resume (Literal) : wether to log on the provided run_id. Default to 'allow'. 
         """
 
         self.is_initialized = True
@@ -391,6 +394,18 @@ class WandbCallback(TrainingCallback):  # pragma: no cover
             info_dict = json.load(fp)
             info_dict["wandb_run"] = self._wandb.run.id
         with open(os.path.join(checkpoint_dir, "checkpoint_info.json"), "w") as fp:
+            json.dump(info_dict, fp)
+            
+    def on_save(self,training_config: BaseTrainerConfig, **kwargs):
+        final_dir = kwargs.pop("final_dir", training_config.training_dir)
+        info_dict = dict(
+            entity_name = self.run.entity,
+            project_name = self.run.project,
+            id = self.run.id,
+            path = self.run.path
+            
+        )
+        with open(os.path.join(final_dir, "wandb_info.json"), "w") as fp:
             json.dump(info_dict, fp)
 
     def on_train_end(self, training_config: BaseTrainerConfig, **kwargs):

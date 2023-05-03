@@ -2,6 +2,8 @@
 Store in this file all the shared variables for the benchmark on mmnist.
 """
 
+from multivae.metrics.fids.fids import FIDEvaluator
+from multivae.metrics.base import EvaluatorConfig
 import torch
 from pythae.models.base.base_config import BaseAEConfig
 from torch import nn
@@ -51,7 +53,7 @@ decoders = {
 base_training_config = dict(
     learning_rate=1e-3,
     per_device_train_batch_size=256,
-    num_epochs=800,
+    num_epochs=3,
     optimizer_cls="Adam",
     optimizer_params={},
     steps_predict=5,
@@ -112,3 +114,32 @@ def load_mmnist_classifiers(data_path="../../../data/clf", device="cuda"):
         if clf is None:
             raise ValueError("Classifier is 'None' for modality %s" % str(i))
     return clfs
+
+
+
+
+def eval_model(model,output_dir, test_data, wandb_path):
+    
+    """
+    In this function, define all the evaluation metrics
+    you want to use
+    """
+    config = EvaluatorConfig(
+        batch_size=512,
+        wandb_path=wandb_path
+    )
+    
+    CoherenceEvaluator(
+        model=model,
+        test_dataset=test_data,
+        classifiers=load_mmnist_classifiers(device=model.device),
+        output=output_dir,
+        eval_config=config
+    ).eval()
+
+    FIDEvaluator(
+        model,
+        test_data,
+        output=output_dir,
+        eval_config=config
+        ).mvtcae_reproduce_fids(gen_mod='m0')

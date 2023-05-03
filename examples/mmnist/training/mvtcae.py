@@ -49,15 +49,5 @@ model.push_to_hf_hub(f"asenella/mmnist_{model.model_name}{config_name}_seed_{arg
 # validate the model #############################################################################################################
 ##################################################################################################################################
 
-coherences = CoherenceEvaluator(
-    model=model,
-    test_dataset=test_data,
-    classifiers=load_mmnist_classifiers(device=model.device),
-    output=trainer.training_dir,
-).eval()
-
-fids = FIDEvaluator(model,
-                    test_data,
-                    output=trainer.training_dir,
-                    ).mvtcae_reproduce_fids(gen_mod='m0')
+eval_model(model, trainer.training_dir,test_data,wandb_cb.run.path)
 

@@ -54,3 +54,5 @@ coherences = CoherenceEvaluator(
 ).eval()
 
 trainer._best_model.push_to_hf_hub(f"asenella/mmnist_{model.model_name}{config_name}_seed_{args.seed}_ratio_{args.missing_ratio}")
+
+eval_model(model, trainer.training_dir,test_data,wandb_cb.run.path)

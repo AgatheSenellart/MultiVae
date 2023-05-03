@@ -151,7 +151,7 @@ class FIDEvaluator(Evaluator):
         return diff.dot(diff) + np.trace(sigma1) + np.trace(sigma2) - 2 * tr_covmean
 
     def eval(self):
-        output = ModelOutput()
+        output = dict()
 
         # Generate data from the prior and computes FID for each modality
         generate_function = self.model.generate_from_prior
@@ -160,10 +160,11 @@ class FIDEvaluator(Evaluator):
             fd = self.get_frechet_distance(mod, generate_function)
             output[f"fd_{mod}"] = fd
             self.logger.info(f"The FD for modality {mod} is {fd}")
-
-        # TODO : Comput Frechet distances for conditional generation
-
-        return output
+            
+        self.metrics.update(output)
+        self.log_to_wandb()
+        
+        return ModelOutput(**self.metrics)
 
     def compute_fid_from_conditional_generation(self, subset, gen_mod):
         """
@@ -178,6 +179,8 @@ class FIDEvaluator(Evaluator):
         self.logger.info(
             f"The FD for modality {gen_mod} computed from subset={subset} is {fd}"
         )
+        
+        self.metrics[f"Conditional FD from {subset} to {gen_mod}"] = fd
         return fd
 
     def compute_all_cond_fid_for_mod(self, gen_mod):
@@ -221,5 +224,7 @@ class FIDEvaluator(Evaluator):
             s = modalities[:n]
             fd = self.compute_fid_from_conditional_generation(s, gen_mod)
             fds.append(fd)
+            
+        self.log_to_wandb()
 
-        return ModelOutput(fids=np.array(fds))
+        return ModelOutput(**self.metrics)
