@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from typing import Union
+import logging
 import numpy as np
 
 import torch
@@ -17,6 +18,10 @@ import pandas as pd
 from PIL import Image
 from nltk.tokenize import RegexpTokenizer
 
+logger = logging.getLogger(__name__)
+console = logging.StreamHandler()
+logger.addHandler(console)
+logger.setLevel(logging.INFO)
 
 class CUB(MultimodalBaseDataset):
     """
@@ -66,7 +71,21 @@ class CUB(MultimodalBaseDataset):
         self.tokenizer = RegexpTokenizer(r'\w+')
 
         self.train_test_split = self._load_train_test_split()
-        train_filenames, test_filenames = self._load_filenames()
+        filenames = self._load_filenames()
+        labels = self._load_labels()
+
+        # get train_test_filenames
+        train_filenames = filenames[self.train_test_split.split==1]
+        test_filenames = filenames[self.train_test_split.split==0]
+        train_filenames.reset_index(drop=True, inplace=True)
+        test_filenames.reset_index(drop=True, inplace=True)
+
+        # get train_test_labels
+        train_labels = labels[self.train_test_split.split==1]
+        test_labels = labels[self.train_test_split.split==0]
+        train_labels.reset_index(drop=True, inplace=True)
+        test_labels.reset_index(drop=True, inplace=True)
+
         train_captions = self._load_captions(train_filenames.name)
         test_captions = self._load_captions(test_filenames.name)
         self.bbox = self._load_bbox() 
@@ -78,6 +97,8 @@ class CUB(MultimodalBaseDataset):
         
         self.train_filenames = train_filenames
         self.test_filenames = test_filenames
+        self.train_labels = train_labels
+        self.test_labels = test_labels
         self.train_captions = train_captions_new
         self.test_captions = test_captions_new
         self.idxtoword = idxtoword
@@ -103,14 +124,8 @@ class CUB(MultimodalBaseDataset):
             names=["id", "name"]
         )
         filenames["name"] = filenames["name"].str.replace('.jpg', '')
-        
-        train_filenames = filenames[self.train_test_split.split==1]
-        test_filenames = filenames[self.train_test_split.split==0]
-
-        train_filenames.reset_index(drop=True, inplace=True)
-        test_filenames.reset_index(drop=True, inplace=True)
     
-        return train_filenames, test_filenames
+        return filenames
 
 
     def _load_captions(self, filenames):
@@ -129,9 +144,7 @@ class CUB(MultimodalBaseDataset):
                     # and drops everything else
                     tokenizer = RegexpTokenizer(r'\w+')
                     tokens = tokenizer.tokenize(cap.lower())
-                    # print('tokens', tokens)
                     if len(tokens) == 0:
-                        print('cap', cap)
                         continue
 
                     tokens_new = []
@@ -144,7 +157,7 @@ class CUB(MultimodalBaseDataset):
                     if cnt == self.captions_per_img:
                         break
                 if cnt < self.captions_per_img:
-                    print('ERROR: the captions for %s less than %d'
+                    logger.error('ERROR: the captions for %s less than %d'
                           % (filename, cnt))
 
         return all_captions
@@ -155,22 +168,20 @@ class CUB(MultimodalBaseDataset):
         df_bounding_boxes = pd.read_csv(bbox_path,
                                         delim_whitespace=True,
                                         header=None).astype(int)
-        #
+
         filepath = os.path.join(data_dir, 'images.txt')
         df_filenames = \
             pd.read_csv(filepath, delim_whitespace=True, header=None)
         filenames = df_filenames[1].tolist()
-        print('Total filenames: ', len(filenames), filenames[0])
-        #
+
         filename_bbox = {img_file[:-4]: [] for img_file in filenames}
         numImgs = len(filenames)
         for i in range(0, numImgs):
-            # bbox = [x-left, y-top, width, height]
             bbox = df_bounding_boxes.iloc[i][1:].tolist()
 
             key = filenames[i][:-4]
             filename_bbox[key] = bbox
-        #
+
         return filename_bbox
 
 
@@ -195,6 +206,17 @@ class CUB(MultimodalBaseDataset):
 
         return ret
     
+    def _load_labels(self):
+        labels = pd.read_csv(
+            os.path.join(self.data_path, "image_class_labels.txt"),
+            delim_whitespace=True,
+            header=None,
+            names=["label"]
+        )
+
+        labels.reset_index(drop=True, inplace=True)
+
+        return labels
 
     def build_vocab(self, train_captions, test_captions):
         word_counts = defaultdict(float)
@@ -208,9 +230,11 @@ class CUB(MultimodalBaseDataset):
 
         ixtoword = {}
         ixtoword[0] = '<end>'
+        ixtoword[1] = '<pad>'
         wordtoix = {}
         wordtoix['<end>'] = 0
-        ix = 1
+        wordtoix['<pad>'] = 1
+        ix = 2
         for w in vocab:
             wordtoix[w] = ix
             ixtoword[ix] = w
@@ -243,13 +267,14 @@ class CUB(MultimodalBaseDataset):
         # a list of indices for a sentence
         sent_caption = np.asarray(captions[sent_ix]).astype('int64')
         if (sent_caption == 0).sum() > 0:
-            print('ERROR: do not need END (0) token', sent_caption)
+            logger.error('ERROR: do not need END (0) token', sent_caption)
         num_words = len(sent_caption)
-        # pad with 0s (i.e., '<end>')
-        x = np.zeros((self.max_words_in_captions, 1), dtype='int64')
+        # pad with 1s (i.e., '<pad>')
+        x = np.ones((self.max_words_in_captions, 1), dtype='int64')
         x_len = num_words
-        if num_words <= self.max_words_in_captions:
+        if num_words < self.max_words_in_captions:
             x[:num_words, 0] = sent_caption
+            x[num_words, 0] = 0
         else:
             ix = list(np.arange(num_words))  # 1, 2, 3,..., maxNum
             np.random.shuffle(ix)
@@ -257,16 +282,25 @@ class CUB(MultimodalBaseDataset):
             ix = np.sort(ix)
             x[:, 0] = sent_caption[ix]
             x_len = self.max_words_in_captions
-        return x, x_len
+        padding_mask = x == 1
+        return x, x_len, ~padding_mask
+    
+    def __len__(self):
+        if self.split == "train":
+            return len(self.train_filenames.name)
+        
+        return len(self.test_filenames.name)
 
     def __getitem__(self, index):
         if self.split == "train":
             names = self.train_filenames.name[index]
             captions = self.train_captions[names]
+            labels = self.train_labels.label[index]
 
         else:
             names = self.test_filenames.name[index]
             captions = self.test_captions[names]
+            labels = self.test_labels.label[index]
             
         
         bbox = self.bbox[names]
@@ -276,9 +310,13 @@ class CUB(MultimodalBaseDataset):
         sent_ix = np.random.randint(0, self.captions_per_img)
 
         #new_sent_ix = index * self.captions_per_img + sent_ix
-        caps, cap_len = self.get_caption(sent_ix, captions)
+        caps, cap_len, padding_mask = self.get_caption(sent_ix, captions)
 
-        X = dict(img=imgs, text=caps)
-        y = self.labels[index] if self.labels is not None else None
+        X = dict(img=imgs, text=dict(
+            tokens=torch.tensor(caps).squeeze(-1),
+            padding_mask=torch.FloatTensor(padding_mask).squeeze(-1)
+            )
+        )
+        
 
-        return DatasetOutput(data=X, labels=y)
+        return DatasetOutput(data=X, labels=labels)

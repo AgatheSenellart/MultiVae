@@ -17,7 +17,6 @@ class MMNISTDataset(MultimodalBaseDataset):
     """
     Multimodal MMNIST Dataset to load the Polymnist Dataset from 
     'Generalized Multimodal Elbo' Sutter et al 2021. 
-
     """
 
     def __init__(self, data_path, transform=None, target_transform=None, split="train", download=False):

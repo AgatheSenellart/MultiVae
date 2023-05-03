@@ -15,9 +15,9 @@ class PositionalEncoding(nn.Module):
 
         position = torch.arange(max_len).unsqueeze(1)
         div_term = torch.exp(torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model))
-        pe = torch.zeros(max_len, 1, d_model)
-        pe[:, 0, 0::2] = torch.sin(position * div_term)
-        pe[:, 0, 1::2] = torch.cos(position * div_term)
+        pe = torch.zeros(1, max_len, d_model)
+        pe[0, :, 0::2] = torch.sin(position * div_term)
+        pe[0, :, 1::2] = torch.cos(position * div_term)
         self.register_buffer('pe', pe)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -25,11 +25,11 @@ class PositionalEncoding(nn.Module):
         Arguments:
             x: Tensor, shape ``[seq_len, batch_size, embedding_dim]``
         """
-        x = x + self.pe[:x.size(0)]
+        x = x + self.pe[:, :x.size(1)]
         return self.dropout(x)
 
 class CubTextEncoder(BaseEncoder):
-    def __init__(self, args, ntokens: int, embed_size: int = 512, nhead: int = 8, ff_size: int = 1024, n_layers : int = 8, dropout: float = 0.5):
+    def __init__(self, args, max_sentence_length: int, ntokens: int, embed_size: int = 512, nhead: int = 4, ff_size: int = 1024, n_layers : int = 4, dropout: float = 0.5):
         """
         Parameters:
             ntokens (int): Vocabulary size.
@@ -41,7 +41,6 @@ class CubTextEncoder(BaseEncoder):
         """
         
         BaseEncoder.__init__(self)
-        self.input_dim = args.input_dim # input_dim = [max_sentence_length, vocab_size]
         self.latent_dim = args.latent_dim
 
         self.embed_size = embed_size
@@ -51,8 +50,8 @@ class CubTextEncoder(BaseEncoder):
         encoder_layer = nn.TransformerEncoderLayer(embed_size, nhead, ff_size, dropout, batch_first=True)
         self.transformer_encoder = nn.TransformerEncoder(encoder_layer, n_layers)
         
-        self.mu = nn.Linear(np.prod(self.input_dim), self.latent_dim)
-        self.log_covariance = nn.Linear(np.prod(self.input_dim), self.latent_dim)
+        self.mu = nn.Linear(embed_size * max_sentence_length, self.latent_dim)
+        self.log_covariance = nn.Linear(embed_size * max_sentence_length, self.latent_dim)
 
         self.init_weights()
 
@@ -60,12 +59,48 @@ class CubTextEncoder(BaseEncoder):
         initrange = 0.1
         nn.init.uniform_(self.token_embedding.weight, -initrange, initrange)
 
-    def forward(self, src, padding_mask):
+    def forward(self, inputs):
+
+        src = inputs['tokens']
+        padding_mask = inputs['padding_mask']
     
-        src = self.token_embedding(src) * math.sqrt(self.ninp)
+        src = self.token_embedding(src) * math.sqrt(self.embed_size)
         src = self.pos_encoder(src)
         transformer_output = self.transformer_encoder(src, src_key_padding_mask=padding_mask)
         output = ModelOutput(
             embedding=self.mu(transformer_output.reshape(src.shape[0], -1)),
-            log_covariance=self.log_covariance(transformer_output.reshape(src.shape[0], -1)))
+            log_covariance=self.log_covariance(transformer_output.reshape(src.shape[0], -1)),
+            transformer_output=transformer_output
+            )
+        return output
+    
+class CubTextDecoderMLP(BaseDecoder):
+    def __init__(self, args: dict):
+        BaseDecoder.__init__(self)
+
+        self.input_dim = args.input_dim
+
+        layers = nn.ModuleList()
+
+        layers.append(nn.Sequential(nn.Linear(args.latent_dim, 512), nn.ReLU()))
+
+        layers.append(
+            nn.Sequential(nn.Linear(512, int(np.prod(args.input_dim))))
+        )
+
+        self.layers = layers
+        self.depth = len(layers)
+
+    def forward(self, z: torch.Tensor):
+        output = ModelOutput()
+
+        max_depth = self.depth
+        out = z
+
+        for i in range(max_depth):
+            out = self.layers[i](out)
+            if i + 1 == self.depth:
+                output_shape = (*z.shape[:-1],) + self.input_dim
+                output["reconstruction"] = nn.functional.log_softmax(out.reshape(output_shape), dim=-1)
+
         return output
