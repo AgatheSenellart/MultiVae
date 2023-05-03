@@ -49,7 +49,7 @@ class MVAE(BaseMultiVAE):
         for i in range(2, self.n_modalities):
             self.subsets += combinations(list(self.encoders.keys()), r=i)
 
-    def poe_bis(self, mus_list, log_vars_list):
+    def poe(self, mus_list, log_vars_list):
         mus = mus_list.copy()
         log_vars = log_vars_list.copy()
 
@@ -59,14 +59,23 @@ class MVAE(BaseMultiVAE):
 
         # Compute the joint posterior
         lnT = torch.stack([-l for l in log_vars])  # Compute the inverse of variances
-
+        print(lnT.shape)
         lnV = -torch.logsumexp(lnT, dim=0)  # variances of the product of expert
+        print(lnV.shape)
         mus = torch.stack(mus)
         joint_mu = (torch.exp(lnT) * mus).sum(dim=0) * torch.exp(lnV)
 
         return joint_mu, lnV
     
-    def poe(self, mus_list, logvar_list, eps=1e-8):
+    def poe_bis(self, mus_list, logvar_list, eps=1e-8):
+        
+        mus = mus_list.copy()
+        log_vars = logvar_list.copy()
+
+        # Add the prior to the product of experts
+        mus.append(torch.zeros_like(mus[0]))
+        log_vars.append(torch.zeros_like(log_vars[0]))
+        
         mus = torch.stack(mus_list)
         logvars = torch.stack(logvar_list)
         var       = torch.exp(logvars) + eps
@@ -77,32 +86,45 @@ class MVAE(BaseMultiVAE):
         pd_logvar = torch.log(pd_var + eps)
         return pd_mu, pd_logvar
 
-    def compute_mu_log_var_subset(self, data: dict, subset: list):
+    def compute_mu_log_var_subset(self, inputs: MultimodalBaseDataset, subset: list):
         """Computes the parameters of the posterior when conditioning on
         the modalities contained in subset."""
         mus_sub = []
         log_vars_sub = []
         for mod in self.encoders:
             if mod in subset:
-                output_mod = self.encoders[mod](data[mod])
+                print('input', inputs.data[mod])
+                output_mod = self.encoders[mod](inputs.data[mod])
                 mu_mod, log_var_mod = output_mod.embedding, output_mod.log_covariance
+                print(log_var_mod.shape)
+                if hasattr(inputs,'masks'):
+                    log_var_mod[(1-inputs.masks[mod].int()).bool().flatten()] = torch.inf
+                print(log_var_mod.shape)
+                
                 mus_sub.append(mu_mod)
                 log_vars_sub.append(log_var_mod)
         sub_mu, sub_logvar = self.poe(mus_sub, log_vars_sub)
         return sub_mu, sub_logvar
 
-    def _compute_elbo_subset(self, data: dict, subset: list, beta: float):
-        sub_mu, sub_logvar = self.compute_mu_log_var_subset(data, subset)
+    def _compute_elbo_subset(self, inputs: MultimodalBaseDataset, subset: list, beta: float):
+        sub_mu, sub_logvar = self.compute_mu_log_var_subset(inputs, subset)
         sub_std = torch.exp(0.5 * sub_logvar)
+        print(sub_mu.shape)
         z = dist.Normal(sub_mu, sub_std).rsample()
         elbo_sub = 0
         for mod in self.decoders:
             if mod in subset:
                 recon = self.decoders[mod](z).reconstruction
-                elbo_sub += -(
-                    self.recon_log_probs[mod](recon, data[mod])
+                print(recon.size())
+                recon_mod = -(
+                    self.recon_log_probs[mod](recon, inputs.data[mod])
                     * self.rescale_factors[mod]
-                ).sum()
+                ).reshape(recon.size(0),-1).sum(-1)
+                
+                if hasattr(inputs,'masks'):
+                    recon_mod = inputs.masks[mod].float()*recon_mod
+                elbo_sub += recon_mod.sum()
+                
         KLD = -0.5 * torch.sum(1 + sub_logvar - sub_mu.pow(2) - sub_logvar.exp())
         elbo_sub += KLD * beta
         return elbo_sub / len(sub_mu)
@@ -111,19 +133,25 @@ class MVAE(BaseMultiVAE):
         self, inputs: IncompleteDataset, subset: Union[list, tuple]
     ):
         """Returns a filtered dataset containing only the samples that are available
-        in all the modalities contained in subset."""
+        in at least one of the modalities contained in subset."""
 
         filter = torch.tensor(
-            True,
+            False,
         ).to(inputs.masks[subset[0]].device)
         for mod in subset:
-            filter = torch.logical_and(filter, inputs.masks[mod])
+            filter = torch.logical_or(filter, inputs.masks[mod])
 
         filtered_inputs = {}
+        filtered_masks = {}
+
         for mod in subset:
             print(filter, inputs.data[mod])
             filtered_inputs[mod] = inputs.data[mod][filter]
-        return filtered_inputs, filter
+            filtered_masks[mod] = inputs.masks[mod][filter]
+        
+        filtered_dataset = IncompleteDataset(data=filtered_inputs,
+                                            masks=filtered_masks)
+        return filtered_dataset, filter
 
     def forward(
         self, inputs: Union[MultimodalBaseDataset, IncompleteDataset], **kwargs
@@ -164,9 +192,15 @@ class MVAE(BaseMultiVAE):
         for s in subsets:
             if hasattr(inputs, "masks"):
                 filtered_inputs, filter = self._filter_inputs_with_masks(inputs, s)
+                not_all_samples_missing = torch.any(filter)
             else:
-                filtered_inputs = inputs.data
-            subset_elbo = self._compute_elbo_subset(filtered_inputs, s, beta)
+                filtered_inputs = inputs
+                not_all_samples_missing = True
+            
+            if not_all_samples_missing:
+                subset_elbo = self._compute_elbo_subset(filtered_inputs, s, beta)
+            else :
+                subset_elbo = 0
             total_loss += subset_elbo
             metrics["_".join(sorted(s))] = subset_elbo
 
@@ -201,7 +235,7 @@ class MVAE(BaseMultiVAE):
                     " (according to the provided masks)"
                 )
 
-        sub_mu, sub_logvar = self.compute_mu_log_var_subset(inputs.data, cond_mod)
+        sub_mu, sub_logvar = self.compute_mu_log_var_subset(inputs, cond_mod)
         sub_std = torch.exp(0.5 * sub_logvar)
         sample_shape = [N] if N > 1 else []
         z = dist.Normal(sub_mu, sub_std).rsample(sample_shape)

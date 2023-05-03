@@ -74,7 +74,8 @@ class MMNISTDataset(IncompleteDataset):
             for i in range(5):
                 # randomly define the missing samples. 
                 self.masks[f'm{i}'] = torch.bernoulli(torch.ones((self.num_files,))*(1-missing_ratio)).bool()
-
+            self.masks['m0']=torch.ones((self.num_files,)) # ensure there is at least one modality available
+            
     def __check_or_download_data__(self, data_path, unimodal_datapaths):
         # TODO : test this function
         for i in range(5):

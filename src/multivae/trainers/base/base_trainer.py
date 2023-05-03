@@ -370,6 +370,8 @@ class BaseTrainer:
         self.trained_epochs = 0
         self.best_train_loss = torch.inf
         self.best_eval_loss = torch.inf
+        # set up the best_model
+        self._best_model = deepcopy(self.model)
 
     def resume_training(self, checkpoint):
         """Sets up the trainer for training"""

@@ -54,7 +54,7 @@ class MVTCAE(BaseMultiVAE):
         joint_kld = -0.5 * torch.sum(
             1 - joint_logvar.exp() - joint_mu.pow(2) + joint_logvar
         )
-
+        assert not torch.isnan(joint_kld)
         results["joint_divergence"] = joint_kld
 
         # Compute the reconstruction losses for each modality
@@ -74,6 +74,7 @@ class MVTCAE(BaseMultiVAE):
 
             results[m_key] = m_rec.sum()
             loss_rec += m_rec.sum()
+        assert not torch.isnan(loss_rec)
 
         latent_modalities = latents["modalities"]
         kld_losses = 0.0
@@ -92,10 +93,12 @@ class MVTCAE(BaseMultiVAE):
             
             # Keep only the available samples
             if hasattr(inputs,'masks'):
-                results["kld_" + m_key] = inputs.masks[m_key].float()*results["kld_" + m_key]
-
+                results["kld_" + m_key][(1-inputs.masks[m_key].int()).bool()] = 0
+            
+            results["kld_" + m_key]= results["kld_" + m_key].sum()
             
             kld_losses += results["kld_" + m_key].sum()
+        assert not torch.isnan(kld_losses)
 
         rec_weight = (self.n_modalities - self.alpha) / self.n_modalities
         cvib_weight = self.alpha / self.n_modalities  # 1/6
@@ -125,7 +128,7 @@ class MVTCAE(BaseMultiVAE):
             # For unavailable samples, set the log-variance to infty so that they don't contribute to the 
             # product of experts
             if hasattr(inputs, 'masks'):
-                output.log_covariance[(1-inputs.masks[m_key]).bool()] = torch.inf
+                output.log_covariance[(1-inputs.masks[m_key].int()).bool()] = torch.inf
             encoders_outputs[m_key] = output
             
         
