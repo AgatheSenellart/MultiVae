@@ -698,7 +698,7 @@ class BaseTrainer:
         # save training config
         self.training_config.save_json(dir_path, "training_config")
 
-        self.callback_handler.on_save(self.training_config)
+        self.callback_handler.on_save(self.training_config,dir_path=dir_path)
 
     def save_checkpoint(self, model: BaseMultiVAE, dir_path, epoch: int):
         """Saves a checkpoint alowing to restart training from here

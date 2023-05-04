@@ -6,6 +6,7 @@ import json
 import logging
 import os
 from typing import Literal
+import warnings
 
 import numpy as np
 from tqdm.auto import tqdm
@@ -389,7 +390,10 @@ class WandbCallback(TrainingCallback):  # pragma: no cover
             self._wandb.log({"recon_from_" + cond_mod: image})
 
     def on_save_checkpoint(self, training_config: BaseTrainerConfig, **kwargs):
-        checkpoint_dir = kwargs.pop("checkpoint_dir", training_config.training_dir)
+        checkpoint_dir = kwargs.pop("checkpoint_dir", None)
+        if checkpoint_dir is None:
+            raise AttributeError('wandb callback on_save_checkpoint is called without'
+                                 'a checkpoint directory information. Please provide checkpoint_dir=..')
         with open(os.path.join(checkpoint_dir, "checkpoint_info.json"), "r") as fp:
             info_dict = json.load(fp)
             info_dict["wandb_run"] = self._wandb.run.id
@@ -397,7 +401,11 @@ class WandbCallback(TrainingCallback):  # pragma: no cover
             json.dump(info_dict, fp)
             
     def on_save(self,training_config: BaseTrainerConfig, **kwargs):
-        final_dir = kwargs.pop("final_dir", training_config.training_dir)
+        dir_path = kwargs.pop("dir_path", None)
+        if dir_path is None:
+            warnings.warn('wandb callback on_save is called without'
+                    'a  directory information. Please provide dir_path=..')
+            return 
         info_dict = dict(
             entity_name = self.run.entity,
             project_name = self.run.project,
@@ -405,7 +413,7 @@ class WandbCallback(TrainingCallback):  # pragma: no cover
             path = self.run.path
             
         )
-        with open(os.path.join(final_dir, "wandb_info.json"), "w") as fp:
+        with open(os.path.join(dir_path, "wandb_info.json"), "w") as fp:
             json.dump(info_dict, fp)
 
     def on_train_end(self, training_config: BaseTrainerConfig, **kwargs):
