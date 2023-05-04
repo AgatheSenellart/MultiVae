@@ -264,7 +264,8 @@ class MVAE(BaseMultiVAE):
 
             # Compute the parameters of the joint posterior
             mu, log_var = self.compute_mu_log_var_subset(
-                {k: filtered_inputs[k][i].unsqueeze(0) for k in filtered_inputs},
+                MultimodalBaseDataset(
+                    data={k: filtered_inputs[k][i].unsqueeze(0) for k in filtered_inputs}),
                 all_modalities,
             )
             assert mu.shape == (1, self.latent_dim)
