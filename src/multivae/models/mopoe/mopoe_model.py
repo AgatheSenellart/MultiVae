@@ -532,6 +532,7 @@ class MoPoE(BaseMultiVAE):
 
         return -ll
 
+    @torch.no_grad()
     def compute_joint_nll_from_subset_encoding(
         self,
         subset,
@@ -566,6 +567,7 @@ class MoPoE(BaseMultiVAE):
         for i in range(n_data):
             start_idx = 0
             stop_idx = min(start_idx + batch_size_K, K)
+
             lnpxs = []
             while start_idx < stop_idx:
                 latents = z_joint[i][start_idx:stop_idx]

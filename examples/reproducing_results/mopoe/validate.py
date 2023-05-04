@@ -75,9 +75,12 @@ model = AutoModel.load_from_hf_hub("asenella/reproducing_mopoe_seed_1", allow_pi
 
 # coherences = CoherenceEvaluator(model, clfs, test_set, data_path).eval()
 
-nll_config = LikelihoodsEvaluatorConfig(K=15, batch_size_k=15)
+nll_config = LikelihoodsEvaluatorConfig(num_samples=12, 
+                                        batch_size_k=12,
+                                        unified_implementation=False,
+                                        wandb_path='multimodal_vaes/reproducing_mopoe/345cw5e3',
+                                        )
 
-# nlls = LikelihoodsEvaluator(model, test_set, data_path, nll_config).eval()
 nlls = LikelihoodsEvaluator(
     model, test_set, data_path, nll_config
-).reproduce_mopoe_graph()
+).eval()

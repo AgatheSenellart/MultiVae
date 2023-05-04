@@ -129,9 +129,10 @@ class DecoderConvMMNIST(BaseDecoder):
         )
 
     def forward(self, z):
-        x_hat = self.decoder(z)
+        
+        x_hat = self.decoder(z.view(-1,z.size(-1)))
         # x_hat = torch.sigmoid(x_hat)
-
+        x_hat = x_hat.view(*z.size()[:-1],*x_hat.size()[1:])
         return ModelOutput(
             reconstruction=x_hat
         )  # NOTE: consider learning scale param, too

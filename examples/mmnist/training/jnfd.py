@@ -5,7 +5,7 @@ from multivae.trainers import AddDccaTrainer, AddDccaTrainerConfig
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--seed', default=8)
-parser.add_argument('--missing_ratio', default=0)
+parser.add_argument('--missing_ratio',type=float, default=0)
 args = parser.parse_args()
 
 train_data = MMNISTDataset(data_path="~/scratch/data/MMNIST", split="train", missing_ratio=args.missing_ratio)
@@ -47,6 +47,7 @@ trainer_config.num_epochs += (
 # Set up callbacks
 wandb_cb = WandbCallback()
 wandb_cb.setup(trainer_config, model_config, project_name=wandb_project)
+wandb_cb.run.config.update(dict(missing_ratio=args.missing_ratio))
 
 callbacks = [TrainingCallback(), ProgressBarCallback(), wandb_cb]
 

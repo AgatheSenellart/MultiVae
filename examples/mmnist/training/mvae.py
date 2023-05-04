@@ -31,7 +31,7 @@ trainer_config = BaseTrainerConfig(
 # Set up callbacks
 wandb_cb = WandbCallback()
 wandb_cb.setup(trainer_config, model_config, project_name=wandb_project)
-wandb_cb._wandb.config.update(dict(missing_ratio=args.missing_ratio))
+wandb_cb.run.config.update(dict(missing_ratio=args.missing_ratio))
 
 
 callbacks = [TrainingCallback(), ProgressBarCallback(), wandb_cb]

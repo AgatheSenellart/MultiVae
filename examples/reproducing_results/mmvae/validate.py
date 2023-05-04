@@ -24,6 +24,6 @@ test_set = MnistSvhn(split="test", data_multiplication=30)
 print(len(test_set))
 # output = CoherenceEvaluator(model, clfs, test_set, data_path).joint_coherence()
 
-lik_config = LikelihoodsEvaluatorConfig(batch_size=128, batch_size_k=50,K=1000,unified_implementation=False)
+lik_config = LikelihoodsEvaluatorConfig(batch_size=128, batch_size_k=50,unified_implementation=False,num_samples=1000)
 output = LikelihoodsEvaluator(model,test_set,data_path,eval_config=lik_config ).joint_nll()
 # output = CoherenceEvaluator(model,clfs,test_set,data_path).eval()
