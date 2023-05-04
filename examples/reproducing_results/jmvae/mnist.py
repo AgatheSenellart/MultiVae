@@ -195,6 +195,8 @@ training_config = BaseTrainerConfig(
     num_epochs=500,
     start_keep_best_epoch=model_config.warmup,
     steps_predict=5,
+    seed=args.seed,
+    learning_rate=1e-3
 )
 wandb_ = WandbCallback()
 wandb_.setup(training_config, model_config, project_name="reproduce_jmvae")
@@ -222,7 +224,8 @@ from multivae.models import AutoModel
 
 model = trainer._best_model
 
-ll_config = LikelihoodsEvaluatorConfig(K=1000, unified_implementation=False)
+ll_config = LikelihoodsEvaluatorConfig(K=1000, unified_implementation=False,
+                                       wandb_path = wandb_.run.path)
 
 ll_module = LikelihoodsEvaluator(model, test_set, eval_config=ll_config)
 
