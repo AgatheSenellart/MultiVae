@@ -37,6 +37,7 @@ class MVAE(BaseMultiVAE):
     ):
         super().__init__(model_config, encoders, decoders)
 
+        self.subsampling = model_config.use_subsampling
         self.k = model_config.k
         if self.n_modalities <= 2:
             self.k = 0
@@ -158,7 +159,7 @@ class MVAE(BaseMultiVAE):
                 For each modality, a boolean tensor indicates which samples are available. (The non
                 available samples are assumed to be replaced with zero values in the multimodal dataset entry.)
         """
-
+        
         epoch = kwargs.pop("epoch", 1)
         batch_ratio = kwargs.pop("batch_ratio", 0)
         if epoch >= self.warmup:
@@ -169,17 +170,19 @@ class MVAE(BaseMultiVAE):
         total_loss = 0
         metrics = {}
         # Collect all the subsets
-        # Add the unimodal subset
-        subsets = [[m] for m in self.encoders]
+        subsets = []
         # Add the joint subset
         subsets.append([m for m in self.encoders])
-        # Add random subsets
-        if self.k > 0:
-            random_idx = choice(
-                np.arange(len(self.subsets)), size=self.k, replace=False
-            )
-            for id in random_idx:
-                subsets.append(self.subsets[id])
+        if self.subsampling : 
+            # Add the unimodal subsets
+            subsets.extend([[m] for m in self.encoders])
+            # Add random subsets
+            if self.k > 0:
+                random_idx = choice(
+                    np.arange(len(self.subsets)), size=self.k, replace=False
+                )
+                for id in random_idx:
+                    subsets.append(self.subsets[id])
 
         for s in subsets:
             if hasattr(inputs, "masks"):

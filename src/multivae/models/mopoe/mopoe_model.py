@@ -107,52 +107,39 @@ class MoPoE(BaseMultiVAE):
         self,
         mus: torch.Tensor,
         logvars: torch.Tensor,
-        weights: torch.Tensor,
-        normalization: int = None,
-    ):
+        weights: torch.Tensor):
         """Computes the KL divergence between the mixture of experts and the prior, by
         developping into the sum of the tractable KLs divergences of each expert.
 
         Args:
-            mus (Tensor): The means of the experts.
-            logvars (Tensor): The logvars of the experts.
-            weights (Tensor): The weights of the experts.
-            normalization (int, optional): If an int is provided, the kld is summed over sampled and normalized by
-                the value of normalization. Defaults to None.
+            mus (Tensor): The means of the experts. (n_subset,n_samples, latent_dim)
+            logvars (Tensor): The logvars of the experts.(n_subset,n_samples, latent_dim)
+            weights (Tensor): The weights of the experts.(n_subset,n_samples)
+
 
         Returns:
             Tensor, Tensor: The group divergence summed over modalities, A tensor containing the KL terms for each experts.
         """
         weights = weights.clone()
-        weights = weights / weights.sum()
 
         num_mods = mus.shape[0]
         num_samples = mus.shape[1]
-        if normalization is not None:
-            klds = torch.zeros(num_mods)
-        else:
-            klds = torch.zeros(num_mods, num_samples)
+        klds = torch.zeros(num_mods,num_samples)
+
         device = mus.device
         klds = klds.to(device)
         weights = weights.to(device)
         for k in range(0, num_mods):
-            kld_ind = -0.5 * torch.sum(
+            kld_ind = -0.5 * (
                 1 - logvars[k, :, :].exp() - mus[k, :, :].pow(2) + logvars[k, :, :]
-            )
-            if normalization is not None:
-                kld_ind /= normalization
+            ).sum(-1)
+            
+            klds[k, :] = kld_ind
 
-            if normalization is not None:
-                klds[k] = kld_ind
-            else:
-                klds[k, :] = kld_ind
-        if normalization is None:
-            weights = weights.unsqueeze(1).repeat(1, num_samples)
-        group_div = (weights * klds).sum(dim=0)
+        group_div = (weights * klds).sum(dim=0).mean() # sum over experts, mean over samples
 
         divs = dict()
         divs["joint_divergence"] = group_div
-        divs["individual_divs"] = klds
         return divs
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
@@ -166,10 +153,9 @@ class MoPoE(BaseMultiVAE):
         shared_embeddings = self.reparameterize(
             latents["joint"][0], latents["joint"][1]
         )
-        ndata = len(shared_embeddings)
+        
         div = self.calc_joint_divergence(
-            latents["mus"], latents["logvars"], latents["weights"], normalization=ndata
-        )
+            latents["mus"], latents["logvars"], latents["weights"])
         for k, key in enumerate(div.keys()):
             results[key] = div[key]
 
@@ -201,20 +187,28 @@ class MoPoE(BaseMultiVAE):
             m_rec = (
                 -self.recon_log_probs[m_key](recon, inputs.data[m_key])
                 * self.rescale_factors[m_key]
-            )
+            ).view(recon.size(0),-1).sum(-1)
 
             # reconstruction loss
-            results["recon_" + m_key] = m_rec.sum() / ndata
-            loss += m_rec.sum() / ndata
+            if hasattr(inputs,'masks'):
+                results["recon_" + m_key] = (m_rec * inputs.masks[m_key].float()).mean()
+            else :
+                results["recon_" + m_key] = m_rec.mean()
+
+            loss += results["recon_" + m_key]
 
             # If using modality specific latent spaces, add modality specific klds
             if self.use_modality_specific_spaces:
                 style_mu = latents["modalities"][m_key].style_embedding
                 style_log_var = latents["modalities"][m_key].style_log_covariance
-                style_kld = -0.5 * torch.sum(
+                style_kld = -0.5 * (
                     1 - style_log_var.exp() - style_mu.pow(2) + style_log_var
-                )
-                kld += style_kld * self.model_config.beta_style
+                ).view(style_mu.size(0),-1).sum(-1)
+                
+                if hasattr(inputs, 'masks'):
+                    style_kld *= inputs.masks[m_key].float()
+                
+                kld += style_kld.mean() * self.model_config.beta_style
 
         loss = loss + self.beta * kld
 
@@ -239,6 +233,9 @@ class MoPoE(BaseMultiVAE):
             input_modality = inputs.data[m_key]
             output = self.encoders[m_key](input_modality)
             encoders_outputs[m_key] = output
+            if hasattr(inputs, 'masks'):
+                    output.log_covariance[(1-inputs.masks[m_key].int()).bool()] = torch.inf
+            
 
         return encoders_outputs
 
@@ -272,8 +269,9 @@ class MoPoE(BaseMultiVAE):
     def _filter_inputs_with_masks(
         self, inputs: IncompleteDataset, subset: Union[list, tuple]
     ):
-        """Returns a filtered dataset containing only the samples that are available
-        in all the modalities contained in subset."""
+        """
+        Returns a filter of the samples available in all the modalities contained in subset.
+        """
 
         filter = torch.tensor(
             True,
@@ -281,10 +279,7 @@ class MoPoE(BaseMultiVAE):
         for mod in subset:
             filter = torch.logical_and(filter, inputs.masks[mod])
 
-        filtered_inputs = MultimodalBaseDataset(
-            data={k: inputs.data[k][filter] for k in inputs.data},
-        )
-        return filtered_inputs, filter
+        return filter
 
     def inference(self, inputs: MultimodalBaseDataset, **kwargs):
         """
@@ -293,7 +288,7 @@ class MoPoE(BaseMultiVAE):
             inputs (MultimodalBaseDataset): The data.
 
         Returns:
-            _type_: _description_
+            dict: all the subset and joint posteriors parameters.
         """
 
         latents = dict()
@@ -304,48 +299,61 @@ class MoPoE(BaseMultiVAE):
         mus = torch.Tensor().to(device)
         logvars = torch.Tensor().to(device)
         distr_subsets = dict()
+        availabilities = []
+        
         for k, s_key in enumerate(self.subsets.keys()):
             if s_key != "":
                 mods = self.subsets[s_key]
                 mus_subset = torch.Tensor().to(device)
                 logvars_subset = torch.Tensor().to(device)
 
-                mods_avail = True
-
                 if hasattr(inputs, "masks"):
-                    filtered_inputs, filter = self._filter_inputs_with_masks(
+                    filter = self._filter_inputs_with_masks(
                         inputs, mods
                     )
-                    mods_avail = torch.all(filter)
-                if mods_avail:
-                    for m, mod in enumerate(mods):
-                        mus_mod = enc_mods[mod].embedding
-                        log_vars_mod = enc_mods[mod].log_covariance
+                    availabilities.append(filter)
 
-                        mus_subset = torch.cat(
-                            (mus_subset, mus_mod.unsqueeze(0)), dim=0
-                        )
+                for m, mod in enumerate(mods):
+                    mus_mod = enc_mods[mod].embedding
+                    log_vars_mod = enc_mods[mod].log_covariance
 
-                        logvars_subset = torch.cat(
-                            (logvars_subset, log_vars_mod.unsqueeze(0)), dim=0
-                        )
-                    # Case with only one sample : adapt the shape
-                    if len(mus_subset.shape) == 2:
-                        mus_subset = mus_subset.unsqueeze(1)
-                        logvars_subset = logvars_subset.unsqueeze(1)
+                    mus_subset = torch.cat(
+                        (mus_subset, mus_mod.unsqueeze(0)), dim=0
+                    )
 
-                    s_mu, s_logvar = self.poe_fusion(mus_subset, logvars_subset)
+                    logvars_subset = torch.cat(
+                        (logvars_subset, log_vars_mod.unsqueeze(0)), dim=0
+                    )
+                # Case with only one sample : adapt the shape
+                if len(mus_subset.shape) == 2:
+                    mus_subset = mus_subset.unsqueeze(1)
+                    logvars_subset = logvars_subset.unsqueeze(1)
+                    
 
-                    distr_subsets[s_key] = [s_mu, s_logvar]
+                s_mu, s_logvar = self.poe_fusion(mus_subset, logvars_subset)
 
-                    # Add the subset posterior to be part of the mixture of experts
-                    mus = torch.cat((mus, s_mu.unsqueeze(0)), dim=0)
-                    logvars = torch.cat((logvars, s_logvar.unsqueeze(0)), dim=0)
+                distr_subsets[s_key] = [s_mu, s_logvar]
 
-        weights = (1 / float(mus.shape[0])) * torch.ones(mus.shape[0]).to(device)
-        joint_mu, joint_logvar = self.moe_fusion(mus, logvars, weights)
-        # mus = torch.cat(mus, dim=0);
-        # logvars = torch.cat(logvars, dim=0);
+                # Add the subset posterior to be part of the mixture of experts
+                mus = torch.cat((mus, s_mu.unsqueeze(0)), dim=0)
+                logvars = torch.cat((logvars, s_logvar.unsqueeze(0)), dim=0)
+
+        
+        if hasattr(inputs,'masks'):
+            # if we have an incomplete dataset, we need to randomly choose
+            # from the mixture of available experts
+            availabilities = torch.stack(availabilities,dim=0).float()
+            availabilities -= torch.sum(availabilities,dim=0)
+            print('avail',availabilities.shape)
+
+            joint_mu,joint_logvar = self.random_mixture_component_selection(mus,logvars,availabilities)
+            weights = availabilities
+        else :
+            weights = (1 / float(mus.shape[0])) * torch.ones(mus.shape[0]).to(device)
+            joint_mu, joint_logvar = self.deterministic_mixture_component_selection(mus, logvars,weights)
+            weights = (1 / float(mus.shape[0])) * torch.ones(mus.shape[0], mus.shape[1]).to(device)
+            
+
         latents["mus"] = mus
         latents["logvars"] = logvars
         latents["weights"] = weights
@@ -415,20 +423,36 @@ class MoPoE(BaseMultiVAE):
         else:
             return ModelOutput(z=z, one_latent_space=True)
 
-    def moe_fusion(self, mus, logvars, weights=None):
-        if weights is None:
-            weights = torch.ones((mus.shape[0],)).to(mus.device)
-        weights = weights / weights.sum()
-        # mus = torch.cat(mus, dim=0);
-        # logvars = torch.cat(logvars, dim=0);
-        mu_moe, logvar_moe = self.mixture_component_selection(mus, logvars, weights)
-        return [mu_moe, logvar_moe]
+    def random_mixture_component_selection(self, mus, logvars,availabilities):
+        """
+        Randomly select a subset for each sample among the available subsets.
 
-    def mixture_component_selection(self, mus, logvars, w_modalities):
-        # if not defined, take pre-defined weights
-        num_components = mus.shape[0]
+        Args:
+            mus (tensor): (n_subset,n_samples,latent_dim) the means of subset posterior.
+            logvars (tensor): (n_subset,n_samples,latent_dim) the log covariance of subset posterior.
+            availabilities (tensor): (n_subset,n_samples) boolean tensor.
+        """
+        print(availabilities.shape)
+        probs = availabilities.permute(1,0) #n_samples,n_subset
+        choice = dist.OneHotCategorical(probs=probs).sample()
+        
+        mus_ = mus.permute(1,0,2) # n_samples, n_subset,latent_dim
+        logvars_ = logvars.permute(1,0,2)
+        
+        mus_ = mus_[choice.bool()]
+        logvars_ =logvars_[choice.bool()]
+        return mus_, logvars_
+        
+        
+    def deterministic_mixture_component_selection(self, mus, logvars, w_modalities):
+        """ 
+        Associate a subset mu and log_covariance per sample in a balanced way, so that the proportion 
+        of samples per subset correspond to w_modalities. 
+        """
+        
+        num_components = mus.shape[0] # number of components
         num_samples = mus.shape[1]
-
+        
         idx_start = []
         idx_end = []
         for k in range(0, num_components):
