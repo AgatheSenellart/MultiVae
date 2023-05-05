@@ -48,7 +48,7 @@ class MultimodalBaseDataset(Dataset):
         return DatasetOutput(data=X, labels=y)
 
 
-class IncompleteDataset(Dataset):
+class IncompleteDataset(MultimodalBaseDataset):
     """This class is the Base class for datasets with incomplete data.
     We add a field masks to indicate which data samples are available.
     This is used with models compatible with weakly supervised learning such as

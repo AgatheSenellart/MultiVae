@@ -61,6 +61,14 @@ class MMNISTDataset(IncompleteDataset):
         self.m2 = torch.load(unimodal_datapaths[2])
         self.m3 = torch.load(unimodal_datapaths[3])
         self.m4 = torch.load(unimodal_datapaths[4])
+        
+        self.images_dict = {
+            "m0": self.m0,
+            "m1": self.m1,
+            "m2": self.m2,
+            "m3": self.m3,
+            "m4": self.m4,
+        }
 
         label_datapaths = data_path + "/" + split + "/" + "labels.pt"
 
@@ -74,7 +82,20 @@ class MMNISTDataset(IncompleteDataset):
             for i in range(5):
                 # randomly define the missing samples. 
                 self.masks[f'm{i}'] = torch.bernoulli(torch.ones((self.num_files,))*(1-missing_ratio)).bool()
-            self.masks['m0']=torch.ones((self.num_files,)) # ensure there is at least one modality available
+                print(self.masks[f'm{i}'])
+            self.masks['m0']=torch.ones((self.num_files,)) # ensure there is at least one modality
+                                                           # available for all samples
+            
+            # To be sure, also erase the content of the masked samples
+            for k in self.masks:
+                reverse_dim_order = tuple(np.arange(len(self.images_dict[k].shape))[::-1])
+                self.images_dict[k] = self.images_dict[k].permute(*reverse_dim_order)
+                # now the batch dimension is last
+                self.images_dict[k] *= self.masks[k].float() # erase missing samples
+                # put dimensions back in order
+                self.images_dict[k] = self.images_dict[k].permute(*reverse_dim_order)
+                
+            
             
     def __check_or_download_data__(self, data_path, unimodal_datapaths):
         # TODO : test this function
@@ -110,17 +131,15 @@ class MMNISTDataset(IncompleteDataset):
         Returns a tuple (images, labels) where each element is a list of
         length `self.num_modalities`.
         """
-        images_dict = {
-            "m0": self.m0[index],
-            "m1": self.m1[index],
-            "m2": self.m2[index],
-            "m3": self.m3[index],
-            "m4": self.m4[index],
+        images_dict = { k: self.images_dict[k][index] for k in self.images_dict
         }
         if self.missing_ratio == 0:
             return DatasetOutput(data=images_dict, labels=self.labels[index])
         else :
             masks_dict = {k : self.masks[k][index] for k in self.masks}
+            
+            # To be completely sure : replace masked samples with zero values
+            
             return DatasetOutput(
                 data = images_dict,
                 labels = self.labels[index],
