@@ -17,7 +17,7 @@ class CoherenceEvaluator(Evaluator):
     Class for computing coherences metrics.
 
     Args:
-    
+
         model (BaseMultiVAE) : The model to evaluate.
         classifiers (dict) : A dictionary containing the pretrained classifiers to use for the coherence evaluation.
         test_dataset (MultimodalBaseDataset) : The dataset to use for computing the metrics.
@@ -124,7 +124,7 @@ class CoherenceEvaluator(Evaluator):
             all_same_labels = torch.all(
                 torch.stack([l == labels[0] for l in labels]), dim=0
             )
-            print(all_same_labels)
+
             all_labels = torch.cat((all_labels, all_same_labels), dim=0)
             samples_to_generate -= batch_samples
         joint_coherence = all_labels.mean()

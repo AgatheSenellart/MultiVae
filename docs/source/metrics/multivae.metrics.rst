@@ -15,7 +15,7 @@ Metrics
     fids
     likelihoods
     
-Available Datasets
+Available Metrics
 -------------------------------------------
 
 .. autosummary::

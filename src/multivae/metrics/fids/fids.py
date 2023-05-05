@@ -110,7 +110,6 @@ class FIDEvaluator(Evaluator):
         activations = [[], []]
 
         for batch in self.test_loader:
-            print(batch)
             batch.data = {m: batch.data[m].to(self.device) for m in batch.data}
             # Compute activations for true data
             data = self.inception_transform(batch.data[mod]).to(self.device)

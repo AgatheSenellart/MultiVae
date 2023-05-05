@@ -30,7 +30,7 @@ class MnistSvhn(MultimodalBaseDataset):
 
     def __init__(
         self,
-        data_path: Union[str, Path] = "../../../data",
+        data_path: Union[str, Path] = "../data",
         split: str = "train",
         download=False,
         data_multiplication=5,
