@@ -65,6 +65,7 @@ class FIDEvaluator(Evaluator):
     Class for computing likelihood metrics.
 
     Args:
+
         model (BaseMultiVAE) : The model to evaluate.
         classifiers (dict) : A dictionary containing the pretrained classifiers to use for the coherence evaluation.
         test_dataset (MultimodalBaseDataset) : The dataset to use for computing the metrics.
@@ -137,22 +138,24 @@ class FIDEvaluator(Evaluator):
         return fd
 
     def calculate_frechet_distance(self, mu1, sigma1, mu2, sigma2, eps=1e-6):
-        """Numpy implementation of the Frechet Distance.
-        The Frechet distance between two multivariate Gaussians X_1 ~ N(mu_1, C_1)
-        and X_2 ~ N(mu_2, C_2) is
-                d^2 = ||mu_1 - mu_2||^2 + Tr(C_1 + C_2 - 2*sqrt(C_1*C_2)).
+        r"""Numpy implementation of the Frechet Distance.
+        The Frechet distance between two multivariate Gaussians :math:`X_1 \sim \mathcal{N}(\mu_1, C_1)`
+        and :math:`X_2 \sim \mathcal{N}(\mu_2, C_2)` is
+        :math:`d^2 = \lVert \mu_1 - \mu_2\rVert^2 + \mathrm{Tr}(C_1 + C_2 - 2\sqrt{(C_1\cdot C_2)})`.
         Stable version by Dougal J. Sutherland.
-        Params:
-        -- mu1   : Numpy array containing the activations of a layer of the
-                inception net (like returned by the function 'get_predictions')
-                for generated samples.
-        -- mu2   : The sample mean over activations, precalculated on an
-                representative data set.
-        -- sigma1: The covariance matrix over activations for generated samples.
-        -- sigma2: The covariance matrix over activations, precalculated on an
-                representative data set.
-        Returns:
-        --   : The Frechet Distance.
+
+        Args:
+            mu1 (numpy.ndarray): Numpy array containing the activations of a layer of the
+                    inception net (like returned by the function 'get_predictions')
+                    for generated samples.
+            mu2 (numpy.ndarray): The sample mean over activations, precalculated on an
+                    representative data set.
+            sigma1 (numpy.ndarray): The covariance matrix over activations for generated samples.
+            sigma2 (numpy.ndarray): The covariance matrix over activations, precalculated on an
+                    representative data set.
+        
+        Return:
+            numpy.ndarray : The Frechet Distance.
         """
         mu1 = np.atleast_1d(mu1)
         mu2 = np.atleast_1d(mu2)

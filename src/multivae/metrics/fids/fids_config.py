@@ -9,7 +9,8 @@ class FIDEvaluatorConfig(EvaluatorConfig):
 
     Config class for the evaluation of the coherences module.
 
-    Args :
+    Args:
+    
         batch_size (int) : The batch size to use in the evaluation. Default to 512.
         inception_weights_path (str) : The path to InceptionV3 weights. Default to
             '../../../fid_model/model.pt'.

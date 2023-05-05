@@ -17,6 +17,7 @@ class CoherenceEvaluator(Evaluator):
     Class for computing coherences metrics.
 
     Args:
+    
         model (BaseMultiVAE) : The model to evaluate.
         classifiers (dict) : A dictionary containing the pretrained classifiers to use for the coherence evaluation.
         test_dataset (MultimodalBaseDataset) : The dataset to use for computing the metrics.

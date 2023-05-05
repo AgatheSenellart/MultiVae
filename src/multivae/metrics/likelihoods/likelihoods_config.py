@@ -9,7 +9,8 @@ class LikelihoodsEvaluatorConfig(EvaluatorConfig):
 
     Config class for the evaluation of the coherences module.
 
-    Args :
+    Args:
+    
         batch_size (int) : The batch size to use in the evaluation. Default to 512.
         num_samples (int) : How many samples to use for likelihoods estimates. Default to 1000.
         batch_size_k (int) : How to batch the K samples for likelihoods estimates. Default to 100.
