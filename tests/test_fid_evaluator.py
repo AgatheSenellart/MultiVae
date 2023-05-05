@@ -9,7 +9,8 @@ from multivae.models import MVTCAE, MVTCAEConfig
 from multivae.models.nn.default_architectures import Encoder_VAE_MLP
 
 
-class Test:
+@pytest.mark.slow
+class TestFIDMetrics:
     @pytest.fixture(params=["custom_config", "default_config"])
     def config(self, request):
         config = FIDEvaluatorConfig(
