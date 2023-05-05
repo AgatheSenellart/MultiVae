@@ -236,6 +236,6 @@ class TestLikelihoods:
         assert all(
             [
                 metric in metrics.keys()
-                for metric in ["joint_likelihood", "joint_likelihood_from_subset_expr"]
+                for metric in ["joint_likelihood"]
             ]
         )

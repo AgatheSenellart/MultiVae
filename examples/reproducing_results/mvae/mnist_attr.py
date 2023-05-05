@@ -68,13 +68,12 @@ class ImageDecoder(BaseDecoder):
         self.fc3 = nn.Linear(512, 512)
         self.fc4 = nn.Linear(512, 784)
         self.swish = Swish()
-        self.sigmoid = nn.Sigmoid()
 
     def forward(self, z):
         h = self.swish(self.fc1(z))
         h = self.swish(self.fc2(h))
         h = self.swish(self.fc3(h))
-        h = self.sigmoid(self.fc4(h))
+        h = self.fc4(h) # no sigmoid, we provide logits for stability
         return ModelOutput(reconstruction=h.reshape(-1, 1, 28, 28))
 
 
@@ -150,8 +149,8 @@ model = MVAE(model_config, encoders, decoders)
 ######################################################
 ### Dataset
 
-train_set = BinaryMnistLabels(data_path="../../../data", split="train")
-test_set = BinaryMnistLabels(data_path="../../../data", split="test")
+train_set = BinaryMnistLabels(data_path="../../../data", split="train", random_binarized=True)
+test_set = BinaryMnistLabels(data_path="../../../data", split="test", random_binarized=True)
 
 ##############################################################
 #### Training
@@ -164,6 +163,7 @@ training_config = BaseTrainerConfig(
     start_keep_best_epoch=model_config.warmup,
     steps_predict=5,
     learning_rate=1e-3,
+    seed=0
 )
 wandb_ = WandbCallback()
 wandb_.setup(training_config, model_config, project_name="reproduce_mvae_mnist")
@@ -180,4 +180,4 @@ trainer = BaseTrainer(
 
 trainer.train()
 
-trainer._best_model.push_to_hf_hub("asenella/reproduce_mvae_mnist")
+trainer._best_model.push_to_hf_hub(f"asenella/reproduce_mvae_mnist_seed_{training_config.seed}")

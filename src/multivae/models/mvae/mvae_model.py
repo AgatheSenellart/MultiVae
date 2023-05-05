@@ -49,7 +49,7 @@ class MVAE(BaseMultiVAE):
         for i in range(2, self.n_modalities):
             self.subsets += combinations(list(self.encoders.keys()), r=i)
 
-    def poe(self, mus_list, log_vars_list):
+    def poe_bis(self, mus_list, log_vars_list):
         mus = mus_list.copy()
         log_vars = log_vars_list.copy()
 
@@ -65,6 +65,17 @@ class MVAE(BaseMultiVAE):
         joint_mu = (torch.exp(lnT) * mus).sum(dim=0) * torch.exp(lnV)
 
         return joint_mu, lnV
+    
+    def poe(self, mus_list, logvar_list, eps=1e-8):
+        mus = torch.stack(mus_list)
+        logvars = torch.stack(logvar_list)
+        var       = torch.exp(logvars) + eps
+        # precision of i-th Gaussian expert at point x
+        T         = 1. / (var + eps)
+        pd_mu     = torch.sum(mus * T, dim=0) / torch.sum(T, dim=0)
+        pd_var    = 1. / torch.sum(T, dim=0)
+        pd_logvar = torch.log(pd_var + eps)
+        return pd_mu, pd_logvar
 
     def compute_mu_log_var_subset(self, data: dict, subset: list):
         """Computes the parameters of the posterior when conditioning on

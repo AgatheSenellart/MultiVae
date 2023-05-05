@@ -48,11 +48,11 @@ class LikelihoodsEvaluator(Evaluator):
                 data={m: batch["data"][m].to(self.device) for m in batch["data"]}
             )
             if self.unified or (not hasattr(self.model, "compute_joint_nll_paper")):
-                ll += self.model.compute_joint_nll(batch, self.K, self.batch_size_k)
+                ll += self.model.compute_joint_nll(batch, self.num_samples, self.batch_size_k)
             else:
                 self.logger.info("Using the paper version of the joint nll.")
                 ll += self.model.compute_joint_nll_paper(
-                    batch, self.K, self.batch_size_k
+                    batch, self.num_samples, self.batch_size_k
                 )
 
         joint_nll = ll / len(self.test_loader.dataset)
