@@ -171,7 +171,7 @@ class BaseMultiVAE(nn.Module):
             elif recon_dict[k] == "categorical":
                 self.recon_log_probs[k] = lambda input, target: dist.Categorical(
                     probs=input
-                ).log_prob(target)
+                ).log_prob(target['tokens'])
 
         # TODO : add the possibility to provide custom reconstruction loss and in that case use the negative
         # reconstruction loss as the log probability.

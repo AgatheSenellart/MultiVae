@@ -101,6 +101,6 @@ class CubTextDecoderMLP(BaseDecoder):
             out = self.layers[i](out)
             if i + 1 == self.depth:
                 output_shape = (*z.shape[:-1],) + self.input_dim
-                output["reconstruction"] = nn.functional.log_softmax(out.reshape(output_shape), dim=-1)
+                output["reconstruction"] = nn.functional.softmax(out.reshape(output_shape), dim=-1)
 
         return output

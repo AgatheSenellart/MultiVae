@@ -39,6 +39,7 @@ class MVTCAE(BaseMultiVAE):
         return z
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
+        
         # Compute latents parameters for all subsets
         latents = self.inference(inputs)
         results = dict()

@@ -4,7 +4,7 @@ from torch.utils.data import random_split
 
 from multivae.data.datasets.mmnist import MMNISTDataset
 from multivae.models import MVTCAE, MVTCAEConfig
-from multivae.models.nn.mmnist import Decoder_ResNet_AE_MNIST, Encoder_ResNet_VAE_MMNIST
+from multivae.models.nn.mmnist import Decoder_ResNet_AE_MMNIST, Encoder_ResNet_VAE_MMNIST
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 from multivae.trainers.base.callbacks import (
     ProgressBarCallback,
@@ -38,7 +38,7 @@ encoders = {
 }
 
 decoders = {
-    k: Decoder_ResNet_AE_MNIST(
+    k: Decoder_ResNet_AE_MMNIST(
         BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3, 28, 28))
     )
     for k in modalities

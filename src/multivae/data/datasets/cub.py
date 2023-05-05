@@ -201,7 +201,7 @@ class CUB(MultimodalBaseDataset):
         if self.img_transform is not None:
             img = self.img_transform(img)
             
-        re_img = transforms.Resize((64, 64))(img)
+        re_img = transforms.Resize(self.imsize)(img)
         ret = self.normalize(re_img)
 
         return ret
