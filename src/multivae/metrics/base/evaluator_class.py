@@ -1,7 +1,5 @@
 import logging
-import os
 
-import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
@@ -32,9 +30,10 @@ class Evaluator:
         eval_config=EvaluatorConfig(),
     ) -> None:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model = model.to(self.device)
+        self.model = model.to(self.device).eval()
         self.n_data = len(test_dataset)
         self.batch_size = eval_config.batch_size
+        self.test_dataset = test_dataset
         self.test_loader = DataLoader(test_dataset, batch_size=eval_config.batch_size)
         self.set_logger(output)
 

@@ -109,7 +109,6 @@ train_data = MMNISTDataset(data_path="../../../data/MMNIST", split="train")
 train_data, eval_data = random_split(
     train_data, [0.9, 0.1], generator=torch.Generator().manual_seed(42)
 )
-print(len(train_data), len(eval_data))
 
 modalities = ["m0", "m1", "m2", "m3", "m4"]
 

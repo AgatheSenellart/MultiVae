@@ -1,4 +1,4 @@
-from typing import Dict, Union
+from typing import Dict
 
 from pythae.models.base.base_utils import ModelOutput
 from pythae.models.nn import BaseEncoder

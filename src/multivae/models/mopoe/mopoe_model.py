@@ -4,12 +4,13 @@ from typing import Union
 import numpy as np
 import torch
 import torch.distributions as dist
-from numpy.random import choice
 from pythae.models.base.base_utils import ModelOutput
-from scipy.special import comb
-from torch.distributions import kl_divergence
 
 from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
+from multivae.models.nn.default_architectures import (
+    BaseDictDecodersMultiLatents,
+    BaseDictEncoders_MultiLatents,
+)
 
 from ..base import BaseMultiVAE
 from .mopoe_config import MoPoEConfig
@@ -17,13 +18,13 @@ from .mopoe_config import MoPoEConfig
 
 class MoPoE(BaseMultiVAE):
 
-    """Implementation for the Mixture of Product of experts model from
+    """
+
+    Implementation for the Mixture of Product of experts model from
     'Generalized Multimodal ELBO' Sutter 2021 (https://arxiv.org/abs/2105.02470)
 
     This implementation is heavily based on the official one at
     https://github.com/thomassutter/MoPoE
-
-    # TODO : add the multiple latent spaces option.
 
     """
 
@@ -33,13 +34,38 @@ class MoPoE(BaseMultiVAE):
         super().__init__(model_config, encoders, decoders)
 
         self.beta = model_config.beta
+        self.use_modality_specific_spaces = model_config.use_modality_specific_spaces
         self.model_name = "MoPoE"
+
         list_subsets = self.model_config.subsets
         if list_subsets is None:
             list_subsets = self.all_subsets()
         elif type(list_subsets) == dict:
             list_subsets = list(self.model_config.subsets.values())
         self.set_subsets(list_subsets)
+
+        if model_config.use_modality_specific_spaces:
+            self.style_dims = model_config.modalities_specific_dim
+            if model_config.modalities_specific_dim is None:
+                raise AttributeError(
+                    "Please provide dimensions for the modalities"
+                    "specific latent spaces"
+                )
+            if encoders is None:
+                encoders = BaseDictEncoders_MultiLatents(
+                    input_dims=model_config.input_dims,
+                    latent_dim=model_config.latent_dim,
+                    modality_dims=model_config.modalities_specific_dim,
+                )
+                self.set_encoders(encoders)
+
+            if decoders is None:
+                decoders = BaseDictDecodersMultiLatents(
+                    input_dims=model_config.input_dims,
+                    latent_dim=model_config.latent_dim,
+                    modality_dims=model_config.modalities_specific_dim,
+                )
+                self.set_decoders(decoders)
 
     def all_subsets(self):
         """
@@ -146,30 +172,57 @@ class MoPoE(BaseMultiVAE):
 
         # Compute the reconstruction losses for each modality
         loss = 0
-        for m, m_key in enumerate(self.encoders.keys()):
+        kld = results["joint_divergence"]
+        for m_key in self.encoders.keys():
             # reconstruct this modality from the shared embeddings representation
-            recon = self.decoders[m_key](shared_embeddings).reconstruction
+
+            if self.use_modality_specific_spaces:
+                try:
+                    style_embeddings = latents["modalities"][m_key].style_embedding
+                    full_embedding = torch.cat(
+                        [shared_embeddings, style_embeddings], dim=-1
+                    )
+                except:
+                    raise AttributeError(
+                        " model_config.use_modality_specific_spaces is True "
+                        f"but encoder output for modality {m_key} doesn't have a "
+                        "style_embedding attribute. "
+                        "When using multiple latent spaces, the encoders' output"
+                        "should be of the form : ModelOuput(embedding = ...,"
+                        "style_embedding = ...,log_covariance = ..., style_log_covariance = ...)"
+                    )
+            else:
+                full_embedding = shared_embeddings
+
+            recon = self.decoders[m_key](full_embedding).reconstruction
             m_rec = (
                 -self.recon_log_probs[m_key](recon, inputs.data[m_key])
                 * self.rescale_factors[m_key]
             )
 
-            # m_s_mu, m_s_logvar = enc_mods[m_key + '_style'];
-            # if self.flags.factorized_representation:
-            #     m_s_embeddings = self.reparameterize(mu=m_s_mu, logvar=m_s_logvar);
-            # else:
-            #     m_s_embeddings = None;
-            # m_rec = self.lhoods[m_key](*self.decoders[m_key](m_s_embeddings, class_embeddings));
+            # reconstruction loss
             results["recon_" + m_key] = m_rec.sum() / ndata
             loss += m_rec.sum() / ndata
-        loss = loss + self.beta * results["joint_divergence"]
+
+            # If using modality specific latent spaces, add modality specific klds
+            if self.use_modality_specific_spaces:
+                style_mu = latents["modalities"][m_key].style_embedding
+                style_log_var = latents["modalities"][m_key].style_log_covariance
+                style_kld = -0.5 * torch.sum(
+                    1 - style_log_var.exp() - style_mu.pow(2) + style_log_var
+                )
+                kld += style_kld * self.model_config.beta_style
+
+        loss = loss + self.beta * kld
 
         return ModelOutput(loss=loss, metrics=results)
 
     def modality_encode(
         self, inputs: Union[MultimodalBaseDataset, IncompleteDataset], **kwargs
     ):
-        """Computes for each modality, the parameters mu and logvar of the
+        """
+
+        Computes for each modality, the parameters mu and logvar of the
         unimodal posterior.
 
         Args:
@@ -183,8 +236,6 @@ class MoPoE(BaseMultiVAE):
             input_modality = inputs.data[m_key]
             output = self.encoders[m_key](input_modality)
             encoders_outputs[m_key] = output
-            # latents[m_key + '_style'] = l[:2]
-            # latents[m_key] = l[2:]
 
         return encoders_outputs
 
@@ -246,6 +297,7 @@ class MoPoE(BaseMultiVAE):
         enc_mods = self.modality_encode(inputs)
         latents["modalities"] = enc_mods
         device = inputs.data[list(inputs.data.keys())[0]].device
+
         mus = torch.Tensor().to(device)
         logvars = torch.Tensor().to(device)
         distr_subsets = dict()
@@ -337,7 +389,28 @@ class MoPoE(BaseMultiVAE):
         if flatten:
             z = z.reshape(-1, self.latent_dim)
 
-        return ModelOutput(z=z, one_latent_space=True)
+        if self.use_modality_specific_spaces:
+            modalities_z = dict()
+            for m in self.encoders:
+                if m in cond_mod:
+                    mu_style = latents_subsets["modalities"][m].style_embedding
+                    log_var_style = latents_subsets["modalities"][
+                        m
+                    ].style_log_covariance
+                else:
+                    mu_style = torch.zeros((len(mu), self.style_dims[m])).to(mu.device)
+                    log_var_style = torch.zeros((len(mu), self.style_dims[m])).to(
+                        mu.device
+                    )
+                modalities_z[m] = dist.Normal(
+                    mu_style, torch.exp(0.5 * log_var_style)
+                ).rsample(sample_shape)
+                if flatten:
+                    modalities_z[m] = modalities_z[m].reshape(-1, self.style_dims[m])
+
+            return ModelOutput(z=z, one_latent_space=False, modalities_z=modalities_z)
+        else:
+            return ModelOutput(z=z, one_latent_space=True)
 
     def moe_fusion(self, mus, logvars, weights=None):
         if weights is None:
@@ -385,9 +458,12 @@ class MoPoE(BaseMultiVAE):
         batch_size_K: int = 100,
     ):
         """
-        Computes the joint negative log-likelihood.
-        I am not sure, but from the original code, it seems that the product of experts is used as inference distribution
-        for computing the nll instead of the mopoe.
+        Computes the joint negative log-likelihood using the MoPoE posterior as importance sampling distribution.
+        The result is summed over the input batch.
+
+        In the original code, the product of experts is used as inference distribution
+        for computing the nll instead of the MoPoe, but that is less coherent with the definition of the
+        MoPoE definition as the joint posterior.
         """
 
         # Only keep the complete samples
@@ -428,10 +504,11 @@ class MoPoE(BaseMultiVAE):
                     ]  # (batch_size_K, nb_channels, w, h)
                     x_m = inputs.data[mod][i]  # (nb_channels, w, h)
 
-                    dim_reduce = tuple(range(1, len(recon.shape)))
-                    print(self.recon_log_probs[mod](recon, x_m).shape)
-                    print(self.recon_log_probs[mod])
-                    lpx_zs += self.recon_log_probs[mod](recon, x_m).sum(dim=dim_reduce)
+                    lpx_zs += (
+                        self.recon_log_probs[mod](recon, x_m)
+                        .reshape(recon.size(0), -1)
+                        .sum(-1)
+                    )
 
                 # Compute ln(p(z))
                 prior = dist.Normal(0, 1)
@@ -442,7 +519,6 @@ class MoPoE(BaseMultiVAE):
                 lqz_xy = qz_xy.log_prob(latents).sum(dim=-1)
 
                 ln_px = torch.logsumexp(lpx_zs + lpz - lqz_xy, dim=0)
-                print(ln_px.shape)
                 lnpxs.append(ln_px)
 
                 # next batch
@@ -451,7 +527,7 @@ class MoPoE(BaseMultiVAE):
 
             ll += torch.logsumexp(torch.Tensor(lnpxs), dim=0) - np.log(K)
 
-        return -ll / n_data
+        return -ll
 
     def compute_joint_nll_from_subset_encoding(
         self,
@@ -461,9 +537,8 @@ class MoPoE(BaseMultiVAE):
         batch_size_K: int = 100,
     ):
         """
-        Computes the joint negative log-likelihood.
-        I am not sure, but from the original code, it seems that the product of experts is used as inference distribution
-        for computing the nll instead of the mopoe.
+        Computes the joint negative log-likelihood using the PoE posterior as importance sampling distribution.
+        The result is summed over the input batch.
         """
 
         # Only keep the samples complete with regard to the subset modalities
@@ -500,8 +575,12 @@ class MoPoE(BaseMultiVAE):
                         "reconstruction"
                     ]  # (batch_size_K, nb_channels, w, h)
                     x_m = inputs.data[mod][i]  # (nb_channels, w, h)
-                    dim_reduce = tuple(range(1, len(recon.shape)))
-                    lpx_zs += self.recon_log_probs[mod](recon, x_m).sum(dim=dim_reduce)
+
+                    lpx_zs += (
+                        self.recon_log_probs[mod](recon, x_m)
+                        .reshape(recon.size(0), -1)
+                        .sum(-1)
+                    )
 
                 # Compute ln(p(z))
                 prior = dist.Normal(0, 1)
@@ -520,4 +599,15 @@ class MoPoE(BaseMultiVAE):
 
             ll += torch.logsumexp(torch.Tensor(lnpxs), dim=0) - np.log(K)
 
-        return -ll / n_data
+        return -ll
+
+    def compute_joint_nll_paper(
+        self,
+        inputs: Union[MultimodalBaseDataset, IncompleteDataset],
+        K: int = 1000,
+        batch_size_K: int = 100,
+    ):
+        entire_subset = list(self.encoders.keys())
+        return self.compute_joint_nll_from_subset_encoding(
+            entire_subset, inputs, K, batch_size_K
+        )

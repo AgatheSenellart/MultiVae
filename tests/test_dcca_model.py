@@ -131,7 +131,6 @@ class TestJNFDcca:
         else:
             model = JNFDcca(model_config)
 
-        print(model.DCCA_module.networks)
         return model
 
     @fixture
@@ -141,10 +140,11 @@ class TestJNFDcca:
         return AddDccaTrainerConfig(
             num_epochs=5,
             steps_saving=2,
-            learning_rate=1e-4,
+            learning_rate=1e-3,
             optimizer_cls="AdamW",
             optimizer_params={"betas": (0.91, 0.995)},
             output_dir=dir_path,
+            learning_rate_dcca=1e-4,
         )
 
     @fixture
@@ -239,8 +239,10 @@ class TestJNFDcca:
             ]
         )
         assert trainer.optimizer == start_optimizer
+        assert trainer.training_config.learning_rate == 1e-4
         _ = trainer.prepare_train_step(trainer.model.nb_epochs_dcca + 1, None, None)
         _ = trainer.train_step(epoch=trainer.model.nb_epochs_dcca + 1)
+        assert trainer.training_config.learning_rate == 1e-3
         step_2_model_state_dict = deepcopy(trainer.model.state_dict())
 
         assert not all(

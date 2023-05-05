@@ -1,38 +1,46 @@
-import argparse
-import glob
 import os
 
 import numpy as np
 import torch
 from PIL import Image
-from pythae.data.datasets import Dataset, DatasetOutput
-from torch.utils.data import Dataset
-from torchvision import datasets, transforms
-from torchvision.utils import save_image
+from pythae.data.datasets import DatasetOutput
 
 from .base import MultimodalBaseDataset
 
 
 class MMNISTDataset(MultimodalBaseDataset):
     """
-    Multimodal MMNIST Dataset to load the Polymnist Dataset from 
-    'Generalized Multimodal Elbo' Sutter et al 2021. 
+    Multimodal MMNIST Dataset to load the Polymnist Dataset from
+    'Generalized Multimodal Elbo' Sutter et al 2021.
 
     """
 
-    def __init__(self, data_path, transform=None, target_transform=None, split="train", download=False):
+    def __init__(
+        self,
+        data_path,
+        transform=None,
+        target_transform=None,
+        split="train",
+        download=False,
+    ):
         """
         Args: unimodal_datapaths (list): list of paths to weakly-supervised unimodal datasets with samples that
                 correspond by index. Therefore the numbers of samples of all datapaths should match.
             transform: tranforms on colored MNIST digits.
             target_transform: transforms on labels.
+
         """
+
+        if isinstance(data_path, str):
+            data_path = os.path.expanduser(data_path)
+
         unimodal_datapaths = [data_path + "/" + split + f"/m{i}.pt" for i in range(5)]
         self.num_modalities = len(unimodal_datapaths)
         self.unimodal_datapaths = unimodal_datapaths
         self.transform = transform
         self.target_transform = target_transform
         self.download = download
+
         self.__check_or_download_data__(data_path, unimodal_datapaths)
 
         self.m0 = torch.load(unimodal_datapaths[0])
@@ -47,31 +55,36 @@ class MMNISTDataset(MultimodalBaseDataset):
 
         assert self.m0.shape[0] == self.labels.shape[0]
         self.num_files = self.labels.shape[0]
-        
+
     def __check_or_download_data__(self, data_path, unimodal_datapaths):
         # TODO : test this function
         for i in range(5):
             if not os.path.exists(unimodal_datapaths[i]) and self.download:
-                try :
+                try:
                     import zipfile
 
                     import gdown
-                    gdown.download(id='1N0v31KOgZgfkSqSiPdBKAgWIkKZIzAWb', output=data_path)
-                    with zipfile.ZipFile(data_path + '/PolyMNIST.zip') as zip_ref:
+
+                    gdown.download(
+                        id="1N0v31KOgZgfkSqSiPdBKAgWIkKZIzAWb", output=data_path
+                    )
+                    with zipfile.ZipFile(data_path + "/PolyMNIST.zip") as zip_ref:
                         zip_ref.extractall(data_path)
                 except:
-                    raise AttributeError('The PolyMNIST dataset is not available at the'
-                                         ' given datapath and gdown is not installed to download it.'
-                                         'Install gdown with `pip install gdown` or place the dataset'
-                                         ' in the data_path folder.')
+                    raise AttributeError(
+                        "The PolyMNIST dataset is not available at the"
+                        " given datapath and gdown is not installed to download it."
+                        "Install gdown with `pip install gdown` or place the dataset"
+                        " in the data_path folder."
+                    )
             elif not os.path.exists(unimodal_datapaths[i]) and not self.download:
-                raise AttributeError('The PolyMNIST dataset is not available at the'
-                                         ' given datapath and download is set to False.'
-                                         'Set download to True or place the dataset'
-                                         ' in the data_path folder.')
+                raise AttributeError(
+                    "The PolyMNIST dataset is not available at the"
+                    " given datapath and download is set to False."
+                    "Set download to True or place the dataset"
+                    " in the data_path folder."
+                )
 
-
-    
     def __getitem__(self, index):
         """
         Returns a tuple (images, labels) where each element is a list of
@@ -89,6 +102,3 @@ class MMNISTDataset(MultimodalBaseDataset):
 
     def __len__(self):
         return self.num_files
-
-
-

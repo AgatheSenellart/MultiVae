@@ -1,15 +1,14 @@
-from itertools import combinations
-
-import numpy as np
-import torch
 from pythae.models.base.base_utils import ModelOutput
-from torch.utils.data import DataLoader
 
 from multivae.data import MultimodalBaseDataset
-from multivae.models.base import BaseMultiVAE
 
 from ..base.evaluator_class import Evaluator
 from .likelihoods_config import LikelihoodsEvaluatorConfig
+
+try:
+    from tqdm import tqdm
+except:
+    tqdm = lambda x: x
 
 
 class LikelihoodsEvaluator(Evaluator):
@@ -17,6 +16,7 @@ class LikelihoodsEvaluator(Evaluator):
     Class for computing likelihood metrics.
 
     Args:
+
         model (BaseMultiVAE) : The model to evaluate.
         classifiers (dict) : A dictionary containing the pretrained classifiers to use for the coherence evaluation.
         test_dataset (MultimodalBaseDataset) : The dataset to use for computing the metrics.
@@ -30,25 +30,29 @@ class LikelihoodsEvaluator(Evaluator):
         super().__init__(model, test_dataset, output, eval_config)
         self.num_samples = eval_config.num_samples
         self.batch_size_k = eval_config.batch_size_k
+        self.unified = eval_config.unified_implementation
 
     def eval(self):
         joint = self.joint_nll()
-        joint_from_sub = self.joint_nll_from_subset(list(self.model.encoders.keys()))
-        return ModelOutput(
-            joint_likelihood=joint, joint_likelihood_from_subset_expr=joint_from_sub
-        )
+        return ModelOutput(joint_likelihood=joint)
 
     def joint_nll(self):
         ll = 0
-        nb_batch = 0
-        for batch in self.test_loader:
-            batch.data = {m: batch.data[m].to(self.device) for m in batch.data}
-            ll += self.model.compute_joint_nll(
-                batch, self.num_samples, self.batch_size_k
+        for batch in tqdm(self.test_loader):
+            batch = MultimodalBaseDataset(
+                data={m: batch["data"][m].to(self.device) for m in batch["data"]}
             )
-            nb_batch += 1
+            if self.unified or (not hasattr(self.model, "compute_joint_nll_paper")):
+                ll += self.model.compute_joint_nll(
+                    batch, self.num_samples, self.batch_size_k
+                )
+            else:
+                self.logger.info("Using the paper version of the joint nll.")
+                ll += self.model.compute_joint_nll_paper(
+                    batch, self.num_samples, self.batch_size_k
+                )
 
-        joint_nll = ll / nb_batch
+        joint_nll = ll / len(self.test_loader.dataset)
         self.logger.info(f"Joint likelihood : {str(joint_nll)}")
 
         return joint_nll
@@ -64,10 +68,13 @@ class LikelihoodsEvaluator(Evaluator):
                 )
                 nb_batch += 1
 
-            joint_nll = ll / nb_batch
+            joint_nll = ll / self.n_data
             self.logger.info(
                 f"Joint likelihood from subset {subset} : {str(joint_nll)}"
             )
             return joint_nll
         else:
             return None
+
+    def cond_nll_from_subset(self, subset, pred_mods):
+        pass

@@ -3,10 +3,8 @@ from itertools import combinations
 import numpy as np
 import torch
 from pythae.models.base.base_utils import ModelOutput
-from torch.utils.data import DataLoader
 
 from multivae.data import MultimodalBaseDataset
-from multivae.models.base import BaseMultiVAE
 
 from ..base.evaluator_class import Evaluator
 from .coherences_config import CoherenceEvaluatorConfig
@@ -17,6 +15,7 @@ class CoherenceEvaluator(Evaluator):
     Class for computing coherences metrics.
 
     Args:
+
         model (BaseMultiVAE) : The model to evaluate.
         classifiers (dict) : A dictionary containing the pretrained classifiers to use for the coherence evaluation.
         test_dataset (MultimodalBaseDataset) : The dataset to use for computing the metrics.
@@ -47,9 +46,13 @@ class CoherenceEvaluator(Evaluator):
         modalities = list(self.model.encoders.keys())
         accs = []
         for n in range(1, self.model.n_modalities):
-            subsets_of_size_n = combinations(modalities, n)
+            subsets_of_size_n = combinations(
+                modalities,
+                n,
+            )
             accs.append([])
             for s in subsets_of_size_n:
+                s = list(s)
                 _, mean_acc = self.all_accuracies_from_subset(s)
                 accs[-1].append(mean_acc)
         mean_accs = [np.mean(l) for l in accs]
@@ -57,7 +60,7 @@ class CoherenceEvaluator(Evaluator):
 
         for i in range(len(mean_accs)):
             self.logger.info(
-                f"Conditional accuracies for {i} modalities : {mean_accs[i]} +- {std_accs[i]}"
+                f"Conditional accuracies for {i+1} modalities : {mean_accs[i]} +- {std_accs[i]}"
             )
 
         return mean_accs, std_accs
@@ -73,8 +76,10 @@ class CoherenceEvaluator(Evaluator):
 
         accuracies = {}
         for batch in self.test_loader:
-            batch.data = {m: batch.data[m].to(self.device) for m in batch.data}
-            batch.labels = batch.labels.to(self.device)
+            batch = MultimodalBaseDataset(
+                data={m: batch["data"][m].to(self.device) for m in batch["data"]},
+                labels=batch["labels"].to(self.device),
+            )
             pred_mods = [
                 m
                 for m in self.model.encoders
@@ -117,6 +122,7 @@ class CoherenceEvaluator(Evaluator):
             all_same_labels = torch.all(
                 torch.stack([l == labels[0] for l in labels]), dim=0
             )
+
             all_labels = torch.cat((all_labels, all_same_labels), dim=0)
             samples_to_generate -= batch_samples
         joint_coherence = all_labels.mean()
