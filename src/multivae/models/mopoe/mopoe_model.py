@@ -43,8 +43,6 @@ class MoPoE(BaseMultiVAE):
         list_subsets = self.model_config.subsets
         if list_subsets is None:
             list_subsets = self.all_subsets()
-        elif type(list_subsets) == dict:
-            list_subsets = list(self.model_config.subsets.values())
         self.set_subsets(list_subsets)
 
         if model_config.use_modality_specific_spaces:
@@ -73,6 +71,7 @@ class MoPoE(BaseMultiVAE):
     def all_subsets(self):
         """
         Returns a list containing all possible subsets of the modalities.
+        (But the empty one)
         """
         xs = list(self.encoders.keys())
         # note we return an iterator rather than a list
@@ -82,6 +81,11 @@ class MoPoE(BaseMultiVAE):
         return subsets_list
 
     def set_subsets(self, subsets_list):
+        """ 
+        Builds a dictionary of the subsets.
+        The keys are the subset_names created by concatenating the modalities' names.
+        The values are the list of modalities names.
+        """
         subsets = dict()
         for k, mod_names in enumerate(subsets_list):
             mods = []
@@ -146,9 +150,7 @@ class MoPoE(BaseMultiVAE):
         # Compute latents parameters for all subsets
         latents = self.inference(inputs)
         results = dict()
-        # results['latents'] = latents
-        # results['group_distr'] = latents['joint']
-
+        
         # Compute the divergence to the prior
         shared_embeddings = self.reparameterize(
             latents["joint"][0], latents["joint"][1]
@@ -232,10 +234,7 @@ class MoPoE(BaseMultiVAE):
         for m, m_key in enumerate(self.encoders.keys()):
             input_modality = inputs.data[m_key]
             output = self.encoders[m_key](input_modality)
-            encoders_outputs[m_key] = output
-            if hasattr(inputs, 'masks'):
-                    output.log_covariance[(1-inputs.masks[m_key].int()).bool()] = torch.inf
-            
+            encoders_outputs[m_key] = output            
 
         return encoders_outputs
 
@@ -261,12 +260,10 @@ class MoPoE(BaseMultiVAE):
                 (logvars, torch.zeros(1, num_samples, self.latent_dim).to(device)),
                 dim=0,
             )
-        # mus = torch.cat(mus, dim=0);
-        # logvars = torch.cat(logvars, dim=0);
         mu_poe, logvar_poe = self.poe(mus, logvars)
         return [mu_poe, logvar_poe]
 
-    def _filter_inputs_with_masks(
+    def subset_mask(
         self, inputs: IncompleteDataset, subset: Union[list, tuple]
     ):
         """
@@ -308,7 +305,7 @@ class MoPoE(BaseMultiVAE):
                 logvars_subset = torch.Tensor().to(device)
 
                 if hasattr(inputs, "masks"):
-                    filter = self._filter_inputs_with_masks(
+                    filter = self.subset_mask(
                         inputs, mods
                     )
                     availabilities.append(filter)
@@ -343,8 +340,10 @@ class MoPoE(BaseMultiVAE):
             # if we have an incomplete dataset, we need to randomly choose
             # from the mixture of available experts
             availabilities = torch.stack(availabilities,dim=0).float()
-            availabilities -= torch.sum(availabilities,dim=0)
-            print('avail',availabilities.shape)
+            if len(availabilities.shape)==1:
+                availabilities = availabilities.unsqueeze(1)
+            availabilities /= torch.sum(availabilities,dim=0) # (n_subset,n_samples)
+            print(availabilities)
 
             joint_mu,joint_logvar = self.random_mixture_component_selection(mus,logvars,availabilities)
             weights = availabilities
@@ -388,8 +387,6 @@ class MoPoE(BaseMultiVAE):
 
         # If the dataset is incomplete, keep only the samples availables in all cond_mod
         # modalities
-        if isinstance(inputs, IncompleteDataset):
-            inputs, filter = self._filter_inputs_with_masks(inputs, cond_mod)
 
         latents_subsets = self.inference(inputs)
 
@@ -432,10 +429,10 @@ class MoPoE(BaseMultiVAE):
             logvars (tensor): (n_subset,n_samples,latent_dim) the log covariance of subset posterior.
             availabilities (tensor): (n_subset,n_samples) boolean tensor.
         """
-        print(availabilities.shape)
+        
         probs = availabilities.permute(1,0) #n_samples,n_subset
         choice = dist.OneHotCategorical(probs=probs).sample()
-        
+
         mus_ = mus.permute(1,0,2) # n_samples, n_subset,latent_dim
         logvars_ = logvars.permute(1,0,2)
         
@@ -496,7 +493,7 @@ class MoPoE(BaseMultiVAE):
         # Only keep the complete samples
         all_modalities = list(self.encoders.keys())
         if hasattr(inputs, "masks"):
-            filtered_inputs, filter = self._filter_inputs_with_masks(
+            filtered_inputs, filter = self.subset_mask(
                 inputs, all_modalities
             )
 
@@ -571,7 +568,7 @@ class MoPoE(BaseMultiVAE):
 
         # Only keep the samples complete with regard to the subset modalities
         if hasattr(inputs, "masks"):
-            filtered_inputs, filter = self._filter_inputs_with_masks(inputs, subset)
+            filtered_inputs, filter = self.subset_mask(inputs, subset)
 
         else:
             filtered_inputs = inputs

@@ -173,6 +173,15 @@ class Test_model:
         assert Y.mod1.shape == (2 * 10, 2)
         assert Y.mod2.shape == (2 * 10, 3)
         
+        # Test the random_mixture_component_selection function
+        mus = torch.arange(3*2*4).reshape(3,2,4)
+        log_vars = torch.arange(3*2*4).reshape(3,2,4)
+        avail = torch.tensor([[1,0],[0,1],[0,0]])
+        
+        mu_joint, log_var_joint = model.random_mixture_component_selection(mus,log_vars,avail)
+        
+        assert torch.all(mu_joint == torch.tensor([[0,1,2,3],[12,13,14,15]]))
+        
 class Test_backward_with_missing_inputs:
     
     @pytest.fixture(params=["incomplete"])
@@ -253,6 +262,12 @@ class Test_backward_with_missing_inputs:
             assert torch.all(param.grad == 0)
             
         output = model(dataset[-3:], epoch=2)    
+        loss = output.loss
+        loss.backward()
+        for param in model.encoders['mod1'].parameters():
+            assert not torch.all(param.grad == 0)
+            
+        output = model(dataset, epoch=2)    
         loss = output.loss
         loss.backward()
         for param in model.encoders['mod1'].parameters():
