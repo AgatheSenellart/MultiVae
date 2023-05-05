@@ -140,10 +140,18 @@ class DecoderSVHN(BaseDecoder):
 ########### Load the dataset, configure model and training ########################
 
 # Dataset
-train_set = MnistSvhn(split="train", data_multiplication=20)
-test_set = MnistSvhn(split="test", data_multiplication=20)
+train_set = MnistSvhn(split="train", data_multiplication=30)
+test_set = MnistSvhn(split="test", data_multiplication=30)
+
+print(
+    f"Bound for Mnist {torch.min(train_set[:128].data['mnist']),torch.max(train_set[:128].data['mnist'])}"
+)
+print(
+    f"Bound for SVHN {torch.min(train_set[:128].data['svhn']),torch.max(train_set[:128].data['svhn'])}"
+)
 
 
+print(f"train : {len(train_set)}, test : {len(test_set)}")
 # Model config
 model_config = MMVAEConfig(
     n_modalities=2,
@@ -154,7 +162,9 @@ model_config = MMVAEConfig(
     decoder_dist_params={"mnist": {"scale": 0.75}, "svhn": {"scale": 0.75}},
     K=30,
     learn_prior=True,
+    prior_and_posterior_dist="laplace_with_softmax",
 )
+
 
 model = MMVAE(
     model_config,
@@ -198,4 +208,4 @@ trainer = BaseTrainer(
 
 trainer.train()
 
-trainer._best_model.push_to_hf_hub("asenella/reproducing_mmvae_1")
+trainer._best_model.push_to_hf_hub("asenella/reproducing_mmvae_3")

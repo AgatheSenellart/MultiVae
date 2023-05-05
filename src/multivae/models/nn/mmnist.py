@@ -1,5 +1,3 @@
-from typing import List
-
 import numpy as np
 import torch
 from pythae.models.base import BaseAEConfig
@@ -23,23 +21,31 @@ class Unflatten(torch.nn.Module):
         return x.view(x.size(0), *self.ndims)
 
 
-class EncoderImg(BaseEncoder):
+class EncoderConvMMNIST(BaseEncoder):
     """
     Adopted from:
     https://www.cs.toronto.edu/~lczhang/360/lec/w05/autoencoder.html
     """
 
     def __init__(self, model_config: BaseAEConfig):
-        super(EncoderImg, self).__init__()
+        super(EncoderConvMMNIST, self).__init__()
         self.latent_dim = model_config.latent_dim
         self.shared_encoder = nn.Sequential(  # input shape (3, 28, 28)
-            nn.Conv2d(3, 32, kernel_size=3, stride=2, padding=1),  # -> (32, 14, 14)
+            nn.Conv2d(
+                3, 32, kernel_size=3, stride=2, padding=1, bias=True
+            ),  # -> (32, 14, 14)
             nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),  # -> (64, 7, 7)
+            nn.Conv2d(
+                32, 64, kernel_size=3, stride=2, padding=1, bias=True
+            ),  # -> (64, 7, 7)
             nn.ReLU(),
-            nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1),  # -> (128, 4, 4)
+            nn.Conv2d(
+                64, 128, kernel_size=3, stride=2, padding=1, bias=True
+            ),  # -> (128, 4, 4)
             nn.ReLU(),
-            Flatten(),  # -> (2048)
+            # nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1, bias=True),  # -> (256, 2, 2)
+            # nn.ReLU(),
+            nn.Flatten(),
             nn.Linear(2048, self.latent_dim),  # -> (ndim_private + ndim_shared)
             nn.ReLU(),
         )
@@ -55,22 +61,61 @@ class EncoderImg(BaseEncoder):
         )
 
 
-class DecoderImg(BaseDecoder):
+class EncoderConvMMNIST_adapted(BaseEncoder):
+    """
+    Adapt so that it works with DCCA
+    """
+
+    def __init__(self, model_config: BaseAEConfig):
+        super(EncoderConvMMNIST_adapted, self).__init__()
+        self.latent_dim = model_config.latent_dim
+        self.shared_encoder = nn.Sequential(  # input shape (3, 28, 28)
+            nn.Conv2d(
+                3, 32, kernel_size=3, stride=2, padding=1, bias=True
+            ),  # -> (32, 14, 14)
+            nn.ReLU(),
+            nn.Conv2d(
+                32, 64, kernel_size=3, stride=2, padding=1, bias=True
+            ),  # -> (64, 7, 7)
+            nn.ReLU(),
+            nn.Conv2d(
+                64, 128, kernel_size=3, stride=2, padding=1, bias=True
+            ),  # -> (128, 4, 4)
+            nn.ReLU(),
+        )
+
+        # content branch
+        self.class_mu = nn.Conv2d(128, self.latent_dim, 4, 2, 0)
+        self.class_logvar = nn.Conv2d(128, self.latent_dim, 4, 2, 0)
+
+    def forward(self, x):
+        h = self.shared_encoder(x)
+        return ModelOutput(
+            embedding=self.class_mu(h).squeeze(),
+            log_covariance=self.class_logvar(h).squeeze(),
+        )
+
+
+class DecoderConvMMNIST(BaseDecoder):
     """
     Adopted from:
     https://www.cs.toronto.edu/~lczhang/360/lec/w05/autoencoder.html
     """
 
     def __init__(self, model_config: BaseAEConfig):
-        super(DecoderImg, self).__init__()
+        super(DecoderConvMMNIST, self).__init__()
         self.latent_dim = model_config.latent_dim
         self.decoder = nn.Sequential(
             nn.Linear(self.latent_dim, 2048),  # -> (2048)
             nn.ReLU(),
             Unflatten((128, 4, 4)),  # -> (128, 4, 4)
             nn.ConvTranspose2d(
-                128, 64, kernel_size=3, stride=2, padding=1
-            ),  # -> (64, 7, 7)
+                128,
+                64,
+                kernel_size=3,
+                stride=2,
+                padding=1,
+            ),  # -> (128, 4, 4)
             nn.ReLU(),
             nn.ConvTranspose2d(
                 64, 32, kernel_size=3, stride=2, padding=1, output_padding=1
@@ -214,7 +259,7 @@ class Encoder_ResNet_VAE_MMNIST(BaseEncoder):
         return output
 
 
-class Decoder_ResNet_AE_MNIST(BaseDecoder):
+class Decoder_ResNet_AE_MMNIST(BaseDecoder):
     """
     A ResNet decoder suited for MNIST and Autoencoder-based
     models.

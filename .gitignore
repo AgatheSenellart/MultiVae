@@ -135,5 +135,5 @@ wandb
 dummy_output_dir
 *.mat
 *.pt
-data/
 trained_models/
+data

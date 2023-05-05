@@ -56,6 +56,8 @@ def adapt_shape(data):
     """
     # First, add dimensions if some are missing and adjust the number of channels
     for m in data:
+        if len(data[m].shape) == 1:  # (n_data,)
+            data[m] = data[m].unsqueeze(1)
         if len(data[m].shape) == 2:  # (n_data, n)
             data[m] = data[m].unsqueeze(1)
         if len(data[m].shape) == 3:  # (n-data, n, m)
@@ -79,10 +81,10 @@ def adapt_shape(data):
         data[m] = F.pad(
             data[m],
             (
-                floor((h - hm) / 2),
-                ceil((h - hm) / 2),
                 floor((w - wm) / 2),
                 ceil((w - wm) / 2),
+                floor((h - hm) / 2),
+                ceil((h - hm) / 2),
             ),
             mode="constant",
             value=0,

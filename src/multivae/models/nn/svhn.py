@@ -30,8 +30,8 @@ class Encoder_VAE_SVHN(BaseEncoder):
 
     def forward(self, x: torch.Tensor):
         e = self.enc(x)
-        mu = self.c1(e).reshape(-1, self.latent_dim)
-        lv = self.c2(e).reshape(-1, self.latent_dim)
+        mu = self.c1(e).squeeze()
+        lv = self.c2(e).squeeze()
         output = ModelOutput(embedding=mu, log_covariance=lv)
         return output
 

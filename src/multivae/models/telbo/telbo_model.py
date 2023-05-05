@@ -1,13 +1,9 @@
-from typing import Dict, Tuple, Union
+from typing import Dict, Union
 
-import numpy as np
 import torch
 import torch.distributions as dist
 from pythae.models.base.base_utils import ModelOutput
 from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
-from pythae.models.normalizing_flows.base import BaseNF, BaseNFConfig
-from pythae.models.normalizing_flows.maf import MAF, MAFConfig
-from torch.nn import ModuleDict
 
 from ...data.datasets.base import MultimodalBaseDataset
 from ..joint_models import BaseJointModel

@@ -1,15 +1,13 @@
-from collections import OrderedDict
-from typing import Any, Tuple, Union
+from typing import Union
 
-import torch
 from numpy import ndarray
 from pythae.data.datasets import Dataset, DatasetOutput
 from torch import Tensor
 
 
 class MultimodalBaseDataset(Dataset):
-    """This class is the Base class for datasets. A ``__getitem__`` is redefined and outputs a 
-    python dictionnary with the keys corresponding to `data` and `labels`. This Class should be 
+    """This class is the Base class for datasets. A ``__getitem__`` is redefined and outputs a
+    python dictionnary with the keys corresponding to `data` and `labels`. This Class should be
     used for any new data sets.
 
     Args:
@@ -52,7 +50,7 @@ class IncompleteDataset(Dataset):
     """This class is the Base class for datasets with incomplete data.
     We add a field masks to indicate which data samples are available.
     This is used with models compatible with weakly supervised learning such as
-    the MVAE. A ``__getitem__`` is redefined and outputs a python dictionnary with the keys 
+    the MVAE. A ``__getitem__`` is redefined and outputs a python dictionnary with the keys
     corresponding to `data` and `labels`. This Class should be used for any new data sets.
 
     Args:

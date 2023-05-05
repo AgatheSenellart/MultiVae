@@ -1,14 +1,20 @@
-from typing import Tuple, Union
+import logging
+from typing import Union
 
 import numpy as np
 import torch
 import torch.distributions as dist
-from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
+from pythae.models.nn.base_architectures import BaseEncoder
 
 from ...data import MultimodalBaseDataset
 from ..base import BaseMultiVAE
 from ..nn.default_architectures import MultipleHeadJointEncoder
 from .joint_model_config import BaseJointModelConfig
+
+logger = logging.getLogger(__name__)
+console = logging.StreamHandler()
+logger.addHandler(console)
+logger.setLevel(logging.INFO)
 
 
 class BaseJointModel(BaseMultiVAE):
@@ -62,7 +68,8 @@ class BaseJointModel(BaseMultiVAE):
     def compute_joint_nll(
         self, inputs: MultimodalBaseDataset, K: int = 1000, batch_size_K: int = 100
     ):
-        """Return the average estimated negative log-likelihood over the inputs.
+        """
+        Return the estimated negative log-likelihood summed over the input batch.
         The negative log-likelihood is estimated using importance sampling.
 
         Args :
@@ -70,7 +77,7 @@ class BaseJointModel(BaseMultiVAE):
 
         # First compute all the parameters of the joint posterior q(z|x,y)
 
-        print(
+        logger.info(
             "Started computing the negative log_likelihood on inputs. This function"
             " can take quite a long time to run."
         )
@@ -100,11 +107,13 @@ class BaseJointModel(BaseMultiVAE):
                     decoder = self.decoders[mod]
                     recon = decoder(latents)[
                         "reconstruction"
-                    ]  # (batch_size_K, nb_channels, w, h)
-                    x_m = inputs.data[mod][i]  # (nb_channels, w, h)
-
-                    dim_reduce = tuple(range(1, len(recon.shape)))
-                    lpx_zs += self.recon_log_probs[mod](recon, x_m).sum(dim=dim_reduce)
+                    ]  # (batch_size_K, *decoder_output_shape)
+                    x_m = inputs.data[mod][i]  # (*input_shape)
+                    lpx_zs += (
+                        self.recon_log_probs[mod](recon, x_m)
+                        .reshape(recon.size(0), -1)
+                        .sum(-1)
+                    )
 
                 # Compute ln(p(z))
                 prior = dist.Normal(0, 1)
@@ -123,4 +132,4 @@ class BaseJointModel(BaseMultiVAE):
 
             ll += torch.logsumexp(torch.Tensor(lnpxs), dim=0) - np.log(K)
 
-        return -ll / n_data
+        return -ll

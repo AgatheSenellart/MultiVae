@@ -4,10 +4,10 @@ import torch
 from pythae.models.base import BaseAEConfig
 
 from multivae.models.nn.mmnist import (
-    Decoder_ResNet_AE_MNIST,
-    DecoderImg,
+    Decoder_ResNet_AE_MMNIST,
+    DecoderConvMMNIST,
     Encoder_ResNet_VAE_MMNIST,
-    EncoderImg,
+    EncoderConvMMNIST,
 )
 from multivae.models.nn.svhn import Decoder_VAE_SVHN, Encoder_VAE_SVHN
 from multivae.models.nn.cub import CubTextEncoder, CubTextDecoderMLP
@@ -68,8 +68,8 @@ def cub_like_data(ae_cub_config):
 
 class TestMMNISTNets:
     def test_forward(self, ae_mmnist_config, mmnist_like_data):
-        encoder = EncoderImg(ae_mmnist_config).to(device)
-        decoder = DecoderImg(ae_mmnist_config).to(device)
+        encoder = EncoderConvMMNIST(ae_mmnist_config).to(device)
+        decoder = DecoderConvMMNIST(ae_mmnist_config).to(device)
 
         enc_out = encoder(mmnist_like_data)
 
@@ -87,7 +87,7 @@ class TestMMNISTNets:
         assert dec_out.reconstruction.shape == mmnist_like_data.shape
 
         encoder = Encoder_ResNet_VAE_MMNIST(ae_mmnist_config).to(device)
-        decoder = Decoder_ResNet_AE_MNIST(ae_mmnist_config).to(device)
+        decoder = Decoder_ResNet_AE_MMNIST(ae_mmnist_config).to(device)
 
         enc_out = encoder(mmnist_like_data)
 
