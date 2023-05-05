@@ -202,8 +202,8 @@ class MMVAE(BaseMultiVAE):
                 zss.register_hook(lambda grad: grad_wt.unsqueeze(-1) * grad)
 
         lws = (grad_wt * lws).sum(0)/ n_mods_sample # mean over modalities
-        lws = lws.sum() # sum over batch 
-        return ModelOutput(loss=-lws, metrics=dict())
+        
+        return ModelOutput(loss=-lws.sum(), metrics=dict(mean_loss_batch = -lws.mean()))
 
     def iwae(self, qz_xs, zss, reconstructions, inputs):
         lw_mod = []

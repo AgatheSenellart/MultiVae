@@ -4,6 +4,7 @@ Store in this file all the shared variables for the benchmark on mmnist.
 
 from multivae.metrics.fids.fids import FIDEvaluator
 from multivae.metrics.base import EvaluatorConfig
+from multivae.metrics.fids.fids_config import FIDEvaluatorConfig
 import torch
 from pythae.models.base.base_config import BaseAEConfig
 from torch import nn
@@ -124,7 +125,7 @@ def eval_model(model,output_dir, test_data, wandb_path):
     In this function, define all the evaluation metrics
     you want to use
     """
-    config = EvaluatorConfig(
+    config = CoherenceEvaluatorConfig(
         batch_size=512,
         wandb_path=wandb_path
     )
@@ -136,6 +137,11 @@ def eval_model(model,output_dir, test_data, wandb_path):
         output=output_dir,
         eval_config=config
     ).eval()
+    
+    config = FIDEvaluatorConfig(
+        batch_size=512,
+        wandb_path=wandb_path
+    )
 
     FIDEvaluator(
         model,
