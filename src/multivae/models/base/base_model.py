@@ -246,7 +246,7 @@ class BaseMultiVAE(nn.Module):
             outputs = ModelOutput()
 
             for m in modalities:
-                z = torch.cat([z_content, embedding.modalities_z[m]], dim=0)
+                z = torch.cat([z_content, embedding.modalities_z[m]], dim=-1)
                 outputs[m] = self.decoders[m](z).reconstruction
             return outputs
 
