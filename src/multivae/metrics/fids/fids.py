@@ -3,10 +3,8 @@ import torch
 import numpy as np
 from pythae.models.base.base_utils import ModelOutput
 from scipy import linalg
-from torch.utils.data import DataLoader, TensorDataset
 from torchvision.transforms import Resize
 
-from multivae.data import MultimodalBaseDataset
 from multivae.models.base import BaseMultiVAE
 
 from ..base.evaluator_class import Evaluator
@@ -16,10 +14,8 @@ from .inception_networks import wrapper_inception
 try:
     from tqdm import tqdm
 except:
+    tqdm = lambda x: x
 
-    def tqdm(x):
-        return x
-    
 
 class adapt_shape_for_fid(torch.nn.Module):
     """ 
@@ -109,7 +105,7 @@ class FIDEvaluator(Evaluator):
         self.model.eval()
         activations = [[], []]
 
-        for batch in self.test_loader:
+        for batch in tqdm(self.test_loader):
             batch.data = {m: batch.data[m].to(self.device) for m in batch.data}
             # Compute activations for true data
             data = self.inception_transform(batch.data[mod]).to(self.device)

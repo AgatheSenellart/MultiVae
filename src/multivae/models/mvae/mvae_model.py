@@ -6,8 +6,6 @@ import torch
 import torch.distributions as dist
 from numpy.random import choice
 from pythae.models.base.base_utils import ModelOutput
-from scipy.special import comb
-from torch.distributions import kl_divergence
 
 from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
 
@@ -121,7 +119,6 @@ class MVAE(BaseMultiVAE):
 
         filtered_inputs = {}
         for mod in subset:
-            print(filter, inputs.data[mod])
             filtered_inputs[mod] = inputs.data[mod][filter]
         return filtered_inputs, filter
 
@@ -247,7 +244,6 @@ class MVAE(BaseMultiVAE):
 
             # And sample from the posterior
             z_joint = qz_xy.rsample([K]).squeeze()  # shape K x latent_dim
-            print(z_joint.shape)
 
             while start_idx < stop_idx:
                 latents = z_joint[start_idx:stop_idx]

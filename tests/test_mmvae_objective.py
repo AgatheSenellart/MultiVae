@@ -108,7 +108,6 @@ def _m_iwae_test(qz_xs, px_zs, zss, model: MMVAE, x, rescale_factors, K=1):
 
         lws.append(lw)
     lws = torch.cat(lws)  # (n_modality * n_samples) x batch_size
-    print("test_iwae", lws)
 
     return log_mean_exp(lws, dim=0).sum()
 

@@ -139,7 +139,6 @@ class Test_model:
         assert loss.requires_grad
 
         # Try encoding and prediction
-        print(dataset[0])
         outputs = model.encode(dataset[0])
         if archi_and_config["model_config"].use_modality_specific_spaces:
             assert not outputs.one_latent_space

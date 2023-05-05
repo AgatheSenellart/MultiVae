@@ -3,10 +3,8 @@ from itertools import combinations
 import numpy as np
 import torch
 from pythae.models.base.base_utils import ModelOutput
-from torch.utils.data import DataLoader
 
 from multivae.data import MultimodalBaseDataset
-from multivae.models.base import BaseMultiVAE
 
 from ..base.evaluator_class import Evaluator
 from .coherences_config import CoherenceEvaluatorConfig

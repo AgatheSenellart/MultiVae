@@ -1,22 +1,15 @@
-import inspect
-import os
-import sys
-from copy import deepcopy
-from http.cookiejar import LoadError
-from typing import Dict, Tuple, Union
+import logging
+from typing import Dict, Union
 
-import cloudpickle
 import numpy as np
 import torch
 import torch.distributions as dist
-import torch.nn as nn
-from pythae.models.base.base_utils import CPU_Unpickler, ModelOutput
+from pythae.models.base.base_utils import ModelOutput
 from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
-from pythae.models.normalizing_flows.base import BaseNF, BaseNFConfig
+from pythae.models.normalizing_flows.base import BaseNF
 from pythae.models.normalizing_flows.maf import MAF, MAFConfig
 from torch.nn import ModuleDict
-from torch.nn import functional as F
-from torch.nn.modules.loss import BCEWithLogitsLoss, L1Loss, MSELoss
+
 
 from multivae.models.nn.default_architectures import (
     BaseDictEncoders,
@@ -24,11 +17,15 @@ from multivae.models.nn.default_architectures import (
 )
 
 from ...data.datasets.base import MultimodalBaseDataset
-from ..auto_model import AutoConfig
 from ..dcca import DCCA, DCCAConfig
 from ..joint_models import BaseJointModel
-from ..nn.default_architectures import BaseDictDecoders, BaseDictEncoders
+from ..nn.default_architectures import BaseDictEncoders
 from .jnf_dcca_config import JNFDccaConfig
+
+logger = logging.getLogger(__name__)
+console = logging.StreamHandler()
+logger.addHandler(console)
+logger.setLevel(logging.INFO)
 
 
 class JNFDcca(BaseJointModel):
@@ -401,7 +398,7 @@ class JNFDcca(BaseJointModel):
             data (dict or MultimodalDataset):
             K (int, optional): . Defaults to 100.
         """
-        print("starting to sample from poe_subset, divide prior = ", divide_prior)
+        logger.info("starting to sample from poe_subset, divide prior = ", divide_prior)
 
         # Multiply the data to have multiple samples per datapoints
         n_data = len(data[list(data.keys())[0]])

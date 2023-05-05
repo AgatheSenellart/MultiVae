@@ -95,7 +95,6 @@ class Test_model:
         assert loss.requires_grad
 
         # Try encoding and prediction
-        print(dataset[0])
         outputs = model.encode(dataset[0])
         assert outputs.one_latent_space
         embeddings = outputs.z

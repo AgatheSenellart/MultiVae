@@ -3,14 +3,13 @@ import json
 import logging
 import os
 from copy import deepcopy
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 import torch
 import torch.distributed as dist
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
 from PIL import Image
-from pythae.data.datasets import DatasetOutput
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler

@@ -16,12 +16,10 @@ model = AutoModel.load_from_folder(data_path)
 # model = AutoModel.load_from_hf_hub('asenella/mmvae_empathic_manoeuver',allow_pickle=True)
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-print(model.prior_mean, model.prior_log_var)
 
 clfs = load_mnist_svhn_classifiers("../../classifiers", device=device)
 
 test_set = MnistSvhn(split="test", data_multiplication=30)
-print(len(test_set))
 output = CoherenceEvaluator(model, clfs, test_set, data_path).eval()
 
 # lik_config = LikelihoodsEvaluatorConfig(batch_size=128, batch_size_k=50,K=1000)

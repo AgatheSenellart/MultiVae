@@ -17,8 +17,7 @@ import torch.distributions as dist
 import torch.nn as nn
 from pythae.models.base.base_utils import CPU_Unpickler, ModelOutput
 from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
-from torch.nn import functional as F
-from torch.nn.modules.loss import BCEWithLogitsLoss, L1Loss, MSELoss
+
 
 from ...data.datasets.base import MultimodalBaseDataset
 from ..auto_model import AutoConfig
@@ -536,14 +535,12 @@ class BaseMultiVAE(nn.Module):
                         .reshape(recon.size(0), -1)
                         .sum(-1)
                     )
-                    print(lpxz.shape)
                     lnpxs[k].append(torch.logsumexp(lpxz, dim=0))
 
                 # next batch
                 start_idx += batch_size_K
                 stop_index += batch_size_K
             for k in pred_mods:
-                print(lnpxs[k])
                 ll[k].append(torch.logsumexp(torch.tensor(lnpxs[k]), dim=0) - np.log(K))
 
         results = {}
@@ -693,7 +690,6 @@ class BaseMultiVAE(nn.Module):
             )
 
         model_weights = cls._load_model_weights_from_folder(dir_path)
-        print(model_config.custom_architectures)
         if (len(model_config.custom_architectures) >= 1) and not allow_pickle:
             warnings.warn(
                 "You are about to download pickled files from the HF hub that may have "
