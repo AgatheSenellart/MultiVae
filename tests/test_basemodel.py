@@ -208,7 +208,7 @@ class Test_BaseMultiVAE:
         with pytest.raises(NotImplementedError):
             model.encode(inputs, [])
 
-    def test_raises_decode_error(self, input_model1):
+    def test_decode(self, input_model1):
         model = BaseMultiVAE(**input_model1)
 
         out = ModelOutput(
@@ -222,10 +222,12 @@ class Test_BaseMultiVAE:
         out = ModelOutput(
             z=torch.randn(3, input_model1["model_config"].latent_dim),
             one_latent_space=False,
+            modalities_z=dict(mod1=torch.randn(4, input_model1["model_config"].latent_dim))
         )
 
-        with pytest.raises(NotImplementedError):
-            output = model.decode(out, modalities="mod1")
+        output = model.decode(out, modalities="mod1")
+
+        assert tuple(output.mod1.shape) == (7, 10, 2)            
 
     def test_raises_fwd_not_implemented(self, input_model1):
         model = BaseMultiVAE(**input_model1)
