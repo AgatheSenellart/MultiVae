@@ -4,6 +4,7 @@ from pythae.models.base.base_utils import ModelOutput
 
 from multivae.data.datasets import MultimodalBaseDataset
 from multivae.metrics import FIDEvaluator, FIDEvaluatorConfig
+from multivae.metrics.fids.fids import adapt_shape_for_fid
 from multivae.models import MVTCAE, MVTCAEConfig
 from multivae.models.nn.default_architectures import Encoder_VAE_MLP
 
@@ -19,7 +20,7 @@ class Test:
         else:
             return FIDEvaluatorConfig(batch_size=64)
 
-    @pytest.fixture(params=[None, lambda x: x])
+    @pytest.fixture(params=[None, lambda x: adapt_shape_for_fid(resize=False)(x)])
     def fid_model(self, config, request):
         model_config = MVTCAEConfig(
             n_modalities=2,

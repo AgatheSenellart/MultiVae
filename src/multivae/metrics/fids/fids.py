@@ -1,5 +1,5 @@
 from itertools import combinations
-
+import torch
 import numpy as np
 from pythae.models.base.base_utils import ModelOutput
 from scipy import linalg
@@ -19,6 +19,45 @@ except:
 
     def tqdm(x):
         return x
+    
+
+class adapt_shape_for_fid(torch.nn.Module):
+    """ 
+    Transform an input so that each sample has three dimensions with three channels.
+    (batch_size, 2,h,w). The input is assumed to be batched.
+    """
+    
+    def __init__(self, resize = True, **kwargs) -> None:
+        super().__init__(**kwargs)
+        if resize:
+            self.resize = Resize((299,299))
+        else :
+            self.resize = None
+            
+    def forward(self,x):
+    
+        if len(x.shape) == 1:  # (n_data,)
+                x = x.unsqueeze(1)
+        if len(x.shape) == 2:  # (n_data, n)
+                x = x.unsqueeze(1)
+        if len(x.shape) == 3:  # (n_data, n, m)
+                x = x.unsqueeze(1)
+        if len(x.shape) == 4:
+            if x.shape[1] == 1:
+                # Add channels to have 3 channels
+                x = torch.cat([x for _ in range(3)], dim=1)
+            elif x.shape[1] == 2:
+                n, ch, h, w = x.shape
+                x = torch.cat([x, torch.zeros(n, 1, h, w)], dim=1)
+            else:
+                x = x[:, :3, :, :]
+            
+            if self.resize is not None:
+                return self.resize(x)
+            else : 
+                return x
+        else:
+            raise AttributeError("Can't visualize data with more than 3 dimensions")
 
 
 class FIDEvaluator(Evaluator):
@@ -34,8 +73,8 @@ class FIDEvaluator(Evaluator):
         custom_encoder (torch.nn.Module) : If you desire, you can provide our own embedding architecture to use
             instead of the InceptionV3 model to compute Fréchet Distances.
             By default, the pretrained InceptionV3 network is used. Default to None.
-        transform (torchvision.Transforms) : To apply to the images before computing the embeddings. Default to
-            Resize((299, 299)).
+        transform (torchvision.Transforms) : To apply to the images before computing the embeddings. If None is provided
+            a default resizing to (3,299,299) is applied. Default to None.
     """
 
     def __init__(
@@ -45,7 +84,7 @@ class FIDEvaluator(Evaluator):
         output=None,
         eval_config=FIDEvaluatorConfig(),
         custom_encoder=None,
-        transform=Resize((299, 299)),
+        transform=None,
     ) -> None:
         super().__init__(model, test_dataset, output, eval_config)
 
@@ -57,8 +96,10 @@ class FIDEvaluator(Evaluator):
                 device=self.device,
                 path_state_dict=eval_config.inception_weights_path,
             )
-
-        self.inception_transform = transform
+        if transform is not None:
+            self.inception_transform = transform
+        else : 
+            self.inception_transform = adapt_shape_for_fid()
 
     def get_frechet_distance(self, mod, generate_latent_function):
         """
