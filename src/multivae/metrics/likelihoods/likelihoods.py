@@ -1,4 +1,3 @@
-
 from pythae.models.base.base_utils import ModelOutput
 
 from multivae.data import MultimodalBaseDataset
@@ -17,7 +16,7 @@ class LikelihoodsEvaluator(Evaluator):
     Class for computing likelihood metrics.
 
     Args:
-    
+
         model (BaseMultiVAE) : The model to evaluate.
         classifiers (dict) : A dictionary containing the pretrained classifiers to use for the coherence evaluation.
         test_dataset (MultimodalBaseDataset) : The dataset to use for computing the metrics.
@@ -44,7 +43,9 @@ class LikelihoodsEvaluator(Evaluator):
                 data={m: batch["data"][m].to(self.device) for m in batch["data"]}
             )
             if self.unified or (not hasattr(self.model, "compute_joint_nll_paper")):
-                ll += self.model.compute_joint_nll(batch, self.num_samples, self.batch_size_k)
+                ll += self.model.compute_joint_nll(
+                    batch, self.num_samples, self.batch_size_k
+                )
             else:
                 self.logger.info("Using the paper version of the joint nll.")
                 ll += self.model.compute_joint_nll_paper(

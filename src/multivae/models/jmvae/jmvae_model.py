@@ -1,6 +1,6 @@
+import logging
 from typing import Union
 
-import logging
 import numpy as np
 import torch
 import torch.distributions as dist
@@ -10,7 +10,6 @@ from pythae.models.nn.base_architectures import BaseEncoder
 from ...data.datasets.base import MultimodalBaseDataset
 from ..joint_models import BaseJointModel
 from .jmvae_config import JMVAEConfig
-
 
 logger = logging.getLogger(__name__)
 console = logging.StreamHandler()

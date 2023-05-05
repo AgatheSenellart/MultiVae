@@ -11,7 +11,9 @@ from .base import DatasetOutput, MultimodalBaseDataset
 
 class BinaryMnistLabels(MultimodalBaseDataset):
     def __init__(
-        self, data_path: str, split: Literal["train", "test"] = "train",
+        self,
+        data_path: str,
+        split: Literal["train", "test"] = "train",
         download=False,
         random_binarized=True,
     ):
@@ -26,13 +28,10 @@ class BinaryMnistLabels(MultimodalBaseDataset):
     def __getitem__(self, index):
         if self.random_binarized:
             images = Bernoulli(self.images[index]).sample()
-        else :
+        else:
             images = self.images[index]
         return DatasetOutput(
-            
-            data=dict(
-                images=images, labels=self.labels[index]
-            ),
+            data=dict(images=images, labels=self.labels[index]),
             labels=self.labels[index],
         )
 

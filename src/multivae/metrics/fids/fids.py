@@ -1,6 +1,7 @@
 from itertools import combinations
-import torch
+
 import numpy as np
+import torch
 from pythae.models.base.base_utils import ModelOutput
 from scipy import linalg
 from torchvision.transforms import Resize
@@ -18,26 +19,26 @@ except:
 
 
 class adapt_shape_for_fid(torch.nn.Module):
-    """ 
+    """
     Transform an input so that each sample has three dimensions with three channels.
     (batch_size, 2,h,w). The input is assumed to be batched.
     """
-    
-    def __init__(self, resize = True, **kwargs) -> None:
+
+    def __init__(self, resize=True, **kwargs) -> None:
         super().__init__(**kwargs)
         if resize:
-            self.resize = Resize((299,299))
-        else :
+            self.resize = Resize((299, 299))
+        else:
             self.resize = None
-            
-    def forward(self,x):
-    
+
+    def forward(self, x):
+
         if len(x.shape) == 1:  # (n_data,)
-                x = x.unsqueeze(1)
+            x = x.unsqueeze(1)
         if len(x.shape) == 2:  # (n_data, n)
-                x = x.unsqueeze(1)
+            x = x.unsqueeze(1)
         if len(x.shape) == 3:  # (n_data, n, m)
-                x = x.unsqueeze(1)
+            x = x.unsqueeze(1)
         if len(x.shape) == 4:
             if x.shape[1] == 1:
                 # Add channels to have 3 channels
@@ -47,10 +48,10 @@ class adapt_shape_for_fid(torch.nn.Module):
                 x = torch.cat([x, torch.zeros(n, 1, h, w)], dim=1)
             else:
                 x = x[:, :3, :, :]
-            
+
             if self.resize is not None:
                 return self.resize(x)
-            else : 
+            else:
                 return x
         else:
             raise AttributeError("Can't visualize data with more than 3 dimensions")
@@ -95,7 +96,7 @@ class FIDEvaluator(Evaluator):
             )
         if transform is not None:
             self.inception_transform = transform
-        else : 
+        else:
             self.inception_transform = adapt_shape_for_fid()
 
     def get_frechet_distance(self, mod, generate_latent_function):
@@ -148,7 +149,7 @@ class FIDEvaluator(Evaluator):
             sigma1 (numpy.ndarray): The covariance matrix over activations for generated samples.
             sigma2 (numpy.ndarray): The covariance matrix over activations, precalculated on an
                     representative data set.
-        
+
         Return:
             numpy.ndarray : The Frechet Distance.
         """

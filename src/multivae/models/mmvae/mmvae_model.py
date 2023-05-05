@@ -1,6 +1,6 @@
+import logging
 from typing import Union
 
-import logging
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -12,11 +12,11 @@ from multivae.data.datasets.base import MultimodalBaseDataset
 from ..base import BaseMultiVAE
 from .mmvae_config import MMVAEConfig
 
-
 logger = logging.getLogger(__name__)
 console = logging.StreamHandler()
 logger.addHandler(console)
 logger.setLevel(logging.INFO)
+
 
 class MMVAE(BaseMultiVAE):
 

@@ -750,7 +750,7 @@ class BaseTrainer:
         model.eval()
 
         inputs = next(iter(DataLoader(self.eval_dataset, batch_size=n_data)))
-        inputs = set_inputs_to_device(inputs,self.device)
+        inputs = set_inputs_to_device(inputs, self.device)
 
         # recon_dir = self.training_dir + '/reconstructions/'
         # os.makedirs(recon_dir,exist_ok=True)

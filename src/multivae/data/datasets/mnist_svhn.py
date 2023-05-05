@@ -1,5 +1,5 @@
-import os
 import logging
+import os
 from pathlib import Path
 from typing import Union
 
@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 console = logging.StreamHandler()
 logger.addHandler(console)
 logger.setLevel(logging.INFO)
+
 
 class MnistSvhn(MultimodalBaseDataset):
     """

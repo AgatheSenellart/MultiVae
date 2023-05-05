@@ -1,4 +1,3 @@
-
 from pydantic.dataclasses import dataclass
 
 from ..joint_models import BaseJointModelConfig

@@ -136,4 +136,4 @@ dummy_output_dir
 *.mat
 *.pt
 trained_models/
-data/
+data

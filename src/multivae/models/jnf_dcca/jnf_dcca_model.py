@@ -10,7 +10,6 @@ from pythae.models.normalizing_flows.base import BaseNF
 from pythae.models.normalizing_flows.maf import MAF, MAFConfig
 from torch.nn import ModuleDict
 
-
 from multivae.models.nn.default_architectures import (
     BaseDictEncoders,
     MultipleHeadJointEncoder,
@@ -398,7 +397,9 @@ class JNFDcca(BaseJointModel):
             data (dict or MultimodalDataset):
             K (int, optional): . Defaults to 100.
         """
-        logger.info("starting to sample from poe_subset, divide prior = ", divide_prior)
+        logger.info(
+            f"starting to sample from poe_subset, divide prior = {divide_prior}"
+        )
 
         # Multiply the data to have multiple samples per datapoints
         n_data = len(data[list(data.keys())[0]])

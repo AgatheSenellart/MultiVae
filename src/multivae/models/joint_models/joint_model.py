@@ -1,6 +1,6 @@
+import logging
 from typing import Union
 
-import logging
 import numpy as np
 import torch
 import torch.distributions as dist
@@ -10,7 +10,6 @@ from ...data import MultimodalBaseDataset
 from ..base import BaseMultiVAE
 from ..nn.default_architectures import MultipleHeadJointEncoder
 from .joint_model_config import BaseJointModelConfig
-
 
 logger = logging.getLogger(__name__)
 console = logging.StreamHandler()

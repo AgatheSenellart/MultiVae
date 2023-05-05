@@ -6,7 +6,6 @@ import torch
 import torch.distributions as dist
 from pythae.models.base.base_utils import ModelOutput
 
-
 from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
 from multivae.models.nn.default_architectures import (
     BaseDictDecodersMultiLatents,
