@@ -4,10 +4,10 @@ import torch
 from pythae.models.base import BaseAEConfig
 
 from multivae.models.nn.mmnist import (
-    Decoder_ResNet_AE_MNIST,
-    DecoderImg,
+    Decoder_ResNet_AE_MMNIST,
+    DecoderConvMMNIST,
     Encoder_ResNet_VAE_MMNIST,
-    EncoderImg,
+    EncoderConvMMNIST,
 )
 from multivae.models.nn.svhn import Decoder_VAE_SVHN, Encoder_VAE_SVHN
 
