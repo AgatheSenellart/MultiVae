@@ -350,8 +350,6 @@ class TestSaving:
             training_config=training_configs,
         )
 
-        assert not os.path.exists(os.path.join(tmpdir, "test_output_dir"))
-        trainer._set_output_dir()
         assert os.path.exists(os.path.join(tmpdir, "test_output_dir"))
 
 
