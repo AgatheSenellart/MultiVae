@@ -5,10 +5,10 @@ import torch
 from PIL import Image
 from pythae.data.datasets import DatasetOutput
 
-from .base import IncompleteDataset
+from .base import MultimodalBaseDataset
 
 
-class MMNISTDataset(IncompleteDataset):
+class MMNISTDataset(MultimodalBaseDataset):
     """
     Multimodal MMNIST Dataset to load the Polymnist Dataset from
     'Generalized Multimodal Elbo' Sutter et al 2021.
@@ -22,7 +22,8 @@ class MMNISTDataset(IncompleteDataset):
         target_transform=None,
         split="train",
         download=False,
-        missing_ratio = 0
+        missing_ratio = 0,
+        keep_incomplete = True
     ):
         """
         Args: 
@@ -34,7 +35,10 @@ class MMNISTDataset(IncompleteDataset):
             download (bool). Autorization to download the data if it is missing at the specified location.
             missing_ratio (float between 0 and 1) : To create an partially observed dataset, specify a missing ratio > 0 and <= 1. 
                 Default to 0  : No missing data. 
-            
+            keep_incomplete (bool) : For a partially observed dataset, there are two options. 
+                Either keep all the samples and masks to train with incomplete data (set keep_incomplete to True)
+                or only keep complete samples (keep_incomplete = False). 
+                Default to True.
 
         """
 
@@ -48,6 +52,7 @@ class MMNISTDataset(IncompleteDataset):
         self.target_transform = target_transform
         self.download = download
         self.missing_ratio=missing_ratio
+        self.keep_incomplete = keep_incomplete
 
         self.__check_or_download_data__(data_path, unimodal_datapaths)
 
@@ -72,12 +77,13 @@ class MMNISTDataset(IncompleteDataset):
         assert self.m0.shape[0] == self.labels.shape[0]
         self.num_files = self.labels.shape[0]
         
-        if missing_ratio > 0 :
+        if missing_ratio > 0 and self.keep_incomplete:
             self.masks = {}
             for i in range(5):
                 # randomly define the missing samples. 
-                self.masks[f'm{i}'] = torch.bernoulli(torch.ones((self.num_files,))*(1-missing_ratio)).bool()
-                print(self.masks[f'm{i}'])
+                self.masks[f'm{i}'] = torch.bernoulli(torch.ones((self.num_files,))*(1-missing_ratio),
+                                                      generator=torch.Generator().manual_seed(i)).bool()
+                
             self.masks['m0']=torch.ones((self.num_files,)) # ensure there is at least one modality
                                                            # available for all samples
             
@@ -128,13 +134,11 @@ class MMNISTDataset(IncompleteDataset):
         """
         images_dict = { k: self.images_dict[k][index] for k in self.images_dict
         }
-        if self.missing_ratio == 0:
+        if self.missing_ratio == 0 or not self.keep_incomplete:
             return DatasetOutput(data=images_dict, labels=self.labels[index])
         else :
             masks_dict = {k : self.masks[k][index] for k in self.masks}
-            
-            # To be completely sure : replace masked samples with zero values
-            
+                        
             return DatasetOutput(
                 data = images_dict,
                 labels = self.labels[index],
@@ -143,7 +147,14 @@ class MMNISTDataset(IncompleteDataset):
 
         
     def __len__(self):
-        return self.num_files
+        
+        if self.missing_ratio == 0 or self.keep_incomplete:
+            return self.num_files
+        else :
+            # Reduce the lenght using the proportion of complete samples
+            # that corresponds to missing_ratio
+            new_length = (1 - self.missing_ratio)**4 * self.num_files
+            return new_length
 
 
 

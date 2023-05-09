@@ -245,6 +245,8 @@ class MMVAE(BaseMultiVAE):
         N: int = 1,
         **kwargs,
     ):
+        # TODO : Deal with the case where you want to encode an incomplete dataset
+        
         # If the input cond_mod is a string : convert it to a list
         if type(cond_mod) == str:
             if cond_mod == "all":

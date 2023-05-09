@@ -48,7 +48,7 @@ class MVAE(BaseMultiVAE):
         for i in range(2, self.n_modalities):
             self.subsets += combinations(list(self.encoders.keys()), r=i)
 
-    def poe_bis(self, mus_list, log_vars_list):
+    def poe(self, mus_list, log_vars_list):
         mus = mus_list.copy()
         log_vars = log_vars_list.copy()
 
@@ -217,16 +217,7 @@ class MVAE(BaseMultiVAE):
                     'If cond_mod is a string, it must either be "all" or a modality name'
                     f" The provided string {cond_mod} is neither."
                 )
-
-        # Check that all data is available for the desired conditioned modalities
-        if hasattr(inputs, "masks"):
-            _, filter = self._filter_inputs_with_masks(inputs, cond_mod)
-            if not filter.all():
-                raise AttributeError(
-                    "You asked to encode conditioned on the following"
-                    f"modalities {cond_mod} but some of the modalities are missing in the input data"
-                    " (according to the provided masks)"
-                )
+        
 
         sub_mu, sub_logvar = self.compute_mu_log_var_subset(inputs, cond_mod)
         sub_std = torch.exp(0.5 * sub_logvar)

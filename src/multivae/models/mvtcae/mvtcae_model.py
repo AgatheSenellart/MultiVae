@@ -135,7 +135,6 @@ class MVTCAE(BaseMultiVAE):
         var = torch.exp(logvar) + eps
         # precision of i-th Gaussian expert at point x
         T = 1.0 / var
-        print(T)
         pd_mu = torch.sum(mu * T, dim=0) / torch.sum(T, dim=0)
         pd_var = 1.0 / torch.sum(T, dim=0)
         pd_logvar = torch.log(pd_var)
@@ -150,8 +149,11 @@ class MVTCAE(BaseMultiVAE):
     def _filter_inputs_with_masks(
         self, inputs: IncompleteDataset, subset: Union[list, tuple]
     ):
-        """Returns a filtered dataset containing only the samples that are available
-        in all the modalities contained in subset."""
+        """
+        Returns a filtered dataset containing only the samples that are available
+        in all the modalities contained in subset. 
+        The dataset that is returned only contains the modalities in subset.
+        """
 
         filter = torch.tensor(
             True,
@@ -224,11 +226,9 @@ class MVTCAE(BaseMultiVAE):
 
         # If the dataset is incomplete, keep only the samples availables in all cond_mod
         # modalities
-        if isinstance(inputs, IncompleteDataset):
-            cond_inputs, filter = self._filter_inputs_with_masks(inputs, cond_mod)
-        else:
-            # Only keep the relevant modalities for prediction
-            cond_inputs = MultimodalBaseDataset(
+        
+        # Only keep the relevant modalities for prediction
+        cond_inputs = MultimodalBaseDataset(
                 data={k: inputs.data[k] for k in cond_mod},
             )
 

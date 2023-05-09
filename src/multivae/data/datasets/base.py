@@ -64,7 +64,7 @@ class IncompleteDataset(MultimodalBaseDataset):
     """
 
     def __init__(self, data: dict, masks: dict, labels: Tensor = None) -> None:
-        super().__init__()
+        
         self.data = data
         self.masks = masks
         self.labels = labels

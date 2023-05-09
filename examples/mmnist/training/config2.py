@@ -54,7 +54,7 @@ decoders = {
 base_training_config = dict(
     learning_rate=1e-3,
     per_device_train_batch_size=256,
-    num_epochs=3,
+    num_epochs=800,
     optimizer_cls="Adam",
     optimizer_params={},
     steps_predict=5,
@@ -117,6 +117,9 @@ def load_mmnist_classifiers(data_path="../../../data/clf", device="cuda"):
     return clfs
 
 
+def save_model(model,args):
+    missing_ratio = ''.join(str(args.missing_ratio).split('.'))
+    model.push_to_hf_hub(f"asenella/mmnist_{model.model_name}{config_name}_seed_{args.seed}_ratio_{missing_ratio}")
 
 
 def eval_model(model,output_dir, test_data, wandb_path):
@@ -149,3 +152,5 @@ def eval_model(model,output_dir, test_data, wandb_path):
         output=output_dir,
         eval_config=config
         ).mvtcae_reproduce_fids(gen_mod='m0')
+
+

@@ -70,6 +70,6 @@ coherences = CoherenceEvaluator(
     output=trainer.training_dir,
 ).eval()
 
-trainer._best_model.push_to_hf_hub("asenella/mmnist" + model.model_name + config_name)
+save_model(model,args)
 
 eval_model(model, trainer.training_dir,test_data,wandb_cb.run.path)

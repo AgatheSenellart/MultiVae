@@ -340,7 +340,6 @@ class MoPoE(BaseMultiVAE):
             if len(availabilities.shape)==1:
                 availabilities = availabilities.unsqueeze(1)
             availabilities /= torch.sum(availabilities,dim=0) # (n_subset,n_samples)
-            print(availabilities)
 
             joint_mu,joint_logvar = self.random_mixture_component_selection(mus,logvars,availabilities)
             weights = availabilities
