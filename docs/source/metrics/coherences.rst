@@ -1,5 +1,5 @@
 **********************************
-Base class for metrics modules
+Coherences
 **********************************
 
 

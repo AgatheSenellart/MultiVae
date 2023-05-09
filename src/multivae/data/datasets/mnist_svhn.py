@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 from typing import Union
@@ -8,6 +9,11 @@ from torchvision.datasets import MNIST, SVHN
 
 from .base import MultimodalBaseDataset
 from .utils import ResampleDataset
+
+logger = logging.getLogger(__name__)
+console = logging.StreamHandler()
+logger.addHandler(console)
+logger.setLevel(logging.INFO)
 
 
 class MnistSvhn(MultimodalBaseDataset):
@@ -52,8 +58,8 @@ class MnistSvhn(MultimodalBaseDataset):
         if not self._check_pairing_exists():
             self.create_pairing(mnist, svhn)
 
-        i_mnist = torch.load(f"{self.path_to_idx}/mnist_idx_cp.pt")  ## !!!!WARNING!!!
-        i_svhn = torch.load(f"{self.path_to_idx}/svhn_idx_cp.pt")  ## !!!!WARNING!!!
+        i_mnist = torch.load(f"{self.path_to_idx}/mnist_idx.pt")  ## !!!!WARNING!!!
+        i_svhn = torch.load(f"{self.path_to_idx}/svhn_idx.pt")  ## !!!!WARNING!!!
 
         order = np.arange(len(i_mnist))
         np.random.shuffle(
@@ -78,10 +84,10 @@ class MnistSvhn(MultimodalBaseDataset):
 
     def _check_pairing_exists(self):
         if not os.path.exists(f"{self.path_to_idx}/mnist_idx.pt"):
-            print("Pairing not found.")
+            logger.warning("Pairing not found.")
             return False
         if not os.path.exists(f"{self.path_to_idx}/svhn_idx.pt"):
-            print("Pairing not found.")
+            logger.warning("Pairing not found.")
             return False
         return True
 
@@ -97,7 +103,7 @@ class MnistSvhn(MultimodalBaseDataset):
         return torch.cat(_idx1), torch.cat(_idx2)
 
     def create_pairing(self, mnist: MNIST, svhn: SVHN, max_d=10000):
-        print(f"Creating indices in {self.path_to_idx}")
+        logger.info(f"Creating indices in {self.path_to_idx}")
         # Refactor svhn labels to match mnist labels
         svhn.labels = torch.LongTensor(svhn.labels.squeeze().astype(int)) % 10
         mnist_l, mnist_li = mnist.targets.sort()

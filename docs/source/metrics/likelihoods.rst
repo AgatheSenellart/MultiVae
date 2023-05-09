@@ -1,15 +1,13 @@
 **********************************
-Base class for metrics modules
+Likelihoods
 **********************************
 
 
 .. automodule::
    multivae.metrics.likelihoods
 
-.. autoclass:: multivae.metrics.LikelihoodsEvaluator
-   :members:
-
 .. autoclass:: multivae.metrics.LikelihoodsEvaluatorConfig
    :members:
 
-
+.. autoclass:: multivae.metrics.LikelihoodsEvaluator
+   :members:

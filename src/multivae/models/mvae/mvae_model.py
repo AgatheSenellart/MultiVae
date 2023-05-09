@@ -6,8 +6,6 @@ import torch
 import torch.distributions as dist
 from numpy.random import choice
 from pythae.models.base.base_utils import ModelOutput
-from scipy.special import comb
-from torch.distributions import kl_divergence
 
 from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
 
@@ -50,7 +48,7 @@ class MVAE(BaseMultiVAE):
         for i in range(2, self.n_modalities):
             self.subsets += combinations(list(self.encoders.keys()), r=i)
 
-    def poe(self, mus_list, log_vars_list):
+    def poe_bis(self, mus_list, log_vars_list):
         mus = mus_list.copy()
         log_vars = log_vars_list.copy()
 

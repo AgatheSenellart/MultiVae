@@ -1,17 +1,23 @@
-from typing import Dict, Tuple, Union
+import logging
+from typing import Dict, Union
 
 import numpy as np
 import torch
 import torch.distributions as dist
 from pythae.models.base.base_utils import ModelOutput
 from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
-from pythae.models.normalizing_flows.base import BaseNF, BaseNFConfig
+from pythae.models.normalizing_flows.base import BaseNF
 from pythae.models.normalizing_flows.maf import MAF, MAFConfig
 from torch.nn import ModuleDict
 
 from ...data.datasets.base import MultimodalBaseDataset
 from ..joint_models import BaseJointModel
 from .jnf_config import JNFConfig
+
+logger = logging.getLogger(__name__)
+console = logging.StreamHandler()
+logger.addHandler(console)
+logger.setLevel(logging.INFO)
 
 
 class JNF(BaseJointModel):
@@ -319,7 +325,9 @@ class JNF(BaseJointModel):
             data (dict or MultimodalDataset):
             K (int, optional): . Defaults to 100.
         """
-        print("starting to sample from poe_subset, divide prior = ", divide_prior)
+        logger.info(
+            f"starting to sample from poe_subset, divide prior = {divide_prior}"
+        )
 
         # Multiply the data to have multiple samples per datapoints
         n_data = len(data[list(data.keys())[0]])

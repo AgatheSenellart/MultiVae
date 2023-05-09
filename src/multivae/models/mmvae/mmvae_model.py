@@ -1,3 +1,4 @@
+import logging
 from typing import Union
 
 import numpy as np
@@ -11,7 +12,12 @@ from multivae.data.datasets.base import MultimodalBaseDataset
 
 from ..base import BaseMultiVAE
 from .mmvae_config import MMVAEConfig
-torch.autograd.set_detect_anomaly(True)
+
+logger = logging.getLogger(__name__)
+console = logging.StreamHandler()
+logger.addHandler(console)
+logger.setLevel(logging.INFO)
+
 
 class MMVAE(BaseMultiVAE):
 
@@ -281,7 +287,7 @@ class MMVAE(BaseMultiVAE):
 
         """
 
-        print(
+        logger.info(
             "Started computing the negative log_likelihood on inputs. This function"
             " can take quite a long time to run."
         )

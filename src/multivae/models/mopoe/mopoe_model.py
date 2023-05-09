@@ -4,10 +4,7 @@ from typing import Union
 import numpy as np
 import torch
 import torch.distributions as dist
-from numpy.random import choice
 from pythae.models.base.base_utils import ModelOutput
-from scipy.special import comb
-from torch.distributions import kl_divergence
 
 from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
 from multivae.models.nn.default_architectures import (

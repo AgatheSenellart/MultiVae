@@ -1,6 +1,5 @@
 from typing import Literal
 
-import torch
 from torchvision import transforms
 from torchvision.datasets import CelebA
 

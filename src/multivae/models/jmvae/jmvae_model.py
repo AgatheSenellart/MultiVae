@@ -1,14 +1,20 @@
-from typing import Tuple, Union
+import logging
+from typing import Union
 
 import numpy as np
 import torch
 import torch.distributions as dist
 from pythae.models.base.base_utils import ModelOutput
-from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
+from pythae.models.nn.base_architectures import BaseEncoder
 
 from ...data.datasets.base import MultimodalBaseDataset
 from ..joint_models import BaseJointModel
 from .jmvae_config import JMVAEConfig
+
+logger = logging.getLogger(__name__)
+console = logging.StreamHandler()
+logger.addHandler(console)
+logger.setLevel(logging.INFO)
 
 
 class JMVAE(BaseJointModel):
@@ -394,7 +400,7 @@ class JMVAE(BaseJointModel):
 
         # First compute all the parameters of the joint posterior q(z|x,y)
 
-        print(
+        logger.info(
             "Started computing the negative log_likelihood on inputs. This function"
             " can take quite a long time to run."
         )

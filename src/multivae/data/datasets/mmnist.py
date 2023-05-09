@@ -1,14 +1,9 @@
-import argparse
-import glob
 import os
 
 import numpy as np
 import torch
 from PIL import Image
-from pythae.data.datasets import Dataset, DatasetOutput
-from torch.utils.data import Dataset
-from torchvision import datasets, transforms
-from torchvision.utils import save_image
+from pythae.data.datasets import DatasetOutput
 
 from .base import IncompleteDataset
 

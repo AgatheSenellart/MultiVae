@@ -1,5 +1,3 @@
-from typing import Tuple, Union
-
 from pydantic.dataclasses import dataclass
 
 from ..joint_models import BaseJointModelConfig

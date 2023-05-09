@@ -1,5 +1,3 @@
-from typing import List
-
 import numpy as np
 import torch
 from pythae.models.base import BaseAEConfig

@@ -145,12 +145,6 @@ class DecoderSVHN(BaseDecoder):
 train_set = MnistSvhn(split="train", data_multiplication=30)
 test_set = MnistSvhn(split="test", data_multiplication=30)
 
-print(
-    f"Bound for Mnist {torch.min(train_set[:128].data['mnist']),torch.max(train_set[:128].data['mnist'])}"
-)
-print(
-    f"Bound for SVHN {torch.min(train_set[:128].data['svhn']),torch.max(train_set[:128].data['svhn'])}"
-)
 
 
 print(f"train : {len(train_set)}, test : {len(test_set)}")

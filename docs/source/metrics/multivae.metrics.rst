@@ -4,16 +4,22 @@
 Metrics
 **********************************
 
+.. automodule::
+    multivae.metrics
 
 .. toctree::
     :hidden:
     :maxdepth: 1
 
-    base
     coherences
     fids
     likelihoods
     
+Available Metrics
+-------------------------------------------
 
-.. automodule::
-    multivae.metrics
+.. autosummary::
+    ~multivae.metrics.CoherenceEvaluator
+    ~multivae.metrics.FIDEvaluator
+    ~multivae.metrics.LikelihoodsEvaluator
+    :nosignatures:

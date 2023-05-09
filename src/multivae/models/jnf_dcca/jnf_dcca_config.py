@@ -1,8 +1,5 @@
-from typing import Tuple, Union
-
 from pydantic.dataclasses import dataclass
 
-from ..dcca.dcca_config import DCCAConfig
 from ..joint_models import BaseJointModelConfig
 
 

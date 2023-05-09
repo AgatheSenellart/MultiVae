@@ -131,7 +131,6 @@ class TestJNFDcca:
         else:
             model = JNFDcca(model_config)
 
-        print(model.DCCA_module.networks)
         return model
 
     @fixture

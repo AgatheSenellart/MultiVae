@@ -1,7 +1,5 @@
-from collections import OrderedDict
-from typing import Any, Tuple, Union
+from typing import Union
 
-import torch
 from numpy import ndarray
 from pythae.data.datasets import Dataset, DatasetOutput
 from torch import Tensor
