@@ -63,7 +63,7 @@ base_training_config = dict(
 )
 
 wandb_project = "compare_on_mmnist"
-config_name = "_config2_"
+config_name = "config2"
 
 
 #######################################

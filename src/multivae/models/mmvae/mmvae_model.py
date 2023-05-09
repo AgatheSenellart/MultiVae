@@ -154,10 +154,12 @@ class MMVAE(BaseMultiVAE):
         else :
             n_mods_sample = torch.tensor([self.n_modalities])
         
+        
         lws = []
         zss = []
         for mod in embeddings:
             z = embeddings[mod]  # (K, n_batch, latent_dim)
+            n_mods_sample = n_mods_sample.to(z.device)
             prior = self.prior_dist(*self.pz_params)
             lpz = prior.log_prob(z).sum(-1)
             

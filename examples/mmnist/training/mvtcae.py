@@ -1,11 +1,10 @@
-from multivae.metrics.fids.fids import FIDEvaluator
 from config2 import *
 
 from multivae.models import MVTCAE, MVTCAEConfig
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--seed', default=8)
-parser.add_argument('--missing_ratio',type=float, default=0)
+parser.add_argument('--seed',type=int, default=8)
+parser.add_argument('--missing_ratio', type=float, default=0)
 args = parser.parse_args()
 
 train_data = MMNISTDataset(data_path="~/scratch/data/MMNIST", split="train", missing_ratio=args.missing_ratio)

@@ -33,7 +33,6 @@ wandb_cb = WandbCallback()
 wandb_cb.setup(trainer_config, model_config, project_name=wandb_project)
 wandb_cb.run.config.update(dict(missing_ratio=args.missing_ratio))
 
-
 callbacks = [TrainingCallback(), ProgressBarCallback(), wandb_cb]
 
 trainer = BaseTrainer(
@@ -46,15 +45,11 @@ trainer = BaseTrainer(
 trainer.train()
 
 model = trainer._best_model
-# validate the model
-coherences = CoherenceEvaluator(
-    model=model,
-    test_dataset=test_data,
-    classifiers=load_mmnist_classifiers(device=model.device),
-    output=trainer.training_dir,
-).eval()
+model.push_to_hf_hub(f"asenella/mmnist_{model.model_name}{config_name}_seed_{args.seed}_ratio_{args.missing_ratio}")
 
-trainer._best_model.push_to_hf_hub(f"asenella/mmnist_{model.model_name}{config_name}_seed_{args.seed}_ratio_{args.missing_ratio}")
-
+##################################################################################################################################
+# validate the model #############################################################################################################
+##################################################################################################################################
 
 eval_model(model, trainer.training_dir,test_data,wandb_cb.run.path)
+
