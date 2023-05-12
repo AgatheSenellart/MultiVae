@@ -21,8 +21,10 @@ train_data, eval_data = random_split(
 
 model_config = MVAEConfig(
     **base_config,
-    use_subsampling=False,
-    warmup=0)
+    use_subsampling=args.missing_ratio == 0 or not(args.keep_incomplete),
+    warmup=0,
+    beta=1
+    )
 
 
 model = MVAE(model_config, encoders=encoders, decoders=decoders)
@@ -32,6 +34,7 @@ trainer_config = BaseTrainerConfig(
     seed=args.seed,
     output_dir= f'compare_on_mmnist/{config_name}/{model.model_name}/seed_{args.seed}/missing_ratio_{args.missing_ratio}/'
 )
+trainer_config.num_epochs = 400 
 
 # Set up callbacks
 wandb_cb = WandbCallback()

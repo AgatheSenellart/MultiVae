@@ -33,9 +33,11 @@ class MVAEConfig(BaseMultiVAEConfig):
         warmup (int) : If warmup > 0, the MVAE model uses annealing during the first warmup epochs.
             In the objective, the KL terms are weighted by a factor beta that is linearly brought
             to 1 during the first warmup epochs. Default to 10.
+        beta (float) : The scaling factor for the divergence term. Default to 1.
 
 
     """
     use_subsampling : bool = True
     k: int = 0
     warmup: int = 10
+    beta : float = 1

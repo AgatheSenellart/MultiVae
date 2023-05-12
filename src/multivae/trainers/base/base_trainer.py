@@ -651,10 +651,10 @@ class BaseTrainer:
             self._optimizers_step(model_output)
 
             loss = model_output.loss
-
             epoch_loss += loss.item()
             update_dict(epoch_model_metrics, model_output.metrics)
-
+            print(model_output.metrics)
+            print(loss.item())
             if epoch_loss != epoch_loss:
                 raise ArithmeticError("NaN detected in train loss")
 

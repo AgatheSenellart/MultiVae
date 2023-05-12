@@ -41,6 +41,7 @@ class MVAE(BaseMultiVAE):
             self.k = 0
         self.set_subsets()
         self.warmup = model_config.warmup
+        self.beta = model_config.beta
         self.model_name = "MVAE"
 
     def set_subsets(self):
@@ -161,9 +162,9 @@ class MVAE(BaseMultiVAE):
         epoch = kwargs.pop("epoch", 1)
         batch_ratio = kwargs.pop("batch_ratio", 0)
         if epoch >= self.warmup:
-            beta = 1
+            beta = 1 * self.beta
         else:
-            beta = (epoch + batch_ratio) / self.warmup
+            beta = (epoch + batch_ratio) / self.warmup * self.beta
 
         total_loss = 0
         metrics = {}

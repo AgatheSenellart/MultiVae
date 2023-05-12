@@ -1,6 +1,7 @@
 import os
 
 import numpy as np
+import math
 import torch
 from PIL import Image
 from pythae.data.datasets import DatasetOutput
@@ -153,7 +154,7 @@ class MMNISTDataset(MultimodalBaseDataset):
         else :
             # Reduce the lenght using the proportion of complete samples
             # that corresponds to missing_ratio
-            new_length = (1 - self.missing_ratio)**4 * self.num_files
+            new_length = math.ceil((1 - self.missing_ratio)**4 * self.num_files)
             return new_length
 
 

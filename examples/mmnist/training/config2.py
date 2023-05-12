@@ -22,6 +22,7 @@ from multivae.trainers.base.callbacks import (
     WandbCallback,
 )
 import argparse
+import json
 
 
 
@@ -59,7 +60,7 @@ base_training_config = dict(
     optimizer_params={},
     steps_predict=5,
     scheduler_cls="ReduceLROnPlateau",
-    scheduler_params={"patience": 10},
+    scheduler_params={"patience": 30},
 )
 
 wandb_project = "compare_on_mmnist"
@@ -119,7 +120,8 @@ def load_mmnist_classifiers(data_path="../../../data/clf", device="cuda"):
 
 def save_model(model,args):
     missing_ratio = ''.join(str(args.missing_ratio).split('.'))
-    model.push_to_hf_hub(f"asenella/mmnist_{model.model_name}{config_name}_seed_{args.seed}_ratio_{missing_ratio}")
+    incomplete = 'i' if args.keep_incomplete else 'c'
+    model.push_to_hf_hub(f"asenella/mmnist_{model.model_name}{config_name}_seed_{args.seed}_ratio_{missing_ratio}_{incomplete}")
 
 
 def eval_model(model,output_dir, test_data, wandb_path):

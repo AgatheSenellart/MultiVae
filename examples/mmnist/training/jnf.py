@@ -5,11 +5,16 @@ from multivae.trainers import TwoStepsTrainer, TwoStepsTrainerConfig
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--seed', default=8)
-parser.add_argument('--missing_ratio',type=float, default=0)
+parser.add_argument('--seed',type=int, default=8)
+parser.add_argument('--missing_ratio', type=float, default=0)
+parser.add_argument('--keep_incomplete', type=bool, default=False)
+
 args = parser.parse_args()
 
-train_data = MMNISTDataset(data_path="~/scratch/data/MMNIST", split="train", missing_ratio=args.missing_ratio)
+train_data = MMNISTDataset(data_path="~/scratch/data/MMNIST", split="train",
+                           missing_ratio=args.missing_ratio,
+                           keep_incomplete=args.keep_incomplete)
+
 test_data = MMNISTDataset(data_path="~/scratch/data/MMNIST", split="test")
 
 train_data, eval_data = random_split(
@@ -33,7 +38,7 @@ trainer_config = TwoStepsTrainerConfig(
 # Set up callbacks
 wandb_cb = WandbCallback()
 wandb_cb.setup(trainer_config, model_config, project_name=wandb_project)
-wandb_cb.run.config.update(dict(missing_ratio=args.missing_ratio))
+wandb_cb.run.config.update(args.__dict__)
 
 callbacks = [TrainingCallback(), ProgressBarCallback(), wandb_cb]
 
@@ -46,16 +51,10 @@ trainer = TwoStepsTrainer(
 )
 trainer.train()
 
-# validate the model and save
-
 model = trainer._best_model
-coherences = CoherenceEvaluator(
-    model=model,
-    test_dataset=test_data,
-    classifiers=load_mmnist_classifiers(device=model.device),
-    output=trainer.training_dir,
-).eval()
-
-trainer._best_model.push_to_hf_hub("asenella/mmnist" + model.model_name + config_name)
+save_model(model,args)
+##################################################################################################################################
+# validate the model #############################################################################################################
+##################################################################################################################################
 
 eval_model(model, trainer.training_dir,test_data,wandb_cb.run.path)
