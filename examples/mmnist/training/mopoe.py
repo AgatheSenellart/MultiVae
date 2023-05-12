@@ -31,6 +31,7 @@ trainer_config = BaseTrainerConfig(
     seed=args.seed,
     output_dir= f'compare_on_mmnist/{config_name}/{model.model_name}/seed_{args.seed}/missing_ratio_{args.missing_ratio}/'
 )
+trainer_config.num_epochs = 400
 
 # Set up callbacks
 wandb_cb = WandbCallback()
