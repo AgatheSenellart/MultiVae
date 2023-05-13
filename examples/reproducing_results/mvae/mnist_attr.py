@@ -3,6 +3,8 @@ import torch.nn.functional as F
 from torch import nn
 
 from multivae.data.datasets.mnist_labels import BinaryMnistLabels
+from multivae.metrics.likelihoods.likelihoods import LikelihoodsEvaluator
+from multivae.metrics.likelihoods.likelihoods_config import LikelihoodsEvaluatorConfig
 from multivae.models import MVAE, MVAEConfig
 from multivae.models.nn.default_architectures import (
     BaseDecoder,
@@ -93,7 +95,6 @@ class TextEncoder(BaseEncoder):
         self.swish = Swish()
 
     def forward(self, x):
-        h = labels_to_binary_tensors(x)
         h = self.swish(self.fc1(x))
         h = self.swish(self.fc2(h))
         return ModelOutput(embedding=self.fc31(h), log_covariance=self.fc32(h))
@@ -113,7 +114,7 @@ class TextDecoder(BaseDecoder):
         self.fc3 = nn.Linear(512, 512)
         self.fc4 = nn.Linear(512, 10)
         self.swish = Swish()
-        self.softmax = nn.Softmax()
+        self.softmax = nn.Softmax(dim=1)
 
     def forward(self, z):
         h = self.swish(self.fc1(z))
@@ -133,6 +134,8 @@ model_config = MVAEConfig(
     warmup=200,
     uses_likelihood_rescaling=True,
     rescale_factors=dict(images=1, labels=50),
+    use_subsampling=True,
+    k=0
 )
 
 encoders = dict(
@@ -149,8 +152,8 @@ model = MVAE(model_config, encoders, decoders)
 ######################################################
 ### Dataset
 
-train_set = BinaryMnistLabels(data_path="../../../data", split="train", random_binarized=True)
-test_set = BinaryMnistLabels(data_path="../../../data", split="test", random_binarized=True)
+train_set = BinaryMnistLabels(data_path="../data", split="train", random_binarized=True, download=True)
+test_set = BinaryMnistLabels(data_path="../data", split="test", random_binarized=True,download = True)
 
 ##############################################################
 #### Training
@@ -160,7 +163,7 @@ training_config = BaseTrainerConfig(
     per_device_train_batch_size=100,
     per_device_eval_batch_size=100,
     num_epochs=500,
-    start_keep_best_epoch=model_config.warmup,
+    start_keep_best_epoch=model_config.warmup+1,
     steps_predict=5,
     learning_rate=1e-3,
 )
@@ -180,3 +183,13 @@ trainer = BaseTrainer(
 trainer.train()
 
 trainer._best_model.push_to_hf_hub("asenella/reproduce_mvae_mnist")
+
+
+###############################################################################
+###### Validate #############
+
+ll_config = LikelihoodsEvaluatorConfig(batch_size=512, K=1000, batch_size_k=500, wandb_path=wandb_.run.path)
+
+ll_module = LikelihoodsEvaluator(model, test_set, eval_config=ll_config)
+
+ll_module.eval()

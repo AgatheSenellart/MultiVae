@@ -74,8 +74,8 @@ class MVAE(BaseMultiVAE):
         mus.append(torch.zeros_like(mus[0]))
         log_vars.append(torch.zeros_like(log_vars[0]))
         
-        mus = torch.stack(mus_list)
-        logvars = torch.stack(logvar_list)
+        mus = torch.stack(mus)
+        logvars = torch.stack(log_vars)
         var       = torch.exp(logvars) + eps
         # precision of i-th Gaussian expert at point x
         T         = 1. / (var + eps)
@@ -164,9 +164,7 @@ class MVAE(BaseMultiVAE):
         if epoch >= self.warmup:
             beta = 1 * self.beta
         else:
-            beta = (epoch - 1 + batch_ratio) / self.warmup * self.beta
-        # print(f'beta : {beta}')
-
+            beta = (epoch-1 + batch_ratio) / self.warmup * self.beta
         total_loss = 0
         metrics = {}
         # Collect all the subsets
@@ -198,7 +196,7 @@ class MVAE(BaseMultiVAE):
                 subset_elbo = 0
             total_loss += subset_elbo
             metrics["_".join(sorted(s))] = subset_elbo
-        # print(metrics)
+            metrics['beta'] = beta
         return ModelOutput(loss=total_loss, metrics=metrics)
 
     def encode(

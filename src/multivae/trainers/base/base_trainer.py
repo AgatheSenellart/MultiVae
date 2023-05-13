@@ -195,7 +195,7 @@ class BaseTrainer:
             dataset=train_dataset,
             batch_size=self.training_config.per_device_train_batch_size,
             num_workers=self.training_config.train_dataloader_num_workers,
-            shuffle=(train_sampler is None),
+            shuffle=True, 
             sampler=train_sampler,
             drop_last=self.training_config.drop_last,
         )
@@ -645,7 +645,7 @@ class BaseTrainer:
                 epoch=epoch,
                 dataset_size=len(self.train_loader.dataset),
                 uses_ddp=self.distributed,
-                batch_ratio=(batch_idx + 1) / len(self.train_loader),
+                batch_ratio=(batch_idx) / len(self.train_loader),
             )
 
             self._optimizers_step(model_output)
@@ -653,8 +653,7 @@ class BaseTrainer:
             loss = model_output.loss
             epoch_loss += loss.item()
             update_dict(epoch_model_metrics, model_output.metrics)
-            # print(model_output.metrics)
-            # print(loss.item())
+            
             if epoch_loss != epoch_loss:
                 raise ArithmeticError("NaN detected in train loss")
 
