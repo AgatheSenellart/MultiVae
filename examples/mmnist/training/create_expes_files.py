@@ -4,18 +4,20 @@ import itertools
 import json
 
 
-params_options = {'missing_ratio': [0, 0.2, 0.5],
-                  'keep_incomplete': [True, False],
-                  'seed': [0, 1, 2, 3]}
+params_options = {'keep_incomplete': [False, True],
+    'missing_ratio': [0, 0.2, 0.5],
+    'seed': [0, 1, 2, 3]}
 
 hypnames, hypvalues = zip(*params_options.items())
 trial_hyperparameter_set = [dict(zip(hypnames, h)) for h in itertools.product(*hypvalues)]
 
+file_nb=1
 for i,config in enumerate(trial_hyperparameter_set):
     
     # remove unwanted configurations
     if config['missing_ratio'] == 0 and config['keep_incomplete']:
         pass
     else:
-        with open(f'config/f{i}.json', 'a+') as fp:
+        with open(f'config/f{file_nb}.json', 'a+') as fp:
             json.dump(config,fp)
+        file_nb+=1

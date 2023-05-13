@@ -3,11 +3,12 @@ from config2 import *
 from multivae.models import MMVAE, MMVAEConfig
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--seed',type=int, default=8)
-parser.add_argument('--missing_ratio', type=float, default=0)
-parser.add_argument('--keep_incomplete', type=bool, default=False)
-
+parser.add_argument('--param_file',type=str)
 args = parser.parse_args()
+
+with open(args.param_file,'r') as fp:
+    info = json.load(fp)
+args = argparse.Namespace(**info)
 
 train_data = MMNISTDataset(data_path="~/scratch/data/MMNIST", 
                            split="train", 

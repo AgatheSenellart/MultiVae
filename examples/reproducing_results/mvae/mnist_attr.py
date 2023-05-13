@@ -162,7 +162,7 @@ training_config = BaseTrainerConfig(
     num_epochs=500,
     start_keep_best_epoch=model_config.warmup,
     steps_predict=5,
-    learning_rate=0.5*1e-3,
+    learning_rate=1e-3,
 )
 wandb_ = WandbCallback()
 wandb_.setup(training_config, model_config, project_name="reproduce_mvae_mnist")

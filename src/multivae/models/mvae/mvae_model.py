@@ -164,7 +164,8 @@ class MVAE(BaseMultiVAE):
         if epoch >= self.warmup:
             beta = 1 * self.beta
         else:
-            beta = (epoch + batch_ratio) / self.warmup * self.beta
+            beta = (epoch - 1 + batch_ratio) / self.warmup * self.beta
+        # print(f'beta : {beta}')
 
         total_loss = 0
         metrics = {}
@@ -197,7 +198,7 @@ class MVAE(BaseMultiVAE):
                 subset_elbo = 0
             total_loss += subset_elbo
             metrics["_".join(sorted(s))] = subset_elbo
-
+        # print(metrics)
         return ModelOutput(loss=total_loss, metrics=metrics)
 
     def encode(
