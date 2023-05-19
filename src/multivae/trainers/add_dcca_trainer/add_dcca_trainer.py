@@ -99,7 +99,7 @@ class AddDccaTrainer(BaseTrainer):
             num_workers=self.training_config.eval_dataloader_num_workers,
             shuffle=(eval_sampler is None),
             sampler=eval_sampler,
-            drop_last=True,
+            drop_last=len(eval_dataset) > batch_size,
         )
 
     def prepare_train_step(self, epoch, best_train_loss, best_eval_loss):
