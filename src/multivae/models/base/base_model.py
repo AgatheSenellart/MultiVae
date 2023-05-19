@@ -73,7 +73,7 @@ class BaseMultiVAE(nn.Module):
                         f"The provided number of input_dims {len(self.input_dims.keys())} doesn't"
                         f"match the number of modalities ({self.n_modalities} in model config "
                     )
-                encoders = BaseDictEncoders(self.input_dims, model_config.latent_dim)
+                encoders = self.default_encoders(model_config)
         else:
             self.model_config.custom_architectures.append("encoders")
 
@@ -88,7 +88,7 @@ class BaseMultiVAE(nn.Module):
                         f"The provided number of input_dims {len(self.input_dims.keys())} doesn't"
                         f"match the number of modalities ({self.n_modalities} in model config "
                     )
-                decoders = BaseDictDecoders(self.input_dims, model_config.latent_dim)
+                decoders = self.default_decoders(model_config)
         else:
             self.model_config.custom_architectures.append("decoders")
 
@@ -244,6 +244,7 @@ class BaseMultiVAE(nn.Module):
             outputs = ModelOutput()
 
             for m in modalities:
+                print(z_content.shape, embedding.modalities_z[m].shape)
                 z = torch.cat([z_content, embedding.modalities_z[m]], dim=-1)
                 outputs[m] = self.decoders[m](z).reconstruction
             return outputs
@@ -299,6 +300,14 @@ class BaseMultiVAE(nn.Module):
         By default, it does nothing.
         """
         pass
+    
+    def default_encoders(self,model_config) -> nn.ModuleDict:
+        return BaseDictEncoders(self.input_dims, model_config.latent_dim)
+    
+    def default_decoders(self,model_config) -> nn.ModuleDict:
+        return BaseDictDecoders(self.input_dims, model_config.latent_dim)
+        
+        
 
     def set_encoders(self, encoders: dict) -> None:
         """Set the encoders of the model"""
