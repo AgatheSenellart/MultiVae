@@ -171,10 +171,10 @@ class MMVAEPlus(BaseMultiVAE):
                     w = self.prior_dist(self.mean_priors[recon_mod].squeeze(0),
                                         self.log_var_to_std(self.logvars_priors[recon_mod]).squeeze(0)
                                         ).rsample([K,u_x.shape[1]])
-                    print(u_x.shape,w.shape)
+                    # print(u_x.shape,w.shape)
                     z_x = torch.cat([u_x,w], dim=-1)
                 # Decode
-                print(z_x.shape)
+                # print(z_x.shape)
                 decoder = self.decoders[recon_mod]
                 recon = decoder(z_x)["reconstruction"]
                 
