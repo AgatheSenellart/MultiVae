@@ -172,7 +172,7 @@ modalities = ['m0','m1','m2','m3','m4']
 
 model_config = MMVAEPlusConfig(
     n_modalities=5,
-    K=10,
+    K=1,
     decoders_dist={m : 'laplace' for m in modalities},
     decoder_dist_params= {m : dict(scale = 0.75) for m in modalities},
     prior_and_posterior_dist='laplace_with_softmax',
@@ -180,7 +180,7 @@ model_config = MMVAEPlusConfig(
     modalities_specific_dim=20,
     latent_dim=20,
     input_dims={m : (3,28,28) for m in modalities},
-    learn_priors=False,
+    learn_priors=True,
     
     
 )
@@ -193,7 +193,7 @@ model = MMVAEPlus(model_config, encoders, decoders)
 
 ######## Dataset #########
 
-train_data = MMNISTDataset(data_path='~/scratch/data/MMNIST', split='train', download=True)
+train_data = MMNISTDataset(data_path='~/scratch/data/MMNIST', split='train')
 test_data = MMNISTDataset(data_path='~/scratch/data/MMNIST', split='test')
 
 
@@ -204,7 +204,7 @@ training_config = BaseTrainerConfig(
     per_device_train_batch_size=32,
     per_device_eval_batch_size=32,
     num_epochs=50,
-    learning_rate=1e-3,
+    learning_rate=1e-4,
     start_keep_best_epoch=51,
     output_dir= '../reproduce_mmvaep'
     
@@ -218,8 +218,8 @@ callbacks = [ProgressBarCallback(), wandb_cb]
 
 trainer = BaseTrainer(model=model,
                       train_dataset = train_data,
+                      eval_dataset = test_data,
                       training_config=training_config,
-                    #   test_data,
                       callbacks = callbacks)
 
 trainer.train()

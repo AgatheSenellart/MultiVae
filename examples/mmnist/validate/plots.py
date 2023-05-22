@@ -10,4 +10,6 @@ from multivae.data.datasets.mmnist import MMNISTDataset
 from multivae.metrics import CoherenceEvaluator
 from multivae.models import AutoModel
 
-## table with results per 
+# One plot per missing ratio
+
+missing_ratios = [0,0.2,0.5]
