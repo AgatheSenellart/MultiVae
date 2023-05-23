@@ -34,8 +34,8 @@ logger.setLevel(logging.INFO)
 def cross_entropy(input, target, eps=1e-6):
     """k-Class Cross Entropy (Log Softmax + Log Loss)
     
-    @param input: torch.Tensor (size N x K)
-    @param target: torch.Tensor (size N x K)
+    @param input: torch.Tensor (size K x N x d)
+    @param target: torch.Tensor (size N )
     @param eps: error to add (default: 1e-6)
     @return loss: torch.Tensor (size N)
     """

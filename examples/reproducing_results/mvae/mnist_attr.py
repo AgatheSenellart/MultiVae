@@ -37,7 +37,7 @@ class Swish(nn.Module):
     """https://arxiv.org/abs/1710.05941"""
 
     def forward(self, x):
-        return x * F.sigmoid(x)
+        return x * torch.sigmoid(x)
 
 
 class ImageEncoder(BaseEncoder):
