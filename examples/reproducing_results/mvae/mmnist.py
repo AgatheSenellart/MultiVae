@@ -147,8 +147,8 @@ decoders = {
 model = MVAE(model_config, encoders=encoders, decoders=decoders)
 
 trainer_config = BaseTrainerConfig(
-    num_epochs=300,
-    learning_rate=1.0e-3,
+    num_epochs=500,
+    learning_rate=5.0e-4,
     steps_predict=1,
     per_device_train_batch_size=256,
     drop_last=True,
