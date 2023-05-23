@@ -49,40 +49,40 @@ class MVAE(BaseMultiVAE):
         for i in range(2, self.n_modalities):
             self.subsets += combinations(list(self.encoders.keys()), r=i)
 
-    # def poe(self, mus_list, log_vars_list):
-    #     mus = mus_list.copy()
-    #     log_vars = log_vars_list.copy()
-
-    #     # Add the prior to the product of experts
-    #     mus.append(torch.zeros_like(mus[0]))
-    #     log_vars.append(torch.zeros_like(log_vars[0]))
-
-    #     # Compute the joint posterior
-    #     lnT = torch.stack([-l for l in log_vars])  # Compute the inverse of variances
-    #     lnV = -torch.logsumexp(lnT, dim=0)  # variances of the product of expert
-    #     mus = torch.stack(mus)
-    #     joint_mu = (torch.exp(lnT) * mus).sum(dim=0) * torch.exp(lnV)
-
-    #     return joint_mu, lnV
-    
-    def poe(self, mus_list, logvar_list, eps=1e-8):
-        
+    def poe(self, mus_list, log_vars_list):
         mus = mus_list.copy()
-        log_vars = logvar_list.copy()
+        log_vars = log_vars_list.copy()
 
         # Add the prior to the product of experts
         mus.append(torch.zeros_like(mus[0]))
-        log_vars.append(torch.zeros_like(log_vars[0]))  
-        
+        log_vars.append(torch.zeros_like(log_vars[0]))
+
+        # Compute the joint posterior
+        lnT = torch.stack([-l for l in log_vars])  # Compute the inverse of variances
+        lnV = -torch.logsumexp(lnT, dim=0)  # variances of the product of expert
         mus = torch.stack(mus)
-        logvars = torch.stack(log_vars)
-        var       = torch.exp(logvars) + eps
-        # precision of i-th Gaussian expert at point x
-        T         = 1. / (var + eps)
-        pd_mu     = torch.sum(mus * T, dim=0) / torch.sum(T, dim=0)
-        pd_var    = 1. / torch.sum(T, dim=0)
-        pd_logvar = torch.log(pd_var + eps)
-        return pd_mu, pd_logvar
+        joint_mu = (torch.exp(lnT) * mus).sum(dim=0) * torch.exp(lnV)
+
+        return joint_mu, lnV
+    
+    # def poe(self, mus_list, logvar_list, eps=1e-8):
+        
+    #     mus = mus_list.copy()
+    #     log_vars = logvar_list.copy()
+
+    #     # Add the prior to the product of experts
+    #     mus.append(torch.zeros_like(mus[0]))
+    #     log_vars.append(torch.zeros_like(log_vars[0]))  
+        
+    #     mus = torch.stack(mus)
+    #     logvars = torch.stack(log_vars)
+    #     var       = torch.exp(logvars) + eps
+    #     # precision of i-th Gaussian expert at point x
+    #     T         = 1. / (var + eps)
+    #     pd_mu     = torch.sum(mus * T, dim=0) / torch.sum(T, dim=0)
+    #     pd_var    = 1. / torch.sum(T, dim=0)
+    #     pd_logvar = torch.log(pd_var + eps)
+    #     return pd_mu, pd_logvar
 
     def compute_mu_log_var_subset(self, inputs: MultimodalBaseDataset, subset: list):
         """Computes the parameters of the posterior when conditioning on
