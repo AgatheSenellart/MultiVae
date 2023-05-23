@@ -172,15 +172,16 @@ modalities = ['m0','m1','m2','m3','m4']
 
 model_config = MMVAEPlusConfig(
     n_modalities=5,
-    K=1,
+    K=10,
     decoders_dist={m : 'laplace' for m in modalities},
     decoder_dist_params= {m : dict(scale = 0.75) for m in modalities},
     prior_and_posterior_dist='laplace_with_softmax',
     beta=1,
-    modalities_specific_dim=20,
-    latent_dim=20,
+    modalities_specific_dim=32,
+    latent_dim=32,
     input_dims={m : (3,28,28) for m in modalities},
-    learn_priors=True,
+    learn_shared_prior=False,
+    learn_modality_prior=True
     
     
 )
@@ -203,10 +204,13 @@ from multivae.trainers.base import BaseTrainer, BaseTrainerConfig
 training_config = BaseTrainerConfig(
     per_device_train_batch_size=32,
     per_device_eval_batch_size=32,
-    num_epochs=50,
-    learning_rate=1e-4,
+    num_epochs=50 if model_config.K==10 else 150,
+    learning_rate=1e-3,
     start_keep_best_epoch=51,
-    output_dir= '../reproduce_mmvaep'
+    output_dir= '../reproduce_mmvaep',
+    steps_predict=5,
+    optimizer_cls='Adam',
+    optimizer_params=dict(amsgrad=True)
     
 )
 
@@ -220,7 +224,8 @@ trainer = BaseTrainer(model=model,
                       train_dataset = train_data,
                       eval_dataset = test_data,
                       training_config=training_config,
-                      callbacks = callbacks)
+                      callbacks = callbacks
+                      )
 
 trainer.train()
 

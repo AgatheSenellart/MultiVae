@@ -86,7 +86,7 @@ class MMVAEPlus(BaseMultiVAE):
             )
             self.logvars_priors[mod] = torch.nn.Parameter(
                 torch.zeros(1, model_config.modalities_specific_dim),
-                requires_grad=model_config.learn_priors
+                requires_grad=model_config.learn_modality_prior
             )
         
         # shared
@@ -96,7 +96,7 @@ class MMVAEPlus(BaseMultiVAE):
             )
         self.logvars_priors['shared'] = torch.nn.Parameter(
             torch.zeros(1, model_config.latent_dim),
-            requires_grad=model_config.learn_priors
+            requires_grad=model_config.learn_shared_prior
         )
 
         
@@ -217,35 +217,7 @@ class MMVAEPlus(BaseMultiVAE):
         else:
             std = torch.exp(0.5 * self.logvars_priors['shared'])
         return mean, std
-    
-    # def _m_dreg_looser(model, x, K=1):
-    #     """DERG estimate for log p_\theta(x) for multi-modal vae -- fully vectorised
-    # This version is the looser bound---with the average over modalities outside the log
-    # """
-    # qz_xs, px_zs, zss = model(x, K)
-    # qz_xs_ = [vae.qz_x(*[p.detach() for p in vae.qz_x_params]) for vae in model.vaes]
-    # qu_xs, qw_xs = [], []
-    # for r, qz_x in enumerate(qz_xs_):
-    #     qz_x_r_mean, qz_x_r_lv = model.vaes[r].qz_x_params
-    #     qw_x_mean, qu_x_mean = torch.split(qz_x_r_mean, [model.params.latent_dim_w, model.params.latent_dim_u], dim=-1)
-    #     qw_x_lv, qu_x_lv = torch.split(qz_x_r_lv, [model.params.latent_dim_w, model.params.latent_dim_u], dim=-1)
-    #     qw_x = model.vaes[r].qz_x(qw_x_mean, qw_x_lv)
-    #     qu_x = model.vaes[r].qz_x(qu_x_mean, qu_x_lv)
-    #     qu_xs.append(qu_x)
-    #     qw_xs.append(qw_x)
-    # lws = []
-    # for r, qz_x in enumerate(qz_xs_):
-    #     lpz = model.pz(*model.pz_params).log_prob(zss[r]).sum(-1)
-    #     ws, us = torch.split(zss[r], [model.params.latent_dim_w, model.params.latent_dim_u], dim=-1)
-    #     lqu_x = log_mean_exp(torch.stack([qu_x.log_prob(us).sum(-1) for qu_x in qu_xs]))
-    #     lqw_x = qw_xs[r].log_prob(ws).sum(-1)
-    #     lpx_z = [px_z.log_prob(x[d]).view(*px_z.batch_shape[:2], -1)
-    #                  .mul(model.vaes[d].llik_scaling).sum(-1)
-    #              for d, px_z in enumerate(px_zs[r])]
-    #     lpx_z = torch.stack(lpx_z).sum(0)
-    #     lw = lpx_z + model.params.beta*(lpz - lqu_x - lqw_x)
-    #     lws.append(lw)
-    # return torch.stack(lws), torch.stack(zss)
+
 
     def dreg_looser(self, qu_xs, qw_xs, embeddings, reconstructions, inputs):
         
@@ -292,7 +264,7 @@ class MMVAEPlus(BaseMultiVAE):
                 
                 if hasattr(inputs, 'masks'):
                     # cancel unavailable modalities
-                    lpx_z_mod *= inputs.masks[mod].float()
+                    lpx_z_mod *= inputs.masks[recon_mod].float()
                 
                 lpx_z += lpx_z_mod
                 

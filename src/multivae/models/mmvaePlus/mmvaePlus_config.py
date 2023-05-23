@@ -31,7 +31,9 @@ class MMVAEPlusConfig(BaseMultiVAEConfig):
             Possible values ['laplace_with_softmax','normal'].
             Default to 'laplace_with_softmax' the posterior distribution that is used in
             the original paper.
-        learn_prior (bool) : If True, the mean and variance of the prior are optimized during the
+        learn_shared_prior (bool) : If True, the mean and variance of the shared latent space prior are optimized during the
+            training. Default to False.
+        learn_modality_prior (bool) : If True, the mean and variance of the shared latent space prior are optimized during the
             training. Default to True.
         beta (float) : When using K = 1 (ElBO loss), the beta factor regularizes the divergence term. 
             Default to 1. 
@@ -43,6 +45,7 @@ class MMVAEPlusConfig(BaseMultiVAEConfig):
     prior_and_posterior_dist: Literal[
         "laplace_with_softmax", "normal"
     ] = "laplace_with_softmax"
-    learn_priors: bool = True
+    learn_shared_prior: bool = False
+    learn_modality_prior:bool = True
     beta : float = 1.0
     modalities_specific_dim : int = None
