@@ -188,7 +188,7 @@ class MMVAE(BaseMultiVAE):
                 
                 if hasattr(inputs, 'masks'):
                     # cancel unavailable modalities
-                    lpx_z_mod *= inputs.masks[mod].float()
+                    lpx_z_mod *= inputs.masks[recon_mod].float()
                 
                 lpx_z += lpx_z_mod
                 
