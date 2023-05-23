@@ -286,7 +286,7 @@ class MVAE(BaseMultiVAE):
                     x_m = inputs.data[mod][i]  # (nb_channels, w, h)
 
                     lpx_zs += (
-                        self.recon_log_probs[mod](recon, x_m)
+                        self.recon_log_probs[mod](recon, torch.stack([x_m]*len(recon)))
                         .reshape(recon.size(0), -1)
                         .sum(-1)
                     )
