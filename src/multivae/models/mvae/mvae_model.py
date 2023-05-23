@@ -49,30 +49,30 @@ class MVAE(BaseMultiVAE):
         for i in range(2, self.n_modalities):
             self.subsets += combinations(list(self.encoders.keys()), r=i)
 
-    def poe(self, mus_list, log_vars_list):
-        mus = mus_list.copy()
-        log_vars = log_vars_list.copy()
+    # def poe(self, mus_list, log_vars_list):
+    #     mus = mus_list.copy()
+    #     log_vars = log_vars_list.copy()
 
-        # Add the prior to the product of experts
-        mus.append(torch.zeros_like(mus[0]))
-        log_vars.append(torch.zeros_like(log_vars[0]))
+    #     # Add the prior to the product of experts
+    #     mus.append(torch.zeros_like(mus[0]))
+    #     log_vars.append(torch.zeros_like(log_vars[0]))
 
-        # Compute the joint posterior
-        lnT = torch.stack([-l for l in log_vars])  # Compute the inverse of variances
-        lnV = -torch.logsumexp(lnT, dim=0)  # variances of the product of expert
-        mus = torch.stack(mus)
-        joint_mu = (torch.exp(lnT) * mus).sum(dim=0) * torch.exp(lnV)
+    #     # Compute the joint posterior
+    #     lnT = torch.stack([-l for l in log_vars])  # Compute the inverse of variances
+    #     lnV = -torch.logsumexp(lnT, dim=0)  # variances of the product of expert
+    #     mus = torch.stack(mus)
+    #     joint_mu = (torch.exp(lnT) * mus).sum(dim=0) * torch.exp(lnV)
 
-        return joint_mu, lnV
+    #     return joint_mu, lnV
     
-    def poe_bis(self, mus_list, logvar_list, eps=1e-8):
+    def poe(self, mus_list, logvar_list, eps=1e-8):
         
         mus = mus_list.copy()
         log_vars = logvar_list.copy()
 
         # Add the prior to the product of experts
         mus.append(torch.zeros_like(mus[0]))
-        log_vars.append(torch.zeros_like(log_vars[0]))
+        log_vars.append(torch.zeros_like(log_vars[0]))  
         
         mus = torch.stack(mus)
         logvars = torch.stack(log_vars)
@@ -113,14 +113,17 @@ class MVAE(BaseMultiVAE):
                     self.recon_log_probs[mod](recon, inputs.data[mod])
                     * self.rescale_factors[mod]
                 ).reshape(recon.size(0),-1).sum(-1)
+                print(self.rescale_factors[mod])
                 
                 if hasattr(inputs,'masks'):
                     recon_mod = inputs.masks[mod].float()*recon_mod
                 elbo_sub += recon_mod.sum()
-                
+        
+        recon = elbo_sub
         KLD = -0.5 * torch.sum(1 + sub_logvar - sub_mu.pow(2) - sub_logvar.exp())
         elbo_sub += KLD * beta
-        return elbo_sub / len(sub_mu)
+        
+        return elbo_sub / len(sub_mu), KLD/len(sub_mu),recon/len(sub_mu)
 
     def _filter_inputs_with_masks(
         self, inputs: IncompleteDataset, subset: Union[list, tuple]
@@ -191,12 +194,15 @@ class MVAE(BaseMultiVAE):
                 not_all_samples_missing = True
             
             if not_all_samples_missing:
-                subset_elbo = self._compute_elbo_subset(filtered_inputs, s, beta)
+                subset_elbo, subset_kld, subset_recon = self._compute_elbo_subset(filtered_inputs, s, beta)
             else :
                 subset_elbo = 0
             total_loss += subset_elbo
             metrics["_".join(sorted(s))] = subset_elbo
             metrics['beta'] = beta
+            metrics["kld" + "_".join(sorted(s))] = subset_kld
+            metrics["recon" + "_".join(sorted(s))] = subset_recon
+            
         return ModelOutput(loss=total_loss, metrics=metrics)
 
     def encode(

@@ -11,6 +11,7 @@ from .mopoe import MoPoE, MoPoEConfig
 from .mvae import MVAE, MVAEConfig
 from .mvtcae import MVTCAE, MVTCAEConfig
 from .telbo import TELBO, TELBOConfig
+from .mmvaePlus import MMVAEPlus, MMVAEPlusConfig
 
 __all__ = [
     "BaseMultiVAEConfig",
@@ -33,4 +34,6 @@ __all__ = [
     "MoPoEConfig",
     "MVTCAE",
     "MVTCAEConfig",
+    "MMVAEPlusConfig",
+    "MMVAEPlus"
 ]

@@ -120,7 +120,7 @@ class TextDecoder(BaseDecoder):
         h = self.swish(self.fc1(z))
         h = self.swish(self.fc2(h))
         h = self.swish(self.fc3(h))
-        return ModelOutput(reconstruction=self.softmax(self.fc4(h)))
+        return ModelOutput(reconstruction=self.fc4(h)) # no softmax here
 
 
 #########################################################

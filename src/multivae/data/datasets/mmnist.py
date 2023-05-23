@@ -103,23 +103,16 @@ class MMNISTDataset(MultimodalBaseDataset):
         # TODO : test this function
         for i in range(5):
             if not os.path.exists(unimodal_datapaths[i]) and self.download:
-                try:
-                    import zipfile
+                import zipfile
 
-                    import gdown
+                import gdown
 
-                    gdown.download(
+                gdown.download(
                         id="1N0v31KOgZgfkSqSiPdBKAgWIkKZIzAWb", output=data_path
                     )
-                    with zipfile.ZipFile(data_path + "/PolyMNIST.zip") as zip_ref:
+                with zipfile.ZipFile(data_path + "/MNIST.zip") as zip_ref:
                         zip_ref.extractall(data_path)
-                except:
-                    raise AttributeError(
-                        "The PolyMNIST dataset is not available at the"
-                        " given datapath and gdown is not installed to download it."
-                        "Install gdown with `pip install gdown` or place the dataset"
-                        " in the data_path folder."
-                    )
+                
             elif not os.path.exists(unimodal_datapaths[i]) and not self.download:
                 raise AttributeError(
                     "The PolyMNIST dataset is not available at the"
