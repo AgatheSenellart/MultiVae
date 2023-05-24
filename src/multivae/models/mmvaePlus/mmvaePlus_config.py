@@ -39,6 +39,8 @@ class MMVAEPlusConfig(BaseMultiVAEConfig):
             Default to 1. 
         modalities_specific_dim (int) : The dimensionality of the modalitie's private latent spaces.
             Must be provided. 
+        reconstruction_option (Literal['single_prior','joint_prior']) : Specifies how to sample the modality specific 
+            variable when reconstructing/ translating modalities. Default to 'joint_prior' used in the article.
     """
 
     K: int = 10
@@ -49,3 +51,4 @@ class MMVAEPlusConfig(BaseMultiVAEConfig):
     learn_modality_prior:bool = True
     beta : float = 1.0
     modalities_specific_dim : int = None
+    reconstruction_option : Literal['single_prior','joint_prior'] = 'joint_prior'

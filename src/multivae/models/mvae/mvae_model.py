@@ -66,6 +66,8 @@ class MVAE(BaseMultiVAE):
         return joint_mu, lnV
     
     # def poe(self, mus_list, logvar_list, eps=1e-8):
+    
+    # ORIGINAL VERSION BUT LESS STABLE
         
     #     mus = mus_list.copy()
     #     log_vars = logvar_list.copy()

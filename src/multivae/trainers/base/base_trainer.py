@@ -510,7 +510,7 @@ class BaseTrainer:
 
             if (
                 self.training_config.steps_predict is not None
-                and epoch % self.training_config.steps_predict == 0
+                and (epoch % self.training_config.steps_predict == 0 or epoch==1)
                 and self.is_main_process
             ):
                 reconstructions = self.predict(self._best_model, epoch)
