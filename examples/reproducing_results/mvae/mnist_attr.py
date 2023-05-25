@@ -14,9 +14,14 @@ from multivae.models.nn.default_architectures import (
 from multivae.trainers.base.base_trainer import BaseTrainer
 from multivae.trainers.base.base_trainer_config import BaseTrainerConfig
 from multivae.trainers.base.callbacks import ProgressBarCallback, WandbCallback
-
+import argparse
 ###############################################################
 ###### Encoders & Decoders
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--seed', default=8)
+args = parser.parse_args()
+
 
 
 def labels_to_binary_tensors(labels):
@@ -165,7 +170,7 @@ training_config = BaseTrainerConfig(
     num_epochs=500,
     start_keep_best_epoch=model_config.warmup+1,
     steps_predict=5,
-    learning_rate=1e-3,
+    learning_rate=1e-3,seed = args.seed
 )
 wandb_ = WandbCallback()
 wandb_.setup(training_config, model_config, project_name="reproduce_mvae_mnist")
@@ -182,7 +187,7 @@ trainer = BaseTrainer(
 
 trainer.train()
 
-trainer._best_model.push_to_hf_hub("asenella/reproduce_mvae_mnist")
+trainer._best_model.push_to_hf_hub(f"asenella/reproduce_mvae_mnist_{args.seed}")
 
 
 ###############################################################################

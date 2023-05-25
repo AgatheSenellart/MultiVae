@@ -97,16 +97,8 @@ class JMVAE(BaseJointModel):
             return ModelOutput(z=z, one_latent_space=True)
 
         if type(cond_mod) == list and len(cond_mod) != 1:
-            z = self.sample_from_poe_subset(
-                cond_mod,
-                inputs.data,
-                ax=None,
-                mcmc_steps=mcmc_steps,
-                n_lf=n_lf,
-                eps_lf=eps_lf,
-                K=N,
-                divide_prior=True,
-            )
+            z = self.sample_from_poe_subset_exact(cond_mod, inputs.data)
+            
             if N > 1 and kwargs.pop("flatten", False):
                 N, l, d = z.shape
                 z = z.reshape(l * N, d)
@@ -230,164 +222,45 @@ class JMVAE(BaseJointModel):
                 mu, log_var = encoder_output.embedding, encoder_output.log_covariance
                 zs[indices == m] = dist.Normal(mu, torch.exp(0.5 * log_var)).rsample()
         return zs
+    
+   
+    def poe(self, mus_list, log_vars_list):
+        mus = mus_list.copy()
+        log_vars = log_vars_list.copy()
 
-    def compute_poe_posterior(
-        self, subset: list, z_: torch.Tensor, data: list, divide_prior=True, grad=True
-    ):
-        """Compute the log density of the product of experts for Hamiltonian sampling.
+        # Add the prior to the product of experts
+        mus.append(torch.zeros_like(mus[0]))
+        log_vars.append(torch.zeros_like(log_vars[0]))
 
-        Args:
-            subset (list): the modalities of the poe posterior
-            z_ (torch.Tensor): the latent variables (len(data[0]), latent_dim)
-            data (list): _description_
-            divide_prior (bool) : wether or not to divide by the prior
+        # Compute the joint posterior
+        lnT = torch.stack([-l for l in log_vars])  # Compute the inverse of variances
+        lnV = -torch.logsumexp(lnT, dim=0)  # variances of the product of expert
+        mus = torch.stack(mus)
+        joint_mu = (torch.exp(lnT) * mus).sum(dim=0) * torch.exp(lnV)
 
-        Returns:
-            tuple : likelihood and gradients
+        return joint_mu, lnV
+    
+    def sample_from_poe_subset_exact(self, subset:list, data:dict):
         """
-
-        lnqzs = 0
-
-        z = z_.clone().detach().requires_grad_(grad)
-
-        if divide_prior:
-            # print('Dividing by the prior')
-            lnqzs += (0.5 * (torch.pow(z, 2) + np.log(2 * np.pi))).sum(dim=1)
-
-        for m in subset:
-            # Compute lnqz
-
-            vae_output = self.encoders[m](data[m])
+        Sample from the product of experts for infering from a subset of modalities. 
+        """
+        
+        mus, logvars = [], []
+        
+        for mod in subset:
+            vae_output = self.encoders[mod](data[mod])
             mu, log_var = vae_output.embedding, vae_output.log_covariance
-            z0 = dist.Normal(mu, torch.exp(0.5 * log_var)).rsample()
+            mus.append(vae_output.embedding)
+            logvars.append(vae_output.log_covariance)
+        
+        joint_mu, joint_logvar = self.poe(mus, logvars)
+        z = dist.Normal(joint_mu, torch.exp(0.5 * joint_logvar)).rsample()
+        return z
+        
 
-            log_q_z0 = (
-                -0.5
-                * (
-                    log_var
-                    + np.log(2 * np.pi)
-                    + torch.pow(z0 - mu, 2) / torch.exp(log_var)
-                )
-            ).sum(dim=1)
-            lnqzs += log_q_z0  # n_data_points x 1
 
-        if grad:
-            g = torch.autograd.grad(lnqzs.sum(), z)[0]
-            return lnqzs, g
-        else:
-            return lnqzs
 
-    def sample_from_poe_subset(
-        self,
-        subset,
-        data,
-        ax=None,
-        mcmc_steps=100,
-        n_lf=10,
-        eps_lf=0.01,
-        K=1,
-        divide_prior=True,
-    ):
-        """Sample from the product of experts using Hamiltonian sampling.
-
-        Args:
-            subset (List[int]):
-            gen_mod (int):
-            data (dict or MultimodalDataset):
-            K (int, optional): . Defaults to 100.
-        """
-
-        # Multiply the data to have multiple samples per datapoints
-        n_data = len(data[list(data.keys())[0]])
-        data = {d: torch.cat([data[d]] * K) for d in data}
-        device = data[list(data.keys())[0]].device
-
-        n_samples = len(data[list(data.keys())[0]])
-        acc_nbr = torch.zeros(n_samples, 1).to(device)
-
-        # First we need to sample an initial point from the mixture of experts
-        z0 = self.sample_from_moe_subset(subset, data)
-        z = z0
-
-        # fig, ax = plt.subplots()
-        pos = []
-        grad = []
-        for i in range(mcmc_steps):
-            pos.append(z[0].detach().cpu())
-
-            # print(i)
-            gamma = torch.randn_like(z, device=device)
-            rho = gamma  # / self.beta_zero_sqrt
-
-            # Compute ln q(z|X_s)
-            ln_q_zxs, g = self.compute_poe_posterior(
-                subset, z, data, divide_prior=divide_prior
-            )
-
-            grad.append(g[0].detach().cpu())
-
-            H0 = -ln_q_zxs + 0.5 * torch.norm(rho, dim=1) ** 2
-            # print(H0)
-            # print(model.G_inv(z).det())
-            for k in range(n_lf):
-                # z = z.clone().detach().requires_grad_(True)
-                # log_det = G(z).det().log()
-
-                # g = torch.zeros(n_samples, model.latent_dim).cuda()
-                # for i in range(n_samples):
-                #    g[0] = -grad(log_det, z)[0][0]
-
-                # step 1
-                rho_ = rho - (eps_lf / 2) * (-g)
-
-                # step 2
-                z = z + eps_lf * rho_
-
-                # z_ = z_.clone().detach().requires_grad_(True)
-                # log_det = 0.5 * G(z).det().log()
-                # log_det = G(z_).det().log()
-
-                # g = torch.zeros(n_samples, model.latent_dim).cuda()
-                # for i in range(n_samples):
-                #    g[0] = -grad(log_det, z_)[0][0]
-
-                # Compute the updated gradient
-                ln_q_zxs, g = self.compute_poe_posterior(subset, z, data, divide_prior)
-
-                # print(g)
-                # g = (Sigma_inv @ (z - mu).T).reshape(n_samples, 2)
-
-                # step 3
-                rho__ = rho_ - (eps_lf / 2) * (-g)
-
-                # tempering
-                beta_sqrt = 1
-
-                rho = rho__
-                # beta_sqrt_old = beta_sqrt
-
-            H = -ln_q_zxs + 0.5 * torch.norm(rho, dim=1) ** 2
-            # print(H, H0)
-
-            alpha = torch.exp(H0 - H)
-            # print(alpha)
-
-            # print(-log_pi(best_model, z, best_model.G), 0.5 * torch.norm(rho, dim=1) ** 2)
-            acc = torch.rand(n_samples).to(device)
-            moves = (acc < alpha).type(torch.int).reshape(n_samples, 1)
-
-            acc_nbr += moves
-
-            z = z * moves + (1 - moves) * z0
-            z0 = z
-
-        pos = torch.stack(pos)
-        grad = torch.stack(grad)
-
-        sh = (n_data, self.latent_dim) if K == 1 else (K, n_data, self.latent_dim)
-        z = z.detach().resize(*sh)
-        return z.detach()
-
+    
     def compute_joint_nll_paper(
         self, inputs: MultimodalBaseDataset, K: int = 1000, batch_size_K: int = 100
     ):

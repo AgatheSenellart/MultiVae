@@ -156,10 +156,10 @@ class Dec(BaseDecoder):
         out = self.resnet(out)
         out = self.conv_img(actvn(out))
 
-        #if len(z.size()) == 2:
-        #out = out.view(*z.size()[:1], *out.size()[1:]).unsqueeze(0)
-        #else:
-        out = out.view(*z.size()[:2], *out.size()[1:])
+        if len(z.size()) == 2:
+            out = out.view(*z.size()[:1], *out.size()[1:])
+        else:
+            out = out.view(*z.size()[:2], *out.size()[1:])
 
         # consider also predicting the length scale
         return ModelOutput(reconstruction = out)
@@ -172,7 +172,7 @@ modalities = ['m0','m1','m2','m3','m4']
 
 model_config = MMVAEPlusConfig(
     n_modalities=5,
-    K=10,
+    K=1,
     decoders_dist={m : 'laplace' for m in modalities},
     decoder_dist_params= {m : dict(scale = 0.75) for m in modalities},
     prior_and_posterior_dist='laplace_with_softmax',
