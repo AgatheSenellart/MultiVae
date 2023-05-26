@@ -49,7 +49,10 @@ encoders = {
         max_sentence_length=cub.max_words_in_captions,
         ntokens=cub.vocab_size,
         embed_size=512,
-        ff_size=128
+        ff_size=128,
+        n_layers=2,
+        nhead=2,
+        dropout=0.1
     ).cuda()
 }
 
@@ -66,22 +69,23 @@ decoders = {
 model = MVTCAE(model_config, encoders=encoders, decoders=decoders).cuda()
 
 trainer_config = BaseTrainerConfig(
-    num_epochs=300,
-    learning_rate=1e-4,
-    steps_predict=10,
+    num_epochs=1000,
+    learning_rate=1e-3,
+    steps_predict=None,
     per_device_train_batch_size=128,
+    per_device_eval_batch_size=128,
 )
 
 ## Set up callbacks
 #wandb_cb = WandbCallback()
 #wandb_cb.setup(trainer_config, model_config, project_name="mmnist")
 
-callbacks = [TrainingCallback(), ProgressBarCallback()]#, wandb_cb]
+callbacks = [TrainingCallback()]#, wandb_cb]
 
 trainer = BaseTrainer(
     model,
     train_dataset=train_data,
-    eval_dataset=eval_data,
+    #eval_dataset=eval_data,
     training_config=trainer_config,
     callbacks=callbacks,
 )
