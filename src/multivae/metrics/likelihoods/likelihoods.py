@@ -53,8 +53,8 @@ class LikelihoodsEvaluator(Evaluator):
 
         joint_nll = ll / len(self.test_loader.dataset)
         self.logger.info(f"Joint likelihood : {str(joint_nll)}")
-        self.metrics['Joint Likelihood'] = joint_nll
-        return 
+        self.metrics['joint_likelihood'] = joint_nll
+        return joint_nll
 
     def joint_nll_from_subset(self, subset):
         if hasattr(self.model, "compute_joint_nll_from_subset_encoding"):

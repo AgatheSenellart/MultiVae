@@ -467,7 +467,7 @@ class MMVAEPlus(BaseMultiVAE):
         )  # n_batch
         return -ll
 
-    def generate_from_prior(self, n_samples):
+    def generate_from_prior(self, n_samples,**kwargs):
         sample_shape = [n_samples] if n_samples > 1 else []
         z = self.prior_dist(*self.pz_params).rsample(sample_shape)
         return ModelOutput(z=z.squeeze(), one_latent_space=True)

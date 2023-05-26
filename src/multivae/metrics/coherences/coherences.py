@@ -65,7 +65,7 @@ class CoherenceEvaluator(Evaluator):
             )
             self.metrics.update({f'mean_coherence_{i+1}' : mean_accs[i],
                                  f'std_coherence_{i+1}' : std_accs[i]})
-        return 
+        return mean_accs,std_accs
 
     def all_accuracies_from_subset(self, subset):
         """
@@ -130,7 +130,7 @@ class CoherenceEvaluator(Evaluator):
 
         self.logger.info(f"Joint coherence : {joint_coherence}")
         self.metrics.update({'joint_coherence' : joint_coherence})
-        return 
+        return joint_coherence
 
     def eval(self):
         

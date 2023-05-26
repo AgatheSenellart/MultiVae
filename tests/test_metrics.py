@@ -146,7 +146,7 @@ class TestCoherences:
         assert all(
             [
                 metric in metrics.keys()
-                for metric in ["means_coherences", "joint_coherence"]
+                for metric in ["mean_coherence_1", "joint_coherence"]
             ]
         )
 
