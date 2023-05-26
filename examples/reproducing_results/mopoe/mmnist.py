@@ -112,7 +112,7 @@ class DecoderImg(BaseDecoder):
 ### Dataset ###
 
 
-train_data = MMNISTDataset(data_path="~/scratch/data/MMNIST", split="train")
+train_data = MMNISTDataset(data_path="~/scratch/data", split="train")
 
 print(len(train_data))
 
@@ -240,7 +240,7 @@ def load_mmnist_classifiers(data_path="../../../data/clf", device="cuda"):
 
 ##############################################################################
 
-test_set = MMNISTDataset(data_path="~/scratch/data/MMNIST", split="test")
+test_set = MMNISTDataset(data_path="~/scratch/data", split="test")
 
 data_path = trainer.training_dir
 

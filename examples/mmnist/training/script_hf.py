@@ -16,7 +16,7 @@ import json
 from config2 import *
 ##############################################################################
 
-test_set = MMNISTDataset(data_path="~/scratch/data/MMNIST", split="test")
+test_set = MMNISTDataset(data_path="~/scratch/data", split="test")
 
 # Get config_files
 parser = argparse.ArgumentParser()

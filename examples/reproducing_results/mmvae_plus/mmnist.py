@@ -200,8 +200,8 @@ model = MMVAEPlus(model_config, encoders, decoders)
 
 ######## Dataset #########
 
-train_data = MMNISTDataset(data_path='~/scratch/data/MMNIST', split='train')
-test_data = MMNISTDataset(data_path='~/scratch/data/MMNIST', split='test')
+train_data = MMNISTDataset(data_path='~/scratch/data', split='train')
+test_data = MMNISTDataset(data_path='~/scratch/data', split='test')
 
 
 ########## Training #######

@@ -11,7 +11,7 @@ from multivae.trainers.base.callbacks import ProgressBarCallback, WandbCallback
 
 ######## Dataset #########
 
-test_data = MMNISTDataset(data_path='~/scratch/data/MMNIST', split='test') 
+test_data = MMNISTDataset(data_path='~/scratch/data', split='test') 
 
 
 #### Validation ####

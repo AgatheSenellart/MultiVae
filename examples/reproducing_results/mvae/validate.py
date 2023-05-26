@@ -25,7 +25,7 @@ from torch import nn
 
 from multivae.data.datasets.mmnist import MMNISTDataset
 
-test_set = MMNISTDataset(data_path="~/scratch/data/MMNIST", split="test")
+test_set = MMNISTDataset(data_path="~/scratch/data", split="test")
 
 data_path = '/home/asenella/dev/multivae_package/multimodal_vaes/dummy_output_dir/MVAE_training_2023-05-23_23-36-27/final_model'
 

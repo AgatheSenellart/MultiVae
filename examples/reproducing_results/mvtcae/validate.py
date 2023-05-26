@@ -66,7 +66,7 @@ def load_mmnist_classifiers(data_path="../../../data/clf", device="cuda"):
 
 ##############################################################################
 
-test_set = MMNISTDataset(data_path="~/scratch/data/MMNIST", split="test")
+test_set = MMNISTDataset(data_path="~/scratch/data", split="test")
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 

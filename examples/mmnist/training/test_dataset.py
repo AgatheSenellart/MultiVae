@@ -2,7 +2,7 @@ from config2 import *
 
 import numpy as np
 
-train_data = MMNISTDataset(data_path="~/scratch/data/MMNIST", 
+train_data = MMNISTDataset(data_path="~/scratch/data", 
                            split="train", 
                            missing_ratio=0.5,
                            keep_incomplete=False)

@@ -105,7 +105,7 @@ class DecoderImg(BaseDecoder):
         )  # NOTE: consider learning scale param, too
 
 
-train_data = MMNISTDataset(data_path="~/scratch/data/MMNIST", split="train")
+train_data = MMNISTDataset(data_path="~/scratch/data", split="train")
 
 
 modalities = ["m0", "m1", "m2", "m3", "m4"]
@@ -228,7 +228,7 @@ def load_mmnist_classifiers(data_path="../../../data/clf", device="cuda"):
 
 ##############################################################################
 
-test_set = MMNISTDataset(data_path="~/scratch/data/MMNIST", split="test")
+test_set = MMNISTDataset(data_path="~/scratch/data", split="test")
 
 data_path = trainer.training_dir
 

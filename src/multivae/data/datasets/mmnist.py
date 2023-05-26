@@ -45,8 +45,9 @@ class MMNISTDataset(MultimodalBaseDataset):
 
         if isinstance(data_path, str):
             data_path = os.path.expanduser(data_path)
+            
 
-        unimodal_datapaths = [data_path + "/" + split + f"/m{i}.pt" for i in range(5)]
+        unimodal_datapaths = [os.path.join(data_path , "/MMNIST/" , split , f"/m{i}.pt") for i in range(5)]
         self.num_modalities = len(unimodal_datapaths)
         self.unimodal_datapaths = unimodal_datapaths
         self.transform = transform
@@ -101,25 +102,29 @@ class MMNISTDataset(MultimodalBaseDataset):
             
     def __check_or_download_data__(self, data_path, unimodal_datapaths):
         # TODO : test this function
-        for i in range(5):
-            if not os.path.exists(unimodal_datapaths[i]) and self.download:
-                import zipfile
-
+        if not os.path.exists(unimodal_datapaths[i]) and self.download:
+            import zipfile
+            try :
                 import gdown
-
-                gdown.download(
-                        id="1N0v31KOgZgfkSqSiPdBKAgWIkKZIzAWb", output=data_path
-                    )
-                with zipfile.ZipFile(data_path + "/MNIST.zip") as zip_ref:
-                        zip_ref.extractall(data_path)
-                
-            elif not os.path.exists(unimodal_datapaths[i]) and not self.download:
+            except:
                 raise AttributeError(
-                    "The PolyMNIST dataset is not available at the"
-                    " given datapath and download is set to False."
-                    "Set download to True or place the dataset"
-                    " in the data_path folder."
+                "The PolyMNIST dataset is not available at the"
+                " given datapath gdown is not installed; the data cannot be downloaded"
+            )
+
+            gdown.download(
+                    id="1ye3IDHuHn5Cc6qDJIGmxz9e83nEMoQhj", output=data_path
                 )
+            with zipfile.ZipFile(os.path.join(data_path,'MMNIST.zip')) as zip_ref:
+                    zip_ref.extractall(data_path)
+            
+        elif not os.path.exists(unimodal_datapaths[i]) and not self.download:
+            raise AttributeError(
+                "The PolyMNIST dataset is not available at the"
+                " given datapath and download is set to False."
+                "Set download to True or place the dataset"
+                " in the data_path folder."
+            )
 
     def __getitem__(self, index):
         """

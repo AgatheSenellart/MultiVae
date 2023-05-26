@@ -10,11 +10,11 @@ with open(args.param_file,'r') as fp:
     info = json.load(fp)
 args = argparse.Namespace(**info)
 
-train_data = MMNISTDataset(data_path="~/scratch/data/MMNIST", 
+train_data = MMNISTDataset(data_path="~/scratch/data", 
                            split="train", 
                            missing_ratio=args.missing_ratio,
                            keep_incomplete=args.keep_incomplete)
-test_data = MMNISTDataset(data_path="~/scratch/data/MMNIST", split="test")
+test_data = MMNISTDataset(data_path="~/scratch/data", split="test")
 
 train_data, eval_data = random_split(
     train_data, [0.9, 0.1], generator=torch.Generator().manual_seed(42)
