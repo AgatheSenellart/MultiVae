@@ -115,7 +115,6 @@ class MVAE(BaseMultiVAE):
                     self.recon_log_probs[mod](recon, inputs.data[mod])
                     * self.rescale_factors[mod]
                 ).reshape(recon.size(0),-1).sum(-1)
-                print(self.rescale_factors[mod])
                 
                 if hasattr(inputs,'masks'):
                     recon_mod = inputs.masks[mod].float()*recon_mod

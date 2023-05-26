@@ -36,7 +36,7 @@ class CoherenceEvaluator(Evaluator):
         self.include_recon = eval_config.include_recon
         self.nb_samples_for_joint = eval_config.nb_samples_for_joint
         for k in self.clfs:
-            self.clfs[k] = self.clfs[k].to(self.device)
+            self.clfs[k] = self.clfs[k].to(self.device).eval()
 
     def cross_coherences(self):
         """

@@ -38,6 +38,8 @@ class MoPoE(BaseMultiVAE):
         self.model_name = "MoPoE"
 
         list_subsets = self.model_config.subsets
+        if type(list_subsets)==dict:
+            list_subsets = list(list_subsets.values())
         if list_subsets is None:
             list_subsets = self.all_subsets()
         self.set_subsets(list_subsets)
@@ -87,7 +89,7 @@ class MoPoE(BaseMultiVAE):
         for k, mod_names in enumerate(subsets_list):
             mods = []
             for l, mod_name in enumerate(sorted(mod_names)):
-                if mod_name not in self.encoders.keys():
+                if (mod_name not in self.encoders.keys()) and (mod_name!=""):
                     raise AttributeError(
                         f"The provided subsets list contains unknown modality name {mod_name}."
                         " that is not the encoders dictionary or inputs_dim dictionary."

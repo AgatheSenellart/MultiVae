@@ -6,7 +6,7 @@ from multivae.metrics.fids.fids import FIDEvaluator
 from multivae.metrics.base import EvaluatorConfig
 from multivae.metrics.fids.fids_config import FIDEvaluatorConfig
 import torch
-from pythae.models.base.base_config import BaseAEConfig
+from multivae.models.base.base_config import BaseAEConfig
 from torch import nn
 from torch.utils.data import random_split
 
@@ -37,16 +37,21 @@ base_config = dict(
     decoder_dist_params={k: {"scale": 0.75} for k in modalities},
 )
 encoder_class = EncoderConvMMNIST_adapted
+
 encoders = {
     k: EncoderConvMMNIST_adapted(
-        BaseAEConfig(latent_dim=base_config["latent_dim"], input_dim=(3, 28, 28))
+        BaseAEConfig(latent_dim=base_config["latent_dim"],
+                     style_dim=0,
+                     input_dim=(3, 28, 28))
     )
     for k in modalities
 }
 
 decoders = {
     k: DecoderConvMMNIST(
-        BaseAEConfig(latent_dim=base_config["latent_dim"], input_dim=(3, 28, 28))
+        BaseAEConfig(latent_dim=base_config["latent_dim"],
+                     style_dim= 0,
+                     input_dim=(3, 28, 28))
     )
     for k in modalities
 }

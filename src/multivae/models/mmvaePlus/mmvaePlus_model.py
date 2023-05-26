@@ -378,7 +378,7 @@ class MMVAEPlus(BaseMultiVAE):
             inputs : the data to compute the joint likelihood
 
         """
-
+        raise(NotImplementedError)
         logger.info(
             "Started computing the negative log_likelihood on inputs. This function"
             " can take quite a long time to run."

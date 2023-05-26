@@ -68,13 +68,13 @@ def load_mmnist_classifiers(data_path="../../../data/clf", device="cuda"):
 
 test_set = MMNISTDataset(data_path="~/scratch/data/MMNIST", split="test")
 
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-clfs = load_mmnist_classifiers(device='cpu')
+clfs = load_mmnist_classifiers('/home/asenella/scratch/data/clf', device=device)
+for seed in range(3):
+    model = AutoModel.load_from_hf_hub(f'asenella/reproducing_mvtcae_seed_{seed}', allow_pickle=True)
+# model = AutoModel.load_from_folder(data_path)
 
-# model = AutoModel.load_from_hf_hub(f'asenella/reproducing_mvtcae_seed_{args.seed}', allow_pickle=True)
-data_path = '/home/asenella/dev/multivae_package/multimodal_vaes/dummy_output_dir/MVTCAE_training_2023-05-22_15-09-01/final_model'
-model = AutoModel.load_from_folder(data_path)
-
-coherences = CoherenceEvaluator(model, clfs, test_set, data_path).eval()
+    coherences = CoherenceEvaluator(model, clfs, test_set, None).eval()
 
 # fids = FIDEvaluator(model,test_set).mvtcae_reproduce_fids(gen_mod='m0')

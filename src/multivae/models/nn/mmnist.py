@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from pythae.models.base import BaseAEConfig
+from multivae.models.base.base_config import BaseAEConfig
 from pythae.models.base.base_model import BaseDecoder, BaseEncoder
 from pythae.models.base.base_utils import ModelOutput
 from pythae.models.nn.benchmarks.utils import ResBlock
@@ -63,13 +63,14 @@ class EncoderConvMMNIST(BaseEncoder):
 
 class EncoderConvMMNIST_adapted(BaseEncoder):
     """
-    Adapt so that it works with DCCA
+    Adapt so that it works with DCCA and models with multiple latent spaces.
     """
 
     def __init__(self, model_config: BaseAEConfig):
         super(EncoderConvMMNIST_adapted, self).__init__()
         self.latent_dim = model_config.latent_dim
-        self.shared_encoder = nn.Sequential(  # input shape (3, 28, 28)
+        self.style_dim = model_config.style_dim
+        self.encoder_class = nn.Sequential(  # input shape (3, 28, 28)
             nn.Conv2d(
                 3, 32, kernel_size=3, stride=2, padding=1, bias=True
             ),  # -> (32, 14, 14)
@@ -83,18 +84,44 @@ class EncoderConvMMNIST_adapted(BaseEncoder):
             ),  # -> (128, 4, 4)
             nn.ReLU(),
         )
-
+        
         # content branch
         self.class_mu = nn.Conv2d(128, self.latent_dim, 4, 2, 0)
         self.class_logvar = nn.Conv2d(128, self.latent_dim, 4, 2, 0)
+        
+        if self.style_dim > 0:
+            self.encoder_style = nn.Sequential(  # input shape (3, 28, 28)
+                nn.Conv2d(
+                    3, 32, kernel_size=3, stride=2, padding=1, bias=True
+                ),  # -> (32, 14, 14)
+                nn.ReLU(),
+                nn.Conv2d(
+                    32, 64, kernel_size=3, stride=2, padding=1, bias=True
+                ),  # -> (64, 7, 7)
+                nn.ReLU(),
+                nn.Conv2d(
+                    64, 128, kernel_size=3, stride=2, padding=1, bias=True
+                ),  # -> (128, 4, 4)
+                nn.ReLU(),
+            )
+        
+            self.style_mu = nn.Conv2d(128, self.style_dim, 4, 2, 0)
+            self.style_logvar = nn.Conv2d(128, self.style_dim, 4, 2, 0)
 
     def forward(self, x):
-        h = self.shared_encoder(x)
-        return ModelOutput(
-            embedding=self.class_mu(h).squeeze(),
-            log_covariance=self.class_logvar(h).squeeze(),
-        )
-
+        output = ModelOutput()
+        # content branch
+        h_class = self.encoder_class(x)
+        output['embedding'] = self.class_mu(h_class).squeeze()
+        output['log_covariance'] = self.class_logvar(h_class).squeeze()
+        
+        if self.style_dim > 0:
+            # style branch
+            h_style = self.encoder_style(x)
+            output['style_embedding'] = self.style_mu(h_style).squeeze()
+            output['style_log_covariance'] = self.style_logvar(h_style).squeeze()
+        
+        return output
 
 class DecoderConvMMNIST(BaseDecoder):
     """

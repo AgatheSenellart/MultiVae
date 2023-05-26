@@ -167,16 +167,22 @@ class Dec(BaseDecoder):
     
 ###### Model Config ########
 from multivae.models.mmvaePlus import MMVAEPlusConfig, MMVAEPlus
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--seed',type=int,default=0)
+parser.add_argument('--K', type=int,default=1)
+args = parser.parse_args()
 
 modalities = ['m0','m1','m2','m3','m4']
 
 model_config = MMVAEPlusConfig(
     n_modalities=5,
-    K=1,
+    K=args.K,
     decoders_dist={m : 'laplace' for m in modalities},
     decoder_dist_params= {m : dict(scale = 0.75) for m in modalities},
     prior_and_posterior_dist='laplace_with_softmax',
-    beta=1,
+    beta=2.5,
     modalities_specific_dim=32,
     latent_dim=32,
     input_dims={m : (3,28,28) for m in modalities},
@@ -201,16 +207,17 @@ test_data = MMNISTDataset(data_path='~/scratch/data/MMNIST', split='test')
 ########## Training #######
 from multivae.trainers.base import BaseTrainer, BaseTrainerConfig
 
+
 training_config = BaseTrainerConfig(
     per_device_train_batch_size=32,
     per_device_eval_batch_size=32,
     num_epochs=50 if model_config.K==10 else 150,
     learning_rate=1e-3,
-    start_keep_best_epoch=51,
-    output_dir= '../reproduce_mmvaep',
+    output_dir= f'../reproduce_mmvaep/K__{model_config.K}/seed__{args.seed}',
     steps_predict=5,
     optimizer_cls='Adam',
-    optimizer_params=dict(amsgrad=True)
+    #optimizer_params=dict(amsgrad=True),
+    seed=args.seed
     
 )
 
@@ -229,7 +236,7 @@ trainer = BaseTrainer(model=model,
 
 trainer.train()
 
-trainer._best_model.push_to_hf_hub('asenella/reproduce_mmvaep')
+trainer._best_model.push_to_hf_hub(f'asenella/reproduce_mmvaep_K__{args.K}__seed_{args.seed}')
 
 
 #### Validation ####
@@ -268,7 +275,7 @@ class ClfImg(nn.Module):
         # return F.log_softmax(h, dim=-1)
         return h
 
-def load_mmnist_classifiers(data_path="../../../data/clf", device="cuda"):
+def load_mmnist_classifiers(data_path="/home/asenella/scratch/data/clf", device="cuda"):
     clfs = {}
     for i in range(5):
         fp = data_path + "/pretrained_img_to_digit_clf_m" + str(i)

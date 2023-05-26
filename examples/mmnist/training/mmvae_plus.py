@@ -1,6 +1,6 @@
 from config2 import *
 
-from multivae.models import MVAE, MVAEConfig
+from multivae.models import MMVAEPlus, MMVAEPlusConfig
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--param_file',type=str)
@@ -14,29 +14,54 @@ train_data = MMNISTDataset(data_path="~/scratch/data/MMNIST",
                            split="train", 
                            missing_ratio=args.missing_ratio,
                            keep_incomplete=args.keep_incomplete)
+
 test_data = MMNISTDataset(data_path="~/scratch/data/MMNIST", split="test")
 
 train_data, eval_data = random_split(
     train_data, [0.9, 0.1], generator=torch.Generator().manual_seed(42)
 )
 
-model_config = MVAEConfig(
+model_config = MMVAEPlusConfig(
     **base_config,
-    use_subsampling = (args.missing_ratio == 0) or not(args.keep_incomplete),
-    warmup=0,
+    K=1,
+    prior_and_posterior_dist='normal',
+    learn_shared_prior=False,
+    learn_modality_prior=True,
     beta=1,
+    modalities_specific_dim=102,
+    reconstruction_option='joint_prior'
+    
+)
+model_config.latent_dim = 104
+
+# Redefine encoders with style outputs
+
+encoders = {
+    k: EncoderConvMMNIST_adapted(
+        BaseAEConfig(latent_dim=model_config.latent_dim,
+                     style_dim=model_config.modalities_specific_dim,
+                     input_dim=(3, 28, 28))
     )
+    for k in modalities
+}
+
+decoders = {
+    k: DecoderConvMMNIST(
+        BaseAEConfig(latent_dim=model_config.latent_dim+model_config.modalities_specific_dim,
+                     input_dim=(3, 28, 28))
+    )
+    for k in modalities
+}
 
 
-model = MVAE(model_config, encoders=encoders, decoders=decoders)
+model = MMVAEPlus(model_config, encoders=encoders, decoders=decoders)
 
 trainer_config = BaseTrainerConfig(
     **base_training_config,
     seed=args.seed,
-    output_dir= f'compare_on_mmnist/{config_name}/{model.model_name}/seed_{args.seed}/missing_ratio_{args.missing_ratio}/',
-    start_keep_best_epoch=model_config.warmup + 1
+    output_dir= f'compare_on_mmnist/{config_name}/{model.model_name}/seed_{args.seed}/missing_ratio_{args.missing_ratio}/'
 )
-trainer_config.num_epochs = 400 
+trainer_config.num_epochs = 150 # enough for this model to reach convergence
 
 # Set up callbacks
 wandb_cb = WandbCallback()
@@ -50,16 +75,14 @@ trainer = BaseTrainer(
     train_dataset=train_data,
     eval_dataset=eval_data,
     training_config=trainer_config,
-    callbacks=callbacks
+    callbacks=callbacks,
 )
 trainer.train()
 
 model = trainer._best_model
 save_model(model,args)
-
 ##################################################################################################################################
 # validate the model #############################################################################################################
 ##################################################################################################################################
 
 eval_model(model, trainer.training_dir,test_data,wandb_cb.run.path)
-
