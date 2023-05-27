@@ -244,18 +244,9 @@ class MVAE(BaseMultiVAE):
     ):
         """Computes the joint_negative_nll for a batch of inputs."""
 
-        # Only keep the complete samples
-        all_modalities = list(self.encoders.keys())
-        if hasattr(inputs, "masks"):
-            filtered_inputs, filter = self._filter_inputs_with_masks(
-                inputs, all_modalities
-            )
-        else:
-            filtered_inputs = inputs.data
-
         # Then iter on each datapoint to compute the iwae estimate of ln(p(x))
         ll = 0
-        n_data = len(filtered_inputs[list(filtered_inputs.keys())[0]])
+        n_data = len(inputs.data[list(inputs.data.keys())[0]])
         for i in range(n_data):
             start_idx = 0
             stop_idx = min(start_idx + batch_size_K, K)
@@ -264,8 +255,8 @@ class MVAE(BaseMultiVAE):
             # Compute the parameters of the joint posterior
             mu, log_var = self.compute_mu_log_var_subset(
                 MultimodalBaseDataset(
-                    data={k: filtered_inputs[k][i].unsqueeze(0) for k in filtered_inputs}),
-                all_modalities,
+                    data={k: inputs.data[k][i].unsqueeze(0) for k in inputs.data}),
+                list(self.encoders.keys()),
             )
             assert mu.shape == (1, self.latent_dim)
             sigma = torch.exp(0.5 * log_var)

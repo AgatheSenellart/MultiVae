@@ -479,6 +479,7 @@ class MoPoE(BaseMultiVAE):
         K: int = 1000,
         batch_size_K: int = 100,
     ):
+        
         """
         Computes the joint negative log-likelihood using the MoPoE posterior as importance sampling distribution.
         The result is summed over the input batch.
@@ -487,19 +488,11 @@ class MoPoE(BaseMultiVAE):
         for computing the nll instead of the MoPoe, but that is less coherent with the definition of the
         MoPoE definition as the joint posterior.
         """
-
-        # Only keep the complete samples
-        all_modalities = list(self.encoders.keys())
-        if hasattr(inputs, "masks"):
-            filtered_inputs, filter = self.subset_mask(
-                inputs, all_modalities
-            )
-
-        else:
-            filtered_inputs = inputs
+        
+        self.eval()
 
         # Compute the parameters of the joint posterior
-        mu, log_var = self.inference(filtered_inputs)["joint"]
+        mu, log_var = self.inference(inputs)["joint"]
 
         sigma = torch.exp(0.5 * log_var)
         qz_xy = dist.Normal(mu, sigma)
@@ -563,10 +556,14 @@ class MoPoE(BaseMultiVAE):
         Computes the joint negative log-likelihood using the PoE posterior as importance sampling distribution.
         The result is summed over the input batch.
         """
+        self.eval()
 
         # Only keep the samples complete with regard to the subset modalities
         if hasattr(inputs, "masks"):
-            filtered_inputs, filter = self.subset_mask(inputs, subset)
+            filter = self.subset_mask(inputs, subset)
+            filtered_inputs = MultimodalBaseDataset(
+                data = {m: inputs.data[m][filter] for m in inputs.data}
+            )
 
         else:
             filtered_inputs = inputs

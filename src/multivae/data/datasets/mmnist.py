@@ -5,8 +5,9 @@ import math
 import torch
 from PIL import Image
 from pythae.data.datasets import DatasetOutput
-
+from torchvision.transforms import transforms
 from .base import MultimodalBaseDataset
+from typing import Literal
 
 
 class MMNISTDataset(MultimodalBaseDataset):
@@ -18,18 +19,20 @@ class MMNISTDataset(MultimodalBaseDataset):
 
     def __init__(
         self,
-        data_path,
-        transform=None,
-        target_transform=None,
-        split="train",
-        download=False,
-        missing_ratio = 0,
-        keep_incomplete = True
+        data_path : str,
+        transform  = None,
+        target_transform = None,
+        split : Literal['train', 'test'] ="train",
+        download :bool =False,
+        missing_ratio : float = 0,
+        keep_incomplete : bool = True
     ):
         """
         Args: 
-            unimodal_datapaths (list): list of paths to weakly-supervised unimodal datasets with samples that
-                correspond by index. Therefore the numbers of samples of all datapaths should match.
+            data_path (str) : The path where to find the MMNIST folder containing the folders 'train' or 'test'.
+                The data used is the one that can be downloaded from https://zenodo.org/record/4899160#.YLn0rKgzaHu
+                If data_path doesn't contain the dataset and download is set to True, then the data can be downloaded 
+                for you using gdown.
             transform: tranforms on colored MNIST digits.
             target_transform: transforms on labels.
             split (Literal['train', 'test']). Which part of the data to use.
@@ -47,7 +50,7 @@ class MMNISTDataset(MultimodalBaseDataset):
             data_path = os.path.expanduser(data_path)
             
 
-        unimodal_datapaths = [os.path.join(data_path , "/MMNIST/" , split , f"/m{i}.pt") for i in range(5)]
+        unimodal_datapaths = [os.path.join(data_path , "MMNIST" , split , f"m{i}.pt") for i in range(5)]
         self.num_modalities = len(unimodal_datapaths)
         self.unimodal_datapaths = unimodal_datapaths
         self.transform = transform
@@ -72,7 +75,7 @@ class MMNISTDataset(MultimodalBaseDataset):
             "m4": self.m4,
         }
 
-        label_datapaths = data_path + "/" + split + "/" + "labels.pt"
+        label_datapaths = os.path.join(data_path, 'MMNIST',split, 'labels.pt')
 
         self.labels = torch.load(label_datapaths)
 
@@ -102,7 +105,8 @@ class MMNISTDataset(MultimodalBaseDataset):
             
     def __check_or_download_data__(self, data_path, unimodal_datapaths):
         # TODO : test this function
-        if not os.path.exists(unimodal_datapaths[i]) and self.download:
+        print(unimodal_datapaths[0])
+        if not os.path.exists(unimodal_datapaths[0]) and self.download:
             import zipfile
             try :
                 import gdown
@@ -118,7 +122,7 @@ class MMNISTDataset(MultimodalBaseDataset):
             with zipfile.ZipFile(os.path.join(data_path,'MMNIST.zip')) as zip_ref:
                     zip_ref.extractall(data_path)
             
-        elif not os.path.exists(unimodal_datapaths[i]) and not self.download:
+        elif not os.path.exists(unimodal_datapaths[0]) and not self.download:
             raise AttributeError(
                 "The PolyMNIST dataset is not available at the"
                 " given datapath and download is set to False."

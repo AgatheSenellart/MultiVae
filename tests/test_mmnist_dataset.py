@@ -7,7 +7,7 @@ from pythae.data.datasets import DatasetOutput
 
 from multivae.data.datasets.base import MultimodalBaseDataset
 from multivae.data.datasets.mmnist import MMNISTDataset
-from warnings import warn
+import warnings
 
 class Test:
     @pytest.fixture(
@@ -58,5 +58,5 @@ class Test:
                         assert torch.all(sample.masks['m0'] == True)
                         assert not torch.all(sample.masks['m0'] == sample.masks['m1'])
             else :
-                warn('PolyMNIST dataset is not downloaded at provided path and therefore',
-                     'has not been tested')
+                warnings.warn(message='PolyMNIST dataset is not downloaded at provided path and therefore'+
+                                        'has not been tested')

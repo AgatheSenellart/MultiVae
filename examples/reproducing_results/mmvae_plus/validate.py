@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import torch
 from multivae.data.datasets.mmnist import MMNISTDataset
@@ -64,34 +65,40 @@ def load_mmnist_classifiers(data_path="/home/asenella/scratch/data/clf", device=
     return clfs
 
 from multivae.models import AutoModel
-path = f'../reproduce_mmvaep/K__{1}/seed__{0}/MMVAEPlus_training_2023-05-25_21-14-13/final_model'
-model = AutoModel.load_from_folder(path)
-model.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+import json
 
-wandb_path = "multimodal_vaes/reproducing_mmvae_plus/taawd1iv"
+for seed in range(3):
 
-config = CoherenceEvaluatorConfig(
-        batch_size=128,
-        wandb_path=wandb_path
-    )
+    path = f'../reproduce_mmvaep/K__{1}/seed__{0}/final_model'
     
-CoherenceEvaluator(
-        model=model,
-        test_dataset=test_data,
-        classifiers=load_mmnist_classifiers(device=model.device),
-        output=path,
-        eval_config=config
-    ).eval()
-    
-config = FIDEvaluatorConfig(
-        batch_size=128,
-        wandb_path=wandb_path
-    )
+    model = AutoModel.load_from_folder(path)
+    model.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-fid = FIDEvaluator(
-        model,
-        test_data,
-        output=path,
-        eval_config=config
+    with open(os.path.join(path,'wandb_info.json')) as fp:
+        wandb_path = json.load(fp)['path']
+
+    config = CoherenceEvaluatorConfig(
+            batch_size=128,
+            wandb_path=wandb_path
+        )
+        
+    CoherenceEvaluator(
+            model=model,
+            test_dataset=test_data,
+            classifiers=load_mmnist_classifiers(device=model.device),
+            output=path,
+            eval_config=config
         ).eval()
+        
+    config = FIDEvaluatorConfig(
+            batch_size=128,
+            wandb_path=wandb_path
+        )
+
+    fid = FIDEvaluator(
+            model,
+            test_data,
+            output=path,
+            eval_config=config
+            ).eval()
 
