@@ -1,6 +1,5 @@
 import argparse
 import os
-from multivae.metrics.fids.fids import FIDEvaluator
 
 import numpy as np
 import torch
@@ -10,10 +9,11 @@ from tqdm import tqdm
 
 from multivae.data.datasets.mmnist import MMNISTDataset
 from multivae.metrics import CoherenceEvaluator
+from multivae.metrics.fids.fids import FIDEvaluator
 from multivae.models.auto_model import AutoConfig, AutoModel
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--seed', default=8)
+parser.add_argument("--seed", default=8)
 args = parser.parse_args()
 
 
@@ -68,12 +68,14 @@ def load_mmnist_classifiers(data_path="../../../data/clf", device="cuda"):
 
 test_set = MMNISTDataset(data_path="~/scratch/data", split="test")
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
-clfs = load_mmnist_classifiers('/home/asenella/scratch/data/clf', device=device)
+clfs = load_mmnist_classifiers("/home/asenella/scratch/data/clf", device=device)
 for seed in range(3):
-    model = AutoModel.load_from_hf_hub(f'asenella/reproducing_mvtcae_seed_{seed}', allow_pickle=True)
-# model = AutoModel.load_from_folder(data_path)
+    model = AutoModel.load_from_hf_hub(
+        f"asenella/reproducing_mvtcae_seed_{seed}", allow_pickle=True
+    )
+    # model = AutoModel.load_from_folder(data_path)
 
     coherences = CoherenceEvaluator(model, clfs, test_set, None).eval()
 

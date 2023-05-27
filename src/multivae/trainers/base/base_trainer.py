@@ -195,7 +195,7 @@ class BaseTrainer:
             dataset=train_dataset,
             batch_size=self.training_config.per_device_train_batch_size,
             num_workers=self.training_config.train_dataloader_num_workers,
-            shuffle=True, 
+            shuffle=True,
             sampler=train_sampler,
             drop_last=self.training_config.drop_last,
         )
@@ -510,7 +510,7 @@ class BaseTrainer:
 
             if (
                 self.training_config.steps_predict is not None
-                and (epoch % self.training_config.steps_predict == 0 or epoch==1)
+                and (epoch % self.training_config.steps_predict == 0 or epoch == 1)
                 and self.is_main_process
             ):
                 reconstructions = self.predict(self._best_model, epoch)
@@ -653,7 +653,7 @@ class BaseTrainer:
             loss = model_output.loss
             epoch_loss += loss.item()
             update_dict(epoch_model_metrics, model_output.metrics)
-            
+
             if epoch_loss != epoch_loss:
                 raise ArithmeticError("NaN detected in train loss")
 
@@ -696,7 +696,7 @@ class BaseTrainer:
         # save training config
         self.training_config.save_json(dir_path, "training_config")
 
-        self.callback_handler.on_save(self.training_config,dir_path=dir_path)
+        self.callback_handler.on_save(self.training_config, dir_path=dir_path)
 
     def save_checkpoint(self, model: BaseMultiVAE, dir_path, epoch: int):
         """Saves a checkpoint alowing to restart training from here
@@ -752,10 +752,10 @@ class BaseTrainer:
 
         if self.eval_dataset is not None:
             inputs = next(iter(DataLoader(self.eval_dataset, batch_size=n_data)))
-            inputs = set_inputs_to_device(inputs,self.device)
-        else : 
+            inputs = set_inputs_to_device(inputs, self.device)
+        else:
             inputs = next(iter(DataLoader(self.train_dataset, batch_size=n_data)))
-            inputs = set_inputs_to_device(inputs,self.device)
+            inputs = set_inputs_to_device(inputs, self.device)
 
         # recon_dir = self.training_dir + '/reconstructions/'
         # os.makedirs(recon_dir,exist_ok=True)

@@ -76,7 +76,7 @@ class AutoModel(nn.Module):
             from ..mvtcae import MVTCAE
 
             model = MVTCAE.load_from_folder(dir_path)
-        
+
         elif model_name == "MMVAEPlusConfig":
             from ..mmvaePlus import MMVAEPlus
 
@@ -168,7 +168,7 @@ class AutoModel(nn.Module):
             from ..mvtcae import MVTCAE
 
             model = MVTCAE.load_from_hf_hub(hf_hub_path, allow_pickle)
-        
+
         elif model_name == "MMVAEPlusConfig":
             from ..mmvaePlus import MMVAEPlus
 

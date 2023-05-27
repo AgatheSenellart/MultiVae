@@ -1,17 +1,13 @@
 from itertools import combinations
 
 import numpy as np
+import torch
 from pythae.models.base.base_utils import ModelOutput
 from scipy import linalg
 from torch.utils.data import DataLoader, TensorDataset
 from torchvision.transforms import Resize
 
 from multivae.data import MultimodalBaseDataset
-import torch
-from pythae.models.base.base_utils import ModelOutput
-from scipy import linalg
-from torchvision.transforms import Resize
-
 from multivae.models.base import BaseMultiVAE
 
 from ..base.evaluator_class import Evaluator
@@ -38,7 +34,6 @@ class adapt_shape_for_fid(torch.nn.Module):
             self.resize = None
 
     def forward(self, x):
-
         if len(x.shape) == 1:  # (n_data,)
             x = x.unsqueeze(1)
         if len(x.shape) == 2:  # (n_data, n)
@@ -206,10 +201,10 @@ class FIDEvaluator(Evaluator):
             fd = self.get_frechet_distance(mod, generate_function)
             output[f"fd_{mod}"] = fd
             self.logger.info(f"The FD for modality {mod} is {fd}")
-            
+
         self.metrics.update(output)
         self.log_to_wandb()
-        
+
         return ModelOutput(**self.metrics)
 
     def compute_fid_from_conditional_generation(self, subset, gen_mod):
@@ -225,7 +220,7 @@ class FIDEvaluator(Evaluator):
         self.logger.info(
             f"The FD for modality {gen_mod} computed from subset={subset} is {fd}"
         )
-        
+
         self.metrics[f"Conditional FD from {subset} to {gen_mod}"] = fd
         return fd
 
@@ -270,7 +265,7 @@ class FIDEvaluator(Evaluator):
             s = modalities[:n]
             fd = self.compute_fid_from_conditional_generation(s, gen_mod)
             fds.append(fd)
-            
+
         self.log_to_wandb()
 
         return ModelOutput(**self.metrics)

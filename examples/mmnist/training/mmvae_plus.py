@@ -3,17 +3,19 @@ from config2 import *
 from multivae.models import MMVAEPlus, MMVAEPlusConfig
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--param_file',type=str)
+parser.add_argument("--param_file", type=str)
 args = parser.parse_args()
 
-with open(args.param_file,'r') as fp:
+with open(args.param_file, "r") as fp:
     info = json.load(fp)
 args = argparse.Namespace(**info)
 
-train_data = MMNISTDataset(data_path="~/scratch/data", 
-                           split="train", 
-                           missing_ratio=args.missing_ratio,
-                           keep_incomplete=args.keep_incomplete)
+train_data = MMNISTDataset(
+    data_path="~/scratch/data",
+    split="train",
+    missing_ratio=args.missing_ratio,
+    keep_incomplete=args.keep_incomplete,
+)
 
 test_data = MMNISTDataset(data_path="~/scratch/data", split="test")
 
@@ -24,13 +26,12 @@ train_data, eval_data = random_split(
 model_config = MMVAEPlusConfig(
     **base_config,
     K=1,
-    prior_and_posterior_dist='normal',
+    prior_and_posterior_dist="normal",
     learn_shared_prior=False,
     learn_modality_prior=True,
     beta=1,
     modalities_specific_dim=102,
-    reconstruction_option='joint_prior'
-    
+    reconstruction_option="joint_prior",
 )
 model_config.latent_dim = 104
 
@@ -38,17 +39,21 @@ model_config.latent_dim = 104
 
 encoders = {
     k: EncoderConvMMNIST_adapted(
-        BaseAEConfig(latent_dim=model_config.latent_dim,
-                     style_dim=model_config.modalities_specific_dim,
-                     input_dim=(3, 28, 28))
+        BaseAEConfig(
+            latent_dim=model_config.latent_dim,
+            style_dim=model_config.modalities_specific_dim,
+            input_dim=(3, 28, 28),
+        )
     )
     for k in modalities
 }
 
 decoders = {
     k: DecoderConvMMNIST(
-        BaseAEConfig(latent_dim=model_config.latent_dim+model_config.modalities_specific_dim,
-                     input_dim=(3, 28, 28))
+        BaseAEConfig(
+            latent_dim=model_config.latent_dim + model_config.modalities_specific_dim,
+            input_dim=(3, 28, 28),
+        )
     )
     for k in modalities
 }
@@ -59,9 +64,9 @@ model = MMVAEPlus(model_config, encoders=encoders, decoders=decoders)
 trainer_config = BaseTrainerConfig(
     **base_training_config,
     seed=args.seed,
-    output_dir= f'compare_on_mmnist/{config_name}/{model.model_name}/seed_{args.seed}/missing_ratio_{args.missing_ratio}/'
+    output_dir=f"compare_on_mmnist/{config_name}/{model.model_name}/seed_{args.seed}/missing_ratio_{args.missing_ratio}/",
 )
-trainer_config.num_epochs = 150 # enough for this model to reach convergence
+trainer_config.num_epochs = 150  # enough for this model to reach convergence
 
 # Set up callbacks
 wandb_cb = WandbCallback()
@@ -80,9 +85,9 @@ trainer = BaseTrainer(
 trainer.train()
 
 model = trainer._best_model
-save_model(model,args)
+save_model(model, args)
 ##################################################################################################################################
 # validate the model #############################################################################################################
 ##################################################################################################################################
 
-eval_model(model, trainer.training_dir,test_data,wandb_cb.run.path)
+eval_model(model, trainer.training_dir, test_data, wandb_cb.run.path)

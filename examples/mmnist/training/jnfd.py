@@ -4,16 +4,19 @@ from multivae.models import JNFDcca, JNFDccaConfig
 from multivae.trainers import AddDccaTrainer, AddDccaTrainerConfig
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--param_file',type=str)
+parser.add_argument("--param_file", type=str)
 args = parser.parse_args()
 
-with open(args.param_file,'r') as fp:
+with open(args.param_file, "r") as fp:
     info = json.load(fp)
 args = argparse.Namespace(**info)
 
-train_data = MMNISTDataset(data_path="~/scratch/data", split="train",
-                           missing_ratio=args.missing_ratio,
-                           keep_incomplete=args.keep_incomplete)
+train_data = MMNISTDataset(
+    data_path="~/scratch/data",
+    split="train",
+    missing_ratio=args.missing_ratio,
+    keep_incomplete=args.keep_incomplete,
+)
 
 test_data = MMNISTDataset(data_path="~/scratch/data", split="test")
 
@@ -43,8 +46,7 @@ trainer_config = AddDccaTrainerConfig(
     per_device_dcca_train_batch_size=500,
     per_device_dcca_eval_batch_size=500,
     seed=args.seed,
-    output_dir= f'compare_on_mmnist/{config_name}/{model.model_name}/seed_{args.seed}/missing_ratio_{args.missing_ratio}/'
-
+    output_dir=f"compare_on_mmnist/{config_name}/{model.model_name}/seed_{args.seed}/missing_ratio_{args.missing_ratio}/",
 )
 # trainer_config.num_epochs += (
 #     model_config.nb_epochs_dcca
@@ -67,9 +69,9 @@ trainer = AddDccaTrainer(
 trainer.train()
 
 model = trainer._best_model
-save_model(model,args)
+save_model(model, args)
 ##################################################################################################################################
 # validate the model #############################################################################################################
 ##################################################################################################################################
 
-eval_model(model, trainer.training_dir,test_data,wandb_cb.run.path)
+eval_model(model, trainer.training_dir, test_data, wandb_cb.run.path)

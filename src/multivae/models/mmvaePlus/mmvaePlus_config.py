@@ -35,11 +35,11 @@ class MMVAEPlusConfig(BaseMultiVAEConfig):
             training. Default to False.
         learn_modality_prior (bool) : If True, the mean and variance of the shared latent space prior are optimized during the
             training. Default to True.
-        beta (float) : When using K = 1 (ElBO loss), the beta factor regularizes the divergence term. 
-            Default to 1. 
+        beta (float) : When using K = 1 (ElBO loss), the beta factor regularizes the divergence term.
+            Default to 1.
         modalities_specific_dim (int) : The dimensionality of the modalitie's private latent spaces.
-            Must be provided. 
-        reconstruction_option (Literal['single_prior','joint_prior']) : Specifies how to sample the modality specific 
+            Must be provided.
+        reconstruction_option (Literal['single_prior','joint_prior']) : Specifies how to sample the modality specific
             variable when reconstructing/ translating modalities. Default to 'joint_prior' used in the article.
     """
 
@@ -48,7 +48,7 @@ class MMVAEPlusConfig(BaseMultiVAEConfig):
         "laplace_with_softmax", "normal"
     ] = "laplace_with_softmax"
     learn_shared_prior: bool = False
-    learn_modality_prior:bool = True
-    beta : float = 1.0
-    modalities_specific_dim : int = None
-    reconstruction_option : Literal['single_prior','joint_prior'] = 'joint_prior'
+    learn_modality_prior: bool = True
+    beta: float = 1.0
+    modalities_specific_dim: int = None
+    reconstruction_option: Literal["single_prior", "joint_prior"] = "joint_prior"

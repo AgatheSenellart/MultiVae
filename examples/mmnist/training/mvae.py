@@ -3,17 +3,19 @@ from config2 import *
 from multivae.models import MVAE, MVAEConfig
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--param_file',type=str)
+parser.add_argument("--param_file", type=str)
 args = parser.parse_args()
 
-with open(args.param_file,'r') as fp:
+with open(args.param_file, "r") as fp:
     info = json.load(fp)
 args = argparse.Namespace(**info)
 
-train_data = MMNISTDataset(data_path="~/scratch/data", 
-                           split="train", 
-                           missing_ratio=args.missing_ratio,
-                           keep_incomplete=args.keep_incomplete)
+train_data = MMNISTDataset(
+    data_path="~/scratch/data",
+    split="train",
+    missing_ratio=args.missing_ratio,
+    keep_incomplete=args.keep_incomplete,
+)
 test_data = MMNISTDataset(data_path="~/scratch/data", split="test")
 
 train_data, eval_data = random_split(
@@ -22,10 +24,10 @@ train_data, eval_data = random_split(
 
 model_config = MVAEConfig(
     **base_config,
-    use_subsampling = (args.missing_ratio == 0) or not(args.keep_incomplete),
+    use_subsampling=(args.missing_ratio == 0) or not (args.keep_incomplete),
     warmup=0,
     beta=1,
-    )
+)
 
 
 model = MVAE(model_config, encoders=encoders, decoders=decoders)
@@ -33,10 +35,10 @@ model = MVAE(model_config, encoders=encoders, decoders=decoders)
 trainer_config = BaseTrainerConfig(
     **base_training_config,
     seed=args.seed,
-    output_dir= f'compare_on_mmnist/{config_name}/{model.model_name}/seed_{args.seed}/missing_ratio_{args.missing_ratio}/',
-    start_keep_best_epoch=model_config.warmup + 1
+    output_dir=f"compare_on_mmnist/{config_name}/{model.model_name}/seed_{args.seed}/missing_ratio_{args.missing_ratio}/",
+    start_keep_best_epoch=model_config.warmup + 1,
 )
-trainer_config.num_epochs = 400 
+trainer_config.num_epochs = 400
 
 # Set up callbacks
 wandb_cb = WandbCallback()
@@ -50,16 +52,15 @@ trainer = BaseTrainer(
     train_dataset=train_data,
     eval_dataset=eval_data,
     training_config=trainer_config,
-    callbacks=callbacks
+    callbacks=callbacks,
 )
 trainer.train()
 
 model = trainer._best_model
-save_model(model,args)
+save_model(model, args)
 
 ##################################################################################################################################
 # validate the model #############################################################################################################
 ##################################################################################################################################
 
-eval_model(model, trainer.training_dir,test_data,wandb_cb.run.path)
-
+eval_model(model, trainer.training_dir, test_data, wandb_cb.run.path)

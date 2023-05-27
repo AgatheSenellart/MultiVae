@@ -81,7 +81,8 @@ class AddDccaTrainer(BaseTrainer):
             num_workers=self.training_config.train_dataloader_num_workers,
             shuffle=(train_sampler is None),
             sampler=train_sampler,
-            drop_last=len(train_dataset) > self.training_config.per_device_dcca_train_batch_size
+            drop_last=len(train_dataset)
+            > self.training_config.per_device_dcca_train_batch_size,
         )
 
     def get_eval_dataloader_dcca(
@@ -99,7 +100,8 @@ class AddDccaTrainer(BaseTrainer):
             num_workers=self.training_config.eval_dataloader_num_workers,
             shuffle=(eval_sampler is None),
             sampler=eval_sampler,
-            drop_last=len(eval_dataset) > self.training_config.per_device_dcca_eval_batch_size,
+            drop_last=len(eval_dataset)
+            > self.training_config.per_device_dcca_eval_batch_size,
         )
 
     def prepare_train_step(self, epoch, best_train_loss, best_eval_loss):

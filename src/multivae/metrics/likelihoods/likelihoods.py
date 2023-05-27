@@ -44,7 +44,9 @@ class LikelihoodsEvaluator(Evaluator):
                 data={m: batch["data"][m].to(self.device) for m in batch["data"]}
             )
             if self.unified or (not hasattr(self.model, "compute_joint_nll_paper")):
-                ll += self.model.compute_joint_nll(batch, self.num_samples, self.batch_size_k)
+                ll += self.model.compute_joint_nll(
+                    batch, self.num_samples, self.batch_size_k
+                )
             else:
                 self.logger.info("Using the paper version of the joint nll.")
                 ll += self.model.compute_joint_nll_paper(
@@ -53,7 +55,7 @@ class LikelihoodsEvaluator(Evaluator):
 
         joint_nll = ll / len(self.test_loader.dataset)
         self.logger.info(f"Joint likelihood : {str(joint_nll)}")
-        self.metrics['joint_likelihood'] = joint_nll
+        self.metrics["joint_likelihood"] = joint_nll
         return joint_nll
 
     def joint_nll_from_subset(self, subset):
@@ -86,7 +88,7 @@ class LikelihoodsEvaluator(Evaluator):
 
         modalities = list(self.model.encoders.keys())
         liks = []
-        for n in range(1, self.model.n_modalities+1):
+        for n in range(1, self.model.n_modalities + 1):
             subsets_of_size_n = combinations(
                 modalities,
                 n,
@@ -104,8 +106,10 @@ class LikelihoodsEvaluator(Evaluator):
                 f"Conditional accuracies for {i+1} modalities : {mean_liks[i]} +- {std_liks[i]}"
             )
             self.metrics[f"Conditional accuracies for {i+1} modalities"] = mean_liks[i]
-            self.metrics[f"Conditional accuracies for {i+1} modalities (std)"] = std_liks[i]
-        
+            self.metrics[
+                f"Conditional accuracies for {i+1} modalities (std)"
+            ] = std_liks[i]
+
         self.log_to_wandb()
 
         return mean_liks, std_liks

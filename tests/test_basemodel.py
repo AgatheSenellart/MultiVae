@@ -219,9 +219,7 @@ class Test_BaseMultiVAE:
 
         assert tuple(output.mod1.shape) == (3, 10, 2)
 
-
     def test_decode_several_latent(self):
-
         mod_latent = np.random.randint(1, 100)
 
         model_config = BaseMultiVAEConfig(n_modalities=2, latent_dim=10)
@@ -229,7 +227,9 @@ class Test_BaseMultiVAE:
         encoders = dict(
             mod1=Encoder_VAE_MLP(config), mod2=Encoder_Conv_AE_MNIST(config)
         )
-        config = BaseAEConfig(input_dim=(10, 2), latent_dim=mod_latent+config.latent_dim)
+        config = BaseAEConfig(
+            input_dim=(10, 2), latent_dim=mod_latent + config.latent_dim
+        )
 
         decoders = dict(mod1=Decoder_AE_MLP(config), mod2=Decoder_Conv_AE_MNIST(config))
 
@@ -238,12 +238,12 @@ class Test_BaseMultiVAE:
         out = ModelOutput(
             z=torch.randn(3, model_config.latent_dim),
             one_latent_space=False,
-            modalities_z=dict(mod1=torch.randn(3, mod_latent))
+            modalities_z=dict(mod1=torch.randn(3, mod_latent)),
         )
 
         output = model.decode(out, modalities="mod1")
 
-        assert tuple(output.mod1.shape) == (3, 10, 2)            
+        assert tuple(output.mod1.shape) == (3, 10, 2)
 
     def test_raises_fwd_not_implemented(self, input_model1):
         model = BaseMultiVAE(**input_model1)

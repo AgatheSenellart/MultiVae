@@ -62,11 +62,11 @@ class MVTCAE(BaseMultiVAE):
                 -self.recon_log_probs[m_key](recon, inputs.data[m_key])
                 * self.rescale_factors[m_key]
             )
-            m_rec = m_rec.reshape(m_rec.size(0),-1).sum(-1)
-            
+            m_rec = m_rec.reshape(m_rec.size(0), -1).sum(-1)
+
             # Keep only the available samples
-            if hasattr(inputs,'masks'):
-                m_rec = inputs.masks[m_key].float()*m_rec
+            if hasattr(inputs, "masks"):
+                m_rec = inputs.masks[m_key].float() * m_rec
 
             results[m_key] = m_rec.sum()
             loss_rec += m_rec.sum()
@@ -78,21 +78,19 @@ class MVTCAE(BaseMultiVAE):
             o = latent_modalities[m_key]
             mu, logvar = o.embedding, o.log_covariance
             results["kld_" + m_key] = -0.5 * (
-                
-                    1
-                    - joint_logvar.exp() / logvar.exp()
-                    - (joint_mu - mu).pow(2) / logvar.exp()
-                    + joint_logvar
-                    - logvar
-                
-            ).reshape(mu.size(0),-1).sum(-1)
-            
+                1
+                - joint_logvar.exp() / logvar.exp()
+                - (joint_mu - mu).pow(2) / logvar.exp()
+                + joint_logvar
+                - logvar
+            ).reshape(mu.size(0), -1).sum(-1)
+
             # Keep only the available samples
-            if hasattr(inputs,'masks'):
-                results["kld_" + m_key][(1-inputs.masks[m_key].int()).bool()] = 0
-            
-            results["kld_" + m_key]= results["kld_" + m_key].sum()
-            
+            if hasattr(inputs, "masks"):
+                results["kld_" + m_key][(1 - inputs.masks[m_key].int()).bool()] = 0
+
+            results["kld_" + m_key] = results["kld_" + m_key].sum()
+
             kld_losses += results["kld_" + m_key].sum()
         assert not torch.isnan(kld_losses)
 
@@ -121,13 +119,13 @@ class MVTCAE(BaseMultiVAE):
         for m, m_key in enumerate(inputs.data.keys()):
             input_modality = inputs.data[m_key]
             output = self.encoders[m_key](input_modality)
-            # For unavailable samples, set the log-variance to infty so that they don't contribute to the 
+            # For unavailable samples, set the log-variance to infty so that they don't contribute to the
             # product of experts
-            if hasattr(inputs, 'masks'):
-                output.log_covariance[(1-inputs.masks[m_key].int()).bool()] = torch.inf
+            if hasattr(inputs, "masks"):
+                output.log_covariance[
+                    (1 - inputs.masks[m_key].int()).bool()
+                ] = torch.inf
             encoders_outputs[m_key] = output
-            
-        
 
         return encoders_outputs
 
@@ -140,8 +138,6 @@ class MVTCAE(BaseMultiVAE):
         pd_logvar = torch.log(pd_var)
         return pd_mu, pd_logvar
 
-
-
     def ivw_fusion(self, mus: torch.Tensor, logvars: torch.Tensor, weights=None):
         mu_poe, logvar_poe = self.poe(mus, logvars)
         return [mu_poe, logvar_poe]
@@ -151,7 +147,7 @@ class MVTCAE(BaseMultiVAE):
     ):
         """
         Returns a filtered dataset containing only the samples that are available
-        in all the modalities contained in subset. 
+        in all the modalities contained in subset.
         The dataset that is returned only contains the modalities in subset.
         """
 
@@ -226,11 +222,11 @@ class MVTCAE(BaseMultiVAE):
 
         # If the dataset is incomplete, keep only the samples availables in all cond_mod
         # modalities
-        
+
         # Only keep the relevant modalities for prediction
         cond_inputs = MultimodalBaseDataset(
-                data={k: inputs.data[k] for k in cond_mod},
-            )
+            data={k: inputs.data[k] for k in cond_mod},
+        )
 
         latents_subsets = self.inference(cond_inputs)
         mu, log_var = latents_subsets["joint"]

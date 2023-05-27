@@ -9,7 +9,6 @@ import warnings
 from copy import deepcopy
 from http.cookiejar import LoadError
 from typing import Union
-from torch.nn import functional as F
 
 import cloudpickle
 import numpy as np
@@ -18,6 +17,7 @@ import torch.distributions as dist
 import torch.nn as nn
 from pythae.models.base.base_utils import CPU_Unpickler, ModelOutput
 from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
+from torch.nn import functional as F
 
 from ...data.datasets.base import MultimodalBaseDataset
 from ..auto_model import AutoConfig
@@ -33,7 +33,7 @@ logger.setLevel(logging.INFO)
 
 def cross_entropy(input, target, eps=1e-6):
     """k-Class Cross Entropy (Log Softmax + Log Loss)
-    
+
     @param input: torch.Tensor (size K x N x d)
     @param target: torch.Tensor (size N )
     @param eps: error to add (default: 1e-6)
@@ -42,13 +42,16 @@ def cross_entropy(input, target, eps=1e-6):
     if not (target.size(0) == input.size(0)):
         raise ValueError(
             "Target size ({}) must be the same as input size ({})".format(
-                target.size(0), input.size(0)))
+                target.size(0), input.size(0)
+            )
+        )
 
     log_input = F.log_softmax(input + eps, dim=1)
     y_onehot = torch.zeros_like(log_input)
     y_onehot = y_onehot.scatter(1, target.unsqueeze(1), 1)
     loss = y_onehot * log_input
     return loss
+
 
 class BaseMultiVAE(nn.Module):
     """Base class for Multimodal VAE models.
@@ -189,7 +192,9 @@ class BaseMultiVAE(nn.Module):
                 ).log_prob(target)
 
             elif recon_dict[k] == "categorical":
-                self.recon_log_probs[k] = lambda input, target: cross_entropy(input,target)
+                self.recon_log_probs[k] = lambda input, target: cross_entropy(
+                    input, target
+                )
 
         # TODO : add the possibility to provide custom reconstruction loss and in that case use the negative
         # reconstruction loss as the log probability.
@@ -317,14 +322,12 @@ class BaseMultiVAE(nn.Module):
         By default, it does nothing.
         """
         pass
-    
-    def default_encoders(self,model_config) -> nn.ModuleDict:
+
+    def default_encoders(self, model_config) -> nn.ModuleDict:
         return BaseDictEncoders(self.input_dims, model_config.latent_dim)
-    
-    def default_decoders(self,model_config) -> nn.ModuleDict:
+
+    def default_decoders(self, model_config) -> nn.ModuleDict:
         return BaseDictDecoders(self.input_dims, model_config.latent_dim)
-        
-        
 
     def set_encoders(self, encoders: dict) -> None:
         """Set the encoders of the model"""

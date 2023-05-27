@@ -10,14 +10,13 @@ from pythae.models.base.base_utils import ModelOutput
 from torch.distributions import Laplace, Normal
 
 from multivae.data.datasets.base import MultimodalBaseDataset
-
-from ..base import BaseMultiVAE
-from .mmvaePlus_config import MMVAEPlusConfig
-
 from multivae.models.nn.default_architectures import (
     BaseDictDecodersMultiLatents,
     BaseDictEncoders_MultiLatents,
 )
+
+from ..base import BaseMultiVAE
+from .mmvaePlus_config import MMVAEPlusConfig
 
 logger = logging.getLogger(__name__)
 console = logging.StreamHandler()
@@ -28,7 +27,7 @@ logger.setLevel(logging.INFO)
 class MMVAEPlus(BaseMultiVAE):
 
     """
-    The MMVAE+ model. 
+    The MMVAE+ model.
 
     Args:
         model_config (MMVAEPlusConfig): An instance of MMVAEConfig in which any model's
@@ -44,15 +43,17 @@ class MMVAEPlus(BaseMultiVAE):
     """
 
     def __init__(
-        self, model_config: MMVAEPlusConfig, encoders: dict = None, decoders: dict = None
-    ):  
-        
+        self,
+        model_config: MMVAEPlusConfig,
+        encoders: dict = None,
+        decoders: dict = None,
+    ):
         if model_config.modalities_specific_dim is None:
-            raise AttributeError('The modalities_specific_dim attribute must'
-                                 ' be provided in the model config.')
-        
+            raise AttributeError(
+                "The modalities_specific_dim attribute must"
+                " be provided in the model config."
+            )
 
-        
         super().__init__(model_config, encoders, decoders)
 
         self.K = model_config.K
@@ -69,7 +70,7 @@ class MMVAEPlus(BaseMultiVAE):
                 f" {model_config.prior_and_posterior_dist} was provided."
             )
 
-        # Set the priors for shared and private spaces. 
+        # Set the priors for shared and private spaces.
         self.mean_priors = torch.nn.ParameterDict()
         self.logvars_priors = torch.nn.ParameterDict()
         self.beta = model_config.beta
@@ -77,29 +78,31 @@ class MMVAEPlus(BaseMultiVAE):
         self.reconstruction_option = model_config.reconstruction_option
 
         # Add the private and shared latents priors.
-        
+
         # modality specific priors (referred to as r distributions in paper)
-        for mod in list(self.encoders.keys()) :
+        for mod in list(self.encoders.keys()):
             self.mean_priors[mod] = torch.nn.Parameter(
-                torch.zeros(1, model_config.modalities_specific_dim), 
-                requires_grad=False
+                torch.zeros(1, model_config.modalities_specific_dim),
+                requires_grad=False,
             )
             self.logvars_priors[mod] = torch.nn.Parameter(
                 torch.zeros(1, model_config.modalities_specific_dim),
-                requires_grad=model_config.learn_modality_prior
+                requires_grad=model_config.learn_modality_prior,
             )
-        
-        # general prior (for the entire latent code) referred to as p in the paper
-        self.mean_priors['shared'] = torch.nn.Parameter(
-                torch.zeros(1, model_config.latent_dim + model_config.modalities_specific_dim), 
-                requires_grad=False
-            )
-        self.logvars_priors['shared'] = torch.nn.Parameter(
-            torch.zeros(1, model_config.latent_dim+ model_config.modalities_specific_dim),
-            requires_grad=model_config.learn_shared_prior
-        )
 
-        
+        # general prior (for the entire latent code) referred to as p in the paper
+        self.mean_priors["shared"] = torch.nn.Parameter(
+            torch.zeros(
+                1, model_config.latent_dim + model_config.modalities_specific_dim
+            ),
+            requires_grad=False,
+        )
+        self.logvars_priors["shared"] = torch.nn.Parameter(
+            torch.zeros(
+                1, model_config.latent_dim + model_config.modalities_specific_dim
+            ),
+            requires_grad=model_config.learn_shared_prior,
+        )
 
         self.model_name = "MMVAEPlus"
 
@@ -114,8 +117,6 @@ class MMVAEPlus(BaseMultiVAE):
             return F.softmax(log_var, dim=-1) * log_var.size(-1) + 1e-6
         else:
             return torch.exp(0.5 * log_var)
-
-
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs):
         # TODO : maybe implement a minibatch strategy for stashing the gradients before
@@ -138,66 +139,72 @@ class MMVAEPlus(BaseMultiVAE):
         for cond_mod in self.encoders:
             output = self.encoders[cond_mod](inputs.data[cond_mod])
             mu, log_var = output.embedding, output.log_covariance
-            mu_style, log_var_style = output.style_embedding, output.style_log_covariance
+            mu_style, log_var_style = (
+                output.style_embedding,
+                output.style_log_covariance,
+            )
 
-            sigma = self.log_var_to_std(log_var) 
+            sigma = self.log_var_to_std(log_var)
             sigma_style = self.log_var_to_std(log_var_style)
-            
+
             # Shared latent variable
             qu_x = self.post_dist(mu, sigma)
             u_x = qu_x.rsample([K])
-            
+
             # Private latent variable
             qw_x = self.post_dist(mu_style, sigma_style)
             w_x = qw_x.rsample([K])
-            
 
             # The DREG loss uses detached parameters in the loss computation afterwards.
             qu_x_detach = self.post_dist(mu.detach(), sigma.detach())
-            qw_x_detach = self.post_dist(mu_style.detach(),sigma_style.detach())
+            qw_x_detach = self.post_dist(mu_style.detach(), sigma_style.detach())
 
             # Then compute all the cross-modal reconstructions
             reconstructions[cond_mod] = {}
-            
+
             for recon_mod in self.decoders:
-                
                 # Self-reconstruction
                 if recon_mod == cond_mod:
-                    z_x = torch.cat([u_x,w_x], dim=-1)
-                
+                    z_x = torch.cat([u_x, w_x], dim=-1)
+
                 # Cross modal reconstruction
-                else :
+                else:
                     # only keep the shared latent and generate private from prior
-                    
-                    mu_prior_mod = torch.cat([self.mean_priors[recon_mod]]*len(mu), axis=0)
-                    log_var_prior_mod = torch.cat([self.log_var_to_std(self.logvars_priors[recon_mod])]*len(mu), axis=0)
+
+                    mu_prior_mod = torch.cat(
+                        [self.mean_priors[recon_mod]] * len(mu), axis=0
+                    )
+                    log_var_prior_mod = torch.cat(
+                        [self.log_var_to_std(self.logvars_priors[recon_mod])] * len(mu),
+                        axis=0,
+                    )
                     sigma_prior_mod = self.log_var_to_std(log_var_prior_mod)
-                    
-                    w = self.prior_dist(mu_prior_mod,
-                                        sigma_prior_mod,
-                                        ).rsample([K])
+
+                    w = self.prior_dist(
+                        mu_prior_mod,
+                        sigma_prior_mod,
+                    ).rsample([K])
                     # print(w.shape)
                     # print(u_x.shape,w.shape)
-                    z_x = torch.cat([u_x,w], dim=-1)
+                    z_x = torch.cat([u_x, w], dim=-1)
                 # Decode
                 # print(z_x.shape)
                 decoder = self.decoders[recon_mod]
                 recon = decoder(z_x)["reconstruction"]
-                
-                
+
                 reconstructions[cond_mod][recon_mod] = recon
 
             qu_xs[cond_mod] = qu_x
             qu_xs_detach[cond_mod] = qu_x_detach
             qw_xs[cond_mod] = qw_x
             qw_xs_detach[cond_mod] = qw_x_detach
-            embeddings[cond_mod] = dict(u = u_x, w = w_x)
+            embeddings[cond_mod] = dict(u=u_x, w=w_x)
 
         # Compute DREG loss
         if compute_loss:
             # TODO : change
             loss_output = self.dreg_looser(
-                qu_xs_detach,qw_xs_detach, embeddings, reconstructions, inputs
+                qu_xs_detach, qw_xs_detach, embeddings, reconstructions, inputs
             )
 
         else:
@@ -207,7 +214,7 @@ class MMVAEPlus(BaseMultiVAE):
             loss_output["recon"] = reconstructions
 
         return loss_output
-    
+
     @property
     def pz_params(self):
         """From the prior mean and log_covariance, return the mean and standard
@@ -217,46 +224,55 @@ class MMVAEPlus(BaseMultiVAE):
         Returns:
             tuple: mean, std
         """
-        mean = self.mean_priors['shared']
+        mean = self.mean_priors["shared"]
         if self.model_config.prior_and_posterior_dist == "laplace_with_softmax":
-            std = F.softmax(self.logvars_priors['shared'], dim=-1) * self.logvars_priors['shared'].size(-1)
+            std = F.softmax(
+                self.logvars_priors["shared"], dim=-1
+            ) * self.logvars_priors["shared"].size(-1)
         else:
-            std = torch.exp(0.5 * self.logvars_priors['shared'])
+            std = torch.exp(0.5 * self.logvars_priors["shared"])
         return mean, std
 
-
     def dreg_looser(self, qu_xs, qw_xs, embeddings, reconstructions, inputs):
-        
-        if hasattr(inputs, 'masks'):
+        if hasattr(inputs, "masks"):
             # Compute the number of available modalities per sample
-            n_mods_sample = torch.sum(torch.stack(tuple(inputs.masks.values())).int(), dim=0)
-        else :
+            n_mods_sample = torch.sum(
+                torch.stack(tuple(inputs.masks.values())).int(), dim=0
+            )
+        else:
             n_mods_sample = torch.tensor([self.n_modalities])
-        
-        
+
         lws = []
         zss = []
         for mod in embeddings:
-            
             # Log-probabilities to the prior are the same as in MMVAE
-            u = embeddings[mod]['u']# (K, n_batch, latent_dim)
-            w = embeddings[mod]['w'] # (K, n_batch, latent_dim)
+            u = embeddings[mod]["u"]  # (K, n_batch, latent_dim)
+            w = embeddings[mod]["w"]  # (K, n_batch, latent_dim)
             n_mods_sample = n_mods_sample.to(u.device)
             prior = self.prior_dist(*self.pz_params)
-            z = torch.cat([u,w], dim=-1)
+            z = torch.cat([u, w], dim=-1)
             lpz = prior.log_prob(z).sum(-1)
-            
-            # For the shared latent variable it is the same
-            if hasattr(inputs, 'masks'):
-                lqu_x = torch.stack([qu_xs[m].log_prob(u).sum(-1)*inputs.masks[m].float() for m in qu_xs])# n_modalities,K,nbatch
-            else :
-                lqu_x = torch.stack([qu_xs[m].log_prob(u).sum(-1) for m in qu_xs])# n_modalities,K,nbatch
 
-            lqu_x = torch.logsumexp(lqu_x, dim=0) - torch.log(n_mods_sample)  # log_mean_exp
-            
+            # For the shared latent variable it is the same
+            if hasattr(inputs, "masks"):
+                lqu_x = torch.stack(
+                    [
+                        qu_xs[m].log_prob(u).sum(-1) * inputs.masks[m].float()
+                        for m in qu_xs
+                    ]
+                )  # n_modalities,K,nbatch
+            else:
+                lqu_x = torch.stack(
+                    [qu_xs[m].log_prob(u).sum(-1) for m in qu_xs]
+                )  # n_modalities,K,nbatch
+
+            lqu_x = torch.logsumexp(lqu_x, dim=0) - torch.log(
+                n_mods_sample
+            )  # log_mean_exp
+
             # Then we have to add the modality specific posterior
             lqw_x = qw_xs[mod].log_prob(w).sum(-1)
-            
+
             # The reconstructions are the same
             lpx_z = 0
             for recon_mod in reconstructions[mod]:
@@ -268,20 +284,19 @@ class MMVAEPlus(BaseMultiVAE):
                     .mul(self.rescale_factors[recon_mod])
                     .sum(-1)
                 )
-                
-                if hasattr(inputs, 'masks'):
+
+                if hasattr(inputs, "masks"):
                     # cancel unavailable modalities
                     lpx_z_mod *= inputs.masks[recon_mod].float()
-                
+
                 lpx_z += lpx_z_mod
-                
-            lw = lpx_z + self.beta*(lpz - lqu_x - lqw_x)
-            
-            if hasattr(inputs, 'masks'):
-                    # cancel unavailable modalities
-                lw*=inputs.masks[mod].float()
-                
-            
+
+            lw = lpx_z + self.beta * (lpz - lqu_x - lqw_x)
+
+            if hasattr(inputs, "masks"):
+                # cancel unavailable modalities
+                lw *= inputs.masks[mod].float()
+
             lws.append(lw)
             zss.append(z)
 
@@ -292,11 +307,9 @@ class MMVAEPlus(BaseMultiVAE):
             if zss.requires_grad:  # True except when we are in eval mode
                 zss.register_hook(lambda grad: grad_wt.unsqueeze(-1) * grad)
 
-        lws = (grad_wt * lws).sum(0)/ n_mods_sample # mean over modalities
-        
-        return ModelOutput(loss=-lws.sum(), metrics=dict(mean_loss_batch = -lws.mean()))
+        lws = (grad_wt * lws).sum(0) / n_mods_sample  # mean over modalities
 
-
+        return ModelOutput(loss=-lws.sum(), metrics=dict(mean_loss_batch=-lws.mean()))
 
     def encode(
         self,
@@ -306,7 +319,7 @@ class MMVAEPlus(BaseMultiVAE):
         **kwargs,
     ):
         # TODO : Deal with the case where you want to encode an incomplete dataset
-        
+
         # If the input cond_mod is a string : convert it to a list
         if type(cond_mod) == str:
             if cond_mod == "all":
@@ -326,7 +339,7 @@ class MMVAEPlus(BaseMultiVAE):
             output = self.encoders[mod](inputs.data[mod])
             # shared information
             mu, log_var = output.embedding, output.log_covariance
-            
+
             sigma = self.log_var_to_std(log_var)
             qz_x = self.post_dist(mu, sigma)
             sample_shape = torch.Size([]) if N == 1 else torch.Size([N])
@@ -335,37 +348,42 @@ class MMVAEPlus(BaseMultiVAE):
             flatten = kwargs.pop("flatten", False)
             if flatten:
                 z = z.reshape(-1, self.latent_dim)
-                
+
             # modality specific encoding
             style_z = dict()
-            
+
             # For the encoding modality, we have the modality specific variable
-            
+
             sigma_mod = self.log_var_to_std(output.style_log_covariance)
-            style_z[mod] = self.post_dist(output.style_embedding,
-                               sigma_mod).rsample(sample_shape)
+            style_z[mod] = self.post_dist(output.style_embedding, sigma_mod).rsample(
+                sample_shape
+            )
             if flatten:
                 style_z[mod] = style_z[mod].reshape(-1, self.modalities_specific_dim)
-                
+
             # For the other modalities, we sample from a prior function depending on the option
-            
+
             for m in self.encoders:
                 if m != mod:
-                    if self.reconstruction_option == 'single_prior':
+                    if self.reconstruction_option == "single_prior":
                         mu_m = self.mean_priors[m]
-                        logvar_m  = self.logvars_priors[m]
-                        
-                    if self.reconstruction_option == 'joint_prior':
-                        mu_m = self.mean_priors['shared'][:,self.latent_dim:]
-                        logvar_m  = self.logvars_priors['shared'][:,self.latent_dim:]
-                        
-                    sigma_m = self.log_var_to_std(logvar_m)
-                    style_z[m] = self.post_dist(torch.cat([mu_m]*len(mu),dim=0),
-                                    torch.cat([sigma_m]*len(mu),dim=0)).rsample(sample_shape)
-                    if flatten:
-                        style_z[m] = style_z[m].reshape(-1, self.modalities_specific_dim)
+                        logvar_m = self.logvars_priors[m]
 
-            return ModelOutput(z=z, one_latent_space=False, modalities_z = style_z)
+                    if self.reconstruction_option == "joint_prior":
+                        mu_m = self.mean_priors["shared"][:, self.latent_dim :]
+                        logvar_m = self.logvars_priors["shared"][:, self.latent_dim :]
+
+                    sigma_m = self.log_var_to_std(logvar_m)
+                    style_z[m] = self.post_dist(
+                        torch.cat([mu_m] * len(mu), dim=0),
+                        torch.cat([sigma_m] * len(mu), dim=0),
+                    ).rsample(sample_shape)
+                    if flatten:
+                        style_z[m] = style_z[m].reshape(
+                            -1, self.modalities_specific_dim
+                        )
+
+            return ModelOutput(z=z, one_latent_space=False, modalities_z=style_z)
 
     def compute_joint_nll(
         self, inputs: MultimodalBaseDataset, K: int = 1000, batch_size_K: int = 100
@@ -378,7 +396,7 @@ class MMVAEPlus(BaseMultiVAE):
             inputs : the data to compute the joint likelihood
 
         """
-        raise(NotImplementedError)
+        raise (NotImplementedError)
         logger.info(
             "Started computing the negative log_likelihood on inputs. This function"
             " can take quite a long time to run."
@@ -467,23 +485,26 @@ class MMVAEPlus(BaseMultiVAE):
         )  # n_batch
         return -ll
 
-    def generate_from_prior(self, n_samples,**kwargs):
+    def generate_from_prior(self, n_samples, **kwargs):
         sample_shape = [n_samples] if n_samples > 1 else []
         z = self.prior_dist(*self.pz_params).rsample(sample_shape)
         return ModelOutput(z=z.squeeze(), one_latent_space=True)
 
-    
     def default_encoders(self, model_config) -> nn.ModuleDict:
         return BaseDictEncoders_MultiLatents(
-                    input_dims=model_config.input_dims,
-                    latent_dim=model_config.latent_dim,
-                    modality_dims=
-                    {m : model_config.modalities_specific_dim for m in self.model_config.input_dims},
-                )
-        
+            input_dims=model_config.input_dims,
+            latent_dim=model_config.latent_dim,
+            modality_dims={
+                m: model_config.modalities_specific_dim
+                for m in self.model_config.input_dims
+            },
+        )
+
     def default_decoders(self, model_config) -> nn.ModuleDict:
         return BaseDictDecodersMultiLatents(
-                    input_dims=model_config.input_dims,
-                    latent_dim=model_config.latent_dim,
-                    modality_dims={m : model_config.modalities_specific_dim for m in model_config.input_dims},
-                )
+            input_dims=model_config.input_dims,
+            latent_dim=model_config.latent_dim,
+            modality_dims={
+                m: model_config.modalities_specific_dim for m in model_config.input_dims
+            },
+        )

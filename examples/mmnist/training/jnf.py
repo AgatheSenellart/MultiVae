@@ -3,18 +3,20 @@ from config2 import *
 from multivae.models import JNF, JNFConfig
 from multivae.trainers import TwoStepsTrainer, TwoStepsTrainerConfig
 
-
 parser = argparse.ArgumentParser()
-parser.add_argument('--param_file',type=str)
+parser.add_argument("--param_file", type=str)
 args = parser.parse_args()
 
-with open(args.param_file,'r') as fp:
+with open(args.param_file, "r") as fp:
     info = json.load(fp)
 args = argparse.Namespace(**info)
 
-train_data = MMNISTDataset(data_path="~/scratch/data", split="train",
-                           missing_ratio=args.missing_ratio,
-                           keep_incomplete=args.keep_incomplete)
+train_data = MMNISTDataset(
+    data_path="~/scratch/data",
+    split="train",
+    missing_ratio=args.missing_ratio,
+    keep_incomplete=args.keep_incomplete,
+)
 
 test_data = MMNISTDataset(data_path="~/scratch/data", split="test")
 
@@ -32,8 +34,8 @@ model = JNF(model_config, encoders=encoders, decoders=decoders)
 
 trainer_config = TwoStepsTrainerConfig(
     **base_training_config,
-    seed = args.seed,
-    output_dir= f'compare_on_mmnist/{config_name}/{model.model_name}/seed_{args.seed}/missing_ratio_{args.missing_ratio}/'
+    seed=args.seed,
+    output_dir=f"compare_on_mmnist/{config_name}/{model.model_name}/seed_{args.seed}/missing_ratio_{args.missing_ratio}/",
 )
 trainer_config.num_epochs = 600
 
@@ -54,9 +56,9 @@ trainer = TwoStepsTrainer(
 trainer.train()
 
 model = trainer._best_model
-save_model(model,args)
+save_model(model, args)
 ##################################################################################################################################
 # validate the model #############################################################################################################
 ##################################################################################################################################
 
-eval_model(model, trainer.training_dir,test_data,wandb_cb.run.path)
+eval_model(model, trainer.training_dir, test_data, wandb_cb.run.path)

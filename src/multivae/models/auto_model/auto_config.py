@@ -61,7 +61,7 @@ class AutoConfig(BaseConfig):
             from ..mvtcae import MVTCAEConfig
 
             model_config = MVTCAEConfig.from_json_file(json_path)
-        
+
         elif config_name == "MMVAEPlusConfig":
             from ..mmvaePlus import MMVAEPlusConfig
 

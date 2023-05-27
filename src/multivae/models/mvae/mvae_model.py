@@ -64,18 +64,18 @@ class MVAE(BaseMultiVAE):
         joint_mu = (torch.exp(lnT) * mus).sum(dim=0) * torch.exp(lnV)
 
         return joint_mu, lnV
-    
+
     # def poe(self, mus_list, logvar_list, eps=1e-8):
-    
+
     # ORIGINAL VERSION BUT LESS STABLE
-        
+
     #     mus = mus_list.copy()
     #     log_vars = logvar_list.copy()
 
     #     # Add the prior to the product of experts
     #     mus.append(torch.zeros_like(mus[0]))
-    #     log_vars.append(torch.zeros_like(log_vars[0]))  
-        
+    #     log_vars.append(torch.zeros_like(log_vars[0]))
+
     #     mus = torch.stack(mus)
     #     logvars = torch.stack(log_vars)
     #     var       = torch.exp(logvars) + eps
@@ -95,15 +95,19 @@ class MVAE(BaseMultiVAE):
             if mod in subset:
                 output_mod = self.encoders[mod](inputs.data[mod])
                 mu_mod, log_var_mod = output_mod.embedding, output_mod.log_covariance
-                if hasattr(inputs,'masks'):
-                    log_var_mod[(1-inputs.masks[mod].int()).bool().flatten()] = torch.inf
-                
+                if hasattr(inputs, "masks"):
+                    log_var_mod[
+                        (1 - inputs.masks[mod].int()).bool().flatten()
+                    ] = torch.inf
+
                 mus_sub.append(mu_mod)
                 log_vars_sub.append(log_var_mod)
         sub_mu, sub_logvar = self.poe(mus_sub, log_vars_sub)
         return sub_mu, sub_logvar
 
-    def _compute_elbo_subset(self, inputs: MultimodalBaseDataset, subset: list, beta: float):
+    def _compute_elbo_subset(
+        self, inputs: MultimodalBaseDataset, subset: list, beta: float
+    ):
         sub_mu, sub_logvar = self.compute_mu_log_var_subset(inputs, subset)
         sub_std = torch.exp(0.5 * sub_logvar)
         z = dist.Normal(sub_mu, sub_std).rsample()
@@ -111,20 +115,24 @@ class MVAE(BaseMultiVAE):
         for mod in self.decoders:
             if mod in subset:
                 recon = self.decoders[mod](z).reconstruction
-                recon_mod = -(
-                    self.recon_log_probs[mod](recon, inputs.data[mod])
-                    * self.rescale_factors[mod]
-                ).reshape(recon.size(0),-1).sum(-1)
-                
-                if hasattr(inputs,'masks'):
-                    recon_mod = inputs.masks[mod].float()*recon_mod
+                recon_mod = (
+                    -(
+                        self.recon_log_probs[mod](recon, inputs.data[mod])
+                        * self.rescale_factors[mod]
+                    )
+                    .reshape(recon.size(0), -1)
+                    .sum(-1)
+                )
+
+                if hasattr(inputs, "masks"):
+                    recon_mod = inputs.masks[mod].float() * recon_mod
                 elbo_sub += recon_mod.sum()
-        
+
         recon = elbo_sub
         KLD = -0.5 * torch.sum(1 + sub_logvar - sub_mu.pow(2) - sub_logvar.exp())
         elbo_sub += KLD * beta
-        
-        return elbo_sub / len(sub_mu), KLD/len(sub_mu),recon/len(sub_mu)
+
+        return elbo_sub / len(sub_mu), KLD / len(sub_mu), recon / len(sub_mu)
 
     def _filter_inputs_with_masks(
         self, inputs: IncompleteDataset, subset: Union[list, tuple]
@@ -144,9 +152,8 @@ class MVAE(BaseMultiVAE):
         for mod in subset:
             filtered_inputs[mod] = inputs.data[mod][filter]
             filtered_masks[mod] = inputs.masks[mod][filter]
-        
-        filtered_dataset = IncompleteDataset(data=filtered_inputs,
-                                            masks=filtered_masks)
+
+        filtered_dataset = IncompleteDataset(data=filtered_inputs, masks=filtered_masks)
         return filtered_dataset, filter
 
     def forward(
@@ -162,20 +169,20 @@ class MVAE(BaseMultiVAE):
                 For each modality, a boolean tensor indicates which samples are available. (The non
                 available samples are assumed to be replaced with zero values in the multimodal dataset entry.)
         """
-        
+
         epoch = kwargs.pop("epoch", 1)
         batch_ratio = kwargs.pop("batch_ratio", 0)
         if epoch >= self.warmup:
             beta = 1 * self.beta
         else:
-            beta = (epoch-1 + batch_ratio) / self.warmup * self.beta
+            beta = (epoch - 1 + batch_ratio) / self.warmup * self.beta
         total_loss = 0
         metrics = {}
         # Collect all the subsets
         subsets = []
         # Add the joint subset
         subsets.append([m for m in self.encoders])
-        if self.subsampling : 
+        if self.subsampling:
             # Add the unimodal subsets
             subsets.extend([[m] for m in self.encoders])
             # Add random subsets
@@ -193,17 +200,19 @@ class MVAE(BaseMultiVAE):
             else:
                 filtered_inputs = inputs
                 not_all_samples_missing = True
-            
+
             if not_all_samples_missing:
-                subset_elbo, subset_kld, subset_recon = self._compute_elbo_subset(filtered_inputs, s, beta)
-            else :
+                subset_elbo, subset_kld, subset_recon = self._compute_elbo_subset(
+                    filtered_inputs, s, beta
+                )
+            else:
                 subset_elbo = 0
             total_loss += subset_elbo
             metrics["_".join(sorted(s))] = subset_elbo
-            metrics['beta'] = beta
+            metrics["beta"] = beta
             metrics["kld" + "_".join(sorted(s))] = subset_kld
             metrics["recon" + "_".join(sorted(s))] = subset_recon
-            
+
         return ModelOutput(loss=total_loss, metrics=metrics)
 
     def encode(
@@ -224,7 +233,6 @@ class MVAE(BaseMultiVAE):
                     'If cond_mod is a string, it must either be "all" or a modality name'
                     f" The provided string {cond_mod} is neither."
                 )
-        
 
         sub_mu, sub_logvar = self.compute_mu_log_var_subset(inputs, cond_mod)
         sub_std = torch.exp(0.5 * sub_logvar)
@@ -255,7 +263,8 @@ class MVAE(BaseMultiVAE):
             # Compute the parameters of the joint posterior
             mu, log_var = self.compute_mu_log_var_subset(
                 MultimodalBaseDataset(
-                    data={k: inputs.data[k][i].unsqueeze(0) for k in inputs.data}),
+                    data={k: inputs.data[k][i].unsqueeze(0) for k in inputs.data}
+                ),
                 list(self.encoders.keys()),
             )
             assert mu.shape == (1, self.latent_dim)
@@ -278,7 +287,9 @@ class MVAE(BaseMultiVAE):
                     x_m = inputs.data[mod][i]  # (nb_channels, w, h)
 
                     lpx_zs += (
-                        self.recon_log_probs[mod](recon, torch.stack([x_m]*len(recon)))
+                        self.recon_log_probs[mod](
+                            recon, torch.stack([x_m] * len(recon))
+                        )
                         .reshape(recon.size(0), -1)
                         .sum(-1)
                     )
