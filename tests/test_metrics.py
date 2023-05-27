@@ -233,9 +233,4 @@ class TestLikelihoods:
 
         metrics = evaluator.eval()
 
-        assert all(
-            [
-                metric in metrics.keys()
-                for metric in ["joint_likelihood"]
-            ]
-        )
+        assert all([metric in metrics.keys() for metric in ["joint_likelihood"]])

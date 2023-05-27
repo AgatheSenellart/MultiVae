@@ -38,7 +38,7 @@ class MoPoE(BaseMultiVAE):
         self.model_name = "MoPoE"
 
         list_subsets = self.model_config.subsets
-        if type(list_subsets)==dict:
+        if type(list_subsets) == dict:
             list_subsets = list(list_subsets.values())
         if list_subsets is None:
             list_subsets = self.all_subsets()
@@ -80,7 +80,7 @@ class MoPoE(BaseMultiVAE):
         return subsets_list
 
     def set_subsets(self, subsets_list):
-        """ 
+        """
         Builds a dictionary of the subsets.
         The keys are the subset_names created by concatenating the modalities' names.
         The values are the list of modalities names.
@@ -89,7 +89,7 @@ class MoPoE(BaseMultiVAE):
         for k, mod_names in enumerate(subsets_list):
             mods = []
             for l, mod_name in enumerate(sorted(mod_names)):
-                if (mod_name not in self.encoders.keys()) and (mod_name!=""):
+                if (mod_name not in self.encoders.keys()) and (mod_name != ""):
                     raise AttributeError(
                         f"The provided subsets list contains unknown modality name {mod_name}."
                         " that is not the encoders dictionary or inputs_dim dictionary."
@@ -107,10 +107,8 @@ class MoPoE(BaseMultiVAE):
         return z
 
     def calc_joint_divergence(
-        self,
-        mus: torch.Tensor,
-        logvars: torch.Tensor,
-        weights: torch.Tensor):
+        self, mus: torch.Tensor, logvars: torch.Tensor, weights: torch.Tensor
+    ):
         """Computes the KL divergence between the mixture of experts and the prior, by
         developping into the sum of the tractable KLs divergences of each expert.
 
@@ -127,7 +125,7 @@ class MoPoE(BaseMultiVAE):
 
         num_mods = mus.shape[0]
         num_samples = mus.shape[1]
-        klds = torch.zeros(num_mods,num_samples)
+        klds = torch.zeros(num_mods, num_samples)
 
         device = mus.device
         klds = klds.to(device)
@@ -136,10 +134,12 @@ class MoPoE(BaseMultiVAE):
             kld_ind = -0.5 * (
                 1 - logvars[k, :, :].exp() - mus[k, :, :].pow(2) + logvars[k, :, :]
             ).sum(-1)
-            
+
             klds[k, :] = kld_ind
 
-        group_div = (weights * klds).sum(dim=0).mean() # sum over experts, mean over samples
+        group_div = (
+            (weights * klds).sum(dim=0).mean()
+        )  # sum over experts, mean over samples
 
         divs = dict()
         divs["joint_divergence"] = group_div
@@ -149,14 +149,15 @@ class MoPoE(BaseMultiVAE):
         # Compute latents parameters for all subsets
         latents = self.inference(inputs)
         results = dict()
-        
+
         # Compute the divergence to the prior
         shared_embeddings = self.reparameterize(
             latents["joint"][0], latents["joint"][1]
         )
-        
+
         div = self.calc_joint_divergence(
-            latents["mus"], latents["logvars"], latents["weights"])
+            latents["mus"], latents["logvars"], latents["weights"]
+        )
         for k, key in enumerate(div.keys()):
             results[key] = div[key]
 
@@ -186,14 +187,18 @@ class MoPoE(BaseMultiVAE):
 
             recon = self.decoders[m_key](full_embedding).reconstruction
             m_rec = (
-                -self.recon_log_probs[m_key](recon, inputs.data[m_key])
-                * self.rescale_factors[m_key]
-            ).view(recon.size(0),-1).sum(-1)
+                (
+                    -self.recon_log_probs[m_key](recon, inputs.data[m_key])
+                    * self.rescale_factors[m_key]
+                )
+                .view(recon.size(0), -1)
+                .sum(-1)
+            )
 
             # reconstruction loss
-            if hasattr(inputs,'masks'):
+            if hasattr(inputs, "masks"):
                 results["recon_" + m_key] = (m_rec * inputs.masks[m_key].float()).mean()
-            else :
+            else:
                 results["recon_" + m_key] = m_rec.mean()
 
             loss += results["recon_" + m_key]
@@ -204,11 +209,11 @@ class MoPoE(BaseMultiVAE):
                 style_log_var = latents["modalities"][m_key].style_log_covariance
                 style_kld = -0.5 * (
                     1 - style_log_var.exp() - style_mu.pow(2) + style_log_var
-                ).view(style_mu.size(0),-1).sum(-1)
-                
-                if hasattr(inputs, 'masks'):
+                ).view(style_mu.size(0), -1).sum(-1)
+
+                if hasattr(inputs, "masks"):
                     style_kld *= inputs.masks[m_key].float()
-                
+
                 kld += style_kld.mean() * self.model_config.beta_style
 
         loss = loss + self.beta * kld
@@ -233,7 +238,7 @@ class MoPoE(BaseMultiVAE):
         for m, m_key in enumerate(self.encoders.keys()):
             input_modality = inputs.data[m_key]
             output = self.encoders[m_key](input_modality)
-            encoders_outputs[m_key] = output            
+            encoders_outputs[m_key] = output
 
         return encoders_outputs
 
@@ -262,9 +267,7 @@ class MoPoE(BaseMultiVAE):
         mu_poe, logvar_poe = self.poe(mus, logvars)
         return [mu_poe, logvar_poe]
 
-    def subset_mask(
-        self, inputs: IncompleteDataset, subset: Union[list, tuple]
-    ):
+    def subset_mask(self, inputs: IncompleteDataset, subset: Union[list, tuple]):
         """
         Returns a filter of the samples available in all the modalities contained in subset.
         """
@@ -296,7 +299,7 @@ class MoPoE(BaseMultiVAE):
         logvars = torch.Tensor().to(device)
         distr_subsets = dict()
         availabilities = []
-        
+
         for k, s_key in enumerate(self.subsets.keys()):
             if s_key != "":
                 mods = self.subsets[s_key]
@@ -304,18 +307,14 @@ class MoPoE(BaseMultiVAE):
                 logvars_subset = torch.Tensor().to(device)
 
                 if hasattr(inputs, "masks"):
-                    filter = self.subset_mask(
-                        inputs, mods
-                    )
+                    filter = self.subset_mask(inputs, mods)
                     availabilities.append(filter)
 
                 for m, mod in enumerate(mods):
                     mus_mod = enc_mods[mod].embedding
                     log_vars_mod = enc_mods[mod].log_covariance
 
-                    mus_subset = torch.cat(
-                        (mus_subset, mus_mod.unsqueeze(0)), dim=0
-                    )
+                    mus_subset = torch.cat((mus_subset, mus_mod.unsqueeze(0)), dim=0)
 
                     logvars_subset = torch.cat(
                         (logvars_subset, log_vars_mod.unsqueeze(0)), dim=0
@@ -324,7 +323,6 @@ class MoPoE(BaseMultiVAE):
                 if len(mus_subset.shape) == 2:
                     mus_subset = mus_subset.unsqueeze(1)
                     logvars_subset = logvars_subset.unsqueeze(1)
-                    
 
                 s_mu, s_logvar = self.poe_fusion(mus_subset, logvars_subset)
 
@@ -334,22 +332,26 @@ class MoPoE(BaseMultiVAE):
                 mus = torch.cat((mus, s_mu.unsqueeze(0)), dim=0)
                 logvars = torch.cat((logvars, s_logvar.unsqueeze(0)), dim=0)
 
-        
-        if hasattr(inputs,'masks'):
+        if hasattr(inputs, "masks"):
             # if we have an incomplete dataset, we need to randomly choose
             # from the mixture of available experts
-            availabilities = torch.stack(availabilities,dim=0).float()
-            if len(availabilities.shape)==1:
+            availabilities = torch.stack(availabilities, dim=0).float()
+            if len(availabilities.shape) == 1:
                 availabilities = availabilities.unsqueeze(1)
-            availabilities /= torch.sum(availabilities,dim=0) # (n_subset,n_samples)
+            availabilities /= torch.sum(availabilities, dim=0)  # (n_subset,n_samples)
 
-            joint_mu,joint_logvar = self.random_mixture_component_selection(mus,logvars,availabilities)
+            joint_mu, joint_logvar = self.random_mixture_component_selection(
+                mus, logvars, availabilities
+            )
             weights = availabilities
-        else :
+        else:
             weights = (1 / float(mus.shape[0])) * torch.ones(mus.shape[0]).to(device)
-            joint_mu, joint_logvar = self.deterministic_mixture_component_selection(mus, logvars,weights)
-            weights = (1 / float(mus.shape[0])) * torch.ones(mus.shape[0], mus.shape[1]).to(device)
-            
+            joint_mu, joint_logvar = self.deterministic_mixture_component_selection(
+                mus, logvars, weights
+            )
+            weights = (1 / float(mus.shape[0])) * torch.ones(
+                mus.shape[0], mus.shape[1]
+            ).to(device)
 
         latents["mus"] = mus
         latents["logvars"] = logvars
@@ -418,7 +420,7 @@ class MoPoE(BaseMultiVAE):
         else:
             return ModelOutput(z=z, one_latent_space=True)
 
-    def random_mixture_component_selection(self, mus, logvars,availabilities):
+    def random_mixture_component_selection(self, mus, logvars, availabilities):
         """
         Randomly select a subset for each sample among the available subsets.
 
@@ -427,27 +429,26 @@ class MoPoE(BaseMultiVAE):
             logvars (tensor): (n_subset,n_samples,latent_dim) the log covariance of subset posterior.
             availabilities (tensor): (n_subset,n_samples) boolean tensor.
         """
-        
-        probs = availabilities.permute(1,0) #n_samples,n_subset
+
+        probs = availabilities.permute(1, 0)  # n_samples,n_subset
         choice = dist.OneHotCategorical(probs=probs).sample()
 
-        mus_ = mus.permute(1,0,2) # n_samples, n_subset,latent_dim
-        logvars_ = logvars.permute(1,0,2)
-        
+        mus_ = mus.permute(1, 0, 2)  # n_samples, n_subset,latent_dim
+        logvars_ = logvars.permute(1, 0, 2)
+
         mus_ = mus_[choice.bool()]
-        logvars_ =logvars_[choice.bool()]
+        logvars_ = logvars_[choice.bool()]
         return mus_, logvars_
-        
-        
+
     def deterministic_mixture_component_selection(self, mus, logvars, w_modalities):
-        """ 
-        Associate a subset mu and log_covariance per sample in a balanced way, so that the proportion 
-        of samples per subset correspond to w_modalities. 
         """
-        
-        num_components = mus.shape[0] # number of components
+        Associate a subset mu and log_covariance per sample in a balanced way, so that the proportion
+        of samples per subset correspond to w_modalities.
+        """
+
+        num_components = mus.shape[0]  # number of components
         num_samples = mus.shape[1]
-        
+
         idx_start = []
         idx_end = []
         for k in range(0, num_components):
@@ -479,7 +480,6 @@ class MoPoE(BaseMultiVAE):
         K: int = 1000,
         batch_size_K: int = 100,
     ):
-        
         """
         Computes the joint negative log-likelihood using the MoPoE posterior as importance sampling distribution.
         The result is summed over the input batch.
@@ -488,7 +488,7 @@ class MoPoE(BaseMultiVAE):
         for computing the nll instead of the MoPoe, but that is less coherent with the definition of the
         MoPoE definition as the joint posterior.
         """
-        
+
         self.eval()
 
         # Compute the parameters of the joint posterior
@@ -562,7 +562,7 @@ class MoPoE(BaseMultiVAE):
         if hasattr(inputs, "masks"):
             filter = self.subset_mask(inputs, subset)
             filtered_inputs = MultimodalBaseDataset(
-                data = {m: inputs.data[m][filter] for m in inputs.data}
+                data={m: inputs.data[m][filter] for m in inputs.data}
             )
 
         else:

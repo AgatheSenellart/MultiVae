@@ -1,10 +1,11 @@
 import numpy as np
 import torch
-from multivae.models.base.base_config import BaseAEConfig
 from pythae.models.base.base_model import BaseDecoder, BaseEncoder
 from pythae.models.base.base_utils import ModelOutput
 from pythae.models.nn.benchmarks.utils import ResBlock
 from torch import nn
+
+from multivae.models.base.base_config import BaseAEConfig
 
 
 class Flatten(torch.nn.Module):
@@ -84,11 +85,11 @@ class EncoderConvMMNIST_adapted(BaseEncoder):
             ),  # -> (128, 4, 4)
             nn.ReLU(),
         )
-        
+
         # content branch
         self.class_mu = nn.Conv2d(128, self.latent_dim, 4, 2, 0)
         self.class_logvar = nn.Conv2d(128, self.latent_dim, 4, 2, 0)
-        
+
         if self.style_dim > 0:
             self.encoder_style = nn.Sequential(  # input shape (3, 28, 28)
                 nn.Conv2d(
@@ -104,7 +105,7 @@ class EncoderConvMMNIST_adapted(BaseEncoder):
                 ),  # -> (128, 4, 4)
                 nn.ReLU(),
             )
-        
+
             self.style_mu = nn.Conv2d(128, self.style_dim, 4, 2, 0)
             self.style_logvar = nn.Conv2d(128, self.style_dim, 4, 2, 0)
 
@@ -112,16 +113,17 @@ class EncoderConvMMNIST_adapted(BaseEncoder):
         output = ModelOutput()
         # content branch
         h_class = self.encoder_class(x)
-        output['embedding'] = self.class_mu(h_class).squeeze()
-        output['log_covariance'] = self.class_logvar(h_class).squeeze()
-        
+        output["embedding"] = self.class_mu(h_class).squeeze()
+        output["log_covariance"] = self.class_logvar(h_class).squeeze()
+
         if self.style_dim > 0:
             # style branch
             h_style = self.encoder_style(x)
-            output['style_embedding'] = self.style_mu(h_style).squeeze()
-            output['style_log_covariance'] = self.style_logvar(h_style).squeeze()
-        
+            output["style_embedding"] = self.style_mu(h_style).squeeze()
+            output["style_log_covariance"] = self.style_logvar(h_style).squeeze()
+
         return output
+
 
 class DecoderConvMMNIST(BaseDecoder):
     """
@@ -154,10 +156,9 @@ class DecoderConvMMNIST(BaseDecoder):
         )
 
     def forward(self, z):
-        
-        x_hat = self.decoder(z.view(-1,z.size(-1)))
+        x_hat = self.decoder(z.view(-1, z.size(-1)))
         # x_hat = torch.sigmoid(x_hat)
-        x_hat = x_hat.view(*z.size()[:-1],*x_hat.size()[1:])
+        x_hat = x_hat.view(*z.size()[:-1], *x_hat.size()[1:])
         return ModelOutput(
             reconstruction=x_hat
         )  # NOTE: consider learning scale param, too

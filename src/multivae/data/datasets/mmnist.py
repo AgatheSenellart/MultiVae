@@ -1,13 +1,14 @@
+import math
 import os
+from typing import Literal
 
 import numpy as np
-import math
 import torch
 from PIL import Image
 from pythae.data.datasets import DatasetOutput
 from torchvision.transforms import transforms
+
 from .base import MultimodalBaseDataset
-from typing import Literal
 
 
 class MMNISTDataset(MultimodalBaseDataset):

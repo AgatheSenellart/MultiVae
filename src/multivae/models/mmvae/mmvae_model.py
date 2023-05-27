@@ -88,7 +88,10 @@ class MMVAE(BaseMultiVAE):
         """
         mean = self.prior_mean
         if self.model_config.prior_and_posterior_dist == "laplace_with_softmax":
-            std = F.softmax(self.prior_log_var, dim=-1) * self.prior_log_var.size(-1) + 1e-6
+            std = (
+                F.softmax(self.prior_log_var, dim=-1) * self.prior_log_var.size(-1)
+                + 1e-6
+            )
         else:
             std = torch.exp(0.5 * self.prior_log_var)
         return mean, std
@@ -111,13 +114,11 @@ class MMVAE(BaseMultiVAE):
         for cond_mod in self.encoders:
             output = self.encoders[cond_mod](inputs.data[cond_mod])
             mu, log_var = output.embedding, output.log_covariance
-            
 
-            sigma = self.log_var_to_std(log_var)  
-            
+            sigma = self.log_var_to_std(log_var)
+
             qz_x = self.post_dist(mu, sigma)
             z_x = qz_x.rsample([K])
-            
 
             # The DREG loss uses detached parameters in the loss computation afterwards.
             qz_x_detach = self.post_dist(mu.detach(), sigma.detach())
@@ -127,8 +128,7 @@ class MMVAE(BaseMultiVAE):
             for recon_mod in self.decoders:
                 decoder = self.decoders[recon_mod]
                 recon = decoder(z_x)["reconstruction"]
-                
-                
+
                 reconstructions[cond_mod][recon_mod] = recon
 
             qz_xs[cond_mod] = qz_x
@@ -153,14 +153,14 @@ class MMVAE(BaseMultiVAE):
         return loss_output
 
     def dreg_looser(self, qz_xs, embeddings, reconstructions, inputs):
-        
-        if hasattr(inputs, 'masks'):
+        if hasattr(inputs, "masks"):
             # Compute the number of available modalities per sample
-            n_mods_sample = torch.sum(torch.stack(tuple(inputs.masks.values())).int(), dim=0)
-        else :
+            n_mods_sample = torch.sum(
+                torch.stack(tuple(inputs.masks.values())).int(), dim=0
+            )
+        else:
             n_mods_sample = torch.tensor([self.n_modalities])
-        
-        
+
         lws = []
         zss = []
         for mod in embeddings:
@@ -168,13 +168,22 @@ class MMVAE(BaseMultiVAE):
             n_mods_sample = n_mods_sample.to(z.device)
             prior = self.prior_dist(*self.pz_params)
             lpz = prior.log_prob(z).sum(-1)
-            
-            if hasattr(inputs, 'masks'):
-                lqz_x = torch.stack([qz_xs[m].log_prob(z).sum(-1)*inputs.masks[m].float() for m in qz_xs])# n_modalities,K,nbatch
-            else :
-                lqz_x = torch.stack([qz_xs[m].log_prob(z).sum(-1) for m in qz_xs])# n_modalities,K,nbatch
 
-            lqz_x = torch.logsumexp(lqz_x, dim=0) - torch.log(n_mods_sample)  # log_mean_exp
+            if hasattr(inputs, "masks"):
+                lqz_x = torch.stack(
+                    [
+                        qz_xs[m].log_prob(z).sum(-1) * inputs.masks[m].float()
+                        for m in qz_xs
+                    ]
+                )  # n_modalities,K,nbatch
+            else:
+                lqz_x = torch.stack(
+                    [qz_xs[m].log_prob(z).sum(-1) for m in qz_xs]
+                )  # n_modalities,K,nbatch
+
+            lqz_x = torch.logsumexp(lqz_x, dim=0) - torch.log(
+                n_mods_sample
+            )  # log_mean_exp
             lpx_z = 0
             for recon_mod in reconstructions[mod]:
                 x_recon = reconstructions[mod][recon_mod]
@@ -185,20 +194,19 @@ class MMVAE(BaseMultiVAE):
                     .mul(self.rescale_factors[recon_mod])
                     .sum(-1)
                 )
-                
-                if hasattr(inputs, 'masks'):
+
+                if hasattr(inputs, "masks"):
                     # cancel unavailable modalities
                     lpx_z_mod *= inputs.masks[recon_mod].float()
-                
+
                 lpx_z += lpx_z_mod
-                
+
             lw = lpx_z + lpz - lqz_x
-            
-            if hasattr(inputs, 'masks'):
-                    # cancel unavailable modalities
-                lw*=inputs.masks[mod].float()
-                
-            
+
+            if hasattr(inputs, "masks"):
+                # cancel unavailable modalities
+                lw *= inputs.masks[mod].float()
+
             lws.append(lw)
             zss.append(z)
 
@@ -209,9 +217,9 @@ class MMVAE(BaseMultiVAE):
             if zss.requires_grad:  # True except when we are in eval mode
                 zss.register_hook(lambda grad: grad_wt.unsqueeze(-1) * grad)
 
-        lws = (grad_wt * lws).sum(0)/ n_mods_sample # mean over modalities
-        
-        return ModelOutput(loss=-lws.sum(), metrics=dict(mean_loss_batch = -lws.mean()))
+        lws = (grad_wt * lws).sum(0) / n_mods_sample  # mean over modalities
+
+        return ModelOutput(loss=-lws.sum(), metrics=dict(mean_loss_batch=-lws.mean()))
 
     def iwae(self, qz_xs, zss, reconstructions, inputs):
         lw_mod = []
@@ -246,7 +254,7 @@ class MMVAE(BaseMultiVAE):
         **kwargs,
     ):
         # TODO : Deal with the case where you want to encode an incomplete dataset
-        
+
         # If the input cond_mod is a string : convert it to a list
         if type(cond_mod) == str:
             if cond_mod == "all":
@@ -377,7 +385,7 @@ class MMVAE(BaseMultiVAE):
         )  # n_batch
         return -ll
 
-    def generate_from_prior(self, n_samples,**kwargs):
+    def generate_from_prior(self, n_samples, **kwargs):
         sample_shape = [n_samples] if n_samples > 1 else []
         z = self.prior_dist(*self.pz_params).rsample(sample_shape)
         return ModelOutput(z=z.squeeze(), one_latent_space=True)

@@ -1,3 +1,5 @@
+import argparse
+
 import torch
 import torch.nn.functional as F
 from torch import nn
@@ -14,14 +16,13 @@ from multivae.models.nn.default_architectures import (
 from multivae.trainers.base.base_trainer import BaseTrainer
 from multivae.trainers.base.base_trainer_config import BaseTrainerConfig
 from multivae.trainers.base.callbacks import ProgressBarCallback, WandbCallback
-import argparse
+
 ###############################################################
 ###### Encoders & Decoders
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--seed', default=8)
+parser.add_argument("--seed", default=8)
 args = parser.parse_args()
-
 
 
 def labels_to_binary_tensors(labels):
@@ -80,7 +81,7 @@ class ImageDecoder(BaseDecoder):
         h = self.swish(self.fc1(z))
         h = self.swish(self.fc2(h))
         h = self.swish(self.fc3(h))
-        h = self.fc4(h) # no sigmoid, we provide logits for stability
+        h = self.fc4(h)  # no sigmoid, we provide logits for stability
         return ModelOutput(reconstruction=h.reshape(-1, 1, 28, 28))
 
 
@@ -125,7 +126,7 @@ class TextDecoder(BaseDecoder):
         h = self.swish(self.fc1(z))
         h = self.swish(self.fc2(h))
         h = self.swish(self.fc3(h))
-        return ModelOutput(reconstruction=self.fc4(h)) # no softmax here
+        return ModelOutput(reconstruction=self.fc4(h))  # no softmax here
 
 
 #########################################################
@@ -140,7 +141,7 @@ model_config = MVAEConfig(
     uses_likelihood_rescaling=True,
     rescale_factors=dict(images=1, labels=50),
     use_subsampling=True,
-    k=0
+    k=0,
 )
 
 encoders = dict(
@@ -157,8 +158,12 @@ model = MVAE(model_config, encoders, decoders)
 ######################################################
 ### Dataset
 
-train_set = BinaryMnistLabels(data_path="../data", split="train", random_binarized=True, download=True)
-test_set = BinaryMnistLabels(data_path="../data", split="test", random_binarized=True,download = True)
+train_set = BinaryMnistLabels(
+    data_path="../data", split="train", random_binarized=True, download=True
+)
+test_set = BinaryMnistLabels(
+    data_path="../data", split="test", random_binarized=True, download=True
+)
 
 ##############################################################
 #### Training
@@ -168,9 +173,10 @@ training_config = BaseTrainerConfig(
     per_device_train_batch_size=100,
     per_device_eval_batch_size=100,
     num_epochs=500,
-    start_keep_best_epoch=model_config.warmup+1,
+    start_keep_best_epoch=model_config.warmup + 1,
     steps_predict=5,
-    learning_rate=1e-3,seed = args.seed
+    learning_rate=1e-3,
+    seed=args.seed,
 )
 wandb_ = WandbCallback()
 wandb_.setup(training_config, model_config, project_name="reproduce_mvae_mnist")
@@ -193,7 +199,9 @@ trainer._best_model.push_to_hf_hub(f"asenella/reproduce_mvae_mnist_{args.seed}")
 ###############################################################################
 ###### Validate #############
 
-ll_config = LikelihoodsEvaluatorConfig(batch_size=512, K=1000, batch_size_k=500, wandb_path=wandb_.run.path)
+ll_config = LikelihoodsEvaluatorConfig(
+    batch_size=512, K=1000, batch_size_k=500, wandb_path=wandb_.run.path
+)
 
 ll_module = LikelihoodsEvaluator(model, test_set, eval_config=ll_config)
 

@@ -12,4 +12,4 @@ from multivae.models import AutoModel
 
 # One plot per missing ratio
 
-missing_ratios = [0,0.2,0.5]
+missing_ratios = [0, 0.2, 0.5]

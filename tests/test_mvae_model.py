@@ -139,27 +139,27 @@ class Test:
         assert isinstance(Y, ModelOutput)
         assert Y.mod1.shape == (2 * 10, 2)
         assert Y.mod2.shape == (2 * 10, 3)
-        
+
+
 class Test_backward_with_missing_inputs:
-    
     @pytest.fixture(params=["incomplete"])
     def dataset(self, request):
         # Create simple small dataset
         data = dict(
-            mod1=torch.randn((6,2)),
-            mod2=torch.randn((6,3)),
-            mod3=torch.randn((6,4)),
-            mod4=torch.randn((6,4)),
+            mod1=torch.randn((6, 2)),
+            mod2=torch.randn((6, 3)),
+            mod3=torch.randn((6, 4)),
+            mod4=torch.randn((6, 4)),
         )
-        labels = np.array([0]*5+[1])
+        labels = np.array([0] * 5 + [1])
         if request.param == "complete":
             dataset = MultimodalBaseDataset(data, labels)
         else:
             masks = dict(
-                mod1=torch.Tensor([False]*3 + [True]*3 ),
-                mod2=torch.Tensor([True]*6),
-                mod3=torch.Tensor([True]*6),
-                mod4=torch.Tensor([True]*6),
+                mod1=torch.Tensor([False] * 3 + [True] * 3),
+                mod2=torch.Tensor([True] * 6),
+                mod3=torch.Tensor([True] * 6),
+                mod4=torch.Tensor([True] * 6),
             )
             dataset = IncompleteDataset(data=data, masks=masks, labels=labels)
 
@@ -196,7 +196,7 @@ class Test_backward_with_missing_inputs:
         model_config = MVAEConfig(
             n_modalities=4,
             latent_dim=5,
-            input_dims=dict(mod1=(2,), mod2=(3,), mod3=(4,), mod4=(4,))
+            input_dims=dict(mod1=(2,), mod2=(3,), mod3=(4,), mod4=(4,)),
         )
 
         return model_config
@@ -211,18 +211,17 @@ class Test_backward_with_missing_inputs:
         return model
 
     def test(self, model, dataset, model_config):
-        
         ### Check that the grad with regard to missing modalities is null
         output = model(dataset[:3], epoch=2)
         loss = output.loss
         loss.backward()
-        for param in model.encoders['mod1'].parameters():
+        for param in model.encoders["mod1"].parameters():
             assert torch.all(param.grad == 0)
-            
-        output = model(dataset[-3:], epoch=2)    
+
+        output = model(dataset[-3:], epoch=2)
         loss = output.loss
         loss.backward()
-        for param in model.encoders['mod1'].parameters():
+        for param in model.encoders["mod1"].parameters():
             assert not torch.all(param.grad == 0)
 
 

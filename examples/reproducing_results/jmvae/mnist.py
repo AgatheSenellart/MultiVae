@@ -1,3 +1,5 @@
+import argparse
+
 import torch
 
 from multivae.data.datasets.mnist_labels import BinaryMnistLabels
@@ -9,13 +11,12 @@ from multivae.models.nn.default_architectures import (
 )
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 from multivae.trainers.base.callbacks import ProgressBarCallback, WandbCallback
-import argparse
 
 ######################################################
 ### Encoders & Decoders
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--seed', default=8)
+parser.add_argument("--seed", default=8)
 args = parser.parse_args()
 
 
@@ -196,7 +197,7 @@ training_config = BaseTrainerConfig(
     start_keep_best_epoch=model_config.warmup,
     steps_predict=5,
     seed=args.seed,
-    learning_rate=1e-3
+    learning_rate=1e-3,
 )
 wandb_ = WandbCallback()
 wandb_.setup(training_config, model_config, project_name="reproduce_jmvae")
@@ -224,8 +225,9 @@ from multivae.models import AutoModel
 
 model = trainer._best_model
 
-ll_config = LikelihoodsEvaluatorConfig(K=1000, unified_implementation=False,
-                                       wandb_path = wandb_.run.path)
+ll_config = LikelihoodsEvaluatorConfig(
+    K=1000, unified_implementation=False, wandb_path=wandb_.run.path
+)
 
 ll_module = LikelihoodsEvaluator(model, test_set, eval_config=ll_config)
 

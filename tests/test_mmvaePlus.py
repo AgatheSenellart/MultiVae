@@ -43,7 +43,6 @@ class Test_model:
 
     @pytest.fixture
     def archi_and_config(self, beta):
-        
         config1 = BaseAEConfig(input_dim=(2,), latent_dim=5, style_dim=1)
         config2 = BaseAEConfig(input_dim=(3,), latent_dim=5, style_dim=1)
         config3 = BaseAEConfig(input_dim=(4,), latent_dim=5, style_dim=1)
@@ -90,8 +89,6 @@ class Test_model:
         if "encoders" in model.model_config.custom_architectures:
             assert isinstance(model.encoders["mod1"], Encoder_test_multilatents)
 
-        
-
         output = model(dataset, epoch=2)
         loss = output.loss
         assert type(loss) == torch.Tensor
@@ -101,7 +98,6 @@ class Test_model:
         # Try encoding and prediction
         outputs = model.encode(dataset[0])
         assert not outputs.one_latent_space
-
 
         embeddings = outputs.z
         assert isinstance(outputs, ModelOutput)
@@ -129,31 +125,27 @@ class Test_model:
         assert isinstance(Y, ModelOutput)
         assert Y.mod1.shape == (2 * 10, 2)
         assert Y.mod2.shape == (2 * 10, 3)
-        
-    
-        
-        
-        
+
+
 class Test_backward_with_missing_inputs:
-    
     @pytest.fixture(params=["incomplete"])
     def dataset(self, request):
         # Create simple small dataset
         data = dict(
-            mod1=torch.randn((6,2)),
-            mod2=torch.randn((6,3)),
-            mod3=torch.randn((6,4)),
-            mod4=torch.randn((6,4)),
+            mod1=torch.randn((6, 2)),
+            mod2=torch.randn((6, 3)),
+            mod3=torch.randn((6, 4)),
+            mod4=torch.randn((6, 4)),
         )
-        labels = np.array([0]*5+[1])
+        labels = np.array([0] * 5 + [1])
         if request.param == "complete":
             dataset = MultimodalBaseDataset(data, labels)
         else:
             masks = dict(
-                mod1=torch.Tensor([False]*3 + [True]*3 ),
-                mod2=torch.Tensor([True]*6),
-                mod3=torch.Tensor([True]*6),
-                mod4=torch.Tensor([True]*6),
+                mod1=torch.Tensor([False] * 3 + [True] * 3),
+                mod2=torch.Tensor([True] * 6),
+                mod3=torch.Tensor([True] * 6),
+                mod4=torch.Tensor([True] * 6),
             )
             dataset = IncompleteDataset(data=data, masks=masks, labels=labels)
 
@@ -161,7 +153,6 @@ class Test_backward_with_missing_inputs:
 
     @pytest.fixture
     def archi_and_config(self):
-        
         config1 = BaseAEConfig(input_dim=(2,), latent_dim=5, style_dim=1)
         config2 = BaseAEConfig(input_dim=(3,), latent_dim=5, style_dim=1)
         config3 = BaseAEConfig(input_dim=(4,), latent_dim=5, style_dim=1)
@@ -188,8 +179,6 @@ class Test_backward_with_missing_inputs:
 
         return dict(encoders=encoders, decoders=decoders, model_config=model_config)
 
-
-
     @pytest.fixture(params=[True, False])
     def model(self, archi_and_config, request):
         custom = request.param
@@ -198,8 +187,6 @@ class Test_backward_with_missing_inputs:
         else:
             model = MMVAEPlus(archi_and_config["model_config"])
         return model
-
-
 
 
 @pytest.mark.slow
@@ -229,7 +216,6 @@ class TestTraining:
 
     @pytest.fixture
     def archi_and_config(self):
-        
         config1 = BaseAEConfig(input_dim=(2,), latent_dim=5, style_dim=1)
         config2 = BaseAEConfig(input_dim=(3,), latent_dim=5, style_dim=1)
         config3 = BaseAEConfig(input_dim=(4,), latent_dim=5, style_dim=1)
@@ -256,15 +242,13 @@ class TestTraining:
 
         return dict(encoders=encoders, decoders=decoders, model_config=model_config)
 
-
-    
     @pytest.fixture(params=[True, False])
     def model(self, archi_and_config, request):
         custom = request.param
         if custom:
             model = MMVAEPlus(**archi_and_config)
         else:
-            model = MMVAEPlus(archi_and_config['model_config'])
+            model = MMVAEPlus(archi_and_config["model_config"])
         return model
 
     @pytest.fixture

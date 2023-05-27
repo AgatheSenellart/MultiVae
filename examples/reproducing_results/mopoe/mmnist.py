@@ -1,4 +1,5 @@
-from multivae.metrics.coherences.coherences import CoherenceEvaluator
+import argparse
+
 import torch
 import torch.nn as nn
 from pythae.models.base.base_config import BaseAEConfig
@@ -11,6 +12,7 @@ from pythae.models.base.base_model import (
 from torch.utils.data import random_split
 
 from multivae.data.datasets.mmnist import MMNISTDataset
+from multivae.metrics.coherences.coherences import CoherenceEvaluator
 from multivae.models import MoPoE, MoPoEConfig
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 from multivae.trainers.base.callbacks import (
@@ -19,10 +21,8 @@ from multivae.trainers.base.callbacks import (
     WandbCallback,
 )
 
-import argparse
-
 parser = argparse.ArgumentParser()
-parser.add_argument('--seed', default=8)
+parser.add_argument("--seed", default=8)
 args = parser.parse_args()
 
 #### Architectures ####
@@ -150,7 +150,7 @@ trainer_config = BaseTrainerConfig(
     steps_predict=1,
     per_device_train_batch_size=256,
     drop_last=True,
-    seed = args.seed
+    seed=args.seed,
 )
 
 # Set up callbacks
@@ -164,7 +164,6 @@ trainer = BaseTrainer(
     train_dataset=train_data,
     training_config=trainer_config,
     callbacks=callbacks,
-
 )
 
 trainer.train()

@@ -2,17 +2,20 @@
 Store in this file all the shared variables for the benchmark on mmnist.
 """
 
-from multivae.metrics.fids.fids import FIDEvaluator
-from multivae.metrics.base import EvaluatorConfig
-from multivae.metrics.fids.fids_config import FIDEvaluatorConfig
+import argparse
+import json
+
 import torch
-from multivae.models.base.base_config import BaseAEConfig
 from torch import nn
 from torch.utils.data import random_split
 
 from multivae.data.datasets.mmnist import MMNISTDataset
 from multivae.metrics import CoherenceEvaluator, CoherenceEvaluatorConfig
+from multivae.metrics.base import EvaluatorConfig
+from multivae.metrics.fids.fids import FIDEvaluator
+from multivae.metrics.fids.fids_config import FIDEvaluatorConfig
 from multivae.models import BaseMultiVAEConfig
+from multivae.models.base.base_config import BaseAEConfig
 from multivae.models.nn.mmnist import DecoderConvMMNIST, EncoderConvMMNIST_adapted
 from multivae.trainers import BaseTrainerConfig
 from multivae.trainers.base.base_trainer import BaseTrainer
@@ -21,11 +24,6 @@ from multivae.trainers.base.callbacks import (
     TrainingCallback,
     WandbCallback,
 )
-import argparse
-import json
-
-
-
 
 modalities = ["m0", "m1", "m2", "m3", "m4"]
 
@@ -40,18 +38,18 @@ encoder_class = EncoderConvMMNIST_adapted
 
 encoders = {
     k: EncoderConvMMNIST_adapted(
-        BaseAEConfig(latent_dim=base_config["latent_dim"],
-                     style_dim=0,
-                     input_dim=(3, 28, 28))
+        BaseAEConfig(
+            latent_dim=base_config["latent_dim"], style_dim=0, input_dim=(3, 28, 28)
+        )
     )
     for k in modalities
 }
 
 decoders = {
     k: DecoderConvMMNIST(
-        BaseAEConfig(latent_dim=base_config["latent_dim"],
-                     style_dim= 0,
-                     input_dim=(3, 28, 28))
+        BaseAEConfig(
+            latent_dim=base_config["latent_dim"], style_dim=0, input_dim=(3, 28, 28)
+        )
     )
     for k in modalities
 }
@@ -123,41 +121,31 @@ def load_mmnist_classifiers(data_path="/home/asenella/scratch/data/clf", device=
     return clfs
 
 
-def save_model(model,args):
-    missing_ratio = ''.join(str(args.missing_ratio).split('.'))
-    incomplete = 'i' if args.keep_incomplete else 'c'
-    model.push_to_hf_hub(f"asenella/mmnist_{model.model_name}{config_name}_seed_{args.seed}_ratio_{missing_ratio}_{incomplete}")
+def save_model(model, args):
+    missing_ratio = "".join(str(args.missing_ratio).split("."))
+    incomplete = "i" if args.keep_incomplete else "c"
+    model.push_to_hf_hub(
+        f"asenella/mmnist_{model.model_name}{config_name}_seed_{args.seed}_ratio_{missing_ratio}_{incomplete}"
+    )
 
 
-def eval_model(model,output_dir, test_data, wandb_path):
-    
+def eval_model(model, output_dir, test_data, wandb_path):
     """
     In this function, define all the evaluation metrics
     you want to use
     """
-    config = CoherenceEvaluatorConfig(
-        batch_size=512,
-        wandb_path=wandb_path
-    )
-    
+    config = CoherenceEvaluatorConfig(batch_size=512, wandb_path=wandb_path)
+
     CoherenceEvaluator(
         model=model,
         test_dataset=test_data,
         classifiers=load_mmnist_classifiers(device=model.device),
         output=output_dir,
-        eval_config=config
+        eval_config=config,
     ).eval()
-    
-    config = FIDEvaluatorConfig(
-        batch_size=512,
-        wandb_path=wandb_path
-    )
+
+    config = FIDEvaluatorConfig(batch_size=512, wandb_path=wandb_path)
 
     FIDEvaluator(
-        model,
-        test_data,
-        output=output_dir,
-        eval_config=config
-        ).mvtcae_reproduce_fids(gen_mod='m0')
-
-
+        model, test_data, output=output_dir, eval_config=config
+    ).mvtcae_reproduce_fids(gen_mod="m0")

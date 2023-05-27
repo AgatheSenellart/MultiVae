@@ -63,9 +63,13 @@ class CoherenceEvaluator(Evaluator):
             self.logger.info(
                 f"Conditional accuracies for {i+1} modalities : {mean_accs[i]} +- {std_accs[i]}"
             )
-            self.metrics.update({f'mean_coherence_{i+1}' : mean_accs[i],
-                                 f'std_coherence_{i+1}' : std_accs[i]})
-        return mean_accs,std_accs
+            self.metrics.update(
+                {
+                    f"mean_coherence_{i+1}": mean_accs[i],
+                    f"std_coherence_{i+1}": std_accs[i],
+                }
+            )
+        return mean_accs, std_accs
 
     def all_accuracies_from_subset(self, subset):
         """
@@ -92,9 +96,13 @@ class CoherenceEvaluator(Evaluator):
                 preds = self.clfs[pred_m](output[pred_m])
                 pred_labels = torch.argmax(preds, dim=1)
                 try:
-                    accuracies[f'subset_to_{pred_m}'] += torch.sum(pred_labels == batch.labels)
+                    accuracies[f"subset_to_{pred_m}"] += torch.sum(
+                        pred_labels == batch.labels
+                    )
                 except:
-                    accuracies[f'subset_to_{pred_m}'] = torch.sum(pred_labels == batch.labels)
+                    accuracies[f"subset_to_{pred_m}"] = torch.sum(
+                        pred_labels == batch.labels
+                    )
 
         acc = {k: accuracies[k].cpu().numpy() / self.n_data for k in accuracies}
 
@@ -129,14 +137,13 @@ class CoherenceEvaluator(Evaluator):
         joint_coherence = all_labels.mean()
 
         self.logger.info(f"Joint coherence : {joint_coherence}")
-        self.metrics.update({'joint_coherence' : joint_coherence})
+        self.metrics.update({"joint_coherence": joint_coherence})
         return joint_coherence
 
     def eval(self):
-        
         self.cross_coherences()
         self.joint_coherence()
-        
+
         self.log_to_wandb()
-        
+
         return ModelOutput(**self.metrics)

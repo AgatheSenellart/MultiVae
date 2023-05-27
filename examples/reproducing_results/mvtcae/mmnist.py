@@ -1,3 +1,5 @@
+import argparse
+
 import torch
 import torch.nn as nn
 from pythae.models.base.base_config import BaseAEConfig
@@ -17,10 +19,9 @@ from multivae.trainers.base.callbacks import (
     TrainingCallback,
     WandbCallback,
 )
-import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--seed', default=8)
+parser.add_argument("--seed", default=8)
 args = parser.parse_args()
 
 
@@ -143,7 +144,7 @@ trainer_config = BaseTrainerConfig(
     steps_predict=1,
     per_device_train_batch_size=256,
     drop_last=True,
-    seed = args.seed
+    seed=args.seed,
 )
 
 # Set up callbacks
@@ -238,4 +239,4 @@ model = trainer._best_model
 
 coherences = CoherenceEvaluator(model, clfs, test_set, data_path).eval()
 
-fids = FIDEvaluator(model,test_set).mvtcae_reproduce_fids()
+fids = FIDEvaluator(model, test_set).mvtcae_reproduce_fids()

@@ -1,10 +1,10 @@
 import numpy as np
 import torch
-from multivae.data.datasets.mmnist import MMNISTDataset
-from torch import nn
-from multivae.models.base.base_model import BaseEncoder, BaseDecoder, ModelOutput
 import torch.nn.functional as F
+from torch import nn
 
+from multivae.data.datasets.mmnist import MMNISTDataset
+from multivae.models.base.base_model import BaseDecoder, BaseEncoder, ModelOutput
 from multivae.trainers.base.callbacks import ProgressBarCallback, WandbCallback
 
 ##### Architectures #####
@@ -20,7 +20,7 @@ class ResnetBlock(nn.Module):
         super().__init__()
         # Attributes
         self.is_bias = is_bias
-        self.learned_shortcut = (fin != fout)
+        self.learned_shortcut = fin != fout
         self.fin = fin
         self.fout = fout
         if fhidden is None:
@@ -30,15 +30,19 @@ class ResnetBlock(nn.Module):
 
         # Submodules
         self.conv_0 = nn.Conv2d(self.fin, self.fhidden, 3, stride=1, padding=1)
-        self.conv_1 = nn.Conv2d(self.fhidden, self.fout, 3, stride=1, padding=1, bias=is_bias)
+        self.conv_1 = nn.Conv2d(
+            self.fhidden, self.fout, 3, stride=1, padding=1, bias=is_bias
+        )
         if self.learned_shortcut:
-            self.conv_s = nn.Conv2d(self.fin, self.fout, 1, stride=1, padding=0, bias=False)
+            self.conv_s = nn.Conv2d(
+                self.fin, self.fout, 1, stride=1, padding=0, bias=False
+            )
 
     def forward(self, x):
         x_s = self._shortcut(x)
         dx = self.conv_0(actvn(x))
         dx = self.conv_1(actvn(dx))
-        out = x_s + 0.1*dx
+        out = x_s + 0.1 * dx
 
         return out
 
@@ -52,7 +56,7 @@ class ResnetBlock(nn.Module):
 
 # Classes
 class Enc(BaseEncoder):
-    """ Generate latent parameters for SVHN image data. """
+    """Generate latent parameters for SVHN image data."""
 
     def __init__(self, ndim_w, ndim_u):
         super().__init__()
@@ -66,17 +70,13 @@ class Enc(BaseEncoder):
         nlayers = int(np.log2(size / s0))
         self.nf0 = min(nf_max, nf * 2**nlayers)
 
-        blocks_w = [
-            ResnetBlock(nf, nf)
-        ]
+        blocks_w = [ResnetBlock(nf, nf)]
 
-        blocks_u = [
-            ResnetBlock(nf, nf)
-        ]
+        blocks_u = [ResnetBlock(nf, nf)]
 
         for i in range(nlayers):
             nf0 = min(nf * 2**i, nf_max)
-            nf1 = min(nf * 2**(i+1), nf_max)
+            nf1 = min(nf * 2 ** (i + 1), nf_max)
             blocks_w += [
                 nn.AvgPool2d(3, stride=2, padding=1),
                 ResnetBlock(nf0, nf1),
@@ -86,10 +86,10 @@ class Enc(BaseEncoder):
                 ResnetBlock(nf0, nf1),
             ]
 
-        self.conv_img_w = nn.Conv2d(3, 1*nf, 3, padding=1)
+        self.conv_img_w = nn.Conv2d(3, 1 * nf, 3, padding=1)
         self.resnet_w = nn.Sequential(*blocks_w)
-        self.fc_mu_w = nn.Linear(self.nf0*s0*s0, ndim_w)
-        self.fc_lv_w = nn.Linear(self.nf0*s0*s0, ndim_w)
+        self.fc_mu_w = nn.Linear(self.nf0 * s0 * s0, ndim_w)
+        self.fc_lv_w = nn.Linear(self.nf0 * s0 * s0, ndim_w)
 
         self.conv_img_u = nn.Conv2d(3, 1 * nf, 3, padding=1)
         self.resnet_u = nn.Sequential(*blocks_u)
@@ -100,25 +100,26 @@ class Enc(BaseEncoder):
         # batch_size = x.size(0)
         out_w = self.conv_img_w(x)
         out_w = self.resnet_w(out_w)
-        out_w = out_w.view(out_w.size()[0], self.nf0*self.s0*self.s0)
+        out_w = out_w.view(out_w.size()[0], self.nf0 * self.s0 * self.s0)
         lv_w = self.fc_lv_w(out_w)
 
         out_u = self.conv_img_u(x)
         out_u = self.resnet_u(out_u)
         out_u = out_u.view(out_u.size()[0], self.nf0 * self.s0 * self.s0)
         lv_u = self.fc_lv_u(out_u)
-        
+
         output = ModelOutput(
-            embedding = self.fc_mu_u(out_u),
-            style_embedding = self.fc_mu_w(out_w),
-            log_covariance = lv_u,
-            style_log_covariance = lv_w
+            embedding=self.fc_mu_u(out_u),
+            style_embedding=self.fc_mu_w(out_w),
+            log_covariance=lv_u,
+            style_log_covariance=lv_w,
         )
 
         return output
 
+
 class Dec(BaseDecoder):
-    """ Generate a SVHN image given a sample from the latent space. """
+    """Generate a SVHN image given a sample from the latent space."""
 
     def __init__(self, ndim):
         super().__init__()
@@ -133,16 +134,13 @@ class Dec(BaseDecoder):
         nlayers = int(np.log2(size / s0))
         self.nf0 = min(nf_max, nf * 2**nlayers)
 
-        self.fc = nn.Linear(ndim, self.nf0*s0*s0)
+        self.fc = nn.Linear(ndim, self.nf0 * s0 * s0)
 
         blocks = []
         for i in range(nlayers):
-            nf0 = min(nf * 2**(nlayers-i), nf_max)
-            nf1 = min(nf * 2**(nlayers-i-1), nf_max)
-            blocks += [
-                ResnetBlock(nf0, nf1),
-                nn.Upsample(scale_factor=2)
-            ]
+            nf0 = min(nf * 2 ** (nlayers - i), nf_max)
+            nf1 = min(nf * 2 ** (nlayers - i - 1), nf_max)
+            blocks += [ResnetBlock(nf0, nf1), nn.Upsample(scale_factor=2)]
 
         blocks += [
             ResnetBlock(nf, nf),
@@ -162,63 +160,66 @@ class Dec(BaseDecoder):
             out = out.view(*z.size()[:2], *out.size()[1:])
 
         # consider also predicting the length scale
-        return ModelOutput(reconstruction = out)
-    
-    
-###### Model Config ########
-from multivae.models.mmvaePlus import MMVAEPlusConfig, MMVAEPlus
+        return ModelOutput(reconstruction=out)
+
+
 import argparse
 
+###### Model Config ########
+from multivae.models.mmvaePlus import MMVAEPlus, MMVAEPlusConfig
+
 parser = argparse.ArgumentParser()
-parser.add_argument('--seed',type=int,default=0)
-parser.add_argument('--K', type=int,default=1)
+parser.add_argument("--seed", type=int, default=0)
+parser.add_argument("--K", type=int, default=1)
 args = parser.parse_args()
 
-modalities = ['m0','m1','m2','m3','m4']
+modalities = ["m0", "m1", "m2", "m3", "m4"]
 
 model_config = MMVAEPlusConfig(
     n_modalities=5,
     K=args.K,
-    decoders_dist={m : 'laplace' for m in modalities},
-    decoder_dist_params= {m : dict(scale = 0.75) for m in modalities},
-    prior_and_posterior_dist='laplace_with_softmax',
+    decoders_dist={m: "laplace" for m in modalities},
+    decoder_dist_params={m: dict(scale=0.75) for m in modalities},
+    prior_and_posterior_dist="laplace_with_softmax",
     beta=2.5,
     modalities_specific_dim=32,
     latent_dim=32,
-    input_dims={m : (3,28,28) for m in modalities},
+    input_dims={m: (3, 28, 28) for m in modalities},
     learn_shared_prior=False,
-    learn_modality_prior=True
-    
-    
+    learn_modality_prior=True,
 )
 
-encoders = { m : Enc(model_config.modalities_specific_dim,ndim_u=model_config.latent_dim) for m in modalities}
-decoders = { m : Dec(model_config.latent_dim + model_config.modalities_specific_dim) for m in modalities}
+encoders = {
+    m: Enc(model_config.modalities_specific_dim, ndim_u=model_config.latent_dim)
+    for m in modalities
+}
+decoders = {
+    m: Dec(model_config.latent_dim + model_config.modalities_specific_dim)
+    for m in modalities
+}
 
 model = MMVAEPlus(model_config, encoders, decoders)
 
 
 ######## Dataset #########
 
-train_data = MMNISTDataset(data_path='~/scratch/data', split='train')
-test_data = MMNISTDataset(data_path='~/scratch/data', split='test')
+train_data = MMNISTDataset(data_path="~/scratch/data", split="train")
+test_data = MMNISTDataset(data_path="~/scratch/data", split="test")
 
 
 ########## Training #######
 from multivae.trainers.base import BaseTrainer, BaseTrainerConfig
 
-
 training_config = BaseTrainerConfig(
     per_device_train_batch_size=32,
     per_device_eval_batch_size=32,
-    num_epochs=50 if model_config.K==10 else 150,
+    num_epochs=50 if model_config.K == 10 else 150,
     learning_rate=1e-3,
-    output_dir= f'../reproduce_mmvaep/K__{model_config.K}/seed__{args.seed}',
+    output_dir=f"../reproduce_mmvaep/K__{model_config.K}/seed__{args.seed}",
     steps_predict=5,
-    optimizer_cls='Adam',
-    #optimizer_params=dict(amsgrad=True),
-    seed=args.seed
-    
+    optimizer_cls="Adam",
+    # optimizer_params=dict(amsgrad=True),
+    seed=args.seed,
 )
 
 # Set up callbacks
@@ -227,16 +228,19 @@ wandb_cb.setup(training_config, model_config, project_name="reproducing_mmvae_pl
 
 callbacks = [ProgressBarCallback(), wandb_cb]
 
-trainer = BaseTrainer(model=model,
-                      train_dataset = train_data,
-                      eval_dataset = test_data,
-                      training_config=training_config,
-                      callbacks = callbacks
-                      )
+trainer = BaseTrainer(
+    model=model,
+    train_dataset=train_data,
+    eval_dataset=test_data,
+    training_config=training_config,
+    callbacks=callbacks,
+)
 
 trainer.train()
 
-trainer._best_model.push_to_hf_hub(f'asenella/reproduce_mmvaep_K__{args.K}__seed_{args.seed}')
+trainer._best_model.push_to_hf_hub(
+    f"asenella/reproduce_mmvaep_K__{args.K}__seed_{args.seed}"
+)
 
 
 #### Validation ####
@@ -247,6 +251,7 @@ from multivae.metrics.fids import FIDEvaluator, FIDEvaluatorConfig
 class Flatten(torch.nn.Module):
     def forward(self, x):
         return x.view(x.size(0), -1)
+
 
 class ClfImg(nn.Module):
     """
@@ -275,6 +280,7 @@ class ClfImg(nn.Module):
         # return F.log_softmax(h, dim=-1)
         return h
 
+
 def load_mmnist_classifiers(data_path="/home/asenella/scratch/data/clf", device="cuda"):
     clfs = {}
     for i in range(5):
@@ -289,28 +295,18 @@ def load_mmnist_classifiers(data_path="/home/asenella/scratch/data/clf", device=
     return clfs
 
 
-config = CoherenceEvaluatorConfig(
-        batch_size=512,
-        wandb_path=wandb_cb.run.path
-    )
-    
+config = CoherenceEvaluatorConfig(batch_size=512, wandb_path=wandb_cb.run.path)
+
 CoherenceEvaluator(
-        model=model,
-        test_dataset=test_data,
-        classifiers=load_mmnist_classifiers(device=model.device),
-        output=trainer.training_dir,
-        eval_config=config
-    ).eval()
-    
-config = FIDEvaluatorConfig(
-        batch_size=512,
-        wandb_path=wandb_cb.run.path
-    )
+    model=model,
+    test_dataset=test_data,
+    classifiers=load_mmnist_classifiers(device=model.device),
+    output=trainer.training_dir,
+    eval_config=config,
+).eval()
+
+config = FIDEvaluatorConfig(batch_size=512, wandb_path=wandb_cb.run.path)
 
 fid = FIDEvaluator(
-        model,
-        test_data,
-        output=trainer.training_dir,
-        eval_config=config
-        ).eval()
-
+    model, test_data, output=trainer.training_dir, eval_config=config
+).eval()

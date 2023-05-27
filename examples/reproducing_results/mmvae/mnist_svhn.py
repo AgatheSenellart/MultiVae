@@ -1,12 +1,12 @@
 from math import prod
-from multivae.metrics.likelihoods.likelihoods import LikelihoodsEvaluator
-from multivae.metrics.likelihoods.likelihoods_config import LikelihoodsEvaluatorConfig
 
 import torch
 from pythae.models.base.base_model import BaseDecoder, BaseEncoder, ModelOutput
 from torch import nn
 
 from multivae.data.datasets import MnistSvhn
+from multivae.metrics.likelihoods.likelihoods import LikelihoodsEvaluator
+from multivae.metrics.likelihoods.likelihoods_config import LikelihoodsEvaluatorConfig
 from multivae.models import MMVAE, MMVAEConfig
 from multivae.models.base import BaseMultiVAEConfig
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
@@ -146,7 +146,6 @@ train_set = MnistSvhn(split="train", data_multiplication=30)
 test_set = MnistSvhn(split="test", data_multiplication=30)
 
 
-
 print(f"train : {len(train_set)}, test : {len(test_set)}")
 # Model config
 model_config = MMVAEConfig(
@@ -208,9 +207,13 @@ trainer._best_model.push_to_hf_hub("asenella/reproducing_mmvae_5")
 
 #### Validate ####
 
-lik_config = LikelihoodsEvaluatorConfig(batch_size=12, 
-                                        batch_size_k=1000,
-                                        unified_implementation=False,
-                                        num_samples=1000,
-                                        wandb_path=wandb_cb.run.path)
-output = LikelihoodsEvaluator(model,test_set,trainer.training_dir,eval_config=lik_config).eval()
+lik_config = LikelihoodsEvaluatorConfig(
+    batch_size=12,
+    batch_size_k=1000,
+    unified_implementation=False,
+    num_samples=1000,
+    wandb_path=wandb_cb.run.path,
+)
+output = LikelihoodsEvaluator(
+    model, test_set, trainer.training_dir, eval_config=lik_config
+).eval()

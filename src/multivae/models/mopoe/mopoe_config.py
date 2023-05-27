@@ -32,7 +32,7 @@ class MoPoEConfig(BaseMultiVAEConfig):
         beta (float) : The weight to the KL divergence term in the ELBO. Default to 1.0
     """
 
-    subsets: Union[List[list], Dict[str,list]] = None
+    subsets: Union[List[list], Dict[str, list]] = None
     beta: float = 1.0
     use_modality_specific_spaces: bool = False
     beta_style: float = 1.0
