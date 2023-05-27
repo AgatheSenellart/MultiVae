@@ -35,7 +35,7 @@ def cross_entropy(input, target, eps=1e-6):
     """k-Class Cross Entropy (Log Softmax + Log Loss)
 
     @param input: torch.Tensor (size K x N x d)
-    @param target: torch.Tensor (size N )
+    @param target: torch.Tensor (size N x d)
     @param eps: error to add (default: 1e-6)
     @return loss: torch.Tensor (size N)
     """
@@ -47,9 +47,7 @@ def cross_entropy(input, target, eps=1e-6):
         )
 
     log_input = F.log_softmax(input + eps, dim=1)
-    y_onehot = torch.zeros_like(log_input)
-    y_onehot = y_onehot.scatter(1, target.unsqueeze(1), 1)
-    loss = y_onehot * log_input
+    loss = target * log_input
     return loss
 
 
@@ -271,12 +269,15 @@ class BaseMultiVAE(nn.Module):
                 outputs[m] = self.decoders[m](z).reconstruction
             return outputs
 
+    @torch.no_grad
     def predict(
         self,
         inputs: MultimodalBaseDataset,
         cond_mod: Union[list, str] = "all",
         gen_mod: Union[list, str] = "all",
-        **kwargs,
+        N :int = 1,
+        flatten : bool = False,
+        **kwargs
     ):
         """Generate in all modalities conditioning on a subset of modalities.
 
@@ -285,13 +286,13 @@ class BaseMultiVAE(nn.Module):
                 contained in cond_mod.
             cond_mod (Union[list, str], optional): The modalities to condition on. Defaults to 'all'.
             gen_mod (Union[list, str], optional): The modalities to generate. Defaults to 'all'.
+            N (int) : Number of samples to generate. Default to 1.
+            flatten (int) : If N>1 and flatten is False, the returned samples have dimensions (N,len(inputs),...).
+                Otherwise, the returned samples have dimensions (len(inputs)*N, ...)
 
         """
         self.eval()
-        N = kwargs.pop("N", 1)
-        flatten = kwargs.pop(
-            "flatten", False
-        )  # If flatten and N>1, the encodings have the shape (Nxn_data, latent_dim)
+        
         # instead of (N, n_data, latent_dim)
         z = self.encode(inputs, cond_mod, N=N, flatten=flatten, **kwargs)
         return self.decode(z, gen_mod)

@@ -2,6 +2,7 @@
 Multimodal dataset wrapper for the MNIST labels dataset.
 """
 from typing import Literal
+import torch
 
 from torch.distributions import Bernoulli
 from torchvision.datasets import MNIST
@@ -14,13 +15,17 @@ class BinaryMnistLabels(MultimodalBaseDataset):
         self, data_path: str, split: Literal["train", "test"] = "train",
         download=False,
         random_binarized=True,
+        dtype = torch.float32
     ):
         torchvision_dataset = MNIST(
             root=data_path, train=(split == "train"), download=download
         )
 
-        self.images = torchvision_dataset.data.float().div(255).unsqueeze(1)
+        self.images = torchvision_dataset.data.div(255).unsqueeze(1).to(dtype)
         self.labels = torchvision_dataset.targets
+        self.labels_one_hot =  torch.zeros(len(self.labels), 10)
+        self.labels_one_hot = self.labels_one_hot.scatter(1, self.labels.unsqueeze(1), 1)
+        self.labels_one_hot = self.labels_one_hot.unsqueeze(1)
         self.random_binarized = random_binarized
 
     def __getitem__(self, index):
@@ -31,7 +36,7 @@ class BinaryMnistLabels(MultimodalBaseDataset):
         return DatasetOutput(
             
             data=dict(
-                images=images, labels=self.labels[index]
+                images=images, labels=self.labels_one_hot[index]
             ),
             labels=self.labels[index],
         )
