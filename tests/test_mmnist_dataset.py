@@ -20,7 +20,7 @@ class Test:
         return dict(data_path=data_path, split=split, missing_ratio=missing_ratio)
 
     def test_create_dataset(self, input_dataset_test):
-        if os.path.exists(input_dataset_test["data_path"] + "/" + "test" + f"/m{0}.pt"):
+        if os.path.exists(os.path.join(input_dataset_test["data_path"],'MMNIST' , "test" ,"m0.pt")):
             dataset = MMNISTDataset(**input_dataset_test)
             assert isinstance(dataset, MultimodalBaseDataset)
             sample = dataset[0]
