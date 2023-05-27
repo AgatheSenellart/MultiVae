@@ -441,31 +441,7 @@ class MMVAEPlus(BaseMultiVAE):
 
         return -ll
 
-    @torch.no_grad()
-    def compute_joint_nll_paper(
-        self, inputs: MultimodalBaseDataset, K: int = 1000, batch_size_K: int = 10
-    ):
-        """Computes the joint likelihood like in the original dataset, using all Mixture of experts
-        samples and modality rescaling."""
 
-        self.eval()
-
-        lws = []
-        nb_computed_samples = 0
-        while nb_computed_samples < K:
-            n_samples = min(batch_size_K, K - nb_computed_samples)
-            nb_computed_samples += n_samples
-            # Compute a iwae likelihood estimate using n_samples
-            output = self.forward(
-                inputs, compute_loss=False, K=n_samples, detailed_output=True
-            )
-            lw = self.iwae(output.qz_xs, output.zss, output.recon, inputs).loss
-            lws.append(lw + np.log(n_samples * self.n_modalities))
-
-        ll = torch.logsumexp(torch.stack(lws), dim=0) - np.log(
-            nb_computed_samples * self.n_modalities
-        )  # n_batch
-        return -ll
 
     def generate_from_prior(self, n_samples,**kwargs):
         sample_shape = [n_samples] if n_samples > 1 else []
