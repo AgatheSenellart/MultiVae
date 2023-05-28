@@ -147,7 +147,6 @@ class Decoder_AE_MLP(BaseDecoder):
         for i in range(max_depth):
             out = self.layers[i](out)
             if i + 1 == self.depth:
-                print(z.shape)
                 output_shape = (*z.shape[:-1],) + self.input_dim
                 output["reconstruction"] = out.reshape(output_shape)
 
