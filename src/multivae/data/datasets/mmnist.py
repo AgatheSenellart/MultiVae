@@ -118,7 +118,7 @@ class MMNISTDataset(MultimodalBaseDataset):
             )
 
             gdown.download(
-                    id="1ye3IDHuHn5Cc6qDJIGmxz9e83nEMoQhj", output=data_path
+                    id="1vBYSCWpwrUlMsLrQrk-ValfwhxcCO4YM", output=data_path
                 )
             with zipfile.ZipFile(os.path.join(data_path,'MMNIST.zip')) as zip_ref:
                     zip_ref.extractall(data_path)

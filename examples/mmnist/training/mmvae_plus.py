@@ -64,10 +64,10 @@ model = MMVAEPlus(model_config, encoders=encoders, decoders=decoders)
 trainer_config = BaseTrainerConfig(
     **base_training_config,
     seed=args.seed,
-    output_dir=f"compare_on_mmnist/{config_name}/{model.model_name}/seed_{args.seed}/missing_ratio_{args.missing_ratio}/",
+    output_dir=f"compare_on_mmnist/{config_name}/{model.model_name}/seed_{args.seed}/missing_ratio_{args.missing_ratio}/K_{model.K}",
 )
 trainer_config.per_device_train_batch_size = 32
-trainer_config.num_epochs = 150 # enough for this model to reach convergence
+trainer_config.num_epochs = 300 # enough for this model to reach convergence
 
 # Set up callbacks
 wandb_cb = WandbCallback()

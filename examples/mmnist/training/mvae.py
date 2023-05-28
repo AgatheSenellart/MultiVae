@@ -25,7 +25,7 @@ train_data, eval_data = random_split(
 model_config = MVAEConfig(
     **base_config,
     use_subsampling=(args.missing_ratio == 0) or not (args.keep_incomplete),
-    warmup=0,
+    warmup=200,
     beta=1,
 )
 
@@ -39,6 +39,7 @@ trainer_config = BaseTrainerConfig(
     start_keep_best_epoch=model_config.warmup + 1,
 )
 trainer_config.num_epochs = 400
+trainer_config.learning_rate = 0.5e-4
 
 # Set up callbacks
 wandb_cb = WandbCallback()
