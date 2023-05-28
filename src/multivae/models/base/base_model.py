@@ -35,18 +35,12 @@ def cross_entropy(input, target, eps=1e-6):
     """k-Class Cross Entropy (Log Softmax + Log Loss)
 
     @param input: torch.Tensor (size K x N x d)
-    @param target: torch.Tensor (size N x d)
+    @param target: torch.Tensor (size N x d) or (d,)
     @param eps: error to add (default: 1e-6)
     @return loss: torch.Tensor (size N)
     """
-    if not (target.size(0) == input.size(0)):
-        raise ValueError(
-            "Target size ({}) must be the same as input size ({})".format(
-                target.size(0), input.size(0)
-            )
-        )
 
-    log_input = F.log_softmax(input + eps, dim=1)
+    log_input = F.log_softmax(input + eps, dim=-1)
     loss = target * log_input
     return loss
 
@@ -269,7 +263,7 @@ class BaseMultiVAE(nn.Module):
                 outputs[m] = self.decoders[m](z).reconstruction
             return outputs
 
-    @torch.no_grad
+    @torch.no_grad()
     def predict(
         self,
         inputs: MultimodalBaseDataset,
@@ -293,9 +287,13 @@ class BaseMultiVAE(nn.Module):
         """
         self.eval()
         
-        # instead of (N, n_data, latent_dim)
-        z = self.encode(inputs, cond_mod, N=N, flatten=flatten, **kwargs)
-        return self.decode(z, gen_mod)
+        z = self.encode(inputs, cond_mod, N=N, flatten=True, **kwargs)
+        output =  self.decode(z, gen_mod)
+        n_data = len(z.z)//N
+        if not flatten and N>1:
+            for m in self.encoders:
+                output[m] = output[m].reshape(N,n_data, *output[m].shape[1:])
+        return output
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
         """
@@ -342,11 +340,7 @@ class BaseMultiVAE(nn.Module):
                         "pythae.models.base_architectures.BaseEncoder. Refer to documentation."
                     )
                 )
-            if encoder.latent_dim != self.latent_dim:
-                raise AttributeError(
-                    f"The latent dim of encoder {modality} doesn't have the same latent dimension as the "
-                    f" model itself ({self.latent_dim})"
-                )
+            
             self.encoders[modality] = encoder
 
     def set_decoders(self, decoders: dict) -> None:
