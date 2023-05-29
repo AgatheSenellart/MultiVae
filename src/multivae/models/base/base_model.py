@@ -76,6 +76,8 @@ class BaseMultiVAE(nn.Module):
         self.n_modalities = model_config.n_modalities
         self.input_dims = model_config.input_dims
         self.reset_optimizer_epochs = []
+        self.multiple_latent_spaces = False # Default value, this field must be changes 
+                                            # in models using multiple latent spaces
 
         if encoders is None:
             if self.input_dims is None:

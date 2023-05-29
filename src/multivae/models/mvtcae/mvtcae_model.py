@@ -208,6 +208,17 @@ class MVTCAE(BaseMultiVAE):
         N: int = 1,
         **kwargs,
     ) -> ModelOutput:
+        
+        # Deal with incomplete datasets
+        if hasattr(inputs, 'masks'):
+            # Check that all modalities in cond_mod are available for all samples points.
+            mods_avail = torch.stack([inputs.masks[m] for m in cond_mod]).sum(0)
+            if not torch.all(mods_avail):
+                raise AttributeError("You tried to encode a incomplete dataset conditioning on",
+                                     f"modalities {cond_mod}, but some samples are not available"
+                                     "in all those modalities.")
+        
+        
         # If the input cond_mod is a string : convert it to a list
         if type(cond_mod) == str:
             if cond_mod == "all":
@@ -219,9 +230,6 @@ class MVTCAE(BaseMultiVAE):
                     'If cond_mod is a string, it must either be "all" or a modality name'
                     f" The provided string {cond_mod} is neither."
                 )
-
-        # If the dataset is incomplete, keep only the samples availables in all cond_mod
-        # modalities
 
         # Only keep the relevant modalities for prediction
         cond_inputs = MultimodalBaseDataset(

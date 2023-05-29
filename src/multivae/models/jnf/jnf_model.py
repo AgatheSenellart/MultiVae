@@ -177,6 +177,15 @@ class JNF(BaseJointModel):
         mcmc_steps = kwargs.pop("mcmc_steps", 100)
         n_lf = kwargs.pop("n_lf", 10)
         eps_lf = kwargs.pop("eps_lf", 0.01)
+        
+        # Deal with incomplete datasets
+        if hasattr(inputs, 'masks'):
+            # Check that all modalities in cond_mod are available for all samples points.
+            mods_avail = torch.stack([inputs.masks[m] for m in cond_mod]).sum(0)
+            if not torch.all(mods_avail):
+                raise AttributeError("You tried to encode a incomplete dataset conditioning on",
+                                     f"modalities {cond_mod}, but some samples are not available"
+                                     "in all those modalities.")
 
         if type(cond_mod) == list and len(cond_mod) == 1:
             cond_mod = cond_mod[0]

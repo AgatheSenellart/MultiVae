@@ -34,7 +34,7 @@ class MoPoE(BaseMultiVAE):
         super().__init__(model_config, encoders, decoders)
 
         self.beta = model_config.beta
-        self.use_modality_specific_spaces = model_config.use_modality_specific_spaces
+        self.multiple_latent_spaces = model_config.use_modality_specific_spaces
         self.model_name = "MoPoE"
 
         list_subsets = self.model_config.subsets
@@ -167,7 +167,7 @@ class MoPoE(BaseMultiVAE):
         for m_key in self.encoders.keys():
             # reconstruct this modality from the shared embeddings representation
 
-            if self.use_modality_specific_spaces:
+            if self.multiple_latent_spaces:
                 try:
                     style_embeddings = latents["modalities"][m_key].style_embedding
                     full_embedding = torch.cat(
@@ -204,7 +204,7 @@ class MoPoE(BaseMultiVAE):
             loss += results["recon_" + m_key]
 
             # If using modality specific latent spaces, add modality specific klds
-            if self.use_modality_specific_spaces:
+            if self.multiple_latent_spaces:
                 style_mu = latents["modalities"][m_key].style_embedding
                 style_log_var = latents["modalities"][m_key].style_log_covariance
                 style_kld = -0.5 * (
@@ -367,8 +367,15 @@ class MoPoE(BaseMultiVAE):
         N: int = 1,
         **kwargs,
     ) -> ModelOutput:
-        # TODO : deal with the case where you want to encode
-        # an incomplete dataset
+        
+        # Deal with incomplete datasets
+        if hasattr(inputs, 'masks'):
+            # Check that all modalities in cond_mod are available for all samples points.
+            mods_avail = torch.stack([inputs.masks[m] for m in cond_mod]).sum(0)
+            if not torch.all(mods_avail):
+                raise AttributeError("You tried to encode a incomplete dataset conditioning on",
+                                     f"modalities {cond_mod}, but some samples are not available"
+                                     "in all those modalities.")
 
         # If the input cond_mod is a string : convert it to a list
         if type(cond_mod) == str:
@@ -397,7 +404,7 @@ class MoPoE(BaseMultiVAE):
         if flatten:
             z = z.reshape(-1, self.latent_dim)
 
-        if self.use_modality_specific_spaces:
+        if self.multiple_latent_spaces:
             modalities_z = dict()
             for m in self.encoders:
                 if m in cond_mod:

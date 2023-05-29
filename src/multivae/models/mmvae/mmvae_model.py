@@ -253,7 +253,14 @@ class MMVAE(BaseMultiVAE):
         N: int = 1,
         **kwargs,
     ):
-        # TODO : Deal with the case where you want to encode an incomplete dataset
+        
+        if hasattr(inputs, 'masks'):
+            # Check that all modalities in cond_mod are available for all sample points.
+            mods_avail = torch.stack([inputs.masks[m] for m in cond_mod]).sum(0)
+            if not torch.all(mods_avail):
+                raise AttributeError("You tried to encode a incomplete dataset conditioning on",
+                                     f"modalities {cond_mod}, but some samples are not available"
+                                     "in all those modalities.")
 
         # If the input cond_mod is a string : convert it to a list
         if type(cond_mod) == str:
