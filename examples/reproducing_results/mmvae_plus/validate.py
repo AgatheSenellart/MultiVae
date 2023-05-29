@@ -71,7 +71,7 @@ import json
 from multivae.models import AutoModel
 
 for seed in range(3):
-    path = f"../reproduce_mmvaep/K__{1}/seed__{0}/final_model"
+    path = f"../reproduce_mmvaep/K__{1}/seed__{seed}/final_model"
 
     model = AutoModel.load_from_folder(path)
     model.device = "cuda" if torch.cuda.is_available() else "cpu"
