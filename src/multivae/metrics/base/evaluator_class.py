@@ -36,8 +36,10 @@ class Evaluator:
         self.test_dataset = test_dataset
         self.test_loader = DataLoader(test_dataset, batch_size=eval_config.batch_size)
         self.set_logger(output)
-        self.set_wandb(eval_config.wandb_path)
+        if eval_config.use_wandb:
+            self.set_wandb(eval_config.wandb_path)
         self.metrics = {}
+        
 
     def set_logger(self, output):
         logger = logging.getLogger()
@@ -57,6 +59,7 @@ class Evaluator:
         self.logger = logger
 
     def set_wandb(self, wandb_path):
+        
         if wandb_path is None:
             self.wandb_run = None
             return
