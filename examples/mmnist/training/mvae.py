@@ -24,9 +24,10 @@ train_data, eval_data = random_split(
 
 model_config = MVAEConfig(
     **base_config,
-    use_subsampling=(args.missing_ratio == 0) or not (args.keep_incomplete),
+    # use_subsampling=(args.missing_ratio == 0) or not (args.keep_incomplete),
+    use_subsampling=False,
     warmup=200,
-    beta=1,
+    beta=2.5,
 )
 
 
@@ -38,7 +39,7 @@ trainer_config = BaseTrainerConfig(
     output_dir=f"compare_on_mmnist/{config_name}/{model.model_name}/seed_{args.seed}/missing_ratio_{args.missing_ratio}/",
     start_keep_best_epoch=model_config.warmup + 1,
 )
-trainer_config.num_epochs = 400
+trainer_config.num_epochs = 500
 trainer_config.learning_rate = 0.5e-4
 
 # Set up callbacks
