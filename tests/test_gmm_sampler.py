@@ -2,7 +2,7 @@ from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
 from multivae.models.base.base_config import BaseAEConfig
 from multivae.models.mopoe.mopoe_config import MoPoEConfig
 from multivae.models.mopoe.mopoe_model import MoPoE
-from multivae.models.nn.default_architectures import Decoder_AE_MLP
+from multivae.models.nn.default_architectures import Decoder_AE_MLP, ModelOutput
 import torch
 import numpy as np
 
@@ -122,4 +122,14 @@ class Test_gmm_sampler():
         
         if sampler.model.multiple_latent_spaces:
             assert hasattr(sampler, 'gmm')
+        
+    def test_sample(self,sampler, dataset):
+        
+        sampler.fit(dataset)
+        
+        output = sampler.sample(100)
+        
+        assert isinstance(output, ModelOutput)
+        assert hasattr(output, 'z')
+        assert output.z.shape == (100,sampler.model.latent_dim)
         

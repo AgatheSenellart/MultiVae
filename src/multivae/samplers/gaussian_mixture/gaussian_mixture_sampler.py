@@ -107,8 +107,8 @@ class GaussianMixtureSampler(BaseSampler):
                 tol=1e-3,
             )
                 
-            gmm.fit(mod_z[m].cpu().detach())
-            self.mod_gmms[m] = gmm
+                gmm.fit(mod_z[m].cpu().detach())
+                self.mod_gmms[m] = gmm
         
         
         self.is_fitted = True
@@ -149,7 +149,7 @@ class GaussianMixtureSampler(BaseSampler):
         z_list = []
         
         if self.model.multiple_latent_spaces:
-            mod_z = { m : [] for m in self.encoders}
+            mod_z = { m : [] for m in self.model.encoders}
 
         for batch_size in batches_sizes:
 
@@ -172,11 +172,12 @@ class GaussianMixtureSampler(BaseSampler):
 
  
 
-        if save_sampler_config:
-            self.save(output_dir)
+
 
         output = ModelOutput(
-            z = torch.cat(z_list, dim=0),
-            modalities_z = {m : torch.cat(mod_z[m]) for m in mod_z}
-        )
+            z = torch.cat(z_list, dim=0))
+        
+        if self.model.multiple_latent_spaces:
+            output['modalities_z'] = {m : torch.cat(mod_z[m]) for m in mod_z}
+
         return output
