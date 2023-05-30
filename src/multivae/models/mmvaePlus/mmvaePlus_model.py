@@ -174,12 +174,11 @@ class MMVAEPlus(BaseMultiVAE):
                     mu_prior_mod = torch.cat(
                         [self.mean_priors[recon_mod]] * len(mu), axis=0
                     )
-                    log_var_prior_mod = torch.cat(
+                    sigma_prior_mod = torch.cat(
                         [self.log_var_to_std(self.logvars_priors[recon_mod])] * len(mu),
                         axis=0,
                     )
-                    sigma_prior_mod = self.log_var_to_std(log_var_prior_mod)
-
+    
                     w = self.prior_dist(
                         mu_prior_mod,
                         sigma_prior_mod,

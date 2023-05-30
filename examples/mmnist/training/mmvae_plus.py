@@ -29,7 +29,7 @@ model_config = MMVAEPlusConfig(
     prior_and_posterior_dist='laplace_with_softmax',
     learn_shared_prior=False,
     learn_modality_prior=True,
-    beta=1,
+    beta=2.5,
     modalities_specific_dim=102,
     reconstruction_option="joint_prior",
 )
