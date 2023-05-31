@@ -314,7 +314,7 @@ class CUB(MultimodalBaseDataset):
 
         X = dict(img=imgs, text=dict(
             tokens=torch.tensor(caps).squeeze(-1),
-            padding_mask=torch.FloatTensor(padding_mask).squeeze(-1)
+            padding_mask=torch.FloatTensor(padding_mask).squeeze(-1),
             )
         )
         

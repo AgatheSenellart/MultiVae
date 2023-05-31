@@ -39,9 +39,16 @@ def cross_entropy(input, target, eps=1e-6):
     @param eps: error to add (default: 1e-6)
     @return loss: torch.Tensor (size N)
     """
+    if isinstance(target, dict):
+        # converts to tokens proba instead of class id for text
+        _target = torch.zeros(input.shape[0]*input.shape[1], input.shape[-1]).to(input.device)
+        _target = _target.scatter(1, target['tokens'].reshape(-1, 1), 1)
+        input = input.reshape(input.shape[0]*input.shape[1], -1)
+    else:
+        _target = target
 
     log_input = F.log_softmax(input + eps, dim=-1)
-    loss = target * log_input
+    loss = _target * log_input
     return loss
 
 
