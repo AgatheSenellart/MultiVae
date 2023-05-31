@@ -1,7 +1,9 @@
 """Contains relevant metrics classes that can be used with any model."""
 
-from .coherences import CoherenceEvaluator, CoherenceEvaluatorConfig
-from .fids import FIDEvaluator, FIDEvaluatorConfig
+from .coherences.coherences import CoherenceEvaluator
+from .coherences.coherences_config import CoherenceEvaluatorConfig
+from .fids.fids import FIDEvaluator
+from .fids.fids_config import FIDEvaluatorConfig
 from .likelihoods.likelihoods import LikelihoodsEvaluator, LikelihoodsEvaluatorConfig
 
 __all__ = [

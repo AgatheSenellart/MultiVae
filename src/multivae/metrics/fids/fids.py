@@ -4,8 +4,10 @@ import numpy as np
 import torch
 from pythae.models.base.base_utils import ModelOutput
 from scipy import linalg
+from torch.utils.data import DataLoader, TensorDataset
 from torchvision.transforms import Resize
 
+from multivae.data import MultimodalBaseDataset
 from multivae.models.base import BaseMultiVAE
 
 from ..base.evaluator_class import Evaluator
@@ -32,7 +34,6 @@ class adapt_shape_for_fid(torch.nn.Module):
             self.resize = None
 
     def forward(self, x):
-
         if len(x.shape) == 1:  # (n_data,)
             x = x.unsqueeze(1)
         if len(x.shape) == 2:  # (n_data, n)
@@ -62,7 +63,6 @@ class FIDEvaluator(Evaluator):
     Class for computing likelihood metrics.
 
     Args:
-
         model (BaseMultiVAE) : The model to evaluate.
         classifiers (dict) : A dictionary containing the pretrained classifiers to use for the coherence evaluation.
         test_dataset (MultimodalBaseDataset) : The dataset to use for computing the metrics.
@@ -115,7 +115,7 @@ class FIDEvaluator(Evaluator):
             activations[0].append(pred)
 
             # Compute activations for generated data
-            latents = generate_latent_function(inputs=batch, n_samples=len(pred))
+            latents = generate_latent_function(n_samples=len(pred), inputs=batch)
             latents.z = latents.z.to(self.device)
 
             samples = self.model.decode(latents, modalities=mod)
@@ -192,7 +192,7 @@ class FIDEvaluator(Evaluator):
         return diff.dot(diff) + np.trace(sigma1) + np.trace(sigma2) - 2 * tr_covmean
 
     def eval(self):
-        output = ModelOutput()
+        output = dict()
 
         # Generate data from the prior and computes FID for each modality
         generate_function = self.model.generate_from_prior
@@ -202,9 +202,10 @@ class FIDEvaluator(Evaluator):
             output[f"fd_{mod}"] = fd
             self.logger.info(f"The FD for modality {mod} is {fd}")
 
-        # TODO : Comput Frechet distances for conditional generation
+        self.metrics.update(output)
+        self.log_to_wandb()
 
-        return output
+        return ModelOutput(**self.metrics)
 
     def compute_fid_from_conditional_generation(self, subset, gen_mod):
         """
@@ -219,6 +220,8 @@ class FIDEvaluator(Evaluator):
         self.logger.info(
             f"The FD for modality {gen_mod} computed from subset={subset} is {fd}"
         )
+
+        self.metrics[f"Conditional FD from {subset} to {gen_mod}"] = fd
         return fd
 
     def compute_all_cond_fid_for_mod(self, gen_mod):
@@ -263,4 +266,6 @@ class FIDEvaluator(Evaluator):
             fd = self.compute_fid_from_conditional_generation(s, gen_mod)
             fds.append(fd)
 
-        return ModelOutput(fids=np.array(fds))
+        self.log_to_wandb()
+
+        return ModelOutput(**self.metrics)

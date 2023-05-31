@@ -24,14 +24,21 @@ class MVAEConfig(BaseMultiVAEConfig):
             computing the log-probability.
             For instance, with normal or laplace distribution, you can pass the scale in this dictionary.
             ex :  {'mod1' : {scale : 0.75}}
+        use_subsampling (bool) : If True, we use the subsampling paradigm described in the article, not only taking the
+            joint ELBO but also the unimodal ELBOs and k random subset elbos. This is useful when training with
+            a complete dataset but should be set to False when the dataset is already incomplete.
+            Default to True.
         k (int) : The number of subsets to use in the objective. The MVAE objective is the sum
-            of the unimodal ELBOs, the joint ELBO and of k random subset ELBOs. Default to 1.
+            of the unimodal ELBOs, the joint ELBO and of k random subset ELBOs. Default to 0.
         warmup (int) : If warmup > 0, the MVAE model uses annealing during the first warmup epochs.
             In the objective, the KL terms are weighted by a factor beta that is linearly brought
             to 1 during the first warmup epochs. Default to 10.
+        beta (float) : The scaling factor for the divergence term. Default to 1.
 
 
     """
 
+    use_subsampling: bool = True
     k: int = 0
     warmup: int = 10
+    beta: float = 1

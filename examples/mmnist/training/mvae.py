@@ -1,69 +1,54 @@
-import torch
-from pythae.models.base.base_config import BaseAEConfig
-from torch.utils.data import DataLoader, random_split
+from config2 import *
 
-from multivae.data.datasets import MMNISTDataset
-from multivae.data.datasets.utils import save_all_images
-from multivae.data.utils import set_inputs_to_device
 from multivae.models import MVAE, MVAEConfig
-from multivae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
-from multivae.models.nn.mmnist import (
-    Decoder_ResNet_AE_MMNIST,
-    Encoder_ResNet_VAE_MMNIST,
-)
-from multivae.models.nn.svhn import Decoder_VAE_SVHN, Encoder_VAE_SVHN
-from multivae.trainers import BaseTrainer, BaseTrainerConfig
-from multivae.trainers.base.callbacks import (
-    ProgressBarCallback,
-    TrainingCallback,
-    WandbCallback,
-)
 
-train_data = MMNISTDataset(data_path="../../../data/MMNIST", split="train")
+parser = argparse.ArgumentParser()
+parser.add_argument("--param_file", type=str)
+args = parser.parse_args()
+
+with open(args.param_file, "r") as fp:
+    info = json.load(fp)
+args = argparse.Namespace(**info)
+
+train_data = MMNISTDataset(
+    data_path="~/scratch/data",
+    split="train",
+    missing_ratio=args.missing_ratio,
+    keep_incomplete=args.keep_incomplete,
+)
+test_data = MMNISTDataset(data_path="~/scratch/data", split="test")
+
 train_data, eval_data = random_split(
-    train_data, [0.8, 0.2], generator=torch.Generator().manual_seed(42)
+    train_data, [0.9, 0.1], generator=torch.Generator().manual_seed(42)
 )
-print(len(train_data), len(eval_data))
-
-modalities = ["m0", "m1", "m2", "m3", "m4"]
 
 model_config = MVAEConfig(
-    n_modalities=5,
-    input_dims={k: (3, 28, 28) for k in modalities},
-    latent_dim=128,
-    k=1,
-    warmup=100,
+    **base_config,
+    # use_subsampling=(args.missing_ratio == 0) or not (args.keep_incomplete),
+    use_subsampling=True,
+    warmup=0,
+    beta=2.5,
 )
 
-modalities
-
-encoders = {
-    k: Encoder_VAE_MLP(
-        BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3, 28, 28))
-    )
-    for k in modalities
-}
-
-decoders = {
-    k: Decoder_AE_MLP(
-        BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3, 28, 28))
-    )
-    for k in modalities
-}
 
 model = MVAE(model_config, encoders=encoders, decoders=decoders)
 
 trainer_config = BaseTrainerConfig(
-    num_epochs=800,
-    learning_rate=1e-4,
-    steps_predict=1,
-    start_keep_best=model_config.warmup + 1,
-    per_device_train_batch_size=128,
+    **base_training_config,
+    seed=args.seed,
+    output_dir=f"compare_on_mmnist/{config_name}/{model.model_name}/seed_{args.seed}/missing_ratio_{args.missing_ratio}/",
+    start_keep_best_epoch=model_config.warmup + 1,
 )
+trainer_config.num_epochs = 500
+trainer_config.learning_rate = 5e-4
+trainer_config.drop_last = True
+trainer_config.scheduler_cls = None
+trainer_config.scheduler_params = None
 
 # Set up callbacks
 wandb_cb = WandbCallback()
-wandb_cb.setup(trainer_config, model_config, project_name="mmnist")
+wandb_cb.setup(trainer_config, model_config, project_name=wandb_project)
+wandb_cb.run.config.update(args.__dict__)
 
 callbacks = [TrainingCallback(), ProgressBarCallback(), wandb_cb]
 
@@ -76,6 +61,11 @@ trainer = BaseTrainer(
 )
 trainer.train()
 
-# data = set_inputs_to_device(eval_data[:100], device="cuda")
-# nll = model.compute_joint_nll(data)
-# print(nll)
+model = trainer._best_model
+save_model(model, args)
+
+##################################################################################################################################
+# validate the model #############################################################################################################
+##################################################################################################################################
+
+eval_model(model, trainer.training_dir, test_data, wandb_cb.run.path)

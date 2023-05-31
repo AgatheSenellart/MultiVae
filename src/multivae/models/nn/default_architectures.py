@@ -3,7 +3,6 @@ from typing import List
 
 import numpy as np
 import torch
-from pythae.models.base import BaseAEConfig
 from pythae.models.base.base_model import BaseDecoder
 from pythae.models.base.base_utils import ModelOutput
 from pythae.models.nn.base_architectures import BaseEncoder

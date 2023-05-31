@@ -421,7 +421,7 @@ class JNF(BaseJointModel):
 
             # plt.savefig('monitor_hmc.png')
         # 1/0
-        print(acc_nbr[:10] / mcmc_steps)
+        # print(acc_nbr[:10] / mcmc_steps)
         sh = (n_data, self.latent_dim) if K == 1 else (K, n_data, self.latent_dim)
         z = z.detach().resize(*sh)
         return z.detach()

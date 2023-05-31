@@ -11,7 +11,7 @@ from multivae.metrics import CoherenceEvaluator
 from multivae.models import AutoModel
 
 # clfs = load_mmnist_classifiers()
-# test_set = MMNISTDataset(data_path="../../../data/MMNIST", split="test")
+# test_set = MMNISTDataset(data_path="../../../data", split="test")
 
 # models = {
 #     # 'JNF' : ['asenella/mmnistJNF_config1_'],

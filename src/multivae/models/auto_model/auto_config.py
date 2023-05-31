@@ -62,6 +62,11 @@ class AutoConfig(BaseConfig):
 
             model_config = MVTCAEConfig.from_json_file(json_path)
 
+        elif config_name == "MMVAEPlusConfig":
+            from ..mmvaePlus import MMVAEPlusConfig
+
+            model_config = MMVAEPlusConfig.from_json_file(json_path)
+
         else:
             raise NameError(
                 "Cannot reload automatically the model configuration... "

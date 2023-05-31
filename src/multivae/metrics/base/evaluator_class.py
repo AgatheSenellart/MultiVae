@@ -36,20 +36,52 @@ class Evaluator:
         self.test_dataset = test_dataset
         self.test_loader = DataLoader(test_dataset, batch_size=eval_config.batch_size)
         self.set_logger(output)
+        self.set_wandb(eval_config.wandb_path)
+        self.metrics = {}
 
     def set_logger(self, output):
         logger = logging.getLogger()
         logger.setLevel(logging.NOTSET)
 
         # our first handler is a console handler
-        console_handler = logging.StreamHandler()
-        console_handler.setLevel(logging.INFO)
-        logger.addHandler(console_handler)
+        self.console_handler = logging.StreamHandler()
+        self.console_handler.setLevel(logging.INFO)
+        logger.addHandler(self.console_handler)
 
         # the second handler is a file handler
         if output is not None:
-            file_handler = logging.FileHandler(output + "/metrics.log")
-            file_handler.setLevel(logging.INFO)
-            logger.addHandler(file_handler)
+            self.file_handler = logging.FileHandler(output + "/metrics.log")
+            self.file_handler.setLevel(logging.INFO)
+            logger.addHandler(self.file_handler)
 
         self.logger = logger
+
+    def set_wandb(self, wandb_path):
+        if wandb_path is None:
+            self.wandb_run = None
+            return
+        else:
+            entity, project, run_id = tuple(wandb_path.split("/"))
+            try:
+                import wandb
+            except:
+                raise ModuleNotFoundError(
+                    "You provided a wandb_path, but `wandb` package is not installed. Run `pip install wandb`"
+                )
+
+            self.wandb_run = wandb.init(
+                entity=entity, project=project, id=run_id, resume="must"
+            )
+            return
+
+    def log_to_wandb(self):
+        if self.wandb_run is not None:
+            self.wandb_run.log(self.metrics)
+
+    def finish(self):
+        """Removes handlers and finish the wandb run."""
+
+        self.logger.removeHandler(self.console_handler)
+        self.logger.removeHandler(self.file_handler)
+        if self.wandb_run is not None:
+            self.wandb_run.finish()

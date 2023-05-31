@@ -36,7 +36,7 @@ class MnistSvhn(MultimodalBaseDataset):
 
     def __init__(
         self,
-        data_path: Union[str, Path] = "../data",
+        data_path: Union[str, Path],
         split: str = "train",
         download=False,
         data_multiplication=5,
@@ -58,8 +58,8 @@ class MnistSvhn(MultimodalBaseDataset):
         if not self._check_pairing_exists():
             self.create_pairing(mnist, svhn)
 
-        i_mnist = torch.load(f"{self.path_to_idx}/mnist_idx_cp.pt")  ## !!!!WARNING!!!
-        i_svhn = torch.load(f"{self.path_to_idx}/svhn_idx_cp.pt")  ## !!!!WARNING!!!
+        i_mnist = torch.load(f"{self.path_to_idx}/mnist_idx.pt")  ## !!!!WARNING!!!
+        i_svhn = torch.load(f"{self.path_to_idx}/svhn_idx.pt")  ## !!!!WARNING!!!
 
         order = np.arange(len(i_mnist))
         np.random.shuffle(
