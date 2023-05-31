@@ -48,7 +48,7 @@ class EnvironmentConfig(BaseConfig):
 
 @dataclass
 class BaseAEConfig(BaseConfig):
-    """This is the base configuration instance of the models deriving from
+    """This is the base configuration instance of encoders/decoders models deriving from
     :class:`~pythae.config.BaseConfig`.
 
     Parameters:
@@ -58,6 +58,6 @@ class BaseAEConfig(BaseConfig):
 
     input_dim: Union[Tuple[int, ...], None] = None
     latent_dim: int = 10
-    style_dim: int = 10
+    style_dim: int = 0
     uses_default_encoder: bool = True
     uses_default_decoder: bool = True

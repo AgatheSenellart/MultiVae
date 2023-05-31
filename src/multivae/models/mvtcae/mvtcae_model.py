@@ -51,37 +51,49 @@ class MVTCAE(BaseMultiVAE):
         joint_kld = -0.5 * torch.sum(
             1 - joint_logvar.exp() - joint_mu.pow(2) + joint_logvar
         )
-
+        assert not torch.isnan(joint_kld)
         results["joint_divergence"] = joint_kld
 
         # Compute the reconstruction losses for each modality
         loss_rec = 0
-        for m, m_key in enumerate(self.encoders.keys()):
+        for m_key in self.encoders.keys():
             # reconstruct this modality from the shared embeddings representation
             recon = self.decoders[m_key](shared_embeddings).reconstruction
             m_rec = (
                 -self.recon_log_probs[m_key](recon, inputs.data[m_key])
                 * self.rescale_factors[m_key]
             )
+            m_rec = m_rec.reshape(m_rec.size(0), -1).sum(-1)
+
+            # Keep only the available samples
+            if hasattr(inputs, "masks"):
+                m_rec = inputs.masks[m_key].float() * m_rec
 
             results[m_key] = m_rec.sum()
             loss_rec += m_rec.sum()
+        assert not torch.isnan(loss_rec)
 
         latent_modalities = latents["modalities"]
         kld_losses = 0.0
-        for m, key in enumerate(latent_modalities.keys()):
-            o = latent_modalities[key]
+        for m_key in latent_modalities.keys():
+            o = latent_modalities[m_key]
             mu, logvar = o.embedding, o.log_covariance
-            results["kld_" + key] = -0.5 * (
-                torch.sum(
-                    1
-                    - joint_logvar.exp() / logvar.exp()
-                    - (joint_mu - mu).pow(2) / logvar.exp()
-                    + joint_logvar
-                    - logvar
-                )
-            )
-            kld_losses += results["kld_" + key]
+            results["kld_" + m_key] = -0.5 * (
+                1
+                - joint_logvar.exp() / logvar.exp()
+                - (joint_mu - mu).pow(2) / logvar.exp()
+                + joint_logvar
+                - logvar
+            ).reshape(mu.size(0), -1).sum(-1)
+
+            # Keep only the available samples
+            if hasattr(inputs, "masks"):
+                results["kld_" + m_key][(1 - inputs.masks[m_key].int()).bool()] = 0
+
+            results["kld_" + m_key] = results["kld_" + m_key].sum()
+
+            kld_losses += results["kld_" + m_key].sum()
+        assert not torch.isnan(kld_losses)
 
         rec_weight = (self.n_modalities - self.alpha) / self.n_modalities
         cvib_weight = self.alpha / self.n_modalities  # 1/6
@@ -108,6 +120,12 @@ class MVTCAE(BaseMultiVAE):
         for m, m_key in enumerate(inputs.data.keys()):
             input_modality = inputs.data[m_key]
             output = self.encoders[m_key](input_modality)
+            # For unavailable samples, set the log-variance to infty so that they don't contribute to the
+            # product of experts
+            if hasattr(inputs, "masks"):
+                output.log_covariance[
+                    (1 - inputs.masks[m_key].int()).bool()
+                ] = torch.inf
             encoders_outputs[m_key] = output
 
         return encoders_outputs
@@ -121,33 +139,6 @@ class MVTCAE(BaseMultiVAE):
         pd_logvar = torch.log(pd_var)
         return pd_mu, pd_logvar
 
-    def poe_fusion(self, mus, logvars, weights=None):
-        # self.flags.modality_poe or
-        if mus.shape[0] == self.n_modalities:
-            num_samples = mus[0].shape[0]
-            mus = torch.cat(
-                (
-                    mus,
-                    torch.zeros(1, num_samples, self.flags.class_dim).to(
-                        self.flags.device
-                    ),
-                ),
-                dim=0,
-            )
-            logvars = torch.cat(
-                (
-                    logvars,
-                    torch.zeros(1, num_samples, self.flags.class_dim).to(
-                        self.flags.device
-                    ),
-                ),
-                dim=0,
-            )
-        # mus = torch.cat(mus, dim=0);
-        # logvars = torch.cat(logvars, dim=0);
-        mu_poe, logvar_poe = self.poe(mus, logvars)
-        return [mu_poe, logvar_poe]
-
     def ivw_fusion(self, mus: torch.Tensor, logvars: torch.Tensor, weights=None):
         mu_poe, logvar_poe = self.poe(mus, logvars)
         return [mu_poe, logvar_poe]
@@ -155,8 +146,11 @@ class MVTCAE(BaseMultiVAE):
     def _filter_inputs_with_masks(
         self, inputs: IncompleteDataset, subset: Union[list, tuple]
     ):
-        """Returns a filtered dataset containing only the samples that are available
-        in all the modalities contained in subset."""
+        """
+        Returns a filtered dataset containing only the samples that are available
+        in all the modalities contained in subset.
+        The dataset that is returned only contains the modalities in subset.
+        """
 
         filter = torch.tensor(
             True,
@@ -188,7 +182,6 @@ class MVTCAE(BaseMultiVAE):
         device = inputs.data[list(inputs.data.keys())[0]].device
         mus = torch.Tensor().to(device)
         logvars = torch.Tensor().to(device)
-        # TODO : for an incomplete dataset, filter out the modalities that are not available for all samples
         mods = list(inputs.data.keys())
 
         for m, mod in enumerate(mods):
@@ -230,13 +223,11 @@ class MVTCAE(BaseMultiVAE):
 
         # If the dataset is incomplete, keep only the samples availables in all cond_mod
         # modalities
-        if isinstance(inputs, IncompleteDataset):
-            cond_inputs, filter = self._filter_inputs_with_masks(inputs, cond_mod)
-        else:
-            # Only keep the relevant modalities for prediction
-            cond_inputs = MultimodalBaseDataset(
-                data={k: inputs.data[k] for k in cond_mod},
-            )
+
+        # Only keep the relevant modalities for prediction
+        cond_inputs = MultimodalBaseDataset(
+            data={k: inputs.data[k] for k in cond_mod},
+        )
 
         latents_subsets = self.inference(cond_inputs)
         mu, log_var = latents_subsets["joint"]

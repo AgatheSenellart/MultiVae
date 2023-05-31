@@ -26,14 +26,13 @@ class MoPoEConfig(BaseMultiVAEConfig):
             computing the log-probability.
             For instance, with normal or laplace distribution, you can pass the scale in this dictionary.
             ex :  {'mod1' : {scale : 0.75}}
-        subsets (List[list] or Dict[list]) : List or dictionary containing the subsets to consider. If None is provided,
-            all subsets are considered. Examples of valid inputs : [['mod_1', 'mod_2'], ['mod_1'], ['mod_2']]
-            or {'s1' : ['mod_1', 'mod_2], 's2' : ['mod_1'], 's3' : ['mod_2']}
+        subsets (Union[List[list], Dict[list]]) : List containing the subsets to consider. If None is provided,
+            all subsets are considered. Example of valid input : [['mod_1', 'mod_2'], ['mod_1'], ['mod_2']].
             Default to None.
         beta (float) : The weight to the KL divergence term in the ELBO. Default to 1.0
     """
 
-    subsets: Union[Dict[str, list], List[list]] = None
+    subsets: Union[List[list], Dict[str, list]] = None
     beta: float = 1.0
     use_modality_specific_spaces: bool = False
     beta_style: float = 1.0

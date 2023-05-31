@@ -10,7 +10,7 @@ from multivae.data.datasets.mmnist import MMNISTDataset
 from multivae.metrics import FIDEvaluator
 from multivae.models import AutoModel
 
-test_set = MMNISTDataset(data_path="../../../data/MMNIST", split="test")
+test_set = MMNISTDataset(data_path="../../../data", split="test")
 
 models = {
     "JNF": ["asenella/mmnistJNF_config2_"],

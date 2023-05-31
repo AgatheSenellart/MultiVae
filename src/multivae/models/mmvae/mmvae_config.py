@@ -36,6 +36,8 @@ class MMVAEConfig(BaseMultiVAEConfig):
             the original paper.
         learn_prior (bool) : If True, the mean and variance of the prior are optimized during the
             training. Default to True.
+        beta (float) : When using K = 1 (ElBO loss), the beta factor regularizes the divergence term.
+            Default to 1.
     """
 
     K: int = 10
@@ -43,3 +45,4 @@ class MMVAEConfig(BaseMultiVAEConfig):
         "laplace_with_softmax", "normal"
     ] = "laplace_with_softmax"
     learn_prior: bool = True
+    beta: float = 1.0

@@ -20,20 +20,20 @@ class Test_model:
     def dataset(self, request):
         # Create simple small dataset
         data = dict(
-            mod1=torch.Tensor([[1.0, 2.0], [4.0, 5.0]]),
-            mod2=torch.Tensor([[67.1, 2.3, 3.0], [1.3, 2.0, 3.0]]),
-            mod3=torch.Tensor([[37, 2, 4, 1], [8, 9, 7, 0]]),
-            mod4=torch.Tensor([[37, 2, 4, 1], [8, 9, 7, 0]]),
+            mod1=torch.randn((6, 2)),
+            mod2=torch.randn((6, 3)),
+            mod3=torch.randn((6, 4)),
+            mod4=torch.randn((6, 4)),
         )
         labels = np.array([0, 1, 0, 0])
         if request.param == "complete":
             dataset = MultimodalBaseDataset(data, labels)
         else:
             masks = dict(
-                mod1=torch.Tensor([True, False]),
-                mod2=torch.Tensor([True, True]),
-                mod3=torch.Tensor([True, True]),
-                mod4=torch.Tensor([True, True]),
+                mod1=torch.Tensor([True] * 3 + [False] * 3),
+                mod2=torch.Tensor([True] * 6),
+                mod3=torch.Tensor([True] * 6),
+                mod4=torch.Tensor([True] * 6),
             )
             dataset = IncompleteDataset(data=data, masks=masks, labels=labels)
 
@@ -103,26 +103,111 @@ class Test_model:
         embeddings = model.encode(dataset[0], N=2).z
         assert embeddings.shape == (2, 1, 5)
         embeddings = model.encode(dataset, cond_mod=["mod2"]).z
-        assert embeddings.shape == (2, 5)
+        assert embeddings.shape == (len(dataset), 5)
         embeddings = model.encode(dataset, cond_mod="mod3", N=10).z
-        assert embeddings.shape == (10, 2, 5)
+        assert embeddings.shape == (10, len(dataset), 5)
         embeddings = model.encode(dataset, cond_mod=["mod2", "mod4"]).z
-        assert embeddings.shape == (2, 5)
+        assert embeddings.shape == (len(dataset), 5)
 
         Y = model.predict(dataset, cond_mod="mod2")
         assert isinstance(Y, ModelOutput)
-        assert Y.mod1.shape == (2, 2)
-        assert Y.mod2.shape == (2, 3)
+        assert Y.mod1.shape == (len(dataset), 2)
+        assert Y.mod2.shape == (len(dataset), 3)
 
         Y = model.predict(dataset, cond_mod="mod2", N=10)
         assert isinstance(Y, ModelOutput)
-        assert Y.mod1.shape == (10, 2, 2)
-        assert Y.mod2.shape == (10, 2, 3)
+        assert Y.mod1.shape == (10, len(dataset), 2)
+        assert Y.mod2.shape == (10, len(dataset), 3)
 
         Y = model.predict(dataset, cond_mod="mod2", N=10, flatten=True)
         assert isinstance(Y, ModelOutput)
-        assert Y.mod1.shape == (2 * 10, 2)
-        assert Y.mod2.shape == (2 * 10, 3)
+        assert Y.mod1.shape == (len(dataset) * 10, 2)
+        assert Y.mod2.shape == (len(dataset) * 10, 3)
+
+
+class Test_backward_with_missing_inputs:
+    @pytest.fixture(params=["incomplete"])
+    def dataset(self, request):
+        # Create simple small dataset
+        data = dict(
+            mod1=torch.randn((6, 2)),
+            mod2=torch.randn((6, 3)),
+            mod3=torch.randn((6, 4)),
+            mod4=torch.randn((6, 4)),
+        )
+        labels = np.array([0] * 5 + [1])
+        if request.param == "complete":
+            dataset = MultimodalBaseDataset(data, labels)
+        else:
+            masks = dict(
+                mod1=torch.Tensor([False] * 3 + [True] * 3),
+                mod2=torch.Tensor([True] * 6),
+                mod3=torch.Tensor([True] * 6),
+                mod4=torch.Tensor([True] * 6),
+            )
+            dataset = IncompleteDataset(data=data, masks=masks, labels=labels)
+
+        return dataset
+
+    @pytest.fixture
+    def custom_architectures(self):
+        # Create an instance of mvae model
+        config1 = BaseAEConfig(input_dim=(2,), latent_dim=5)
+        config2 = BaseAEConfig(input_dim=(3,), latent_dim=5)
+        config3 = BaseAEConfig(input_dim=(4,), latent_dim=5)
+
+        encoders = dict(
+            mod1=Encoder_VAE_MLP(config1),
+            mod2=Encoder_VAE_MLP(config2),
+            mod3=Encoder_VAE_MLP(config3),
+            mod4=Encoder_VAE_MLP(config3),
+        )
+
+        decoders = dict(
+            mod1=Decoder_AE_MLP(config1),
+            mod2=Decoder_AE_MLP(config2),
+            mod3=Decoder_AE_MLP(config3),
+            mod4=Decoder_AE_MLP(config3),
+        )
+
+        return dict(
+            encoders=encoders,
+            decoders=decoders,
+        )
+
+    @pytest.fixture(params=[1.0, 1.5, 2.0])
+    def model_config(self, request):
+        model_config = MVTCAEConfig(
+            n_modalities=4,
+            latent_dim=5,
+            input_dims=dict(mod1=(2,), mod2=(3,), mod3=(4,), mod4=(4,)),
+            beta=request.param,
+        )
+
+        return model_config
+
+    @pytest.fixture(params=[True, False])
+    def model(self, custom_architectures, model_config, request):
+        custom = request.param
+        if custom:
+            model = MVTCAE(model_config, **custom_architectures)
+        else:
+            model = MVTCAE(model_config)
+        return model
+
+    def test(self, model, dataset, model_config):
+        ### Check that the grad with regard to missing modalities is null
+        output = model(dataset[:3], epoch=2)
+        loss = output.loss
+        loss.backward()
+        for param in model.encoders["mod1"].parameters():
+            assert torch.all(param.grad == 0)
+
+        output = model(dataset[-3:], epoch=2)
+        loss = output.loss
+        loss.backward()
+        for param in model.encoders["mod1"].parameters():
+            assert not torch.all(param.grad == 0)
 
 
 @pytest.mark.slow
@@ -142,7 +227,7 @@ class TestTraining:
         else:
             masks = dict(
                 mod1=torch.Tensor([True, False]),
-                mod2=torch.Tensor([True, True]),
+                mod2=torch.Tensor([True, False]),
                 mod3=torch.Tensor([True, True]),
                 mod4=torch.Tensor([True, True]),
             )
