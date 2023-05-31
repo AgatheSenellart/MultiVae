@@ -15,6 +15,7 @@ from multivae.metrics.likelihoods import (
     LikelihoodsEvaluatorConfig,
 )
 from multivae.models import JMVAE, JMVAEConfig, MoPoE, MoPoEConfig
+from multivae.samplers import GaussianMixtureSamplerConfig, GaussianMixtureSampler
 
 
 @pytest.fixture
@@ -77,6 +78,17 @@ class TestCoherences:
     @pytest.fixture
     def classifiers(self):
         return dict(mnist=MNIST_Classifier(), svhn=SVHN_Classifier())
+    
+    @pytest.fixture(params = [True, False])
+    def sampler(self, jmvae_model, dataset, request):
+        if not request.param:
+            return None
+        else :
+            config = GaussianMixtureSamplerConfig(n_components=3)
+            sampler = GaussianMixtureSampler(jmvae_model, config)
+            sampler.fit(dataset)
+            return sampler
+            
 
     def test_coherence_config(self, config_params):
         config = CoherenceEvaluatorConfig(
@@ -106,8 +118,9 @@ class TestCoherences:
         cross_coherences = evaluator.cross_coherences()
         assert all([0 <= cc_score[0] <= 1 for cc_score in cross_coherences])
 
+
     def test_joint_coherence_compute(
-        self, jmvae_model, config_params, classifiers, output_logger_file, dataset
+        self, jmvae_model, config_params, classifiers, output_logger_file, dataset, sampler
     ):
         config = CoherenceEvaluatorConfig(
             include_recon=config_params["include_recon"],
@@ -120,6 +133,7 @@ class TestCoherences:
             output=output_logger_file,
             test_dataset=dataset,
             eval_config=config,
+            sampler=sampler
         )
 
         joint_coherence = evaluator.joint_coherence()
@@ -234,3 +248,7 @@ class TestLikelihoods:
         metrics = evaluator.eval()
 
         assert all([metric in metrics.keys() for metric in ["joint_likelihood"]])
+
+
+    
+    

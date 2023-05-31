@@ -54,7 +54,7 @@ class BaseSampler:
 
     def sample(
         self,
-        num_samples: int = 1,
+        n_samples: int = 1,
         batch_size: int = 500,
         return_gen: bool = True,
     ):
