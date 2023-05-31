@@ -1,12 +1,12 @@
 import argparse
 
-from multivae.data.datasets.mnist_labels import BinaryMnistLabels
+from multivae.data.datasets.mnist_labels import MnistLabels
 from multivae.metrics import LikelihoodsEvaluator, LikelihoodsEvaluatorConfig
 from multivae.models import AutoModel
 
 model = AutoModel.load_from_hf_hub("asenella/reproduce_jmvae_seed_1", allow_pickle=True)
 
-test_set = BinaryMnistLabels(data_path="../../../data", split="test")
+test_set = MnistLabels(data_path="../../../data", split="test")
 
 ll_config = LikelihoodsEvaluatorConfig(
     K=1000,

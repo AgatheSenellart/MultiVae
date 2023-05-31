@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from multivae.data.datasets.mnist_labels import BinaryMnistLabels
+from multivae.data.datasets.mnist_labels import MnistLabels
 from multivae.metrics.likelihoods.likelihoods import LikelihoodsEvaluator
 from multivae.metrics.likelihoods.likelihoods_config import LikelihoodsEvaluatorConfig
 from multivae.models import MVAE, MVAEConfig
@@ -158,10 +158,10 @@ model = MVAE(model_config, encoders, decoders)
 ######################################################
 ### Dataset
 
-train_set = BinaryMnistLabels(
+train_set = MnistLabels(
     data_path="../data", split="train", random_binarized=True, download=True
 )
-test_set = BinaryMnistLabels(
+test_set = MnistLabels(
     data_path="../data", split="test", random_binarized=True, download=True
 )
 

@@ -4,9 +4,10 @@ import itertools
 import json
 
 params_options = {
+    "seed": [0, 1, 2, 3],
     "keep_incomplete": [False, True],
     "missing_ratio": [0, 0.2, 0.5],
-    "seed": [0, 1, 2, 3],
+    
 }
 
 hypnames, hypvalues = zip(*params_options.items())

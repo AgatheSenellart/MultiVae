@@ -2,7 +2,7 @@ import argparse
 
 import torch
 
-from multivae.data.datasets.mnist_labels import BinaryMnistLabels
+from multivae.data.datasets.mnist_labels import MnistLabels
 from multivae.models import JMVAE, JMVAEConfig
 from multivae.models.nn.default_architectures import (
     BaseDecoder,
@@ -156,8 +156,8 @@ class LabelsDecoder(BaseDecoder):
 ######################################################
 ### Dataset
 
-train_set = BinaryMnistLabels(data_path="../../../data", split="train")
-test_set = BinaryMnistLabels(data_path="../../../data", split="test")
+train_set = MnistLabels(data_path="../../../data", split="train")
+test_set = MnistLabels(data_path="../../../data", split="test")
 
 print(len(test_set), len(train_set))
 ######################################################
@@ -219,7 +219,7 @@ trainer._best_model.push_to_hf_hub(f"asenella/reproduce_jmvae_seed_{args.seed}")
 ############################################################
 ### Validating
 
-from multivae.data.datasets.mnist_labels import BinaryMnistLabels
+from multivae.data.datasets.mnist_labels import MnistLabels
 from multivae.metrics import LikelihoodsEvaluator, LikelihoodsEvaluatorConfig
 from multivae.models import AutoModel
 

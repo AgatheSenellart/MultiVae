@@ -35,7 +35,7 @@ class MMVAEPlusConfig(BaseMultiVAEConfig):
             training. Default to False.
         learn_modality_prior (bool) : If True, the mean and variance of the shared latent space prior are optimized during the
             training. Default to True.
-        beta (float) : When using K = 1 (ElBO loss), the beta factor regularizes the divergence term.
+        beta (float) : When using K = 1 (ELBO loss), the beta factor regularizes the divergence term.
             Default to 1.
         modalities_specific_dim (int) : The dimensionality of the modalitie's private latent spaces.
             Must be provided.

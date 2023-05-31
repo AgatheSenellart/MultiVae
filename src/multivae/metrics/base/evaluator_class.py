@@ -38,6 +38,7 @@ class Evaluator:
         self.set_logger(output)
         self.set_wandb(eval_config.wandb_path)
         self.metrics = {}
+        
 
     def set_logger(self, output):
         logger = logging.getLogger()
@@ -57,6 +58,7 @@ class Evaluator:
         self.logger = logger
 
     def set_wandb(self, wandb_path):
+        
         if wandb_path is None:
             self.wandb_run = None
             return

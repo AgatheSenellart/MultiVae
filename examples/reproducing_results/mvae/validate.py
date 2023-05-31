@@ -5,7 +5,7 @@ from torch import nn
 
 from multivae.data.datasets.celeba import CelebAttr
 from multivae.data.datasets.mmnist import MMNISTDataset
-from multivae.data.datasets.mnist_labels import BinaryMnistLabels
+from multivae.data.datasets.mnist_labels import MnistLabels
 from multivae.metrics import CoherenceEvaluator, CoherenceEvaluatorConfig
 from multivae.models import AutoModel
 
