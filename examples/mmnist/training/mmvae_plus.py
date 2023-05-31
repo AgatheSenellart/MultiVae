@@ -25,8 +25,8 @@ train_data, eval_data = random_split(
 
 model_config = MMVAEPlusConfig(
     **base_config,
-    K=10,
-    prior_and_posterior_dist='laplace_with_softmax',
+    K=1,
+    prior_and_posterior_dist='normal',
     learn_shared_prior=False,
     learn_modality_prior=True,
     beta=2.5,
@@ -67,7 +67,7 @@ trainer_config = BaseTrainerConfig(
     output_dir=f"compare_on_mmnist/{config_name}/{model.model_name}/seed_{args.seed}/missing_ratio_{args.missing_ratio}/K_{model.K}",
 )
 trainer_config.per_device_train_batch_size = 32
-trainer_config.num_epochs = 100 # enough for this model to reach convergence
+trainer_config.num_epochs = 150 # enough for this model to reach convergence
 
 # Set up callbacks
 wandb_cb = WandbCallback()

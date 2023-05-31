@@ -24,8 +24,8 @@ train_data, eval_data = random_split(
 
 model_config = MVAEConfig(
     **base_config,
-    # use_subsampling=(args.missing_ratio == 0) or not (args.keep_incomplete),
-    use_subsampling=True,
+    use_subsampling=(args.missing_ratio == 0) or not (args.keep_incomplete),
+    # use_subsampling=True,
     warmup=0,
     beta=2.5,
 )
