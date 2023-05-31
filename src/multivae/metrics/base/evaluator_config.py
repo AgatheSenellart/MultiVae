@@ -1,7 +1,6 @@
 from pydantic.dataclasses import dataclass
 from pythae.models.base.base_config import BaseConfig
 
-
 @dataclass
 class EvaluatorConfig(BaseConfig):
     """
@@ -27,3 +26,4 @@ class EvaluatorConfig(BaseConfig):
 
     batch_size: int = 512
     wandb_path: str = None
+    

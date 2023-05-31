@@ -13,6 +13,7 @@ from multivae.models.base import BaseMultiVAE
 from ..base.evaluator_class import Evaluator
 from .fids_config import FIDEvaluatorConfig
 from .inception_networks import wrapper_inception
+from multivae.samplers import BaseSampler
 
 try:
     from tqdm import tqdm
@@ -68,6 +69,8 @@ class FIDEvaluator(Evaluator):
         test_dataset (MultimodalBaseDataset) : The dataset to use for computing the metrics.
         output (str) : The folder path to save metrics. The metrics will be saved in a metrics.txt file.
         eval_config (EvaluatorConfig) : The configuration class to specify parameters for the evaluation.
+        sampler (Basesampler) : The sampler used to generate from the latent space. 
+            If None is provided, the latent codes are generated from prior. Default to None. 
         custom_encoder (torch.nn.Module) : If you desire, you can provide our own embedding architecture to use
             instead of the InceptionV3 model to compute Fréchet Distances.
             By default, the pretrained InceptionV3 network is used. Default to None.
@@ -81,10 +84,11 @@ class FIDEvaluator(Evaluator):
         test_dataset,
         output=None,
         eval_config=FIDEvaluatorConfig(),
+        sampler : BaseSampler = None,
         custom_encoder=None,
         transform=None,
     ) -> None:
-        super().__init__(model, test_dataset, output, eval_config)
+        super().__init__(model, test_dataset, output, eval_config, sampler)
 
         if custom_encoder is not None:
             self.model_fd = custom_encoder
@@ -190,19 +194,30 @@ class FIDEvaluator(Evaluator):
         tr_covmean = np.trace(covmean)
 
         return diff.dot(diff) + np.trace(sigma1) + np.trace(sigma2) - 2 * tr_covmean
-
-    def eval(self):
+    
+    def unconditional_fids(self):
+        """
+        Generate data from prior or sampler fitted in the latent space
+        and compute the FID for each modality.
+        """
         output = dict()
-
-        # Generate data from the prior and computes FID for each modality
-        generate_function = self.model.generate_from_prior
+        if self.sampler is None :
+            generate_function = self.model.generate_from_prior
+        else :
+            generate_function = self.sampler.sample
+            
         for mod in self.model.encoders:
             self.logger.info(f"Start computing FID for modality {mod}")
             fd = self.get_frechet_distance(mod, generate_function)
             output[f"fd_{mod}"] = fd
             self.logger.info(f"The FD for modality {mod} is {fd}")
-
         self.metrics.update(output)
+        
+        return ModelOutput(**output)
+
+    def eval(self):
+        
+        self.unconditional_fids()
         self.log_to_wandb()
 
         return ModelOutput(**self.metrics)
@@ -224,34 +239,7 @@ class FIDEvaluator(Evaluator):
         self.metrics[f"Conditional FD from {subset} to {gen_mod}"] = fd
         return fd
 
-    def compute_all_cond_fid_for_mod(self, gen_mod):
-        """
-        For all subsets in modalities/{gen mod}, compute the FID when generating
-        images from the subsets.
-        """
-
-        modalities = [k for k in self.model.encoders if k != gen_mod]
-        accs = []
-        for n in range(1, len(modalities) + 1):
-            subsets_of_size_n = combinations(
-                modalities,
-                n,
-            )
-            accs.append([])
-            for s in subsets_of_size_n:
-                s = list(s)
-                fd = self.compute_fid_from_conditional_generation(s, gen_mod)
-                accs[-1].append(fd)
-        mean_accs = [np.mean(l) for l in accs]
-        std_accs = [np.std(l) for l in accs]
-
-        self.logger.info(f"Mean subsets FDs for mod {gen_mod} :")
-        for i in range(len(mean_accs)):
-            self.logger.info(
-                f"Given {i+1} modalities : {mean_accs[i]} +- {std_accs[i]}"
-            )
-
-        return ModelOutput(mean_accs=mean_accs, std_accs=std_accs)
+    
 
     def mvtcae_reproduce_fids(self, gen_mod):
         """

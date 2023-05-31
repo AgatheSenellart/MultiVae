@@ -116,9 +116,10 @@ class GaussianMixtureSampler(BaseSampler):
 
     def sample(
         self,
-        num_samples: int = 1,
+        n_samples: int = 1,
         batch_size: int = 500,
         save_sampler_config: bool = False,
+        **kwargs
     ) -> torch.Tensor:
         """Main sampling function of the sampler.
 
@@ -138,8 +139,8 @@ class GaussianMixtureSampler(BaseSampler):
                 "before sampling."
             )
 
-        full_batch_nbr = int(num_samples / batch_size)
-        last_batch_samples_nbr = num_samples % batch_size
+        full_batch_nbr = int(n_samples / batch_size)
+        last_batch_samples_nbr = n_samples % batch_size
         
         batches_sizes = [batch_size]*full_batch_nbr 
         if last_batch_samples_nbr != 0:
@@ -178,6 +179,10 @@ class GaussianMixtureSampler(BaseSampler):
             z = torch.cat(z_list, dim=0))
         
         if self.model.multiple_latent_spaces:
+            output['one_latent_space'] = False
             output['modalities_z'] = {m : torch.cat(mod_z[m]) for m in mod_z}
+        else:
+            output['one_latent_space'] = True
+
 
         return output

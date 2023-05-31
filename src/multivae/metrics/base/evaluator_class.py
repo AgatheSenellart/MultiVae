@@ -7,6 +7,7 @@ from multivae.data import MultimodalBaseDataset
 from multivae.models.base import BaseMultiVAE
 
 from .evaluator_config import EvaluatorConfig
+from multivae.samplers.base import BaseSampler
 
 
 class Evaluator:
@@ -18,6 +19,8 @@ class Evaluator:
         test_dataset (MultimodalBaseDataset) : The dataset to use for computing the metrics.
         output (str) : The folder path to save metrics. The metrics will be saved in a metrics.txt file.
         eval_config (EvaluatorConfig) : The configuration class to specify parameters for the evaluation.
+        sampler (BaseSampler) : A custom sampler for sampling from the common latent space. If None is provided, samples 
+            are generated from the prior.
 
 
     """
@@ -28,6 +31,7 @@ class Evaluator:
         test_dataset: MultimodalBaseDataset,
         output: str = None,
         eval_config=EvaluatorConfig(),
+        sampler : BaseSampler = None,
     ) -> None:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = model.to(self.device).eval()
@@ -38,7 +42,11 @@ class Evaluator:
         self.set_logger(output)
         self.set_wandb(eval_config.wandb_path)
         self.metrics = {}
-        
+        self.sampler = sampler
+        if self.sampler is not None:
+            if not sampler.is_fitted:
+               raise AttributeError("The provided sampler is not fitted."
+                                     "Please fit the sampler before using it in the evaluator module.")
 
     def set_logger(self, output):
         logger = logging.getLogger()
