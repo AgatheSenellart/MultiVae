@@ -38,7 +38,6 @@ class Evaluator:
         self.set_logger(output)
         self.set_wandb(eval_config.wandb_path)
         self.metrics = {}
-        
 
     def set_logger(self, output):
         logger = logging.getLogger()
@@ -58,7 +57,6 @@ class Evaluator:
         self.logger = logger
 
     def set_wandb(self, wandb_path):
-        
         if wandb_path is None:
             self.wandb_run = None
             return
@@ -79,10 +77,10 @@ class Evaluator:
     def log_to_wandb(self):
         if self.wandb_run is not None:
             self.wandb_run.log(self.metrics)
-            
+
     def finish(self):
-        """Removes handlers and finish the wandb run. """
-        
+        """Removes handlers and finish the wandb run."""
+
         self.logger.removeHandler(self.console_handler)
         self.logger.removeHandler(self.file_handler)
         if self.wandb_run is not None:

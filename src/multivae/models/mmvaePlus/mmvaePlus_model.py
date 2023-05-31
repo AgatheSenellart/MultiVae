@@ -178,7 +178,7 @@ class MMVAEPlus(BaseMultiVAE):
                         [self.log_var_to_std(self.logvars_priors[recon_mod])] * len(mu),
                         axis=0,
                     )
-    
+
                     w = self.prior_dist(
                         mu_prior_mod,
                         sigma_prior_mod,
@@ -457,8 +457,6 @@ class MMVAEPlus(BaseMultiVAE):
             ll += torch.logsumexp(torch.Tensor(lnpxs), dim=0) - np.log(K)
 
         return -ll
-
-
 
     def generate_from_prior(self, n_samples, **kwargs):
         sample_shape = [n_samples] if n_samples > 1 else []

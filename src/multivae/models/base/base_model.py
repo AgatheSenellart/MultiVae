@@ -269,9 +269,9 @@ class BaseMultiVAE(nn.Module):
         inputs: MultimodalBaseDataset,
         cond_mod: Union[list, str] = "all",
         gen_mod: Union[list, str] = "all",
-        N :int = 1,
-        flatten : bool = False,
-        **kwargs
+        N: int = 1,
+        flatten: bool = False,
+        **kwargs,
     ):
         """Generate in all modalities conditioning on a subset of modalities.
 
@@ -286,13 +286,13 @@ class BaseMultiVAE(nn.Module):
 
         """
         self.eval()
-        
+
         z = self.encode(inputs, cond_mod, N=N, flatten=True, **kwargs)
-        output =  self.decode(z, gen_mod)
-        n_data = len(z.z)//N
-        if not flatten and N>1:
+        output = self.decode(z, gen_mod)
+        n_data = len(z.z) // N
+        if not flatten and N > 1:
             for m in self.encoders:
-                output[m] = output[m].reshape(N,n_data, *output[m].shape[1:])
+                output[m] = output[m].reshape(N, n_data, *output[m].shape[1:])
         return output
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
@@ -340,7 +340,7 @@ class BaseMultiVAE(nn.Module):
                         "pythae.models.base_architectures.BaseEncoder. Refer to documentation."
                     )
                 )
-            
+
             self.encoders[modality] = encoder
 
     def set_decoders(self, decoders: dict) -> None:
