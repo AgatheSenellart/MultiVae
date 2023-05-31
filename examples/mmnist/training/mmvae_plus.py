@@ -36,9 +36,10 @@ model_config = MMVAEPlusConfig(
 model_config.latent_dim = 104
 
 # Redefine encoders with style outputs
+from multivae.models.nn.mmnist import EncoderConvMMNIST_multilatents
 
 encoders = {
-    k: EncoderConvMMNIST_adapted(
+    k: EncoderConvMMNIST_multilatents(
         BaseAEConfig(
             latent_dim=model_config.latent_dim,
             style_dim=model_config.modalities_specific_dim,

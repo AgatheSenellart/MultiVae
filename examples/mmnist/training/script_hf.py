@@ -68,8 +68,12 @@ class EncoderConvMMNIST_adapted(BaseEncoder):
 
 hf_repo = f"asenella/mmnist_{'JMVAE'}{config_name}_seed_{args.seed}_ratio_{missing_ratio}_{incomplete}"
 model = AutoModel.load_from_hf_hub(hf_repo, allow_pickle=True)
+
+
 model = model.cuda()
+
 model.device = "cuda"
+
 
 import wandb
 
