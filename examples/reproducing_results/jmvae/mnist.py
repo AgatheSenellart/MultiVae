@@ -1,6 +1,8 @@
+import argparse
+
 import torch
 
-from multivae.data.datasets.mnist_labels import BinaryMnistLabels
+from multivae.data.datasets.mnist_labels import MnistLabels
 from multivae.models import JMVAE, JMVAEConfig
 from multivae.models.nn.default_architectures import (
     BaseDecoder,
@@ -12,6 +14,10 @@ from multivae.trainers.base.callbacks import ProgressBarCallback, WandbCallback
 
 ######################################################
 ### Encoders & Decoders
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--seed", default=8)
+args = parser.parse_args()
 
 
 def labels_to_binary_tensors(labels):
@@ -119,7 +125,6 @@ class ImageDecoder(BaseDecoder):
             torch.nn.Linear(512, 512),
             torch.nn.ReLU(),
             torch.nn.Linear(512, 28 * 28),
-            torch.nn.Sigmoid(),
         )
 
     def forward(self, z):
@@ -151,8 +156,8 @@ class LabelsDecoder(BaseDecoder):
 ######################################################
 ### Dataset
 
-train_set = BinaryMnistLabels(data_path="../../../data", split="train")
-test_set = BinaryMnistLabels(data_path="../../../data", split="test")
+train_set = MnistLabels(data_path="../../../data", split="train")
+test_set = MnistLabels(data_path="../../../data", split="test")
 
 print(len(test_set), len(train_set))
 ######################################################
@@ -191,6 +196,8 @@ training_config = BaseTrainerConfig(
     num_epochs=500,
     start_keep_best_epoch=model_config.warmup,
     steps_predict=5,
+    seed=args.seed,
+    learning_rate=1e-3,
 )
 wandb_ = WandbCallback()
 wandb_.setup(training_config, model_config, project_name="reproduce_jmvae")
@@ -199,7 +206,6 @@ callbacks = [wandb_, ProgressBarCallback()]
 trainer = BaseTrainer(
     model,
     train_set,
-    eval_dataset=test_set,
     training_config=training_config,
     callbacks=callbacks,
     checkpoint=None,
@@ -207,4 +213,22 @@ trainer = BaseTrainer(
 
 trainer.train()
 
-trainer._best_model.push_to_hf_hub("asenella/reproduce_jmvae")
+trainer._best_model.push_to_hf_hub(f"asenella/reproduce_jmvae_seed_{args.seed}")
+
+
+############################################################
+### Validating
+
+from multivae.data.datasets.mnist_labels import MnistLabels
+from multivae.metrics import LikelihoodsEvaluator, LikelihoodsEvaluatorConfig
+from multivae.models import AutoModel
+
+model = trainer._best_model
+
+ll_config = LikelihoodsEvaluatorConfig(
+    K=1000, unified_implementation=False, wandb_path=wandb_.run.path
+)
+
+ll_module = LikelihoodsEvaluator(model, test_set, eval_config=ll_config)
+
+ll_module.eval()

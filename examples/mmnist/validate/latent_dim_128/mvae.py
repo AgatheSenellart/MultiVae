@@ -13,7 +13,7 @@ from multivae.models.auto_model import AutoConfig, AutoModel
 
 ##############################################################################
 
-test_set = MMNISTDataset(data_path="../../../data/MMNIST", split="test")
+test_set = MMNISTDataset(data_path="../../../data", split="test")
 
 data_path = "dummy_output_dir/MVAE_training_2023-03-17_00-02-15/checkpoint_epoch_10"
 

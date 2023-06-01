@@ -9,7 +9,7 @@
 <!-- Describe your project in brief -->
 
 This library implements some of the most common *Multimodal Variational Autoencoders* methods in a unifying framework for effective benchmarking and development. You can find the list of implemented models below.
-It includes ready to use datasets like MnistSvhn 🔢, CelebA 💁‍♀️ and PolyMNIST, 
+It includes ready to use datasets like MnistSvhn 🔢, CelebA 😎 and PolyMNIST, 
 and the most used metrics : Coherences, Likelihoods and FID. 
 It integrates model monitoring with [Wandb](https://wandb.ai) and a quick way to save/load model from [HuggingFaceHub](https://huggingface.co/)🤗.
 
@@ -24,13 +24,14 @@ It integrates model monitoring with [Wandb](https://wandb.ai) and a quick way to
 |MoPoE| [Generalized Multimodal ELBO](https://openreview.net/forum?id=5Y21V0RDBV)|[link](https://github.com/thomassutter/MoPoE)|
 |MVTCAE | [Multi-View Representation Learning via Total Correlation Objective](https://proceedings.neurips.cc/paper/2021/hash/65a99bb7a3115fdede20da98b08a370f-Abstract.html)|[link](https://github.com/gr8joo/MVTCAE/)|
 |JNF,JNF-DCCA| Improving Multimodal Joint Variational Autoencoders through Normalizing Flows and Correlation Analysis | link|
+|MMVAE + |MMVAE+: ENHANCING THE GENERATIVE QUALITY OF MULTIMODAL VAES WITHOUT COMPROMISES | [link](https://openreview.net/forum?id=sdQGxouELX)|
 
 # Quickstart
 
 <!-- Add a demo for your project -->
 Install the library by running 
 ```shell
-git clone https://github.com/clementchadebec/multimodal_vaes.git
+git clone https://github.com/AgatheSenellart/multimodal_vaes.git
 cd multimodal_vaes
 pip install -e .
 ```
@@ -81,7 +82,7 @@ trainer.train()
 
 
 ```shell
-git clone https://github.com/clementchadebec/multimodal_vaes.git
+git clone https://github.com/AgatheSenellart/multimodal_vaes.git
 cd multimodal_vaes
 pip install .
 ```
@@ -90,7 +91,8 @@ pip install .
 [(Back to top)](#table-of-contents)
 
 Our library allows you to use any of the models with custom configuration, encoders and decoders architectures and datasets easily. 
-See our tutorial Notebook here (#TODO) easily get the gist of it. 
+See our tutorial Notebook at /examples/tutorial_notebooks/getting_started.ipynb to easily get the gist of principal features. 
+
 
 # Contribute
 [(Back to top)](#table-of-contents)
@@ -101,16 +103,11 @@ pip install -e .
 ```
 
 
-# Contribute
-[(Back to top)](#table-of-contents)
-
-You can use this section to highlight how people can contribute to your project.
-
-You can add information on how they can open issues or how they can sponsor the project.
-
 # Reproducibility statement
 
 All implemented models are validated by reproducing a key result of the paper. 
+
+
 
 # License
 [(Back to top)](#table-of-contents)

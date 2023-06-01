@@ -17,6 +17,7 @@ import torch.distributions as dist
 import torch.nn as nn
 from pythae.models.base.base_utils import CPU_Unpickler, ModelOutput
 from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
+from torch.nn import functional as F
 
 from ...data.datasets.base import MultimodalBaseDataset
 from ..auto_model import AutoConfig
@@ -28,6 +29,20 @@ logger = logging.getLogger(__name__)
 console = logging.StreamHandler()
 logger.addHandler(console)
 logger.setLevel(logging.INFO)
+
+
+def cross_entropy(input, target, eps=1e-6):
+    """k-Class Cross Entropy (Log Softmax + Log Loss)
+
+    @param input: torch.Tensor (size K x N x d)
+    @param target: torch.Tensor (size N x d) or (d,)
+    @param eps: error to add (default: 1e-6)
+    @return loss: torch.Tensor (size N)
+    """
+
+    log_input = F.log_softmax(input + eps, dim=-1)
+    loss = target * log_input
+    return loss
 
 
 class BaseMultiVAE(nn.Module):
@@ -73,7 +88,7 @@ class BaseMultiVAE(nn.Module):
                         f"The provided number of input_dims {len(self.input_dims.keys())} doesn't"
                         f"match the number of modalities ({self.n_modalities} in model config "
                     )
-                encoders = BaseDictEncoders(self.input_dims, model_config.latent_dim)
+                encoders = self.default_encoders(model_config)
         else:
             self.model_config.custom_architectures.append("encoders")
 
@@ -88,7 +103,7 @@ class BaseMultiVAE(nn.Module):
                         f"The provided number of input_dims {len(self.input_dims.keys())} doesn't"
                         f"match the number of modalities ({self.n_modalities} in model config "
                     )
-                decoders = BaseDictDecoders(self.input_dims, model_config.latent_dim)
+                decoders = self.default_decoders(model_config)
         else:
             self.model_config.custom_architectures.append("decoders")
 
@@ -169,9 +184,9 @@ class BaseMultiVAE(nn.Module):
                 ).log_prob(target)
 
             elif recon_dict[k] == "categorical":
-                self.recon_log_probs[k] = lambda input, target: dist.Categorical(
-                    probs=input
-                ).log_prob(target)
+                self.recon_log_probs[k] = lambda input, target: cross_entropy(
+                    input, target
+                )
 
         # TODO : add the possibility to provide custom reconstruction loss and in that case use the negative
         # reconstruction loss as the log probability.
@@ -248,11 +263,14 @@ class BaseMultiVAE(nn.Module):
                 outputs[m] = self.decoders[m](z).reconstruction
             return outputs
 
+    @torch.no_grad()
     def predict(
         self,
         inputs: MultimodalBaseDataset,
         cond_mod: Union[list, str] = "all",
         gen_mod: Union[list, str] = "all",
+        N: int = 1,
+        flatten: bool = False,
         **kwargs,
     ):
         """Generate in all modalities conditioning on a subset of modalities.
@@ -262,16 +280,20 @@ class BaseMultiVAE(nn.Module):
                 contained in cond_mod.
             cond_mod (Union[list, str], optional): The modalities to condition on. Defaults to 'all'.
             gen_mod (Union[list, str], optional): The modalities to generate. Defaults to 'all'.
+            N (int) : Number of samples to generate. Default to 1.
+            flatten (int) : If N>1 and flatten is False, the returned samples have dimensions (N,len(inputs),...).
+                Otherwise, the returned samples have dimensions (len(inputs)*N, ...)
 
         """
         self.eval()
-        N = kwargs.pop("N", 1)
-        flatten = kwargs.pop(
-            "flatten", False
-        )  # If flatten and N>1, the encodings have the shape (Nxn_data, latent_dim)
-        # instead of (N, n_data, latent_dim)
-        z = self.encode(inputs, cond_mod, N=N, flatten=flatten, **kwargs)
-        return self.decode(z, gen_mod)
+
+        z = self.encode(inputs, cond_mod, N=N, flatten=True, **kwargs)
+        output = self.decode(z, gen_mod)
+        n_data = len(z.z) // N
+        if not flatten and N > 1:
+            for m in self.encoders:
+                output[m] = output[m].reshape(N, n_data, *output[m].shape[1:])
+        return output
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
         """
@@ -300,6 +322,12 @@ class BaseMultiVAE(nn.Module):
         """
         pass
 
+    def default_encoders(self, model_config) -> nn.ModuleDict:
+        return BaseDictEncoders(self.input_dims, model_config.latent_dim)
+
+    def default_decoders(self, model_config) -> nn.ModuleDict:
+        return BaseDictDecoders(self.input_dims, model_config.latent_dim)
+
     def set_encoders(self, encoders: dict) -> None:
         """Set the encoders of the model"""
         self.encoders = nn.ModuleDict()
@@ -312,11 +340,7 @@ class BaseMultiVAE(nn.Module):
                         "pythae.models.base_architectures.BaseEncoder. Refer to documentation."
                     )
                 )
-            if encoder.latent_dim != self.latent_dim:
-                raise AttributeError(
-                    f"The latent dim of encoder {modality} doesn't have the same latent dimension as the "
-                    f" model itself ({self.latent_dim})"
-                )
+
             self.encoders[modality] = encoder
 
     def set_decoders(self, decoders: dict) -> None:

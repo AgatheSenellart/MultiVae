@@ -60,7 +60,7 @@ def load_mmnist_classifiers(data_path="../../../data/clf", device="cuda"):
 
 ##############################################################################
 
-test_set = MMNISTDataset(data_path="../../../data/MMNIST", split="test")
+test_set = MMNISTDataset(data_path="../../../data", split="test")
 
 data_path = "dummy_output_dir/JNF_training_2023-03-15_20-20-36/final_model"
 

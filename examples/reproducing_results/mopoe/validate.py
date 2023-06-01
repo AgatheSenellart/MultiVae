@@ -48,13 +48,13 @@ class ClfImg(nn.Module):
         return h
 
 
-def load_mmnist_classifiers(data_path="../../../data/clf", device="cuda"):
+def load_mmnist_classifiers(data_path="/home/asenella/scratch/data/clf", device="cuda"):
     clfs = {}
     for i in range(5):
         fp = data_path + "/pretrained_img_to_digit_clf_m" + str(i)
         model_clf = ClfImg()
         model_clf.load_state_dict(torch.load(fp, map_location=torch.device(device)))
-        model_clf = model_clf.to(device)
+        model_clf = model_clf.to(device).eval()
         clfs["m%d" % i] = model_clf
     for m, clf in clfs.items():
         if clf is None:
@@ -64,21 +64,25 @@ def load_mmnist_classifiers(data_path="../../../data/clf", device="cuda"):
 
 ##############################################################################
 
-test_set = MMNISTDataset(data_path="~/scratch/data/MMNIST", split="test")
+test_set = MMNISTDataset(data_path="~/scratch/data", split="test")
 
-data_path = "dummy_output_dir/MoPoE_training_2023-03-30_12-08-11/final_model"
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 clfs = load_mmnist_classifiers(device=device)
+for seed in range(3):
+    data_path = None
+    model = AutoModel.load_from_hf_hub(
+        f"asenella/reproducing_mopoe_seed_{seed}", allow_pickle=True
+    )
 
-data_path = None
-model = AutoModel.load_from_hf_hub("asenella/reproducing_mopoe_2", allow_pickle=True)
+    coherences = CoherenceEvaluator(model, clfs, test_set, data_path).eval()
 
-coherences = CoherenceEvaluator(model, clfs, test_set, data_path).eval()
+# nll_config = LikelihoodsEvaluatorConfig(num_samples=12,
+#                                         batch_size_k=12,
+#                                         unified_implementation=False,
+#                                         wandb_path='multimodal_vaes/reproducing_mopoe/345cw5e3',
+#                                         )
 
-nll_config = LikelihoodsEvaluatorConfig(K=15, batch_size_k=15)
-
-# nlls = LikelihoodsEvaluator(model, test_set, data_path, nll_config).eval()
-nlls = LikelihoodsEvaluator(
-    model, test_set, data_path, nll_config
-).reproduce_mopoe_graph()
+# nlls = LikelihoodsEvaluator(
+#     model, test_set, data_path, nll_config
+# ).eval()
