@@ -17,6 +17,7 @@ from multivae.models.auto_model import AutoConfig, AutoModel
 from multivae.models.base.base_model import BaseEncoder, ModelOutput
 
 ##############################################################################
+train_set = MMNISTDataset(data_path="~/scratch/data", split="train")
 
 test_set = MMNISTDataset(data_path="~/scratch/data", split="test")
 
@@ -75,8 +76,16 @@ model = model.cuda()
 model.device = "cuda"
 
 
-import wandb
+# import wandb
 
-wandb_run = wandb.init(entity="multimodal_vaes", project='validate_jmvae_mmnist', config=args)
+# wandb_run = wandb.init(entity="multimodal_vaes", project='validate_jmvae_mmnist', config=args)
 
-eval_model(model, output_dir=None, test_data=test_set, wandb_path=wandb_run.path)
+# eval_model(model, output_dir=None, test_data=test_set, wandb_path=wandb_run.path)
+
+from multivae.samplers import GaussianMixtureSampler, GaussianMixtureSamplerConfig
+sampler_config = GaussianMixtureSamplerConfig(n_components=10)
+sampler = GaussianMixtureSampler(model)
+sampler.fit(train_set)
+
+module_eval = CoherenceEvaluator(model,load_mmnist_classifiers(),test_set,sampler=sampler)
+print('joint coherence :', module_eval.joint_coherence())

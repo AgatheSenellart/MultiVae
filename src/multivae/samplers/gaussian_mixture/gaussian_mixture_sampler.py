@@ -44,6 +44,8 @@ class GaussianMixtureSampler(BaseSampler):
 
         BaseSampler.__init__(self, model=model, sampler_config=sampler_config)
         self.n_components = sampler_config.n_components
+        self.device = 'cuda' if torch.cuda.is_available else 'cpu'
+        self.model.to(self.device)
 
     def fit(self, train_data : MultimodalBaseDataset, **kwargs):
         """Method to fit the sampler from the training data
@@ -58,7 +60,7 @@ class GaussianMixtureSampler(BaseSampler):
             dataset=train_data,
             batch_size=100,
             shuffle=False,
-        )
+            )
 
         z = []
         if self.model.multiple_latent_spaces:
@@ -67,6 +69,7 @@ class GaussianMixtureSampler(BaseSampler):
         # Compute all embeddings
         with torch.no_grad():
             for _, inputs in enumerate(train_loader):
+                inputs.data = {m : inputs.data[m].to(self.device) for m in inputs.data}
                 output = self.model.encode(inputs)
                 z.append(output.z)
                 

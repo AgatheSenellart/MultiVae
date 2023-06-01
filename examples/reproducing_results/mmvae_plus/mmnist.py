@@ -218,7 +218,7 @@ training_config = BaseTrainerConfig(
     output_dir=f"../reproduce_mmvaep/K__{model_config.K}/seed__{args.seed}",
     steps_predict=5,
     optimizer_cls="Adam",
-    # optimizer_params=dict(amsgrad=True),
+    optimizer_params=dict(amsgrad=True),
     seed=args.seed,
 )
 
