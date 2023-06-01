@@ -47,6 +47,7 @@ class BaseSampler:
         self.model.device = device
 
         self.model.to(device)
+        self.name = 'BaseSampler'
 
     def fit(self, *args, **kwargs):
         """Function to be called to fit the sampler before sampling"""

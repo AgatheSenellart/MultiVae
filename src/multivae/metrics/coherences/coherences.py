@@ -157,8 +157,9 @@ class CoherenceEvaluator(Evaluator):
             samples_to_generate -= batch_samples
         joint_coherence = all_labels.mean()
 
-        self.logger.info(f"Joint coherence : {joint_coherence}")
-        self.metrics.update({"joint_coherence": joint_coherence})
+        sampler_name = 'prior' if self.sampler is None else self.sampler.name
+        self.logger.info(f"Joint coherence with sampler {sampler_name}: {joint_coherence}")
+        self.metrics.update({f"joint_coherence _{sampler_name}": joint_coherence})
         return joint_coherence
 
     def eval(self):

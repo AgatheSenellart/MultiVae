@@ -26,7 +26,7 @@ train_data, eval_data = random_split(
 model_config = MMVAEPlusConfig(
     **base_config,
     K=1,
-    prior_and_posterior_dist='normal',
+    prior_and_posterior_dist='laplace_with_softmax',
     learn_shared_prior=False,
     learn_modality_prior=True,
     beta=2.5,

@@ -44,8 +44,9 @@ class GaussianMixtureSampler(BaseSampler):
 
         BaseSampler.__init__(self, model=model, sampler_config=sampler_config)
         self.n_components = sampler_config.n_components
-        self.device = 'cuda' if torch.cuda.is_available else 'cpu'
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.model.to(self.device)
+        self.name = 'GaussianMixtureSampler'
 
     def fit(self, train_data : MultimodalBaseDataset, **kwargs):
         """Method to fit the sampler from the training data
@@ -121,7 +122,6 @@ class GaussianMixtureSampler(BaseSampler):
         self,
         n_samples: int = 1,
         batch_size: int = 500,
-        save_sampler_config: bool = False,
         **kwargs
     ) -> torch.Tensor:
         """Main sampling function of the sampler.

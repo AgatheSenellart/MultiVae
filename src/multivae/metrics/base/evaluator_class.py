@@ -92,6 +92,7 @@ class Evaluator:
         """Removes handlers and finish the wandb run. """
         
         self.logger.removeHandler(self.console_handler)
-        self.logger.removeHandler(self.file_handler)
+        if hasattr(self, 'file_handler'):
+            self.logger.removeHandler(self.file_handler)
         if self.wandb_run is not None:
             self.wandb_run.finish()

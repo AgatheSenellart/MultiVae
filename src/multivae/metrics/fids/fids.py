@@ -206,11 +206,13 @@ class FIDEvaluator(Evaluator):
         else :
             generate_function = self.sampler.sample
             
+        sampler_name = 'prior' if self.sampler is None else self.sampler.name
         for mod in self.model.encoders:
+            
             self.logger.info(f"Start computing FID for modality {mod}")
             fd = self.get_frechet_distance(mod, generate_function)
-            output[f"fd_{mod}"] = fd
-            self.logger.info(f"The FD for modality {mod} is {fd}")
+            output[f"fd_{mod}_sampler_{sampler_name}"] = fd
+            self.logger.info(f"The FD for modality {mod} with sampler {sampler_name} is {fd}")
         self.metrics.update(output)
         
         return ModelOutput(**output)

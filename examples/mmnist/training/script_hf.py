@@ -82,10 +82,26 @@ model.device = "cuda"
 
 # eval_model(model, output_dir=None, test_data=test_set, wandb_path=wandb_run.path)
 
-from multivae.samplers import GaussianMixtureSampler, GaussianMixtureSamplerConfig
-sampler_config = GaussianMixtureSamplerConfig(n_components=10)
-sampler = GaussianMixtureSampler(model)
-sampler.fit(train_set)
+# from multivae.samplers import GaussianMixtureSampler, GaussianMixtureSamplerConfig
+# sampler_config = GaussianMixtureSamplerConfig(n_components=10)
+# sampler = GaussianMixtureSampler(model)
+# sampler.fit(train_set)
+
+# module_eval = CoherenceEvaluator(model,load_mmnist_classifiers(),test_set,sampler=sampler)
+# module_eval.joint_coherence()
+# module_eval.finish()
+
+from multivae.samplers import IAFSampler, IAFSamplerConfig
+from pythae.trainers import BaseTrainerConfig
+
+training_config = BaseTrainerConfig(per_device_train_batch_size=512, num_epochs=20)
+sampler_config = IAFSamplerConfig()
+sampler = IAFSampler(model)
+sampler.fit(train_set,training_config=training_config)
 
 module_eval = CoherenceEvaluator(model,load_mmnist_classifiers(),test_set,sampler=sampler)
-print('joint coherence :', module_eval.joint_coherence())
+module_eval.joint_coherence()
+module_eval.finish()
+
+# module_eval = FIDEvaluator(model, test_set, sampler=sampler)
+# module_eval.unconditional_fids()

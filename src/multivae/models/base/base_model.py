@@ -229,10 +229,27 @@ class BaseMultiVAE(nn.Module):
 
         """
 
-        if type(cond_mod) != list and cond_mod != "all":
-            raise AttributeError('cond_mod must be either a list or "all"')
-
-        raise NotImplementedError("Must be defined in subclass.")
+        # If the input cond_mod is a string : convert it to a list
+        if type(cond_mod) == str:
+            if cond_mod == "all":
+                cond_mod = list(self.encoders.keys())
+            elif cond_mod in self.encoders.keys():
+                cond_mod = [cond_mod]
+            else:
+                raise AttributeError(
+                    'If cond_mod is a string, it must either be "all" or a modality name'
+                    f" The provided string {cond_mod} is neither."
+                )
+                
+        # Deal with incomplete datasets
+        if hasattr(inputs, 'masks'):
+            # Check that all modalities in cond_mod are available for all samples points.
+            mods_avail = torch.stack([inputs.masks[m] for m in cond_mod]).sum(0)
+            if not torch.all(mods_avail):
+                raise AttributeError("You tried to encode a incomplete dataset conditioning on",
+                                     f"modalities {cond_mod}, but some samples are not available"
+                                     "in all those modalities.")
+        return ModelOutput(cond_mod = cond_mod)
 
     def decode(self, embedding: ModelOutput, modalities: Union[list, str] = "all"):
         """Decode a latent variable z in all modalities specified in modalities.

@@ -77,6 +77,7 @@ class MMVAEPlus(BaseMultiVAE):
         self.modalities_specific_dim = model_config.modalities_specific_dim
         self.reconstruction_option = model_config.reconstruction_option
         self.multiple_latent_spaces = True 
+        self.style_dims = {m : self.modalities_specific_dim for m in self.encoders}
 
         # Add the private and shared latents priors.
 
@@ -202,9 +203,12 @@ class MMVAEPlus(BaseMultiVAE):
 
         # Compute DREG loss
         if compute_loss:
-            # TODO : change
+            
+            # loss_output = self.dreg_looser(
+            #     qu_xs_detach, qw_xs_detach, embeddings, reconstructions, inputs
+            # )
             loss_output = self.dreg_looser(
-                qu_xs_detach, qw_xs_detach, embeddings, reconstructions, inputs
+                qu_xs, qw_xs, embeddings, reconstructions, inputs
             )
 
         else:
@@ -234,6 +238,12 @@ class MMVAEPlus(BaseMultiVAE):
         return mean, std
 
     def dreg_looser(self, qu_xs, qw_xs, embeddings, reconstructions, inputs):
+        '''
+        The objective function used in the original implementation. 
+        it is said to use the Dreg estimator but I am not sure it is done correctly since it doesn't
+        detach the parameters of the posteriors. 
+        '''
+        
         if hasattr(inputs, "masks"):
             # Compute the number of available modalities per sample
             n_mods_sample = torch.sum(
@@ -318,36 +328,21 @@ class MMVAEPlus(BaseMultiVAE):
         N: int = 1,
         **kwargs,
     ):
-        # Deal with incomplete datasets
-        if hasattr(inputs, 'masks'):
-            # Check that all modalities in cond_mod are available for all samples points.
-            mods_avail = torch.stack([inputs.masks[m] for m in cond_mod]).sum(0)
-            if not torch.all(mods_avail):
-                raise AttributeError("You tried to encode a incomplete dataset conditioning on",
-                                     f"modalities {cond_mod}, but some samples are not available"
-                                     "in all those modalities.")
 
-        # If the input cond_mod is a string : convert it to a list
-        if type(cond_mod) == str:
-            if cond_mod == "all":
-                cond_mod = list(self.encoders.keys())
-            elif cond_mod in self.encoders.keys():
-                cond_mod = [cond_mod]
-            else:
-                raise AttributeError(
-                    'If cond_mod is a string, it must either be "all" or a modality name'
-                    f" The provided string {cond_mod} is neither."
-                )
-
+        cond_mod = super().encode(inputs,cond_mod,N).cond_mod
         if all([s in self.encoders.keys() for s in cond_mod]):
-            # Choose one of the conditioning modalities at random
-            mod = np.random.choice(cond_mod)
+            
+            # For the conditioning modalities we compute all the embeddings
+            encoders_outputs = { m : self.encoders[m](inputs.data[m]) for m in cond_mod}
+            
+            # Choose one of the conditioning modalities at random to sample the shared information.
+            random_mod = np.random.choice(cond_mod)
 
-            output = self.encoders[mod](inputs.data[mod])
-            # shared information
-            mu, log_var = output.embedding, output.log_covariance
-
+            # Sample the shared latent code
+            mu = encoders_outputs[random_mod].embedding
+            log_var =  encoders_outputs[random_mod].log_covariance
             sigma = self.log_var_to_std(log_var)
+            
             qz_x = self.post_dist(mu, sigma)
             sample_shape = torch.Size([]) if N == 1 else torch.Size([N])
             z = qz_x.rsample(sample_shape)
@@ -356,38 +351,37 @@ class MMVAEPlus(BaseMultiVAE):
             if flatten:
                 z = z.reshape(-1, self.latent_dim)
 
-            # modality specific encoding
+            # Modality specific encodings : given by encoders for conditioning modalities
+            # Sampling from the priors for the rest of the modalities.
+            
             style_z = dict()
 
-            # For the encoding modality, we have the modality specific variable
-
-            sigma_mod = self.log_var_to_std(output.style_log_covariance)
-            style_z[mod] = self.post_dist(output.style_embedding, sigma_mod).rsample(
-                sample_shape
-            )
-            if flatten:
-                style_z[mod] = style_z[mod].reshape(-1, self.modalities_specific_dim)
-
-            # For the other modalities, we sample from a prior function depending on the option
-
             for m in self.encoders:
-                if m != mod:
+                if m not in cond_mod:
+                    # Sample from priors parameters.
                     if self.reconstruction_option == "single_prior":
                         mu_m = self.mean_priors[m]
                         logvar_m = self.logvars_priors[m]
 
                     if self.reconstruction_option == "joint_prior":
                         mu_m = self.mean_priors["shared"][:, self.latent_dim :]
-                        logvar_m = self.logvars_priors["shared"][:, self.latent_dim :]
-
-                    sigma_m = self.log_var_to_std(logvar_m)
-                    style_z[m] = self.post_dist(
-                        torch.cat([mu_m] * len(mu), dim=0),
-                        torch.cat([sigma_m] * len(mu), dim=0),
-                    ).rsample(sample_shape)
-                    if flatten:
-                        style_z[m] = style_z[m].reshape(
-                            -1, self.modalities_specific_dim
+                        logvar_m = self.logvars_priors["shared"][:, self.latent_dim :]   
+                        
+                    mu_m =   torch.cat([mu_m] * len(mu), dim=0)
+                    logvar_m = torch.cat([logvar_m] * len(mu), dim=0)
+                                   
+                else :
+                    # Sample from posteriors parameters
+                    mu_m = encoders_outputs[m].style_embedding
+                    logvar_m = encoders_outputs[m].style_log_covariance
+                
+                sigma_m = self.log_var_to_std(logvar_m)
+                style_z[m] = self.post_dist(
+                    mu_m, sigma_m
+                ).rsample(sample_shape)
+                if flatten:
+                    style_z[m] = style_z[m].reshape(
+                        -1, self.modalities_specific_dim
                         )
 
             return ModelOutput(z=z, one_latent_space=False, modalities_z=style_z)
