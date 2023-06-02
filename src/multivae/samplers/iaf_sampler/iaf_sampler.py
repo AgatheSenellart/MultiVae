@@ -213,7 +213,7 @@ class IAFSampler(BaseSampler):
         # Output with the same format as the output of encode or generate_from_prior functions
         output = ModelOutput(
             z = torch.cat(z_gen.pop('shared')),
-            one_latent_space = self.model.multiple_latent_spaces,
+            one_latent_space = not self.model.multiple_latent_spaces,
         )
         if self.model.multiple_latent_spaces:
             output['modalities_z'] = { m : torch.cat(z_gen[m]) for m in z_gen}

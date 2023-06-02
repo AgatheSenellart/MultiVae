@@ -179,7 +179,7 @@ class JNF(BaseJointModel):
         eps_lf = kwargs.pop("eps_lf", 0.01)
         
         # Deal with incomplete datasets
-        cond_mod = super().encode(inputs,cond_mod,N).cond_mod
+        cond_mod = super().encode(inputs,cond_mod,N, **kwargs).cond_mod
 
 
 

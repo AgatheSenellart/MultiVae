@@ -79,7 +79,7 @@ class JMVAE(BaseJointModel):
         """
         self.eval()
         
-        cond_mod = super().encode(inputs,cond_mod,N).cond_mod
+        cond_mod = super().encode(inputs,cond_mod,N, **kwargs).cond_mod
 
 
         mcmc_steps = kwargs.pop("mcmc_steps", 100)

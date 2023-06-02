@@ -209,7 +209,7 @@ class MVTCAE(BaseMultiVAE):
         **kwargs,
     ) -> ModelOutput:
         
-        cond_mod = super().encode(inputs,cond_mod,N).cond_mod
+        cond_mod = super().encode(inputs,cond_mod,N, **kwargs).cond_mod
 
 
         # Only keep the relevant modalities for prediction

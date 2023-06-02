@@ -8,7 +8,7 @@ from multivae.models.base import BaseMultiVAE
 
 from .evaluator_config import EvaluatorConfig
 from multivae.samplers.base import BaseSampler
-
+from pathlib import Path
 
 class Evaluator:
     """
@@ -39,6 +39,11 @@ class Evaluator:
         self.batch_size = eval_config.batch_size
         self.test_dataset = test_dataset
         self.test_loader = DataLoader(test_dataset, batch_size=eval_config.batch_size)
+        if output is not None:
+            Path(output).mkdir(parents=True,exist_ok=True)
+        
+        self.output = output
+            
         self.set_logger(output)
         self.set_wandb(eval_config.wandb_path)
         self.metrics = {}

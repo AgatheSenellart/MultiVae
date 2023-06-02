@@ -159,7 +159,6 @@ class LabelsDecoder(BaseDecoder):
 train_set = MnistLabels(data_path="../../../data", split="train")
 test_set = MnistLabels(data_path="../../../data", split="test")
 
-print(len(test_set), len(train_set))
 ######################################################
 ### Model
 

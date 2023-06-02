@@ -368,7 +368,7 @@ class MoPoE(BaseMultiVAE):
         **kwargs,
     ) -> ModelOutput:
         
-        cond_mod = super().encode(inputs,cond_mod,N).cond_mod
+        cond_mod = super().encode(inputs,cond_mod,N, **kwargs).cond_mod
 
 
         # Compute the str associated to the subset

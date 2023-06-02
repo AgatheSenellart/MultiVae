@@ -18,7 +18,6 @@ class LikelihoodsEvaluator(Evaluator):
     Args:
 
         model (BaseMultiVAE) : The model to evaluate.
-        classifiers (dict) : A dictionary containing the pretrained classifiers to use for the coherence evaluation.
         test_dataset (MultimodalBaseDataset) : The dataset to use for computing the metrics.
         output (str) : The folder path to save metrics. The metrics will be saved in a metrics.txt file.
         eval_config (EvaluatorConfig) : The configuration class to specify parameters for the evaluation.

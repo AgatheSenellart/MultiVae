@@ -240,11 +240,14 @@ class BaseMultiVAE(nn.Module):
                     'If cond_mod is a string, it must either be "all" or a modality name'
                     f" The provided string {cond_mod} is neither."
                 )
-                
+        
+        ignore_incomplete = kwargs.pop('ignore_incomplete', False)  
         # Deal with incomplete datasets
-        if hasattr(inputs, 'masks'):
+        if hasattr(inputs, 'masks') and not ignore_incomplete:
             # Check that all modalities in cond_mod are available for all samples points.
-            mods_avail = torch.stack([inputs.masks[m] for m in cond_mod]).sum(0)
+            mods_avail = torch.tensor(True)
+            for m in cond_mod:
+                mods_avail = torch.logical_and(mods_avail,inputs.masks[m])
             if not torch.all(mods_avail):
                 raise AttributeError("You tried to encode a incomplete dataset conditioning on",
                                      f"modalities {cond_mod}, but some samples are not available"
@@ -305,8 +308,8 @@ class BaseMultiVAE(nn.Module):
 
         """
         self.eval()
-        
-        z = self.encode(inputs, cond_mod, N=N, flatten=True, **kwargs)
+        ignore_incomplete = kwargs.pop('ignore_incomplete', False)
+        z = self.encode(inputs, cond_mod, N=N, flatten=True,ignore_incomplete=ignore_incomplete, **kwargs)
         output =  self.decode(z, gen_mod)
         n_data = len(z.z)//N
         if not flatten and N>1:

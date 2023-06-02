@@ -254,7 +254,7 @@ class MMVAE(BaseMultiVAE):
         **kwargs,
     ):
         
-        cond_mod = super().encode(inputs,cond_mod,N).cond_mod
+        cond_mod = super().encode(inputs,cond_mod,N, **kwargs).cond_mod
 
 
         if all([s in self.encoders.keys() for s in cond_mod]):

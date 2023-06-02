@@ -240,7 +240,7 @@ class JNFDcca(BaseJointModel):
         **kwargs,
     ) -> ModelOutput:
         
-        cond_mod = super().encode(inputs,cond_mod,N).cond_mod
+        cond_mod = super().encode(inputs,cond_mod,N, **kwargs).cond_mod
 
         mcmc_steps = kwargs.pop("mcmc_steps", 100)
         n_lf = kwargs.pop("n_lf", 10)
