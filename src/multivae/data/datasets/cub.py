@@ -1,22 +1,21 @@
-import os
-from pathlib import Path
-from typing import Union, Tuple
 import logging
-import numpy as np
+import os
+import pickle
+from collections import defaultdict
+from pathlib import Path
+from typing import Tuple, Union
 
+import numpy as np
+import pandas as pd
 import torch
-from torchvision.datasets import MNIST, SVHN
+from nltk.tokenize import RegexpTokenizer
+from PIL import Image
+from pythae.data.datasets import DatasetOutput
 from torchvision import transforms
+from torchvision.datasets import MNIST, SVHN
 
 from .base import MultimodalBaseDataset
 from .utils import ResampleDataset
-from collections import defaultdict
-from pythae.data.datasets import DatasetOutput
-
-import pickle
-import pandas as pd
-from PIL import Image
-from nltk.tokenize import RegexpTokenizer
 
 logger = logging.getLogger(__name__)
 console = logging.StreamHandler()
@@ -30,28 +29,22 @@ class CUB(MultimodalBaseDataset):
 
     Args:
         path (str) : The path where the data is saved.
-        split (str) : Either 'train' or 'test'.
-        download (bool) : Whether to download the data or not. Default to True.
-        data_multiplication (int) : 
-
-        **kwargs:
-
-            transform_mnist (Transform) : a transformation to apply to MNIST. If none specified, a simple ToTensor() is applied.
-            transform_svhn (Transform) : a transformation to apply to SVHN. If none specified, a simple ToTensor() is applied.
-
+        split (str) : Either 'train' or 'test'. Default: 'train'
+        captions_per_image (int): The number of captions text per image. Default: 10
+        max_words_in_caption (int): The number of words in the captions. Default: 18
+        im_size (Tuple[int]): The desired size of the images. Default: (64, 64)
+        img_transform (torvision.transforms): The transformations to be applied to the images. If 
+            None, nothing is done. Default: None.
     """
 
     def __init__(
         self,
-        data_path: Union[str, Path] = "../data/",
+        data_path: Union[str, Path],
         split: str = "train",
         captions_per_image: int = 10,
-        max_words_in_caption=18,
+        max_words_in_caption: int = 18,
         im_size: Tuple[int] = (64, 64),
         img_transform=None,
-        download=False,
-        data_multiplication=5,
-        **kwargs,
     ):  
         if split not in ["train", "test"]:
             raise AttributeError("Possible values for split are 'train' or 'test'")
