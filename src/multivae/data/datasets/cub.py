@@ -33,7 +33,7 @@ class CUB(MultimodalBaseDataset):
         captions_per_image (int): The number of captions text per image. Default: 10
         max_words_in_caption (int): The number of words in the captions. Default: 18
         im_size (Tuple[int]): The desired size of the images. Default: (64, 64)
-        img_transform (torvision.transforms): The transformations to be applied to the images. If 
+        img_transform (Transforms): The transformations to be applied to the images. If 
             None, nothing is done. Default: None.
     """
 
