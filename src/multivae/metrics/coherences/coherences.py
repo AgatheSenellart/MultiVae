@@ -159,7 +159,7 @@ class CoherenceEvaluator(Evaluator):
 
         sampler_name = 'prior' if self.sampler is None else self.sampler.name
         self.logger.info(f"Joint coherence with sampler {sampler_name}: {joint_coherence}")
-        self.metrics.update({f"joint_coherence _{sampler_name}": joint_coherence})
+        self.metrics.update({f"joint_coherence_{sampler_name}": joint_coherence})
         return joint_coherence
 
     def eval(self):

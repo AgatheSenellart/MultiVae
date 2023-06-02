@@ -243,7 +243,7 @@ class MVAE(BaseMultiVAE):
     ):
         """Computes the joint_negative_nll for a batch of inputs."""
 
-        # Then iter on each datapoint to compute the iwae estimate of ln(p(x))
+        #iter on each datapoint to compute the iwae estimate of ln(p(x))
         ll = 0
         n_data = len(inputs.data[list(inputs.data.keys())[0]])
         for i in range(n_data):

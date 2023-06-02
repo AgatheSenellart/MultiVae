@@ -269,10 +269,7 @@ class JMVAE(BaseJointModel):
 
         # First compute all the parameters of the joint posterior q(z|x,y)
 
-        logger.info(
-            "Started computing the negative log_likelihood on inputs. This function"
-            " can take quite a long time to run."
-        )
+
 
         joint_output = self.joint_encoder(inputs.data)
         mu, log_var = joint_output.embedding, joint_output.log_covariance
@@ -286,6 +283,8 @@ class JMVAE(BaseJointModel):
 
         # Then iter on each datapoint to compute the iwae estimate of ln(p(x))
         ll = 0
+        
+        
         for i in range(n_data):
             start_idx = 0
             stop_idx = min(start_idx + batch_size_K, K)
@@ -295,7 +294,7 @@ class JMVAE(BaseJointModel):
 
                 # Compute p(x_m|z) for z in latents and for each modality m
                 lpx_zs = 0  # ln(p(x,y|z))
-                for mod in ["images"]:
+                for mod in ["images"]: # only keep the images for this likelihood
                     decoder = self.decoders[mod]
                     recon = decoder(latents)[
                         "reconstruction"
@@ -320,7 +319,7 @@ class JMVAE(BaseJointModel):
 
                 # next batch
                 start_idx += batch_size_K
-                stop_idx = min(stop_idx + batch_size_K, K)
+                stop_idx = min(start_idx + batch_size_K, K)
 
             ll += torch.logsumexp(torch.Tensor(lnpxs), dim=0) - np.log(K)
 

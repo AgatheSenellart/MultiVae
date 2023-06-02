@@ -233,18 +233,11 @@ class MVTCAE(BaseMultiVAE):
         K: int = 1000,
         batch_size_K: int = 100,
     ):
-        # Only keep the complete samples
-        all_modalities = list(self.encoders.keys())
-        if hasattr(inputs, "masks"):
-            filtered_inputs, filter = self._filter_inputs_with_masks(
-                inputs, all_modalities
-            )
 
-        else:
-            filtered_inputs = inputs
+        self.eval()
 
         # Compute the parameters of the joint posterior
-        mu, log_var = self.inference(filtered_inputs)["joint"]
+        mu, log_var = self.inference(inputs)["joint"]
 
         sigma = torch.exp(0.5 * log_var)
         qz_xy = dist.Normal(mu, sigma)
@@ -272,7 +265,7 @@ class MVTCAE(BaseMultiVAE):
                     x_m = inputs.data[mod][i]  # (nb_channels, w, h)
 
                     lpx_zs += (
-                        self.recon_log_probs[mod](recon, x_m)
+                        self.recon_log_probs[mod](recon, torch.stack([x_m]*len(recon)))
                         .reshape(recon.size(0), -1)
                         .sum(-1)
                     )

@@ -58,13 +58,13 @@ output_dir = f'./validate_mmnist/{args.model_name}/incomplete_{incomplete}/missi
 # Recompute the cross-coherences and joint coherence from prior
 config = CoherenceEvaluatorConfig(batch_size=512, wandb_path=wandb_run.path)
 
-CoherenceEvaluator(
-    model=model,
-    test_dataset=test_set,
-    classifiers=load_mmnist_classifiers(device=model.device),
-    output=output_dir,
-    eval_config=config,
-).eval()
+# CoherenceEvaluator(
+#     model=model,
+#     test_dataset=test_set,
+#     classifiers=load_mmnist_classifiers(device=model.device),
+#     output=output_dir,
+#     eval_config=config,
+# ).eval()
 
 # Compute joint coherence from other samplers
 
@@ -74,28 +74,15 @@ sampler_config = GaussianMixtureSamplerConfig(n_components=10)
 sampler = GaussianMixtureSampler(model)
 sampler.fit(train_set)
 
-module_eval = CoherenceEvaluator(model,load_mmnist_classifiers(),test_set,eval_config=config,sampler=sampler)
-module_eval.joint_coherence()
-module_eval.finish()
+# module_eval = CoherenceEvaluator(model,load_mmnist_classifiers(),test_set,eval_config=config,sampler=sampler)
+# module_eval.joint_coherence()
+# module_eval.finish()
 
-# Sample some images to visualize
-output = sampler.sample(n_samples = 8, batch_size=8)
-samples_images = model.decode(output)
-tight_array = torch.cat([samples_images[m] for m in modalities])
-tight_array = make_grid(tight_array)
+from multivae.metrics import Visualization, VisualizationConfig
 
-ndarr = (
-                tight_array.mul(255)
-                .add_(0.5)
-                .clamp_(0, 255)
-                .permute(1, 2, 0)
-                .to("cpu", torch.uint8)
-                .numpy()
-            )
-recon_image = Image.fromarray(ndarr)
-wandb_run.log({f'samples_{sampler.name}' : wandb.Image(recon_image)})
-module_eval.finish()
-
+vis_module = Visualization(model, test_set,eval_config=VisualizationConfig(wandb_path = wandb_run.path),output = output_dir, sampler=sampler)
+vis_module.eval(n_samples=8)
+vis_module.finish()
 
 # From IAF sampler
 from multivae.samplers import IAFSampler, IAFSamplerConfig
@@ -108,6 +95,7 @@ sampler.fit(train_set,training_config=training_config)
 
 module_eval = CoherenceEvaluator(model,load_mmnist_classifiers(),test_set, eval_config=config,sampler=sampler)
 module_eval.joint_coherence()
+module_eval.log_to_wandb()
 module_eval.finish()
 
 

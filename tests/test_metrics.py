@@ -156,11 +156,10 @@ class TestCoherences:
         )
 
         metrics = evaluator.eval()
-
         assert all(
             [
                 metric in metrics.keys()
-                for metric in ["mean_coherence_1", "joint_coherence"]
+                for metric in ["mean_coherence_1", "joint_coherence_prior"]
             ]
         )
 
@@ -250,5 +249,26 @@ class TestLikelihoods:
         assert all([metric in metrics.keys() for metric in ["joint_likelihood"]])
 
 
+from multivae.metrics import Visualization,VisualizationConfig
+import tempfile
+from multivae.models.base import ModelOutput
+
+class Test_Visualization():
+    
+    def test(self,jmvae_model,dataset):
+        
+        tmpdir = tempfile.mkdtemp()
+        
+        module = Visualization(
+            model = jmvae_model,
+            output =tmpdir,
+            test_dataset = dataset
+            
+        )
+        
+        output = module.eval(8)
+        assert isinstance(output, ModelOutput)
+        assert hasattr(output, 'unconditional_generation')
+        assert os.path.exists(os.path.join(tmpdir, 'unconditional.png'))
     
     

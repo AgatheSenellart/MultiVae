@@ -481,7 +481,9 @@ class MoPoE(BaseMultiVAE):
         self.eval()
 
         # Compute the parameters of the joint posterior
-        mu, log_var = self.inference(inputs)["joint"]
+        infer = self.inference(inputs)
+        mu, log_var = infer["joint"]
+        mus_subset, log_vars_subsets = infer["subsets"]
 
         sigma = torch.exp(0.5 * log_var)
         qz_xy = dist.Normal(mu, sigma)
@@ -518,9 +520,11 @@ class MoPoE(BaseMultiVAE):
                 prior = dist.Normal(0, 1)
                 lpz = prior.log_prob(latents).sum(dim=-1)
 
-                # Compute posteriors -ln(q(z|x,y))
-                qz_xy = dist.Normal(mu[i], sigma[i])
-                lqz_xy = qz_xy.log_prob(latents).sum(dim=-1)
+                # Compute posteriors -ln(q(z|x,y) = -ln (1/S \sum q(z|x_s))
+                qz_xs = [dist.Normal(mus_subset[j][i], log_vars_subsets[j][i]) for j in range(len(mus_subset))]
+                lqz_xs = torch.stack([q.log_prob(latents).sum(-1) for q in qz_xs])
+                lqz_xy = torch.logsumexp(lqz_xs, dim=0) - np.log(len(lqz_xs)) # log_mean_exp
+                
 
                 ln_px = torch.logsumexp(lpx_zs + lpz - lqz_xy, dim=0)
                 lnpxs.append(ln_px)

@@ -17,7 +17,7 @@ class Visualization(Evaluator):
     """_summary_
     """
     
-    def __init__(self, model: BaseMultiVAE, test_dataset: MultimodalBaseDataset, output: str = None, eval_config=VisualizationConfig, sampler: BaseSampler = None) -> None:
+    def __init__(self, model: BaseMultiVAE, test_dataset: MultimodalBaseDataset, output: str = None, eval_config=VisualizationConfig(), sampler: BaseSampler = None) -> None:
         super().__init__(model, test_dataset, output, eval_config, sampler)
         
         
@@ -32,11 +32,9 @@ class Visualization(Evaluator):
             samples = self.sampler.sample(n_samples)
         
         images = self.model.decode(samples)
-        recon, shape = adapt_shape(recon)
-        recon_image = [
-            recon[m] for m in recon 
-        ]
-        recon_image = torch.cat(recon_image.values())
+        recon, shape = adapt_shape(images)
+
+        recon_image = torch.cat(list(recon.values()))
 
         # Transform to PIL format
         recon_image = make_grid(recon_image, nrow=n_samples)
@@ -52,7 +50,7 @@ class Visualization(Evaluator):
         recon_image = Image.fromarray(ndarr)
         
         if self.output is not None:
-            recon_image.save(os.path.join(self.output, 'unconditional_generation.png'))
+            recon_image.save(os.path.join(self.output, 'unconditional.png'))
 
         if self.wandb_run is not None:
             self.wandb_run.log({'unconditional_generation' : wandb.Image(recon_image)})

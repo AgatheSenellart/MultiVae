@@ -65,7 +65,8 @@ class IAFSampler(BaseSampler):
 
             iaf_model = IAF(model_config=iaf_config)
             self.flows_models[key] = NFModel(self.priors[key], iaf_model).to(self.device)
-            
+        
+        self.name = 'IAFsampler'
 
     def fit(
         self, train_data, eval_data=None, training_config: BaseTrainerConfig = None

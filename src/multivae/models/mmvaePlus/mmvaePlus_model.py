@@ -398,10 +398,7 @@ class MMVAEPlus(BaseMultiVAE):
 
         """
         raise (NotImplementedError)
-        logger.info(
-            "Started computing the negative log_likelihood on inputs. This function"
-            " can take quite a long time to run."
-        )
+
 
         # First compute all the parameters of the joint posterior q(z|x,y)
         post_params = []
