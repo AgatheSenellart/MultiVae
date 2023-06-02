@@ -174,7 +174,7 @@ class JNF(BaseJointModel):
         N: int = 1,
         **kwargs,
     ) -> ModelOutput:
-        mcmc_steps = kwargs.pop("mcmc_steps", 100)
+        mcmc_steps = kwargs.pop("mcmc_steps", 200)
         n_lf = kwargs.pop("n_lf", 10)
         eps_lf = kwargs.pop("eps_lf", 0.01)
         
@@ -423,8 +423,7 @@ class JNF(BaseJointModel):
             ax.plot(pos[:, 0], pos[:, 1])
             ax.quiver(pos[:, 0], pos[:, 1], grad[:, 0], grad[:, 1])
 
-            # plt.savefig('monitor_hmc.png')
-        # 1/0
+
         # print(acc_nbr[:10] / mcmc_steps)
         sh = (n_data, self.latent_dim) if K == 1 else (K, n_data, self.latent_dim)
         z = z.detach().resize(*sh)

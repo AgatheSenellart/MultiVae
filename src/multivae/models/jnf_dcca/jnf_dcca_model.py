@@ -242,7 +242,7 @@ class JNFDcca(BaseJointModel):
         
         cond_mod = super().encode(inputs,cond_mod,N, **kwargs).cond_mod
 
-        mcmc_steps = kwargs.pop("mcmc_steps", 100)
+        mcmc_steps = kwargs.pop("mcmc_steps", 200)
         n_lf = kwargs.pop("n_lf", 10)
         eps_lf = kwargs.pop("eps_lf", 0.01)
 
