@@ -766,7 +766,7 @@ class BaseMultiVAE(nn.Module):
         sample_shape = (
             [n_samples, self.latent_dim] if n_samples > 1 else [self.latent_dim]
         )
-        z = dist.Normal(0, 1).rsample(sample_shape)
+        z = dist.Normal(0, 1).rsample(sample_shape).to(self.device)
         return ModelOutput(z=z, one_latent_space=True)
 
     def cond_nll_from_subset(

@@ -22,8 +22,12 @@ class VisualizationConfig(EvaluatorConfig):
             
             If None are provided, the metrics are not logged on wandb. 
             Default to None.
+        n_samples(int) : The number of samples to generate per modality and per data_point for conditional 
+            generation. Default to 5.
+        n_data_cond (int) : The number of datapoints to use for conditional generation.
 
     """
     
-    name = 'VisualizationConfig'
+    n_samples : int = 5
+    n_data_cond : int = 5
     

@@ -80,16 +80,11 @@ class JMVAE(BaseJointModel):
         self.eval()
         
         cond_mod = super().encode(inputs,cond_mod,N, **kwargs).cond_mod
-
-
-        mcmc_steps = kwargs.pop("mcmc_steps", 100)
-        n_lf = kwargs.pop("n_lf", 10)
-        eps_lf = kwargs.pop("eps_lf", 0.01)
+        sample_shape = [] if N == 1 else [N]
 
         if len(cond_mod) == self.n_modalities:
             
             output = self.joint_encoder(inputs.data)
-            sample_shape = [] if N == 1 else [N]
             z = dist.Normal(
                 output.embedding, torch.exp(0.5 * output.log_covariance)
             ).rsample(sample_shape)
@@ -98,8 +93,8 @@ class JMVAE(BaseJointModel):
                 z = z.reshape(l * N, d)
             return ModelOutput(z=z, one_latent_space=True)
 
-        if len(cond_mod) != 1:
-            z = self.sample_from_poe_subset_exact(cond_mod, inputs.data)
+        elif len(cond_mod) != 1:
+            z = self.sample_from_poe_subset_exact(cond_mod, inputs.data, sample_shape=sample_shape)
 
             if N > 1 and kwargs.pop("flatten", False):
                 N, l, d = z.shape
@@ -240,7 +235,7 @@ class JMVAE(BaseJointModel):
 
         return joint_mu, lnV
 
-    def sample_from_poe_subset_exact(self, subset: list, data: dict):
+    def sample_from_poe_subset_exact(self, subset: list, data: dict, sample_shape=[]):
         """
         Sample from the product of experts for infering from a subset of modalities.
         """
@@ -254,7 +249,7 @@ class JMVAE(BaseJointModel):
             logvars.append(vae_output.log_covariance)
 
         joint_mu, joint_logvar = self.poe(mus, logvars)
-        z = dist.Normal(joint_mu, torch.exp(0.5 * joint_logvar)).rsample()
+        z = dist.Normal(joint_mu, torch.exp(0.5 * joint_logvar)).rsample(sample_shape)
         return z
 
     def compute_joint_nll_paper(

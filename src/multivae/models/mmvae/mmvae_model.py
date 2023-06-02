@@ -374,5 +374,5 @@ class MMVAE(BaseMultiVAE):
 
     def generate_from_prior(self, n_samples, **kwargs):
         sample_shape = [n_samples] if n_samples > 1 else []
-        z = self.prior_dist(*self.pz_params).rsample(sample_shape)
+        z = self.prior_dist(*self.pz_params).rsample(sample_shape).to(self.device)
         return ModelOutput(z=z.squeeze(), one_latent_space=True)

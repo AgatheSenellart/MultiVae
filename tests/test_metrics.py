@@ -16,7 +16,7 @@ from multivae.metrics.likelihoods import (
 )
 from multivae.models import JMVAE, JMVAEConfig, MoPoE, MoPoEConfig
 from multivae.samplers import GaussianMixtureSamplerConfig, GaussianMixtureSampler
-
+from PIL import Image
 
 @pytest.fixture
 def jmvae_model():
@@ -266,9 +266,10 @@ class Test_Visualization():
             
         )
         
-        output = module.eval(8)
+        output = module.eval()
         assert isinstance(output, ModelOutput)
         assert hasattr(output, 'unconditional_generation')
         assert os.path.exists(os.path.join(tmpdir, 'unconditional.png'))
     
-    
+        output = module.conditional_samples_subset(['mnist'])
+        assert isinstance(output,Image.Image)
