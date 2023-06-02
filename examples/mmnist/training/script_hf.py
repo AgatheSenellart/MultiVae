@@ -56,8 +56,10 @@ import wandb
 
 wandb_run = wandb.init(entity="multimodal_vaes",
                        project='validate_mmnist',
-                       config=args.__dict__.update(model.model_config.to_dict()),
+                       config=model.model_config.to_dict(),
                        id=f'{args.model_name}_{incomplete}_{missing_ratio}_{args.seed}')
+
+wandb.config.update(args)
 
 output_dir = f'./validate_mmnist/{args.model_name}/incomplete_{incomplete}/missing_ratio_{missing_ratio}/'
 
