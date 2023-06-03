@@ -38,6 +38,8 @@ setup(
         "typing_extensions",
         "dataclasses>=0.6",
         "torchvision",
+        "pandas",
+        "nltk"
     ],
     python_requires=">=3.8",
 )
