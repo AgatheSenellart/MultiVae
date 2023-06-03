@@ -33,7 +33,7 @@ Install the library by running
 ```shell
 git clone https://github.com/AgatheSenellart/multimodal_vaes.git
 cd multimodal_vaes
-pip install -e .
+pip install .
 ```
 Load a dataset easily :
 ```python

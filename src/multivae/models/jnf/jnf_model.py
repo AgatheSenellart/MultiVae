@@ -423,7 +423,6 @@ class JNF(BaseJointModel):
             ax.plot(pos[:, 0], pos[:, 1])
             ax.quiver(pos[:, 0], pos[:, 1], grad[:, 0], grad[:, 1])
 
-
         # print(acc_nbr[:10] / mcmc_steps)
         sh = (n_data, self.latent_dim) if K == 1 else (K, n_data, self.latent_dim)
         z = z.detach().resize(*sh)

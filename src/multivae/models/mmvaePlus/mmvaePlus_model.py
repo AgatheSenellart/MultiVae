@@ -399,7 +399,6 @@ class MMVAEPlus(BaseMultiVAE):
         """
         raise (NotImplementedError)
 
-
         # First compute all the parameters of the joint posterior q(z|x,y)
         post_params = []
         for cond_mod in self.encoders:

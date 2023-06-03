@@ -4,6 +4,7 @@ Multimodal dataset wrapper for the MNIST labels dataset.
 from typing import Literal
 import torch
 
+import torch
 from torch.distributions import Bernoulli
 from torchvision.datasets import MNIST
 
