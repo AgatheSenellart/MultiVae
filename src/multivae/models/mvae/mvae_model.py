@@ -258,7 +258,8 @@ class MVAE(BaseMultiVAE):
                 ),
                 list(self.encoders.keys()),
             )
-            assert mu.shape == (1, self.latent_dim)
+
+            
             sigma = torch.exp(0.5 * log_var)
             qz_xy = dist.Normal(mu, sigma)
 

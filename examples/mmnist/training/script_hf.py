@@ -92,10 +92,10 @@ if args.seed == 0:
     
 # FID
 if args.model_name == 'MVAE':
-    config = FIDEvaluatorConfig(batch_size=128, wandb_path=wandb_run.path)
+    fid_config = FIDEvaluatorConfig(batch_size=128, wandb_path=wandb_run.path)
 
     FIDEvaluator(
-            model, test_set, output=output_dir, eval_config=config
+            model, test_set, output=output_dir, eval_config=fid_config
         ).mvtcae_reproduce_fids(gen_mod="m0")
 
 

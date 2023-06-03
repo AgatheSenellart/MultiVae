@@ -231,7 +231,7 @@ callbacks = [ProgressBarCallback(), wandb_cb]
 trainer = BaseTrainer(
     model=model,
     train_dataset=train_data,
-    eval_dataset=test_data,
+    eval_dataset=None,
     training_config=training_config,
     callbacks=callbacks,
 )
