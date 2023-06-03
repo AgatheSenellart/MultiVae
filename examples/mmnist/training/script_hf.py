@@ -46,24 +46,27 @@ incomplete = "i" if args.keep_incomplete else "c"
 hf_repo = f"asenella/mmnist_{args.model_name}{config_name}_seed_{args.seed}_ratio_{missing_ratio}_{incomplete}"
 model = AutoModel.load_from_hf_hub(hf_repo, allow_pickle=True)
 
-
-model = model.cuda()
-
-model.device = "cuda"
+if torch.cuda.is_available():   
+    model = model.cuda()
+    model.device = "cuda"
+else :
+    model.cpu()
+    model.device ='cpu'
 
 
 import wandb
-
+id = f'{args.model_name}_{incomplete}_{missing_ratio}_{args.seed}'
 wandb_run = wandb.init(entity="multimodal_vaes",
                        project='validate_mmnist',
                        config=model.model_config.to_dict(),
-                       id=f'{args.model_name}_{incomplete}_{missing_ratio}_{args.seed}')
+                       id= id if args.model_name !='MVAE' else id + '_new'
+                       )
 
 wandb.config.update(args)
 
 output_dir = f'./validate_mmnist/{args.model_name}/incomplete_{incomplete}/missing_ratio_{missing_ratio}/'
 
-# Recompute the cross-coherences and joint coherence from prior
+# Recompute the cross-coherences and joint coherence from prior and FID if necessary
 config = CoherenceEvaluatorConfig(batch_size=512, wandb_path=wandb_run.path)
 vis_config = VisualizationConfig(wandb_path = wandb_run.path,n_samples=8, n_data_cond=10)
 
@@ -86,6 +89,14 @@ if args.seed == 0:
         vis_module.conditional_samples_subset(subset)
 
     vis_module.finish()
+    
+# FID
+if args.model_name == 'MVAE':
+    config = FIDEvaluatorConfig(batch_size=128, wandb_path=wandb_run.path)
+
+    FIDEvaluator(
+            model, test_set, output=output_dir, eval_config=config
+        ).mvtcae_reproduce_fids(gen_mod="m0")
 
 
 # Compute joint coherence from other samplers

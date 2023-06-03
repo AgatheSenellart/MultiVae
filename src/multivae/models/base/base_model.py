@@ -285,7 +285,7 @@ class BaseMultiVAE(nn.Module):
                 outputs[m] = self.decoders[m](z).reconstruction
             return outputs
 
-    @torch.no_grad()
+    
     def predict(
         self,
         inputs: MultimodalBaseDataset,
