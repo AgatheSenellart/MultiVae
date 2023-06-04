@@ -208,9 +208,7 @@ class MVTCAE(BaseMultiVAE):
         N: int = 1,
         **kwargs,
     ) -> ModelOutput:
-        
-        cond_mod = super().encode(inputs,cond_mod,N, **kwargs).cond_mod
-
+        cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
 
         # Only keep the relevant modalities for prediction
         cond_inputs = MultimodalBaseDataset(
@@ -233,7 +231,6 @@ class MVTCAE(BaseMultiVAE):
         K: int = 1000,
         batch_size_K: int = 100,
     ):
-
         self.eval()
 
         # Compute the parameters of the joint posterior
@@ -265,7 +262,9 @@ class MVTCAE(BaseMultiVAE):
                     x_m = inputs.data[mod][i]  # (nb_channels, w, h)
 
                     lpx_zs += (
-                        self.recon_log_probs[mod](recon, torch.stack([x_m]*len(recon)))
+                        self.recon_log_probs[mod](
+                            recon, torch.stack([x_m] * len(recon))
+                        )
                         .reshape(recon.size(0), -1)
                         .sum(-1)
                     )

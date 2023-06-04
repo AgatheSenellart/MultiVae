@@ -12,6 +12,7 @@ except:
 
 from multivae.data.utils import set_inputs_to_device
 
+
 class LikelihoodsEvaluator(Evaluator):
     """
     Class for computing likelihood metrics.
@@ -75,7 +76,3 @@ class LikelihoodsEvaluator(Evaluator):
             return joint_nll
         else:
             return None
-
-
-
-    

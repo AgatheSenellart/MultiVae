@@ -115,10 +115,11 @@ class EncoderConvMMNIST_adapted(BaseEncoder):
             embedding=self.class_mu(h).squeeze(),
             log_covariance=self.class_logvar(h).squeeze(),
         )
-        
+
+
 class EncoderConvMMNIST_multilatents(BaseEncoder):
     """
-    Adapt so that it works with multiple latent spaces models. 
+    Adapt so that it works with multiple latent spaces models.
     """
 
     def __init__(self, model_config: BaseAEConfig):
@@ -157,7 +158,7 @@ class EncoderConvMMNIST_multilatents(BaseEncoder):
                 nn.Conv2d(
                     64, 128, kernel_size=3, stride=2, padding=1, bias=True
                 ),  # -> (128, 4, 4)
-                nn.ReLU()
+                nn.ReLU(),
             )
 
             self.style_mu = nn.Conv2d(128, self.style_dim, 4, 2, 0)

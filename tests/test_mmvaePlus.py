@@ -110,12 +110,12 @@ class Test_model:
         assert embeddings.shape == (10, 2, 5)
         embeddings = model.encode(dataset, cond_mod=["mod2", "mod4"]).z
         assert embeddings.shape == (2, 5)
-        embeddings = model.encode(dataset,ignore_incomplete=True).z
+        embeddings = model.encode(dataset, ignore_incomplete=True).z
         assert embeddings.shape == (2, 5)
-        
-        if hasattr(dataset, 'masks'):
+
+        if hasattr(dataset, "masks"):
             with pytest.raises(AttributeError):
-                embeddings = model.encode(dataset,ignore_incomplete=False).z
+                embeddings = model.encode(dataset, ignore_incomplete=False).z
             with pytest.raises(AttributeError):
                 embeddings = model.encode(dataset).z
 
@@ -123,8 +123,8 @@ class Test_model:
         assert isinstance(Y, ModelOutput)
         assert Y.mod1.shape == (2, 2)
         assert Y.mod2.shape == (2, 3)
-        
-        Y = model.predict(dataset, cond_mod="mod2", ignore_incomplete = True)
+
+        Y = model.predict(dataset, cond_mod="mod2", ignore_incomplete=True)
         assert isinstance(Y, ModelOutput)
         assert Y.mod1.shape == (2, 2)
         assert Y.mod2.shape == (2, 3)

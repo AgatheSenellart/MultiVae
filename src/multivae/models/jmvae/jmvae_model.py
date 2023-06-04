@@ -78,12 +78,11 @@ class JMVAE(BaseJointModel):
             ModelOutput: Containing z the latent variables.
         """
         self.eval()
-        
-        cond_mod = super().encode(inputs,cond_mod,N, **kwargs).cond_mod
+
+        cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
         sample_shape = [] if N == 1 else [N]
 
         if len(cond_mod) == self.n_modalities:
-            
             output = self.joint_encoder(inputs.data)
             z = dist.Normal(
                 output.embedding, torch.exp(0.5 * output.log_covariance)
@@ -94,7 +93,9 @@ class JMVAE(BaseJointModel):
             return ModelOutput(z=z, one_latent_space=True)
 
         elif len(cond_mod) != 1:
-            z = self.sample_from_poe_subset_exact(cond_mod, inputs.data, sample_shape=sample_shape)
+            z = self.sample_from_poe_subset_exact(
+                cond_mod, inputs.data, sample_shape=sample_shape
+            )
 
             if N > 1 and kwargs.pop("flatten", False):
                 N, l, d = z.shape
@@ -264,8 +265,6 @@ class JMVAE(BaseJointModel):
 
         # First compute all the parameters of the joint posterior q(z|x,y)
 
-
-
         joint_output = self.joint_encoder(inputs.data)
         mu, log_var = joint_output.embedding, joint_output.log_covariance
 
@@ -278,8 +277,7 @@ class JMVAE(BaseJointModel):
 
         # Then iter on each datapoint to compute the iwae estimate of ln(p(x))
         ll = 0
-        
-        
+
         for i in range(n_data):
             start_idx = 0
             stop_idx = min(start_idx + batch_size_K, K)
@@ -289,7 +287,7 @@ class JMVAE(BaseJointModel):
 
                 # Compute p(x_m|z) for z in latents and for each modality m
                 lpx_zs = 0  # ln(p(x,y|z))
-                for mod in ["images"]: # only keep the images for this likelihood
+                for mod in ["images"]:  # only keep the images for this likelihood
                     decoder = self.decoders[mod]
                     recon = decoder(latents)[
                         "reconstruction"

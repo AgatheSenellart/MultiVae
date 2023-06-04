@@ -76,8 +76,8 @@ class BaseMultiVAE(nn.Module):
         self.n_modalities = model_config.n_modalities
         self.input_dims = model_config.input_dims
         self.reset_optimizer_epochs = []
-        self.multiple_latent_spaces = False # Default value, this field must be changes 
-                                            # in models using multiple latent spaces
+        self.multiple_latent_spaces = False  # Default value, this field must be changes
+        # in models using multiple latent spaces
 
         if encoders is None:
             if self.input_dims is None:
@@ -240,19 +240,21 @@ class BaseMultiVAE(nn.Module):
                     'If cond_mod is a string, it must either be "all" or a modality name'
                     f" The provided string {cond_mod} is neither."
                 )
-        
-        ignore_incomplete = kwargs.pop('ignore_incomplete', False)  
+
+        ignore_incomplete = kwargs.pop("ignore_incomplete", False)
         # Deal with incomplete datasets
-        if hasattr(inputs, 'masks') and not ignore_incomplete:
+        if hasattr(inputs, "masks") and not ignore_incomplete:
             # Check that all modalities in cond_mod are available for all samples points.
             mods_avail = torch.tensor(True)
             for m in cond_mod:
-                mods_avail = torch.logical_and(mods_avail,inputs.masks[m])
+                mods_avail = torch.logical_and(mods_avail, inputs.masks[m])
             if not torch.all(mods_avail):
-                raise AttributeError("You tried to encode a incomplete dataset conditioning on",
-                                     f"modalities {cond_mod}, but some samples are not available"
-                                     "in all those modalities.")
-        return ModelOutput(cond_mod = cond_mod)
+                raise AttributeError(
+                    "You tried to encode a incomplete dataset conditioning on",
+                    f"modalities {cond_mod}, but some samples are not available"
+                    "in all those modalities.",
+                )
+        return ModelOutput(cond_mod=cond_mod)
 
     def decode(self, embedding: ModelOutput, modalities: Union[list, str] = "all"):
         """Decode a latent variable z in all modalities specified in modalities.
@@ -285,15 +287,14 @@ class BaseMultiVAE(nn.Module):
                 outputs[m] = self.decoders[m](z).reconstruction
             return outputs
 
-    
     def predict(
         self,
         inputs: MultimodalBaseDataset,
         cond_mod: Union[list, str] = "all",
         gen_mod: Union[list, str] = "all",
-        N :int = 1,
-        flatten : bool = False,
-        **kwargs
+        N: int = 1,
+        flatten: bool = False,
+        **kwargs,
     ):
         """Generate in all modalities conditioning on a subset of modalities.
 
@@ -308,13 +309,20 @@ class BaseMultiVAE(nn.Module):
 
         """
         self.eval()
-        ignore_incomplete = kwargs.pop('ignore_incomplete', False)
-        z = self.encode(inputs, cond_mod, N=N, flatten=True,ignore_incomplete=ignore_incomplete, **kwargs)
-        output =  self.decode(z, gen_mod)
-        n_data = len(z.z)//N
-        if not flatten and N>1:
+        ignore_incomplete = kwargs.pop("ignore_incomplete", False)
+        z = self.encode(
+            inputs,
+            cond_mod,
+            N=N,
+            flatten=True,
+            ignore_incomplete=ignore_incomplete,
+            **kwargs,
+        )
+        output = self.decode(z, gen_mod)
+        n_data = len(z.z) // N
+        if not flatten and N > 1:
             for m in self.encoders:
-                output[m] = output[m].reshape(N,n_data, *output[m].shape[1:])
+                output[m] = output[m].reshape(N, n_data, *output[m].shape[1:])
         return output
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
@@ -362,7 +370,7 @@ class BaseMultiVAE(nn.Module):
                         "pythae.models.base_architectures.BaseEncoder. Refer to documentation."
                     )
                 )
-            
+
             self.encoders[modality] = encoder
 
     def set_decoders(self, decoders: dict) -> None:

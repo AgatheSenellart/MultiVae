@@ -1,5 +1,3 @@
-
-
 """Base sampler class, adapted from Pythae Base Sampler."""
 
 
@@ -32,7 +30,6 @@ class BaseSampler:
     """
 
     def __init__(self, model: BaseMultiVAE, sampler_config: BaseSamplerConfig = None):
-
         if sampler_config is None:
             sampler_config = BaseSamplerConfig()
 
@@ -47,7 +44,7 @@ class BaseSampler:
         self.model.device = device
 
         self.model.to(device)
-        self.name = 'BaseSampler'
+        self.name = "BaseSampler"
 
     def fit(self, *args, **kwargs):
         """Function to be called to fit the sampler before sampling"""
@@ -77,6 +74,3 @@ class BaseSampler:
         file in ``dir_path``"""
 
         self.sampler_config.save_json(dir_path, "sampler_config")
-
-    
-

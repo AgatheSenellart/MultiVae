@@ -1,14 +1,15 @@
 import logging
+from pathlib import Path
 
 import torch
 from torch.utils.data import DataLoader
 
 from multivae.data import MultimodalBaseDataset
 from multivae.models.base import BaseMultiVAE
+from multivae.samplers.base import BaseSampler
 
 from .evaluator_config import EvaluatorConfig
-from multivae.samplers.base import BaseSampler
-from pathlib import Path
+
 
 class Evaluator:
     """
@@ -19,7 +20,7 @@ class Evaluator:
         test_dataset (MultimodalBaseDataset) : The dataset to use for computing the metrics.
         output (str) : The folder path to save metrics. The metrics will be saved in a metrics.txt file.
         eval_config (EvaluatorConfig) : The configuration class to specify parameters for the evaluation.
-        sampler (BaseSampler) : A custom sampler for sampling from the common latent space. If None is provided, samples 
+        sampler (BaseSampler) : A custom sampler for sampling from the common latent space. If None is provided, samples
             are generated from the prior.
 
 
@@ -31,7 +32,7 @@ class Evaluator:
         test_dataset: MultimodalBaseDataset,
         output: str = None,
         eval_config=EvaluatorConfig(),
-        sampler : BaseSampler = None,
+        sampler: BaseSampler = None,
     ) -> None:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = model.to(self.device).eval()
@@ -40,18 +41,20 @@ class Evaluator:
         self.test_dataset = test_dataset
         self.test_loader = DataLoader(test_dataset, batch_size=eval_config.batch_size)
         if output is not None:
-            Path(output).mkdir(parents=True,exist_ok=True)
-        
+            Path(output).mkdir(parents=True, exist_ok=True)
+
         self.output = output
-            
+
         self.set_logger(output)
         self.set_wandb(eval_config.wandb_path)
         self.metrics = {}
         self.sampler = sampler
         if self.sampler is not None:
             if not sampler.is_fitted:
-               raise AttributeError("The provided sampler is not fitted."
-                                     "Please fit the sampler before using it in the evaluator module.")
+                raise AttributeError(
+                    "The provided sampler is not fitted."
+                    "Please fit the sampler before using it in the evaluator module."
+                )
 
     def set_logger(self, output):
         logger = logging.getLogger()
@@ -71,7 +74,6 @@ class Evaluator:
         self.logger = logger
 
     def set_wandb(self, wandb_path):
-        
         if wandb_path is None:
             self.wandb_run = None
             return
@@ -92,12 +94,12 @@ class Evaluator:
     def log_to_wandb(self):
         if self.wandb_run is not None:
             self.wandb_run.log(self.metrics)
-            
+
     def finish(self):
-        """Removes handlers and finish the wandb run. """
-        
+        """Removes handlers and finish the wandb run."""
+
         self.logger.removeHandler(self.console_handler)
-        if hasattr(self, 'file_handler'):
+        if hasattr(self, "file_handler"):
             self.logger.removeHandler(self.file_handler)
         if self.wandb_run is not None:
             self.wandb_run.finish()

@@ -15,6 +15,5 @@ __all__ = [
     "LikelihoodsEvaluator",
     "LikelihoodsEvaluatorConfig",
     "Visualization",
-    "VisualizationConfig"
-    
+    "VisualizationConfig",
 ]

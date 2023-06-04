@@ -367,9 +367,7 @@ class MoPoE(BaseMultiVAE):
         N: int = 1,
         **kwargs,
     ) -> ModelOutput:
-        
-        cond_mod = super().encode(inputs,cond_mod,N, **kwargs).cond_mod
-
+        cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
 
         # Compute the str associated to the subset
         key = "_".join(sorted(cond_mod))
@@ -522,11 +520,17 @@ class MoPoE(BaseMultiVAE):
                 lpz = prior.log_prob(latents).sum(dim=-1)
 
                 # Compute posteriors -ln(q(z|x,y) = -ln (1/S \sum q(z|x_s))
-                
-                qz_xs = [dist.Normal(mus_subset[j][i], torch.exp(0.5*log_vars_subset[j][i])) for j in range(len(mus_subset))]
+
+                qz_xs = [
+                    dist.Normal(
+                        mus_subset[j][i], torch.exp(0.5 * log_vars_subset[j][i])
+                    )
+                    for j in range(len(mus_subset))
+                ]
                 lqz_xs = torch.stack([q.log_prob(latents).sum(-1) for q in qz_xs])
-                lqz_xy = torch.logsumexp(lqz_xs, dim=0) - np.log(len(lqz_xs)) # log_mean_exp
-                
+                lqz_xy = torch.logsumexp(lqz_xs, dim=0) - np.log(
+                    len(lqz_xs)
+                )  # log_mean_exp
 
                 ln_px = torch.logsumexp(lpx_zs + lpz - lqz_xy, dim=0)
                 lnpxs.append(ln_px)

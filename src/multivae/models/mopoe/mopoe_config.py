@@ -31,9 +31,9 @@ class MoPoEConfig(BaseMultiVAEConfig):
             Default to None.
         beta (float) : The weight to the KL divergence term in the ELBO. Default to 1.0
         use_modality_specific_spaces (bool) : Whether to use additional latent spaces for modalities. Default to False.
-        beta_style (float) : The beta factor for additional elbos in the case, there are multiple latent spaces. 
-            Default to 1. 
-        modalities_specific_dim (dict) : a dictionary containing the modalities names and the dimension of 
+        beta_style (float) : The beta factor for additional elbos in the case, there are multiple latent spaces.
+            Default to 1.
+        modalities_specific_dim (dict) : a dictionary containing the modalities names and the dimension of
             the additional latent space for each modality. Default to None.
 
     """

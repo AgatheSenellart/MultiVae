@@ -5,11 +5,10 @@ import torch
 from pythae.models.base.base_utils import ModelOutput
 
 from multivae.data import MultimodalBaseDataset
+from multivae.samplers.base import BaseSampler
 
 from ..base.evaluator_class import Evaluator
 from .coherences_config import CoherenceEvaluatorConfig
-
-from multivae.samplers.base import BaseSampler
 
 
 class CoherenceEvaluator(Evaluator):
@@ -23,8 +22,8 @@ class CoherenceEvaluator(Evaluator):
         test_dataset (MultimodalBaseDataset) : The dataset to use for computing the metrics.
         output (str) : The folder path to save metrics. The metrics will be saved in a metrics.txt file.
         eval_config (CoherencesEvaluatorConfig) : The configuration class to specify parameters for the evaluation.
-        sampler (BaseSampler) : A custom sampler for computing the joint coherence. If None is provided, samples 
-            are generated from the prior. 
+        sampler (BaseSampler) : A custom sampler for computing the joint coherence. If None is provided, samples
+            are generated from the prior.
     """
 
     def __init__(
@@ -34,8 +33,7 @@ class CoherenceEvaluator(Evaluator):
         test_dataset,
         output=None,
         eval_config=CoherenceEvaluatorConfig(),
-        sampler : BaseSampler = None
-        
+        sampler: BaseSampler = None,
     ) -> None:
         super().__init__(model, test_dataset, output, eval_config, sampler)
         self.clfs = classifiers
@@ -43,7 +41,6 @@ class CoherenceEvaluator(Evaluator):
         self.nb_samples_for_joint = eval_config.nb_samples_for_joint
         for k in self.clfs:
             self.clfs[k] = self.clfs[k].to(self.device).eval()
-            
 
     def cross_coherences(self):
         """
@@ -120,29 +117,30 @@ class CoherenceEvaluator(Evaluator):
         return acc, mean_pair_acc
 
     def joint_coherence(self):
-        
         """
-        Generate in all modalities from the prior and compute the percentage of samples where all modalities have the same 
+        Generate in all modalities from the prior and compute the percentage of samples where all modalities have the same
         labels."""
-        
+
         all_labels = torch.tensor([]).to(self.device)
         samples_to_generate = self.nb_samples_for_joint
 
         # loop over batches
         while samples_to_generate > 0:
             batch_samples = min(self.batch_size, samples_to_generate)
-            
+
             if self.sampler is None:
                 output_prior = self.model.generate_from_prior(batch_samples)
-            else :
+            else:
                 output_prior = self.sampler.sample(batch_samples)
-                
+
             # set output to device
             output_prior.z = output_prior.z.to(self.device)
             if not output_prior.one_latent_space:
                 for m in output_prior.modalities_z:
-                    output_prior.modalities_z[m] = output_prior.modalities_z[m].to(self.device)
-            
+                    output_prior.modalities_z[m] = output_prior.modalities_z[m].to(
+                        self.device
+                    )
+
             # decode
             output_decode = self.model.decode(output_prior)
             labels = []
@@ -157,8 +155,10 @@ class CoherenceEvaluator(Evaluator):
             samples_to_generate -= batch_samples
         joint_coherence = all_labels.mean()
 
-        sampler_name = 'prior' if self.sampler is None else self.sampler.name
-        self.logger.info(f"Joint coherence with sampler {sampler_name}: {joint_coherence}")
+        sampler_name = "prior" if self.sampler is None else self.sampler.name
+        self.logger.info(
+            f"Joint coherence with sampler {sampler_name}: {joint_coherence}"
+        )
         self.metrics.update({f"joint_coherence_{sampler_name}": joint_coherence})
         return joint_coherence
 

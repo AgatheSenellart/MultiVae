@@ -77,7 +77,6 @@ class BaseJointModel(BaseMultiVAE):
 
         # First compute all the parameters of the joint posterior q(z|x,y)
 
-
         joint_output = self.joint_encoder(inputs.data)
         mu, log_var = joint_output.embedding, joint_output.log_covariance
 

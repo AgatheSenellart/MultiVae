@@ -253,9 +253,7 @@ class MMVAE(BaseMultiVAE):
         N: int = 1,
         **kwargs,
     ):
-        
-        cond_mod = super().encode(inputs,cond_mod,N, **kwargs).cond_mod
-
+        cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
 
         if all([s in self.encoders.keys() for s in cond_mod]):
             # Choose one of the conditioning modalities at random

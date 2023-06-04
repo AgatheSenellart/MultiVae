@@ -3,10 +3,10 @@ from .gaussian_mixture import GaussianMixtureSampler, GaussianMixtureSamplerConf
 from .iaf_sampler import IAFSampler, IAFSamplerConfig
 
 __all__ = [
-    'BaseSampler',
-    'BaseSamplerConfig',
-    'GaussianMixtureSampler',
-    'GaussianMixtureSamplerConfig',
-    'IAFSamplerConfig', 
-    'IAFSampler'
+    "BaseSampler",
+    "BaseSamplerConfig",
+    "GaussianMixtureSampler",
+    "GaussianMixtureSamplerConfig",
+    "IAFSamplerConfig",
+    "IAFSampler",
 ]

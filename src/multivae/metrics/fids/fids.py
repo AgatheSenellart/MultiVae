@@ -10,11 +10,11 @@ from torchvision.transforms import Resize
 from multivae.data import MultimodalBaseDataset
 from multivae.data.utils import set_inputs_to_device
 from multivae.models.base import BaseMultiVAE
+from multivae.samplers import BaseSampler
 
 from ..base.evaluator_class import Evaluator
 from .fids_config import FIDEvaluatorConfig
 from .inception_networks import wrapper_inception
-from multivae.samplers import BaseSampler
 
 try:
     from tqdm import tqdm
@@ -70,8 +70,8 @@ class FIDEvaluator(Evaluator):
         test_dataset (MultimodalBaseDataset) : The dataset to use for computing the metrics.
         output (str) : The folder path to save metrics. The metrics will be saved in a metrics.txt file.
         eval_config (EvaluatorConfig) : The configuration class to specify parameters for the evaluation.
-        sampler (Basesampler) : The sampler used to generate from the latent space. 
-            If None is provided, the latent codes are generated from prior. Default to None. 
+        sampler (Basesampler) : The sampler used to generate from the latent space.
+            If None is provided, the latent codes are generated from prior. Default to None.
         custom_encoder (torch.nn.Module) : If you desire, you can provide our own embedding architecture to use
             instead of the InceptionV3 model to compute Fréchet Distances.
             By default, the pretrained InceptionV3 network is used. Default to None.
@@ -85,7 +85,7 @@ class FIDEvaluator(Evaluator):
         test_dataset,
         output=None,
         eval_config=FIDEvaluatorConfig(),
-        sampler : BaseSampler = None,
+        sampler: BaseSampler = None,
         custom_encoder=None,
         transform=None,
     ) -> None:
@@ -120,7 +120,7 @@ class FIDEvaluator(Evaluator):
             activations[0].append(pred)
 
             # Compute activations for generated data
-            latents = generate_latent_function(n_samples=len(pred),inputs=batch)
+            latents = generate_latent_function(n_samples=len(pred), inputs=batch)
             latents.z = latents.z.to(self.device)
 
             samples = self.model.decode(latents, modalities=mod)
@@ -195,31 +195,31 @@ class FIDEvaluator(Evaluator):
         tr_covmean = np.trace(covmean)
 
         return diff.dot(diff) + np.trace(sigma1) + np.trace(sigma2) - 2 * tr_covmean
-    
+
     def unconditional_fids(self):
         """
         Generate data from prior or sampler fitted in the latent space
         and compute the FID for each modality.
         """
         output = dict()
-        if self.sampler is None :
+        if self.sampler is None:
             generate_function = self.model.generate_from_prior
-        else :
+        else:
             generate_function = self.sampler.sample
-            
-        sampler_name = 'prior' if self.sampler is None else self.sampler.name
+
+        sampler_name = "prior" if self.sampler is None else self.sampler.name
         for mod in self.model.encoders:
-            
             self.logger.info(f"Start computing FID for modality {mod}")
             fd = self.get_frechet_distance(mod, generate_function)
             output[f"fd_{mod}_sampler_{sampler_name}"] = fd
-            self.logger.info(f"The FD for modality {mod} with sampler {sampler_name} is {fd}")
+            self.logger.info(
+                f"The FD for modality {mod} with sampler {sampler_name} is {fd}"
+            )
         self.metrics.update(output)
-        
+
         return ModelOutput(**output)
 
     def eval(self):
-        
         self.unconditional_fids()
         self.log_to_wandb()
 
@@ -241,8 +241,6 @@ class FIDEvaluator(Evaluator):
 
         self.metrics[f"Conditional FD from {subset} to {gen_mod}"] = fd
         return fd
-
-    
 
     def mvtcae_reproduce_fids(self, gen_mod):
         """

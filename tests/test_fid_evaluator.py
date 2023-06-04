@@ -7,14 +7,11 @@ from multivae.metrics import FIDEvaluator, FIDEvaluatorConfig
 from multivae.metrics.fids.fids import adapt_shape_for_fid
 from multivae.models import MVTCAE, MVTCAEConfig
 from multivae.models.nn.default_architectures import Encoder_VAE_MLP
-
 from multivae.samplers import GaussianMixtureSampler, GaussianMixtureSamplerConfig
-
 
 
 # @pytest.mark.slow
 class TestFIDMetrics:
-    
     @pytest.fixture
     def model(self):
         model_config = MVTCAEConfig(
@@ -22,7 +19,7 @@ class TestFIDMetrics:
             input_dims={"m0": (3, 32, 32), "m1": (1, 28, 28)},
         )
         return MVTCAE(model_config)
-    
+
     @pytest.fixture
     def dataset(self):
         return MultimodalBaseDataset(
@@ -32,7 +29,7 @@ class TestFIDMetrics:
             },
             labels=torch.ones((1024,)),
         )
-    
+
     @pytest.fixture(params=["custom_config", "default_config"])
     def config(self, request):
         config = FIDEvaluatorConfig(
@@ -42,22 +39,19 @@ class TestFIDMetrics:
             return config
         else:
             return FIDEvaluatorConfig(batch_size=64)
-        
+
     @pytest.fixture(params=[True, False])
-    def sampler(self,request, model, dataset):
-        if not request.param :
+    def sampler(self, request, model, dataset):
+        if not request.param:
             return None
         else:
             sampler_config = GaussianMixtureSamplerConfig()
-            sampler = GaussianMixtureSampler(model,sampler_config)
+            sampler = GaussianMixtureSampler(model, sampler_config)
             sampler.fit(dataset)
             return sampler
-            
 
     @pytest.fixture(params=[None, lambda x: adapt_shape_for_fid(resize=False)(x)])
-    def fid_model(self,model, dataset, config, sampler,request):
-        
-
+    def fid_model(self, model, dataset, config, sampler, request):
         return FIDEvaluator(
             model=model,
             test_dataset=dataset,
@@ -65,7 +59,7 @@ class TestFIDMetrics:
             eval_config=config,
             custom_encoder=None,
             transform=request.param,
-            sampler=sampler
+            sampler=sampler,
         )  # Add test with custom encoder
 
     def test(self, fid_model, config):
@@ -74,5 +68,3 @@ class TestFIDMetrics:
         assert fid_model.batch_size == config.batch_size
         output = fid_model.eval()
         assert isinstance(output, ModelOutput)
-        
-        

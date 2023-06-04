@@ -60,4 +60,3 @@ class BaseAEConfig(BaseConfig):
     input_dim: Union[Tuple[int, ...], None] = None
     latent_dim: int = 10
     style_dim: int = 0
-

@@ -222,8 +222,7 @@ class MVAE(BaseMultiVAE):
         N: int = 1,
         **kwargs,
     ):
-        
-        cond_mod = super().encode(inputs,cond_mod,N, **kwargs).cond_mod
+        cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
 
         sub_mu, sub_logvar = self.compute_mu_log_var_subset(inputs, cond_mod)
         sub_std = torch.exp(0.5 * sub_logvar)
@@ -243,7 +242,7 @@ class MVAE(BaseMultiVAE):
     ):
         """Computes the joint_negative_nll for a batch of inputs."""
 
-        #iter on each datapoint to compute the iwae estimate of ln(p(x))
+        # iter on each datapoint to compute the iwae estimate of ln(p(x))
         ll = 0
         n_data = len(inputs.data[list(inputs.data.keys())[0]])
         for i in range(n_data):
@@ -259,7 +258,6 @@ class MVAE(BaseMultiVAE):
                 list(self.encoders.keys()),
             )
 
-            
             sigma = torch.exp(0.5 * log_var)
             qz_xy = dist.Normal(mu, sigma)
 

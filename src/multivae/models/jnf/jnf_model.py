@@ -177,16 +177,11 @@ class JNF(BaseJointModel):
         mcmc_steps = kwargs.pop("mcmc_steps", 100)
         n_lf = kwargs.pop("n_lf", 10)
         eps_lf = kwargs.pop("eps_lf", 0.01)
-        
+
         # Deal with incomplete datasets
-        cond_mod = super().encode(inputs,cond_mod,N, **kwargs).cond_mod
+        cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
 
-
-
-
-        if (
-             len(cond_mod) == self.n_modalities
-        ):
+        if len(cond_mod) == self.n_modalities:
             output = self.joint_encoder(inputs.data)
             sample_shape = [] if N == 1 else [N]
             z = dist.Normal(
