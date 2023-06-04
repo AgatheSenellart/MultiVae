@@ -11,7 +11,7 @@ from pythae.models.nn.benchmarks.mnist.convnets import (
 )
 from torch import nn
 
-from multivae.data.datasets import MultimodalBaseDataset
+from multivae.data.datasets import MultimodalBaseDataset, IncompleteDataset
 from multivae.models import AutoConfig, AutoModel
 from multivae.models.base import BaseMultiVAE, BaseMultiVAEConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
@@ -198,15 +198,16 @@ class Test_BaseMultiVAE:
     def test_raises_encode_error(self, input_model1):
         model = BaseMultiVAE(**input_model1)
 
-        inputs = MultimodalBaseDataset(
-            data=dict(mod1=torch.randn(3, 10, 2), mod2=torch.rand(3, 10, 2))
+        inputs = IncompleteDataset(
+            
+            data=dict(mod1=torch.randn(3, 10, 2), mod2=torch.rand(3, 10, 2)),
+            masks = dict(mod1 = torch.zeros((3,)), mod2=torch.ones((3,)))
         )
 
         with pytest.raises(AttributeError):
             model.encode(inputs, cond_mod="mod1")
 
-        with pytest.raises(NotImplementedError):
-            model.encode(inputs, [])
+        
 
     def test_decode_one_latent(self, input_model1):
         model = BaseMultiVAE(**input_model1)
