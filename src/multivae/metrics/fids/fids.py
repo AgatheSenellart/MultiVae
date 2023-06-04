@@ -112,7 +112,7 @@ class FIDEvaluator(Evaluator):
         activations = [[], []]
 
         for batch in tqdm(self.test_loader):
-            batch = set_inputs_to_device(batch)
+            batch = set_inputs_to_device(batch, self.device)
             # Compute activations for true data
             data = self.inception_transform(batch.data[mod]).to(self.device)
             pred = self.model_fd(data)

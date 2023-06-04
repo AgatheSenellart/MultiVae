@@ -71,7 +71,7 @@ class GaussianMixtureSampler(BaseSampler):
         # Compute all embeddings
         with torch.no_grad():
             for _, inputs in enumerate(train_loader):
-                inputs = set_inputs_to_device(inputs)
+                inputs = set_inputs_to_device(inputs, self.device)
                 output = self.model.encode(inputs)
                 z.append(output.z)
                 

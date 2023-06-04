@@ -66,7 +66,7 @@ class Visualization(Evaluator):
         dataloader = DataLoader(self.test_dataset, batch_size=self.n_data_cond)
         data = next(iter(dataloader))
         #set inputs to device
-        data = set_inputs_to_device(data)
+        data = set_inputs_to_device(data, self.device)
         
         recon = self.model.predict(data, subset, "all", N=self.n_samples, flatten=True, ignore_incomplete=True)
         recon.update({f'original_{m}' :data.data[m] for m in subset})

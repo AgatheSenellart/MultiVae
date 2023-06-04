@@ -40,7 +40,7 @@ class LikelihoodsEvaluator(Evaluator):
     def joint_nll(self):
         ll = 0
         for batch in tqdm(self.test_loader):
-            batch = set_inputs_to_device(batch)
+            batch = set_inputs_to_device(batch, self.device)
             if self.unified or (not hasattr(self.model, "compute_joint_nll_paper")):
                 ll += self.model.compute_joint_nll(
                     batch, self.num_samples, self.batch_size_k
@@ -61,7 +61,7 @@ class LikelihoodsEvaluator(Evaluator):
             ll = 0
             nb_batch = 0
             for batch in self.test_loader:
-                batch = set_inputs_to_device(batch)
+                batch = set_inputs_to_device(batch, self.device)
                 ll += self.model.compute_joint_nll_from_subset_encoding(
                     subset, batch, self.num_samples, self.batch_size_k
                 )

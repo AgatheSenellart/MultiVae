@@ -92,7 +92,7 @@ class IAFSampler(BaseSampler):
         try:
             with torch.no_grad():
                 for _, inputs in enumerate(train_loader):
-                    inputs = set_inputs_to_device(inputs)
+                    inputs = set_inputs_to_device(inputs, self.device)
                     encoder_output = self.model.encode(inputs)
                     zs['shared'].append(encoder_output.z)
                     
@@ -102,7 +102,7 @@ class IAFSampler(BaseSampler):
 
         except RuntimeError:
             for _, inputs in enumerate(train_loader):
-                inputs = set_inputs_to_device(inputs)
+                inputs = set_inputs_to_device(inputs, self.device)
                 encoder_output = self.model.encode(inputs)
                 zs['shared'].append(encoder_output.z.detach())
                 
@@ -127,7 +127,7 @@ class IAFSampler(BaseSampler):
             try:
                 with torch.no_grad():
                     for _, inputs in enumerate(eval_loader):
-                        inputs = set_inputs_to_device(inputs)
+                        inputs = set_inputs_to_device(inputs, self.device)
                         encoder_output = self.model.encode(inputs)
                         zs['shared'].append(encoder_output.z)
                         if self.model.multiple_latent_spaces:
@@ -136,7 +136,7 @@ class IAFSampler(BaseSampler):
 
             except RuntimeError:
                 for _, inputs in enumerate(train_loader):
-                        inputs = set_inputs_to_device(inputs)
+                        inputs = set_inputs_to_device(inputs, self.device)
                         encoder_output = self.model.encode(inputs)
                         zs['shared'].append(encoder_output.z.detach())
                         if self.model.multiple_latent_spaces:
