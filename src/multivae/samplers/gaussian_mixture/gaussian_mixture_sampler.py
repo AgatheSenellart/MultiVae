@@ -10,6 +10,7 @@ from .gaussian_mixture_config import GaussianMixtureSamplerConfig
 
 from multivae.data import MultimodalBaseDataset
 from multivae.models.base import ModelOutput
+from multivae.data.utils import set_inputs_to_device
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +71,7 @@ class GaussianMixtureSampler(BaseSampler):
         # Compute all embeddings
         with torch.no_grad():
             for _, inputs in enumerate(train_loader):
-                inputs.data = {m : inputs.data[m].to(self.device) for m in inputs.data}
+                inputs = set_inputs_to_device(inputs)
                 output = self.model.encode(inputs)
                 z.append(output.z)
                 

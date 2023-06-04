@@ -12,6 +12,7 @@ import os
 import wandb
 from multivae.models.base import ModelOutput
 from torch.utils.data import DataLoader
+from multivae.data.utils import set_inputs_to_device
 
 class Visualization(Evaluator):
     
@@ -65,7 +66,7 @@ class Visualization(Evaluator):
         dataloader = DataLoader(self.test_dataset, batch_size=self.n_data_cond)
         data = next(iter(dataloader))
         #set inputs to device
-        data.data = {m : data.data[m].to(self.device) for m in data.data}
+        data = set_inputs_to_device(data)
         
         recon = self.model.predict(data, subset, "all", N=self.n_samples, flatten=True, ignore_incomplete=True)
         recon.update({f'original_{m}' :data.data[m] for m in subset})

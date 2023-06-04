@@ -12,6 +12,7 @@ from ..base.base_sampler import BaseSampler
 from .iaf_sampler_config import IAFSamplerConfig
 from torch.nn import ModuleDict
 from multivae.models.base import ModelOutput
+from multivae.data.utils import set_inputs_to_device
 
 class IAFSampler(BaseSampler):
     """Fits an Inverse Autoregressive Flow in the multimodal autoencoder's latent space.
@@ -91,7 +92,7 @@ class IAFSampler(BaseSampler):
         try:
             with torch.no_grad():
                 for _, inputs in enumerate(train_loader):
-                    inputs.data = {m : inputs.data[m].to(self.device) for m in inputs.data}
+                    inputs = set_inputs_to_device(inputs)
                     encoder_output = self.model.encode(inputs)
                     zs['shared'].append(encoder_output.z)
                     
@@ -101,7 +102,7 @@ class IAFSampler(BaseSampler):
 
         except RuntimeError:
             for _, inputs in enumerate(train_loader):
-                inputs.data = {m : inputs.data[m].to(self.device) for m in inputs.data}
+                inputs = set_inputs_to_device(inputs)
                 encoder_output = self.model.encode(inputs)
                 zs['shared'].append(encoder_output.z.detach())
                 
@@ -126,7 +127,7 @@ class IAFSampler(BaseSampler):
             try:
                 with torch.no_grad():
                     for _, inputs in enumerate(eval_loader):
-                        inputs.data = {m : inputs.data[m].to(self.device) for m in inputs.data}
+                        inputs = set_inputs_to_device(inputs)
                         encoder_output = self.model.encode(inputs)
                         zs['shared'].append(encoder_output.z)
                         if self.model.multiple_latent_spaces:
@@ -135,7 +136,7 @@ class IAFSampler(BaseSampler):
 
             except RuntimeError:
                 for _, inputs in enumerate(train_loader):
-                        inputs.data = {m : inputs.data[m].to(self.device) for m in inputs.data}
+                        inputs = set_inputs_to_device(inputs)
                         encoder_output = self.model.encode(inputs)
                         zs['shared'].append(encoder_output.z.detach())
                         if self.model.multiple_latent_spaces:

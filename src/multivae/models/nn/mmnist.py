@@ -157,7 +157,7 @@ class EncoderConvMMNIST_multilatents(BaseEncoder):
                 nn.Conv2d(
                     64, 128, kernel_size=3, stride=2, padding=1, bias=True
                 ),  # -> (128, 4, 4)
-                nn.ReLU(),
+                nn.ReLU()
             )
 
             self.style_mu = nn.Conv2d(128, self.style_dim, 4, 2, 0)

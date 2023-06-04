@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from torchvision.transforms import Resize
 
 from multivae.data import MultimodalBaseDataset
+from multivae.data.utils import set_inputs_to_device
 from multivae.models.base import BaseMultiVAE
 
 from ..base.evaluator_class import Evaluator
@@ -111,7 +112,7 @@ class FIDEvaluator(Evaluator):
         activations = [[], []]
 
         for batch in tqdm(self.test_loader):
-            batch.data = {m: batch.data[m].to(self.device) for m in batch.data}
+            batch = set_inputs_to_device(batch)
             # Compute activations for true data
             data = self.inception_transform(batch.data[mod]).to(self.device)
             pred = self.model_fd(data)
