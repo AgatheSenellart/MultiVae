@@ -177,22 +177,11 @@ class JNF(BaseJointModel):
         mcmc_steps = kwargs.pop("mcmc_steps", 100)
         n_lf = kwargs.pop("n_lf", 10)
         eps_lf = kwargs.pop("eps_lf", 0.01)
-        
+
         # Deal with incomplete datasets
-        if hasattr(inputs, 'masks'):
-            # Check that all modalities in cond_mod are available for all samples points.
-            mods_avail = torch.stack([inputs.masks[m] for m in cond_mod]).sum(0)
-            if not torch.all(mods_avail):
-                raise AttributeError("You tried to encode a incomplete dataset conditioning on",
-                                     f"modalities {cond_mod}, but some samples are not available"
-                                     "in all those modalities.")
+        cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
 
-        if type(cond_mod) == list and len(cond_mod) == 1:
-            cond_mod = cond_mod[0]
-
-        if cond_mod == "all" or (
-            type(cond_mod) == list and len(cond_mod) == self.n_modalities
-        ):
+        if len(cond_mod) == self.n_modalities:
             output = self.joint_encoder(inputs.data)
             sample_shape = [] if N == 1 else [N]
             z = dist.Normal(
@@ -203,7 +192,7 @@ class JNF(BaseJointModel):
                 z = z.reshape(l * N, d)
             return ModelOutput(z=z, one_latent_space=True)
 
-        if type(cond_mod) == list and len(cond_mod) != 1:
+        elif len(cond_mod) != 1:
             z = self.sample_from_poe_subset(
                 cond_mod,
                 inputs.data,
@@ -219,7 +208,8 @@ class JNF(BaseJointModel):
                 z = z.reshape(l * N, d)
             return ModelOutput(z=z, one_latent_space=True)
 
-        if cond_mod in self.modalities_name:
+        elif len(cond_mod) == 1:
+            cond_mod = cond_mod[0]
             output = self.encoders[cond_mod](inputs.data[cond_mod])
             sample_shape = [] if N == 1 else [N]
 
@@ -428,8 +418,6 @@ class JNF(BaseJointModel):
             ax.plot(pos[:, 0], pos[:, 1])
             ax.quiver(pos[:, 0], pos[:, 1], grad[:, 0], grad[:, 1])
 
-            # plt.savefig('monitor_hmc.png')
-        # 1/0
         # print(acc_nbr[:10] / mcmc_steps)
         sh = (n_data, self.latent_dim) if K == 1 else (K, n_data, self.latent_dim)
         z = z.detach().resize(*sh)

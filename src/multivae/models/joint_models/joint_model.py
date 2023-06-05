@@ -77,11 +77,6 @@ class BaseJointModel(BaseMultiVAE):
 
         # First compute all the parameters of the joint posterior q(z|x,y)
 
-        logger.info(
-            "Started computing the negative log_likelihood on inputs. This function"
-            " can take quite a long time to run."
-        )
-
         joint_output = self.joint_encoder(inputs.data)
         mu, log_var = joint_output.embedding, joint_output.log_covariance
 

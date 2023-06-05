@@ -208,28 +208,7 @@ class MVTCAE(BaseMultiVAE):
         N: int = 1,
         **kwargs,
     ) -> ModelOutput:
-        
-        # Deal with incomplete datasets
-        if hasattr(inputs, 'masks'):
-            # Check that all modalities in cond_mod are available for all samples points.
-            mods_avail = torch.stack([inputs.masks[m] for m in cond_mod]).sum(0)
-            if not torch.all(mods_avail):
-                raise AttributeError("You tried to encode a incomplete dataset conditioning on",
-                                     f"modalities {cond_mod}, but some samples are not available"
-                                     "in all those modalities.")
-        
-        
-        # If the input cond_mod is a string : convert it to a list
-        if type(cond_mod) == str:
-            if cond_mod == "all":
-                cond_mod = list(self.encoders.keys())
-            elif cond_mod in self.encoders.keys():
-                cond_mod = [cond_mod]
-            else:
-                raise AttributeError(
-                    'If cond_mod is a string, it must either be "all" or a modality name'
-                    f" The provided string {cond_mod} is neither."
-                )
+        cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
 
         # Only keep the relevant modalities for prediction
         cond_inputs = MultimodalBaseDataset(
@@ -252,18 +231,10 @@ class MVTCAE(BaseMultiVAE):
         K: int = 1000,
         batch_size_K: int = 100,
     ):
-        # Only keep the complete samples
-        all_modalities = list(self.encoders.keys())
-        if hasattr(inputs, "masks"):
-            filtered_inputs, filter = self._filter_inputs_with_masks(
-                inputs, all_modalities
-            )
-
-        else:
-            filtered_inputs = inputs
+        self.eval()
 
         # Compute the parameters of the joint posterior
-        mu, log_var = self.inference(filtered_inputs)["joint"]
+        mu, log_var = self.inference(inputs)["joint"]
 
         sigma = torch.exp(0.5 * log_var)
         qz_xy = dist.Normal(mu, sigma)
@@ -291,7 +262,9 @@ class MVTCAE(BaseMultiVAE):
                     x_m = inputs.data[mod][i]  # (nb_channels, w, h)
 
                     lpx_zs += (
-                        self.recon_log_probs[mod](recon, x_m)
+                        self.recon_log_probs[mod](
+                            recon, torch.stack([x_m] * len(recon))
+                        )
                         .reshape(recon.size(0), -1)
                         .sum(-1)
                     )

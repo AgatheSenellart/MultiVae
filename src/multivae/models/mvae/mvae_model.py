@@ -222,27 +222,7 @@ class MVAE(BaseMultiVAE):
         N: int = 1,
         **kwargs,
     ):
-        
-        # Deal with incomplete datasets
-        if hasattr(inputs, 'masks'):
-            # Check that all modalities in cond_mod are available for all samples points.
-            mods_avail = torch.stack([inputs.masks[m] for m in cond_mod]).sum(0)
-            if not torch.all(mods_avail):
-                raise AttributeError("You tried to encode a incomplete dataset conditioning on",
-                                     f"modalities {cond_mod}, but some samples are not available"
-                                     "in all those modalities.")
-        
-        # If the input cond_mod is a string : convert it to a list
-        if type(cond_mod) == str:
-            if cond_mod == "all":
-                cond_mod = list(self.encoders.keys())
-            elif cond_mod in self.encoders.keys():
-                cond_mod = [cond_mod]
-            else:
-                raise AttributeError(
-                    'If cond_mod is a string, it must either be "all" or a modality name'
-                    f" The provided string {cond_mod} is neither."
-                )
+        cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
 
         sub_mu, sub_logvar = self.compute_mu_log_var_subset(inputs, cond_mod)
         sub_std = torch.exp(0.5 * sub_logvar)
@@ -262,7 +242,7 @@ class MVAE(BaseMultiVAE):
     ):
         """Computes the joint_negative_nll for a batch of inputs."""
 
-        # Then iter on each datapoint to compute the iwae estimate of ln(p(x))
+        # iter on each datapoint to compute the iwae estimate of ln(p(x))
         ll = 0
         n_data = len(inputs.data[list(inputs.data.keys())[0]])
         for i in range(n_data):
@@ -277,7 +257,7 @@ class MVAE(BaseMultiVAE):
                 ),
                 list(self.encoders.keys()),
             )
-            assert mu.shape == (1, self.latent_dim)
+
             sigma = torch.exp(0.5 * log_var)
             qz_xy = dist.Normal(mu, sigma)
 

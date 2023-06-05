@@ -142,3 +142,7 @@ compare_on_mmnist/
 examples/mmnist/validate/results/compare_mmnist_2205.csv
 .gitignore
 examples/mmnist/validate/
+examples/mmnist/validate/results/wandb_export_2023-05-23T11 12 53.332+02 00.csv
+examples/mmnist/validate/plots.ipynb
+examples/mmnist/validate/results/
+validate_mmnist/

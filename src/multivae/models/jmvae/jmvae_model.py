@@ -78,25 +78,12 @@ class JMVAE(BaseJointModel):
             ModelOutput: Containing z the latent variables.
         """
         self.eval()
-        
-        # Deal with incomplete datasets
-        if hasattr(inputs, 'masks'):
-            # Check that all modalities in cond_mod are available for all samples points.
-            mods_avail = torch.stack([inputs.masks[m] for m in cond_mod]).sum(0)
-            if not torch.all(mods_avail):
-                raise AttributeError("You tried to encode a incomplete dataset conditioning on",
-                                     f"modalities {cond_mod}, but some samples are not available"
-                                     "in all those modalities.")
 
-        mcmc_steps = kwargs.pop("mcmc_steps", 100)
-        n_lf = kwargs.pop("n_lf", 10)
-        eps_lf = kwargs.pop("eps_lf", 0.01)
+        cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
+        sample_shape = [] if N == 1 else [N]
 
-        if cond_mod == "all" or (
-            type(cond_mod) == list and len(cond_mod) == self.n_modalities
-        ):
+        if len(cond_mod) == self.n_modalities:
             output = self.joint_encoder(inputs.data)
-            sample_shape = [] if N == 1 else [N]
             z = dist.Normal(
                 output.embedding, torch.exp(0.5 * output.log_covariance)
             ).rsample(sample_shape)
@@ -105,17 +92,18 @@ class JMVAE(BaseJointModel):
                 z = z.reshape(l * N, d)
             return ModelOutput(z=z, one_latent_space=True)
 
-        if type(cond_mod) == list and len(cond_mod) != 1:
-            z = self.sample_from_poe_subset_exact(cond_mod, inputs.data)
+        elif len(cond_mod) != 1:
+            z = self.sample_from_poe_subset_exact(
+                cond_mod, inputs.data, sample_shape=sample_shape
+            )
 
             if N > 1 and kwargs.pop("flatten", False):
                 N, l, d = z.shape
                 z = z.reshape(l * N, d)
             return ModelOutput(z=z, one_latent_space=True)
 
-        elif type(cond_mod) == list and len(cond_mod) == 1:
+        elif len(cond_mod) == 1:
             cond_mod = cond_mod[0]
-        if cond_mod in self.modalities_name:
             output = self.encoders[cond_mod](inputs.data[cond_mod])
             sample_shape = [] if N == 1 else [N]
 
@@ -130,7 +118,7 @@ class JMVAE(BaseJointModel):
             return ModelOutput(z=z, one_latent_space=True)
         else:
             raise AttributeError(
-                f"Modality of name {cond_mod} not handled. The"
+                f"Modalities of names {cond_mod} not handled. The"
                 f" modalities that can be encoded are {list(self.encoders.keys())}"
             )
 
@@ -248,7 +236,7 @@ class JMVAE(BaseJointModel):
 
         return joint_mu, lnV
 
-    def sample_from_poe_subset_exact(self, subset: list, data: dict):
+    def sample_from_poe_subset_exact(self, subset: list, data: dict, sample_shape=[]):
         """
         Sample from the product of experts for infering from a subset of modalities.
         """
@@ -262,7 +250,7 @@ class JMVAE(BaseJointModel):
             logvars.append(vae_output.log_covariance)
 
         joint_mu, joint_logvar = self.poe(mus, logvars)
-        z = dist.Normal(joint_mu, torch.exp(0.5 * joint_logvar)).rsample()
+        z = dist.Normal(joint_mu, torch.exp(0.5 * joint_logvar)).rsample(sample_shape)
         return z
 
     def compute_joint_nll_paper(
@@ -277,11 +265,6 @@ class JMVAE(BaseJointModel):
 
         # First compute all the parameters of the joint posterior q(z|x,y)
 
-        logger.info(
-            "Started computing the negative log_likelihood on inputs. This function"
-            " can take quite a long time to run."
-        )
-
         joint_output = self.joint_encoder(inputs.data)
         mu, log_var = joint_output.embedding, joint_output.log_covariance
 
@@ -294,6 +277,7 @@ class JMVAE(BaseJointModel):
 
         # Then iter on each datapoint to compute the iwae estimate of ln(p(x))
         ll = 0
+
         for i in range(n_data):
             start_idx = 0
             stop_idx = min(start_idx + batch_size_K, K)
@@ -303,7 +287,7 @@ class JMVAE(BaseJointModel):
 
                 # Compute p(x_m|z) for z in latents and for each modality m
                 lpx_zs = 0  # ln(p(x,y|z))
-                for mod in ["images"]:
+                for mod in ["images"]:  # only keep the images for this likelihood
                     decoder = self.decoders[mod]
                     recon = decoder(latents)[
                         "reconstruction"
@@ -328,7 +312,7 @@ class JMVAE(BaseJointModel):
 
                 # next batch
                 start_idx += batch_size_K
-                stop_idx = min(stop_idx + batch_size_K, K)
+                stop_idx = min(start_idx + batch_size_K, K)
 
             ll += torch.logsumexp(torch.Tensor(lnpxs), dim=0) - np.log(K)
 

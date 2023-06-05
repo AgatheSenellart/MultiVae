@@ -4,6 +4,7 @@ from copy import deepcopy
 import numpy as np
 import pytest
 import torch
+from PIL import Image
 from tests_data.classifiers import MNIST_Classifier, SVHN_Classifier
 from torch import nn
 
@@ -15,7 +16,7 @@ from multivae.metrics.likelihoods import (
     LikelihoodsEvaluatorConfig,
 )
 from multivae.models import JMVAE, JMVAEConfig, MoPoE, MoPoEConfig
-from multivae.samplers import GaussianMixtureSamplerConfig, GaussianMixtureSampler
+from multivae.samplers import GaussianMixtureSampler, GaussianMixtureSamplerConfig
 
 
 @pytest.fixture
@@ -78,17 +79,16 @@ class TestCoherences:
     @pytest.fixture
     def classifiers(self):
         return dict(mnist=MNIST_Classifier(), svhn=SVHN_Classifier())
-    
-    @pytest.fixture(params = [True, False])
+
+    @pytest.fixture(params=[True, False])
     def sampler(self, jmvae_model, dataset, request):
         if not request.param:
             return None
-        else :
+        else:
             config = GaussianMixtureSamplerConfig(n_components=3)
             sampler = GaussianMixtureSampler(jmvae_model, config)
             sampler.fit(dataset)
             return sampler
-            
 
     def test_coherence_config(self, config_params):
         config = CoherenceEvaluatorConfig(
@@ -118,9 +118,14 @@ class TestCoherences:
         cross_coherences = evaluator.cross_coherences()
         assert all([0 <= cc_score[0] <= 1 for cc_score in cross_coherences])
 
-
     def test_joint_coherence_compute(
-        self, jmvae_model, config_params, classifiers, output_logger_file, dataset, sampler
+        self,
+        jmvae_model,
+        config_params,
+        classifiers,
+        output_logger_file,
+        dataset,
+        sampler,
     ):
         config = CoherenceEvaluatorConfig(
             include_recon=config_params["include_recon"],
@@ -133,7 +138,7 @@ class TestCoherences:
             output=output_logger_file,
             test_dataset=dataset,
             eval_config=config,
-            sampler=sampler
+            sampler=sampler,
         )
 
         joint_coherence = evaluator.joint_coherence()
@@ -156,11 +161,10 @@ class TestCoherences:
         )
 
         metrics = evaluator.eval()
-
         assert all(
             [
                 metric in metrics.keys()
-                for metric in ["mean_coherence_1", "joint_coherence"]
+                for metric in ["mean_coherence_1", "joint_coherence_prior"]
             ]
         )
 
@@ -250,5 +254,22 @@ class TestLikelihoods:
         assert all([metric in metrics.keys() for metric in ["joint_likelihood"]])
 
 
-    
-    
+import tempfile
+
+from multivae.metrics import Visualization, VisualizationConfig
+from multivae.models.base import ModelOutput
+
+
+class Test_Visualization:
+    def test(self, jmvae_model, dataset):
+        tmpdir = tempfile.mkdtemp()
+
+        module = Visualization(model=jmvae_model, output=tmpdir, test_dataset=dataset)
+
+        output = module.eval()
+        assert isinstance(output, ModelOutput)
+        assert hasattr(output, "unconditional_generation")
+        assert os.path.exists(os.path.join(tmpdir, "unconditional.png"))
+
+        output = module.conditional_samples_subset(["mnist"])
+        assert isinstance(output, Image.Image)
