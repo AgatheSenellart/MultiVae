@@ -120,7 +120,7 @@ class FIDEvaluator(Evaluator):
             activations[0].append(pred)
 
             # Compute activations for generated data
-            latents = generate_latent_function(n_samples=len(pred), inputs=batch)
+            latents = generate_latent_function(len(pred), inputs=batch)
             latents.z = latents.z.to(self.device)
 
             samples = self.model.decode(latents, modalities=mod)
