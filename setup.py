@@ -39,7 +39,9 @@ setup(
         "dataclasses>=0.6",
         "torchvision",
         "pandas",
-        "nltk"
+        "nltk",
+        "gdown",
+        "wandb"
     ],
     python_requires=">=3.8",
 )
