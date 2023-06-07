@@ -84,7 +84,7 @@ trainer.train()
 
 See https://multivae.readthedocs.io
 
-Several examples are provided in `examples/`
+Several examples are provided in `examples/` - and a Getting Started notebook in `examples/tutorial_notebooks`.
 
 # Table of Contents
 
