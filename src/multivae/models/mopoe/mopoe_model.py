@@ -371,6 +371,7 @@ class MoPoE(BaseMultiVAE):
 
         # Compute the str associated to the subset
         key = "_".join(sorted(cond_mod))
+        return_mean = kwargs.pop('return_mean', False)
 
         # If the dataset is incomplete, keep only the samples availables in all cond_mod
         # modalities
@@ -379,7 +380,13 @@ class MoPoE(BaseMultiVAE):
 
         mu, log_var = latents_subsets["subsets"][key]
         sample_shape = [N] if N > 1 else []
-        z = dist.Normal(mu, torch.exp(0.5 * log_var)).rsample(sample_shape)
+        if return_mean:
+            z = torch.stack([mu]*N) if N> 1 else mu
+        else :
+            z = dist.Normal(
+                    mu, torch.exp(0.5 * log_var)
+                ).rsample(sample_shape)        
+        
         flatten = kwargs.pop("flatten", False)
         if flatten:
             z = z.reshape(-1, self.latent_dim)

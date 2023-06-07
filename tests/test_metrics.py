@@ -273,3 +273,17 @@ class Test_Visualization:
 
         output = module.conditional_samples_subset(["mnist"])
         assert isinstance(output, Image.Image)
+        
+
+from multivae.metrics import Clustering, ClusteringConfig
+
+class Test_clustering:
+    def test(self, jmvae_model, dataset):
+        tmpdir = tempfile.mkdtemp()
+
+        module = Clustering(model=jmvae_model, output=tmpdir, test_dataset=dataset,train_dataset=dataset)
+
+        output = module.eval()
+        assert isinstance(output, ModelOutput)
+        assert hasattr(output, "cluster_accuracy")
+        assert output.cluster_accuracy >=0 and output.cluster_accuracy  <=1

@@ -218,7 +218,12 @@ class MVTCAE(BaseMultiVAE):
         latents_subsets = self.inference(cond_inputs)
         mu, log_var = latents_subsets["joint"]
         sample_shape = [N] if N > 1 else []
-        z = dist.Normal(mu, torch.exp(0.5 * log_var)).rsample(sample_shape)
+        
+        return_mean = kwargs.pop('return_mean', False)
+        if return_mean:
+            z = torch.stack([mu]*N) if N> 1 else mu
+        else :
+            z = dist.Normal(mu, torch.exp(0.5 * log_var)).rsample(sample_shape)
         flatten = kwargs.pop("flatten", False)
         if flatten:
             z = z.reshape(-1, self.latent_dim)

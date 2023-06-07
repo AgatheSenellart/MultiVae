@@ -174,6 +174,7 @@ class IAFSampler(BaseSampler):
         self,
         n_samples: int = 1,
         batch_size: int = 500,
+        **kwargs
     ) -> torch.Tensor:
         """Main sampling function of the sampler.
 

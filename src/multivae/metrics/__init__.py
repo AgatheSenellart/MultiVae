@@ -6,6 +6,7 @@ from .fids.fids import FIDEvaluator
 from .fids.fids_config import FIDEvaluatorConfig
 from .likelihoods.likelihoods import LikelihoodsEvaluator, LikelihoodsEvaluatorConfig
 from .visualization import Visualization, VisualizationConfig
+from .latent_clustering.clustering_class import Clustering, ClusteringConfig
 
 __all__ = [
     "CoherenceEvaluator",
@@ -16,4 +17,6 @@ __all__ = [
     "LikelihoodsEvaluatorConfig",
     "Visualization",
     "VisualizationConfig",
+    "Clustering",
+    "ClusteringConfig"
 ]
