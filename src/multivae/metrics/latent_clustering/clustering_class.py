@@ -21,7 +21,8 @@ from .clustering_config import ClusteringConfig
 class Clustering(Evaluator):
 
     """
-    Module to perform clustering in the latent space.
+    Module to perform clustering in the latent space. 
+    As of now, it is only supported for the joint representation of the data.
     The eval() function fits a k-means model on the training embeddings, then uses this model 
     to classify the test_samples and returns a k-means accuracy for this prediction.
     

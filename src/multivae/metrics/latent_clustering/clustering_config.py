@@ -31,7 +31,8 @@ class ClusteringConfig(EvaluatorConfig):
          number_of_runs (int) : When computing accuracies, how many runs of clustering to perform to
             to compute the average accuracies. Default to 20.
          num-samples_for_fit (int) : Number of training samples to use to fit the clusters.
-         use_mean (bool) : whether to use a sample or the mean of the encoding distribution. Default to True.
+         use_mean (bool) : whether to use a sample or the mean of the encoding distribution as the representative
+            embedding. Default to True.
 
     """
 
