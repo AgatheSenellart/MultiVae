@@ -99,21 +99,23 @@ class Test:
 
         # Try encoding and prediction
 
-        outputs = model.encode(dataset, ignore_incomplete = True)
+        outputs = model.encode(dataset, ignore_incomplete=True)
         assert outputs.one_latent_space
         embeddings = outputs.z
         assert isinstance(outputs, ModelOutput)
         assert embeddings.shape == (2, 5)
-        embeddings = model.encode(dataset, N=2, ignore_incomplete = True).z
+        embeddings = model.encode(dataset, N=2, ignore_incomplete=True).z
         assert embeddings.shape == (2, 2, 5)
-        embeddings = model.encode(dataset, cond_mod=["mod1"], ignore_incomplete = True).z
+        embeddings = model.encode(dataset, cond_mod=["mod1"], ignore_incomplete=True).z
         assert embeddings.shape == (2, 5)
         embeddings = model.encode(dataset, cond_mod="mod2", N=10).z
         assert embeddings.shape == (10, 2, 5)
-        embeddings = model.encode(dataset, cond_mod=["mod2", "mod1"], ignore_incomplete = True).z
+        embeddings = model.encode(
+            dataset, cond_mod=["mod2", "mod1"], ignore_incomplete=True
+        ).z
         assert embeddings.shape == (2, 5)
 
-        Y = model.predict(dataset, cond_mod="mod1", ignore_incomplete = True)
+        Y = model.predict(dataset, cond_mod="mod1", ignore_incomplete=True)
         assert isinstance(Y, ModelOutput)
         assert Y.mod1.shape == (2, 2)
         assert Y.mod2.shape == (2, 3)
@@ -123,7 +125,9 @@ class Test:
         assert Y.mod1.shape == (10, 2, 2)
         assert Y.mod2.shape == (10, 2, 3)
 
-        Y = model.predict(dataset, cond_mod="mod1", N=10, flatten=True, ignore_incomplete=True)
+        Y = model.predict(
+            dataset, cond_mod="mod1", N=10, flatten=True, ignore_incomplete=True
+        )
         assert isinstance(Y, ModelOutput)
         assert Y.mod1.shape == (2 * 10, 2)
         assert Y.mod2.shape == (2 * 10, 3)
@@ -500,7 +504,7 @@ class TestTraining:
         assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
 
     def test_compute_nll(self, model, input_dataset):
-        if not hasattr(input_dataset, 'masks'):
+        if not hasattr(input_dataset, "masks"):
             nll = model.compute_joint_nll(input_dataset, K=10, batch_size_K=2)
             assert nll >= 0
             assert type(nll) == torch.Tensor

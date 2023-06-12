@@ -244,13 +244,16 @@ class JNFDcca(BaseJointModel):
         mcmc_steps = kwargs.pop("mcmc_steps", 100)
         n_lf = kwargs.pop("n_lf", 10)
         eps_lf = kwargs.pop("eps_lf", 0.01)
-
+        return_mean = kwargs.pop("return_mean", False)
         if len(cond_mod) == self.n_modalities:
             output = self.joint_encoder(inputs.data)
             sample_shape = [] if N == 1 else [N]
-            z = dist.Normal(
-                output.embedding, torch.exp(0.5 * output.log_covariance)
-            ).rsample(sample_shape)
+            if return_mean:
+                z = torch.stack([output.embedding] * N) if N > 1 else output.embedding
+            else:
+                z = dist.Normal(
+                    output.embedding, torch.exp(0.5 * output.log_covariance)
+                ).rsample(sample_shape)
             if N > 1 and kwargs.pop("flatten", False):
                 N, l, d = z.shape
                 z = z.reshape(l * N, d)

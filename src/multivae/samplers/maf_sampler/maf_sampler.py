@@ -3,7 +3,7 @@ import shutil
 
 import torch
 from pythae.data.datasets import BaseDataset
-from pythae.models.normalizing_flows import IAF, IAFConfig, NFModel
+from pythae.models.normalizing_flows import MAF, MAFConfig, NFModel
 from pythae.trainers import BaseTrainer, BaseTrainerConfig
 from torch.distributions import MultivariateNormal
 from torch.nn import ModuleDict
@@ -14,10 +14,10 @@ from multivae.models.base import ModelOutput
 
 from ...models import BaseMultiVAE
 from ..base.base_sampler import BaseSampler
-from .iaf_sampler_config import IAFSamplerConfig
+from .maf_sampler_config import MAFSamplerConfig
 
 
-class IAFSampler(BaseSampler):
+class MAFSampler(BaseSampler):
     """Fits an Inverse Autoregressive Flow in the multimodal autoencoder's latent space.
     If the model has multiple latent spaces, we fit one flow per latent space.
 
@@ -33,11 +33,11 @@ class IAFSampler(BaseSampler):
         sampler before sampling.
     """
 
-    def __init__(self, model: BaseMultiVAE, sampler_config: IAFSamplerConfig = None):
+    def __init__(self, model: BaseMultiVAE, sampler_config: MAFSamplerConfig = None):
         self.is_fitted = False
 
         if sampler_config is None:
-            sampler_config = IAFSamplerConfig()
+            sampler_config = MAFSamplerConfig()
 
         BaseSampler.__init__(self, model=model, sampler_config=sampler_config)
 
@@ -54,7 +54,7 @@ class IAFSampler(BaseSampler):
                 torch.eye(self.flows_dims[key]).to(self.device),
             )
 
-            iaf_config = IAFConfig(
+            iaf_config = MAFConfig(
                 input_dim=(self.flows_dims[key],),
                 n_made_blocks=sampler_config.n_made_blocks,
                 n_hidden_in_made=sampler_config.n_hidden_in_made,
@@ -62,12 +62,12 @@ class IAFSampler(BaseSampler):
                 include_batch_norm=sampler_config.include_batch_norm,
             )
 
-            iaf_model = IAF(model_config=iaf_config)
+            iaf_model = MAF(model_config=iaf_config)
             self.flows_models[key] = NFModel(self.priors[key], iaf_model).to(
                 self.device
             )
 
-        self.name = "IAFsampler"
+        self.name = "MAFsampler"
 
     def fit(
         self, train_data, eval_data=None, training_config: BaseTrainerConfig = None
@@ -162,7 +162,7 @@ class IAFSampler(BaseSampler):
 
             trainer.train()
 
-            self.iaf_models[m] = IAF.load_from_folder(
+            self.iaf_models[m] = MAF.load_from_folder(
                 os.path.join(trainer.training_dir, "final_model")
             ).to(self.device)
 
