@@ -22,7 +22,18 @@ class Clustering(Evaluator):
 
     """
     Module to perform clustering in the latent space.
-    If labels are available, compute accuracies for the clusters.
+    The eval() function fits a k-means model on the training embeddings, then uses this model 
+    to classify the test_samples and returns a k-means accuracy for this prediction.
+    
+    Args:
+        model (BaseMultiVAE) : The model to evaluate.
+        test_dataset (MultimodalBaseDataset) : The dataset to use for computing the metrics.
+        train_dataset (MultimodalBaseDataset): The training dataset to fit the k-means.
+        output (str) : The folder path to save metrics. The metrics will be saved in a metrics.txt file.
+        eval_config (EvaluatorConfig) : The configuration class to specify parameters for the evaluation.
+        sampler (BaseSampler) : A custom sampler for sampling from the common latent space. If None is provided, samples
+            are generated from the prior. Not used in this module, just given to keep the API for evaluators modules.
+
     """
 
     def __init__(
@@ -44,7 +55,7 @@ class Clustering(Evaluator):
                 from sklearn.cluster import KMeans
             except:
                 raise ModuleNotFoundError(
-                    "scikit-learn must be installed to perform clustering."
+                    "scikit-learn must be installed to perform clustering. Run `pip install scikit-learn` to install it "
                 )
             self.clustering = KMeans(n_clusters=eval_config.n_clusters, max_iter=300)
 
