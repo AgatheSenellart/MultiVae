@@ -5,7 +5,7 @@ from PIL import Image
 from torch.utils.data import DataLoader
 from torchvision.utils import make_grid
 
-import wandb
+
 from multivae.data import MultimodalBaseDataset
 from multivae.data.datasets.utils import adapt_shape
 from multivae.data.utils import set_inputs_to_device
@@ -63,6 +63,7 @@ class Visualization(Evaluator):
             recon_image.save(os.path.join(self.output, "unconditional.png"))
 
         if self.wandb_run is not None:
+            import wandb
             self.wandb_run.log({"unconditional_generation": wandb.Image(recon_image)})
 
         return recon_image
@@ -102,6 +103,7 @@ class Visualization(Evaluator):
             )
 
         if self.wandb_run is not None:
+            import wandb
             self.wandb_run.log(
                 {f"conditional_from_subset_{subset}": wandb.Image(recon_image)}
             )
