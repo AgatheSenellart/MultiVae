@@ -255,16 +255,17 @@ class MMVAE(BaseMultiVAE):
     ):
         cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
 
-        return_mean = kwargs.pop('return_mean',False)
+        return_mean = kwargs.pop("return_mean", False)
         if all([s in self.encoders.keys() for s in cond_mod]):
-            
             if return_mean:
-                emb = torch.stack([self.encoders[mod](inputs.data[mod]).embedding for mod in cond_mod]).mean(0)
+                emb = torch.stack(
+                    [self.encoders[mod](inputs.data[mod]).embedding for mod in cond_mod]
+                ).mean(0)
                 if N > 1:
-                    z = torch.stack([emb]*N)
+                    z = torch.stack([emb] * N)
                 else:
                     z = emb
-                
+
             else:
                 # Choose one of the conditioning modalities at random
                 mod = np.random.choice(cond_mod)

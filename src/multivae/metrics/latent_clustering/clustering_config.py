@@ -1,7 +1,9 @@
+from typing import Literal
+
 from pydantic.dataclasses import dataclass
 
 from ..base.evaluator_config import EvaluatorConfig
-from typing import Literal
+
 
 @dataclass
 class ClusteringConfig(EvaluatorConfig):
@@ -26,15 +28,15 @@ class ClusteringConfig(EvaluatorConfig):
              Default to None.
          clustering_method (Literal['kmeans']) :  The method to use to cluster.
          n_clusters (int) :the number of clusters. Default to 10.
-         number_of_runs (int) : When computing accuracies, how many runs of clustering to perform to 
+         number_of_runs (int) : When computing accuracies, how many runs of clustering to perform to
             to compute the average accuracies. Default to 20.
          num-samples_for_fit (int) : Number of training samples to use to fit the clusters.
          use_mean (bool) : whether to use a sample or the mean of the encoding distribution. Default to True.
 
     """
 
-    clustering_method : Literal['kmeans'] = 'kmeans'
-    n_clusters : int = 10
+    clustering_method: Literal["kmeans"] = "kmeans"
+    n_clusters: int = 10
     number_of_runs: int = 20
-    num_samples_for_fit : int = None
-    use_mean : bool = True
+    num_samples_for_fit: int = None
+    use_mean: bool = True

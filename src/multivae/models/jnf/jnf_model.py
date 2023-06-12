@@ -180,13 +180,13 @@ class JNF(BaseJointModel):
 
         # Deal with incomplete datasets
         cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
-        return_mean = kwargs.pop('return_mean', False)
+        return_mean = kwargs.pop("return_mean", False)
         if len(cond_mod) == self.n_modalities:
             output = self.joint_encoder(inputs.data)
             sample_shape = [] if N == 1 else [N]
             if return_mean:
-                z = torch.stack([output.embedding]*N) if N> 1 else output.embedding
-            else :
+                z = torch.stack([output.embedding] * N) if N > 1 else output.embedding
+            else:
                 z = dist.Normal(
                     output.embedding, torch.exp(0.5 * output.log_covariance)
                 ).rsample(sample_shape)

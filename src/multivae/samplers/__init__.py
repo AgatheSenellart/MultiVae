@@ -11,5 +11,5 @@ __all__ = [
     "IAFSamplerConfig",
     "IAFSampler",
     "MAFSampler",
-    "MAFSamplerConfig"
+    "MAFSamplerConfig",
 ]

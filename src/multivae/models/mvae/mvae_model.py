@@ -227,15 +227,13 @@ class MVAE(BaseMultiVAE):
         sub_mu, sub_logvar = self.compute_mu_log_var_subset(inputs, cond_mod)
         sub_std = torch.exp(0.5 * sub_logvar)
         sample_shape = [N] if N > 1 else []
-        
-        return_mean = kwargs.pop('return_mean', False)
-        
+
+        return_mean = kwargs.pop("return_mean", False)
+
         if return_mean:
-            z = torch.stack([sub_mu]*N) if N> 1 else sub_mu
-        else :
-            z = dist.Normal(
-                    sub_mu, sub_std
-                ).rsample(sample_shape)
+            z = torch.stack([sub_mu] * N) if N > 1 else sub_mu
+        else:
+            z = dist.Normal(sub_mu, sub_std).rsample(sample_shape)
         flatten = kwargs.pop("flatten", False)
         if flatten:
             z = z.reshape(-1, self.latent_dim)
