@@ -379,8 +379,14 @@ class MoPoE(BaseMultiVAE):
         latents_subsets = self.inference(inputs)
 
         mu, log_var = latents_subsets["subsets"][key]
+        
         sample_shape = [N] if N > 1 else []
         if return_mean:
+            
+            if len(cond_mod) == self.n_modalities:
+                # joint posterior mean
+                mu = torch.stack([latents_subsets["subsets"][k][0] for k in latents_subsets["subsets"]]).mean(0)
+        
             z = torch.stack([mu]*N) if N> 1 else mu
         else :
             z = dist.Normal(
