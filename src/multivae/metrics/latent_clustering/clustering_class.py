@@ -6,7 +6,7 @@ from PIL import Image
 from torch.utils.data import DataLoader
 from torchvision.utils import make_grid
 
-import wandb
+
 from multivae.data import MultimodalBaseDataset
 from multivae.data.datasets.utils import adapt_shape
 from multivae.data.utils import set_inputs_to_device
