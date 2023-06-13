@@ -21,6 +21,15 @@ class Visualization(Evaluator):
 
     """
     Visualization Module for visualizing unconditional, conditional samples from models.
+    
+    Args:
+
+        model (BaseMultiVAE) : the model to evaluate. 
+        test_dataset (MultimodalBaseDataset) : the dataset to use for conditional image generation. 
+        output (str): the path where to save images and metrics. Default to None.
+        eval_config (VisualizationConfig) : The configuration file for this evaluation module. Optional.
+        sampler (BaseSampler) : The sampler to use for joint generation. Optional. If None is provided, 
+            the sampler is used. 
     """
 
     def __init__(
