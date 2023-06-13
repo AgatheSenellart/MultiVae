@@ -200,29 +200,6 @@ class JMVAE(BaseJointModel):
 
         return output
 
-    def sample_from_moe_subset(self, subset: list, data: dict):
-        """Sample z from the mixture of posteriors from the subset.
-        Torch no grad is activated, so that no gradient are computed during the forward pass of the encoders.
-
-        Args:
-            subset (list): the modalities to condition on
-            data (list): The data
-            K (int) : the number of samples per datapoint
-        """
-        # Choose randomly one modality for each sample
-        n_batch = len(data[list(data.keys())[0]])
-
-        indices = np.random.choice(subset, size=n_batch)
-        zs = torch.zeros((n_batch, self.latent_dim)).to(
-            data[list(data.keys())[0]].device
-        )
-
-        for m in subset:
-            with torch.no_grad():
-                encoder_output = self.encoders[m](data[m][indices == m])
-                mu, log_var = encoder_output.embedding, encoder_output.log_covariance
-                zs[indices == m] = dist.Normal(mu, torch.exp(0.5 * log_var)).rsample()
-        return zs
 
     def poe(self, mus_list, log_vars_list):
         mus = mus_list.copy()
