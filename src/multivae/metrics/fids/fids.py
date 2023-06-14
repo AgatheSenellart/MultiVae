@@ -231,7 +231,7 @@ class FIDEvaluator(Evaluator):
         Frechet distance for gen_mod.
         """
 
-        generate_function = lambda inputs, n_samples: self.model.encode(
+        generate_function = lambda n_samples, inputs: self.model.encode(
             inputs=inputs, cond_mod=subset
         )
         fd = self.get_frechet_distance(gen_mod, generate_function)
