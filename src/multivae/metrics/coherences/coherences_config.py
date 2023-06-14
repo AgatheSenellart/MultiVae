@@ -16,10 +16,11 @@ class CoherenceEvaluatorConfig(EvaluatorConfig):
             For an existing run (the training run), the info can be found in the training dir (in wandb_info.json)
             at the end of training (if wandb was used) or on the hugging_face webpage of the run.
             Otherwise the user can create a new wandb run and get the path with :
-                `
+                ```
                 import wandb
                 run = wandb.init(entity = your_entity, project=your_project)
                 wandb_path = run.path
+                ```
 
             If None are provided, the metrics are not logged on wandb.
             Default to None.

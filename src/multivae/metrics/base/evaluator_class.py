@@ -9,6 +9,7 @@ from multivae.models.base import BaseMultiVAE
 from multivae.samplers.base import BaseSampler
 
 from .evaluator_config import EvaluatorConfig
+import datetime
 
 
 class Evaluator:
@@ -57,18 +58,19 @@ class Evaluator:
                 )
 
     def set_logger(self, output):
-        logger = logging.getLogger()
-        logger.setLevel(logging.NOTSET)
+        evaluator_id = (
+            str(datetime.datetime.now())[0:19].replace(" ", "_").replace(":", "-")
+        )
+        logger = logging.getLogger(evaluator_id)
+        logger.setLevel(logging.INFO)
 
         # our first handler is a console handler
         self.console_handler = logging.StreamHandler()
-        self.console_handler.setLevel(logging.INFO)
         logger.addHandler(self.console_handler)
 
         # the second handler is a file handler
         if output is not None:
             self.file_handler = logging.FileHandler(output + "/metrics.log")
-            self.file_handler.setLevel(logging.INFO)
             logger.addHandler(self.file_handler)
 
         self.logger = logger
@@ -101,5 +103,6 @@ class Evaluator:
         self.logger.removeHandler(self.console_handler)
         if hasattr(self, "file_handler"):
             self.logger.removeHandler(self.file_handler)
+        
         if self.wandb_run is not None:
             self.wandb_run.finish()

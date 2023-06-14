@@ -9,6 +9,7 @@ from multivae.samplers.base import BaseSampler
 
 from ..base.evaluator_class import Evaluator
 from .coherences_config import CoherenceEvaluatorConfig
+from multivae.data.utils import set_inputs_to_device
 
 
 class CoherenceEvaluator(Evaluator):
@@ -86,10 +87,16 @@ class CoherenceEvaluator(Evaluator):
 
         accuracies = {}
         for batch in self.test_loader:
-            batch = MultimodalBaseDataset(
-                data={m: batch["data"][m].to(self.device) for m in batch["data"]},
-                labels=batch["labels"].to(self.device),
-            )
+            
+            if not hasattr(batch, 'labels'):
+                raise AttributeError("Cross-modal coherence can not be computed "
+                                     " on a dataset without labels")
+            elif batch.labels is None:
+                raise AttributeError("Cross-modal coherence can not be computed "
+                                     " on a dataset without labels, but the provided dataset"
+                                     " has None instead of tensor labels")
+            
+            batch = set_inputs_to_device(batch)
             pred_mods = [
                 m
                 for m in self.model.encoders
