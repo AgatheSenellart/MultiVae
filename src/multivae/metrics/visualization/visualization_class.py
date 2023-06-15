@@ -44,12 +44,14 @@ class Visualization(Evaluator):
         self.n_samples = eval_config.n_samples
         self.n_data_cond = eval_config.n_data_cond
 
-    def unconditional_samples(self):
+    def unconditional_samples(self, **kwargs):
+        device = kwargs.pop("device", "cuda" if torch.cuda.is_available() else "cpu")
         if self.sampler is None:
             samples = self.model.generate_from_prior(self.n_samples)
         else:
             samples = self.sampler.sample(self.n_samples)
-
+        from multivae.data.utils import set_inputs_to_device
+        samples = set_inputs_to_device(samples, device=device)
         images = self.model.decode(samples)
         recon, shape = adapt_shape(images)
 

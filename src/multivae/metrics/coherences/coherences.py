@@ -76,7 +76,7 @@ class CoherenceEvaluator(Evaluator):
             )
         return mean_accs, std_accs
 
-    def all_accuracies_from_subset(self, subset):
+    def all_accuracies_from_subset(self, subset, **kwargs):
         """
         Compute all the coherences generating from the modalities in subset to a modality
         that is not in subset.
@@ -84,7 +84,7 @@ class CoherenceEvaluator(Evaluator):
         Returns:
             dict, float : The dictionary of all coherences from subset, and the mean coherence
         """
-
+        device = kwargs.pop("device", "cuda" if torch.cuda.is_available() else "cpu")
         accuracies = {}
         for batch in self.test_loader:
             
@@ -96,7 +96,7 @@ class CoherenceEvaluator(Evaluator):
                                      " on a dataset without labels, but the provided dataset"
                                      " has None instead of tensor labels")
             
-            batch = set_inputs_to_device(batch)
+            batch = set_inputs_to_device(batch, device=device)
             pred_mods = [
                 m
                 for m in self.model.encoders
@@ -108,11 +108,11 @@ class CoherenceEvaluator(Evaluator):
                 pred_labels = torch.argmax(preds, dim=1)
                 try:
                     accuracies[f"subset_to_{pred_m}"] += torch.sum(
-                        pred_labels == batch.labels
+                        pred_labels.cpu() == batch.labels.cpu()
                     )
                 except:
                     accuracies[f"subset_to_{pred_m}"] = torch.sum(
-                        pred_labels == batch.labels
+                        pred_labels.cpu() == batch.labels.cpu()
                     )
 
         acc = {k: accuracies[k].cpu().numpy() / self.n_data for k in accuracies}
