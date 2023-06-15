@@ -10,7 +10,7 @@ class FIDEvaluatorConfig(EvaluatorConfig):
     Config class for the evaluation of the coherences module.
 
     Args:
-        batch_size (int) : The batch size to use in the evaluation.
+        batch_size (int) : The batch size to use in the evaluation. Default to 512
         wandb_path (str) : The user can provide the path of the wandb run with a
             format 'entity/projet_name/run_id' where the metrics should be logged.
             For an existing run (the training run), the info can be found in the training dir (in wandb_info.json)
