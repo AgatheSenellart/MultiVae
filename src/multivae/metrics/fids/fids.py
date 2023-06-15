@@ -242,7 +242,7 @@ class FIDEvaluator(Evaluator):
         self.metrics[f"Conditional FD from {subset} to {gen_mod}"] = fd
         return fd
 
-    def mvtcae_reproduce_fids(self, gen_mod):
+    def compute_all_conditional_fids(self, gen_mod):
         """
         For all subsets in modalities \gen mod, compute the FID when generating
         images from the subsets.
