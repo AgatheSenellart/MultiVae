@@ -4,12 +4,12 @@ Masked Autoregressive Flows
 
 
 .. automodule::
-   multivae.samplers.gaussian_mixture_sampler
+   multivae.samplers.maf_sampler
 
-.. autoclass:: multivae.samplers.GaussianMixtureSampler
+.. autoclass:: multivae.samplers.MAFSampler
    :members:
 
-.. autoclass:: multivae.metrics.GaussianMixtureSamplerConfig
+.. autoclass:: multivae.metrics.MAFSamplerConfig
    :members:
 
 
