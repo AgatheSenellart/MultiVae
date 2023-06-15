@@ -6,14 +6,14 @@ with open("README.md", "r", encoding="utf-8") as fh:
 setup(
     name="multivae",
     version="0.0.1",
-    author="Clement Chadebec (HekA team INRIA)",
-    author_email="clement.chadebec@inria.fr",
+    author="Agathe Senellart, Clement Chadebec",
+    author_email="agathe.senellart@inria.fr",
     description="Unifying Generative Multimodel Variational Autoencoders in Pytorch",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/clementchadebec/multimodal_vaes",
+    url="https://github.com/AgatheSenellart/MultiVae",
     project_urls={
-        "Bug Tracker": "https://github.com/clementchadebec/multimodal_vaes/issues"
+        "Bug Tracker": "https://github.com/AgatheSenellart/MultiVae/issues"
     },
     classifiers=[
         "Programming Language :: Python :: 3",
@@ -38,7 +38,8 @@ setup(
         "typing_extensions",
         "dataclasses>=0.6",
         "torchvision",
+        "pandas",
+        "nltk"
     ],
-    extras_require={':python_version == "3.7.*"': ["pickle5"]},
-    python_requires=">=3.7",
+    python_requires=">=3.8",
 )

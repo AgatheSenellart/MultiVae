@@ -12,6 +12,7 @@ Datasets
     base
     incomplete
     mnist_svhn
+    cub
 
 .. automodule::
     multivae.data.datasets
@@ -23,4 +24,5 @@ Available Datasets
     ~multivae.data.datasets.MultimodalBaseDataset
     ~multivae.data.datasets.IncompleteDataset
     ~multivae.data.datasets.MnistSvhn
+    ~multivae.data.datasets.CUB
     :nosignatures:

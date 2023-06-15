@@ -2,7 +2,20 @@
 
 
 <!-- Add buttons here -->
-[![codecov](https://codecov.io/gh/clementchadebec/multimodal_vaes/branch/main/graph/badge.svg?token=0077GYjHKo)](https://codecov.io/gh/clementchadebec/multimodal_vaes)
+<p align="center">
+ <a>
+	    <img src='https://img.shields.io/badge/python-3.8%2B-blueviolet' alt='Python' />
+	</a>
+	<a href='https://multivae.readthedocs.io/en/latest/?badge=latest'>
+    	<img src='https://readthedocs.org/projects/multivae/badge/?version=latest' alt='Documentation Status' />
+	</a>
+    <a href='https://opensource.org/licenses/Apache-2.0'>
+	    <img src='https://img.shields.io/github/license/clementchadebec/benchmark_VAE?color=blue' />
+	</a>
+    <a>
+	    <img src='https://img.shields.io/badge/code%20style-black-black' />
+	</a>
+</p>
 
 
 
@@ -29,19 +42,20 @@ It integrates model monitoring with [Wandb](https://wandb.ai) and a quick way to
 # Quickstart
 
 <!-- Add a demo for your project -->
-Install the library by running 
+Install the library by running:
 ```shell
 git clone https://github.com/AgatheSenellart/multimodal_vaes.git
 cd multimodal_vaes
 pip install .
 ```
-Load a dataset easily :
+
+Load a dataset easily:
 ```python
 from multivae.data.datasets import MnistSvhn
-train_set = train_set = MnistSvhn(data_path = 'your_data_path',split="train", download=True)
+train_set = train_set = MnistSvhn(data_path='your_data_path', split="train", download=True)
 
 ```
-Instantiate your favorite model :
+Instantiate your favorite model:
 ```python
 from multivae.models import MVTCAE, MVTCAEConfig
 model_config = MVTCAEConfig(
@@ -51,6 +65,7 @@ model = MVTCAE(model_config)
 
 ```
 Define a trainer and train the model !
+
 ```python
 training_config = BaseTrainerConfig(
     learning_rate=1e-3,
@@ -65,8 +80,13 @@ trainer = BaseTrainer(
 trainer.train()
 ```
 
-# Table of Contents
+# Documentation and Examples
 
+See https://multivae.readthedocs.io
+
+Several examples are provided in `examples/` - and a Getting Started notebook in `examples/tutorial_notebooks`.
+
+# Table of Contents
 
 - [Models available](#implemented-models)
 - [Quickstart](#quickstart)
@@ -97,18 +117,17 @@ See our tutorial Notebook at /examples/tutorial_notebooks/getting_started.ipynb 
 # Contribute
 [(Back to top)](#table-of-contents)
 
-If you want to contribute by adding models to the library, clone the repository and install it in editable mode by using the -e option
+If you want to contribute to the project, for instance by adding models to the library: clone the repository and install it in editable mode by using the -e option
 ```shell
 pip install -e .
 ```
-
 
 # Reproducibility statement
 
 All implemented models are validated by reproducing a key result of the paper. 
 
-
-
 # License
 [(Back to top)](#table-of-contents)
+
+Apache License 2.0
 
