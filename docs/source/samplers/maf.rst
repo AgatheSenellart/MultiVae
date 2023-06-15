@@ -1,5 +1,5 @@
 **********************************
-Gaussian Mixture Model 
+Masked Autoregressive Flows 
 **********************************
 
 
