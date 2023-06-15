@@ -1,15 +1,16 @@
 from itertools import combinations
+from typing import List
 
 import numpy as np
 import torch
 from pythae.models.base.base_utils import ModelOutput
 
 from multivae.data import MultimodalBaseDataset
+from multivae.data.utils import set_inputs_to_device
 from multivae.samplers.base import BaseSampler
 
 from ..base.evaluator_class import Evaluator
 from .coherences_config import CoherenceEvaluatorConfig
-from multivae.data.utils import set_inputs_to_device
 
 
 class CoherenceEvaluator(Evaluator):
@@ -46,6 +47,9 @@ class CoherenceEvaluator(Evaluator):
     def cross_coherences(self):
         """
         Computes all the coherences from one subset of modalities to another modality.
+
+        Returns:
+            float, float: The cross-coherences metric mean and std
         """
 
         modalities = list(self.model.encoders.keys())
@@ -76,27 +80,33 @@ class CoherenceEvaluator(Evaluator):
             )
         return mean_accs, std_accs
 
-    def all_accuracies_from_subset(self, subset):
+    def all_accuracies_from_subset(self, subset: List[str]):
         """
         Compute all the coherences generating from the modalities in subset to a modality
         that is not in subset.
 
+        Args:
+            subset (List[str]): The subset of modalities to consider.
+
         Returns:
             dict, float : The dictionary of all coherences from subset, and the mean coherence
         """
-
         accuracies = {}
         for batch in self.test_loader:
-            
-            if not hasattr(batch, 'labels'):
-                raise AttributeError("Cross-modal coherence can not be computed "
-                                     " on a dataset without labels")
+
+            if not hasattr(batch, "labels"):
+                raise AttributeError(
+                    "Cross-modal coherence can not be computed "
+                    " on a dataset without labels"
+                )
             elif batch.labels is None:
-                raise AttributeError("Cross-modal coherence can not be computed "
-                                     " on a dataset without labels, but the provided dataset"
-                                     " has None instead of tensor labels")
-            
-            batch = set_inputs_to_device(batch)
+                raise AttributeError(
+                    "Cross-modal coherence can not be computed "
+                    " on a dataset without labels, but the provided dataset"
+                    " has None instead of tensor labels"
+                )
+
+            batch = set_inputs_to_device(batch, device=self.device)
             pred_mods = [
                 m
                 for m in self.model.encoders
@@ -108,11 +118,11 @@ class CoherenceEvaluator(Evaluator):
                 pred_labels = torch.argmax(preds, dim=1)
                 try:
                     accuracies[f"subset_to_{pred_m}"] += torch.sum(
-                        pred_labels == batch.labels
+                        pred_labels.cpu() == batch.labels.cpu()
                     )
                 except:
                     accuracies[f"subset_to_{pred_m}"] = torch.sum(
-                        pred_labels == batch.labels
+                        pred_labels.cpu() == batch.labels.cpu()
                     )
 
         acc = {k: accuracies[k].cpu().numpy() / self.n_data for k in accuracies}
@@ -126,7 +136,11 @@ class CoherenceEvaluator(Evaluator):
     def joint_coherence(self):
         """
         Generate in all modalities from the prior and compute the percentage of samples where all modalities have the same
-        labels."""
+        labels.
+
+        Returns:
+            float: The joint coherence metric
+        """
 
         all_labels = torch.tensor([]).to(self.device)
         samples_to_generate = self.nb_samples_for_joint

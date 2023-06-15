@@ -200,7 +200,6 @@ class JMVAE(BaseJointModel):
 
         return output
 
-
     def poe(self, mus_list, log_vars_list):
         mus = mus_list.copy()
         log_vars = log_vars_list.copy()
@@ -241,7 +240,7 @@ class JMVAE(BaseJointModel):
         Return the estimated negative log-likelihood summed over the input batch.
         The negative log-likelihood is estimated using importance sampling.
 
-        Args :
+        Args:
             inputs : the data to compute the joint likelihood"""
 
         # First compute all the parameters of the joint posterior q(z|x,y)

@@ -14,6 +14,7 @@ Metrics
     coherences
     fids
     likelihoods
+    clustering
     
 Available Metrics
 -------------------------------------------
@@ -22,4 +23,5 @@ Available Metrics
     ~multivae.metrics.CoherenceEvaluator
     ~multivae.metrics.FIDEvaluator
     ~multivae.metrics.LikelihoodsEvaluator
+    ~multivae.metrics.Clustering
     :nosignatures:
