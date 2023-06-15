@@ -54,7 +54,7 @@ class BaseAEConfig(BaseConfig):
     Parameters:
         input_dim (tuple): The input_data dimension (channels X x_dim X y_dim)
         latent_dim (int): The latent space dimension. Default: None.
-        style_dim (int) : For models with private latent spaces for each modality.
+        style_dim (int) : For models with private latent spaces for each modality. Default: 0.
     """
 
     input_dim: Union[Tuple[int, ...], None] = None

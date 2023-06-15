@@ -1,3 +1,4 @@
+import datetime
 import logging
 from pathlib import Path
 
@@ -9,7 +10,6 @@ from multivae.models.base import BaseMultiVAE
 from multivae.samplers.base import BaseSampler
 
 from .evaluator_config import EvaluatorConfig
-import datetime
 
 
 class Evaluator:
@@ -103,6 +103,6 @@ class Evaluator:
         self.logger.removeHandler(self.console_handler)
         if hasattr(self, "file_handler"):
             self.logger.removeHandler(self.file_handler)
-        
+
         if self.wandb_run is not None:
             self.wandb_run.finish()

@@ -384,7 +384,7 @@ class MMVAEPlus(BaseMultiVAE):
         Return the estimated negative log-likelihood summed over the inputs.
         The negative log-likelihood is estimated using importance sampling.
 
-        Args :
+        Args:
             inputs : the data to compute the joint likelihood
 
         """

@@ -1,16 +1,17 @@
+import logging
 import math
 import os
+import tempfile
 from typing import Literal
 
 import numpy as np
 import torch
 from PIL import Image
 from pythae.data.datasets import DatasetOutput
-from torchvision.transforms import transforms
 from torchvision.datasets.utils import download_and_extract_archive
-import tempfile
+from torchvision.transforms import transforms
+
 from .base import MultimodalBaseDataset
-import logging
 
 logger = logging.getLogger(__name__)
 

@@ -21,8 +21,10 @@ class LikelihoodsEvaluator(Evaluator):
 
         model (BaseMultiVAE) : The model to evaluate.
         test_dataset (MultimodalBaseDataset) : The dataset to use for computing the metrics.
-        output (str) : The folder path to save metrics. The metrics will be saved in a metrics.txt file.
-        eval_config (EvaluatorConfig) : The configuration class to specify parameters for the evaluation.
+        output (str) : The folder path to save metrics. The metrics will be saved in a metrics.txt
+            file.
+        eval_config (EvaluatorConfig) : The configuration class to specify parameters for the
+            evaluation.
     """
 
     def __init__(

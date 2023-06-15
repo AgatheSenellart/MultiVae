@@ -8,7 +8,7 @@ class EvaluatorConfig(BaseConfig):
 
     Base config class for the evaluation modules.
 
-    Args :
+    Args:
         batch_size (int) : The batch size to use in the evaluation.
         wandb_path (str) : The user can provide the path of the wandb run with a
             format 'entity/projet_name/run_id' where the metrics should be logged.

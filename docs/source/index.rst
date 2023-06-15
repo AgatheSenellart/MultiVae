@@ -34,22 +34,22 @@ To install the latest version of this library run the following using ``pip``
 
 .. code-block:: bash
 
-   $ pip install git+https://github.com/clementchadebec/multimodal_vaes.git 
+   $ pip install git+https://github.com/AgatheSenellart/MultiVae.git
 
 or alternatively you can clone the github repo to access to tests, tutorials and scripts.
 
 .. code-block:: bash
 
-   $ git clone https://github.com/clementchadebec/multimodal_vaes.git
+   $ git clone https://github.com/AgatheSenellart/MultiVae.git
 
 and install the library
 
 .. code-block:: bash
 
-   $ cd multimodal_vaes
+   $ cd MultiVae
    $ pip install -e .
 
-If you clone the multimodal_vaes's repository you will access to  the following:
+If you clone the MultiVae's repository you will access to  the following:
 
 - ``docs``: The folder in which the documentation can be retrieved.
 - ``tests``: multivae's unit-testing using pytest.

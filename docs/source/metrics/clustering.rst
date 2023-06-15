@@ -4,7 +4,7 @@ Clustering
 
 
 .. automodule::
-   multivae.metrics.Clustering
+   multivae.metrics.latent_clustering
 
 .. autoclass:: multivae.metrics.ClusteringConfig
    :members:
