@@ -140,9 +140,11 @@ class FIDEvaluator(Evaluator):
 
     def calculate_frechet_distance(self, mu1, sigma1, mu2, sigma2, eps=1e-6):
         r"""Numpy implementation of the Frechet Distance.
-        The Frechet distance between two multivariate Gaussians :math:`X_1 \sim \mathcal{N}(\mu_1, C_1)`
+        The Frechet distance between two multivariate Gaussians :math:`X_1 \sim
+        \mathcal{N}(\mu_1, C_1)`
         and :math:`X_2 \sim \mathcal{N}(\mu_2, C_2)` is
-        :math:`d^2 = \lVert \mu_1 - \mu_2\rVert^2 + \mathrm{Tr}(C_1 + C_2 - 2\sqrt{(C_1\cdot C_2)})`.
+        :math:`d^2 = \lVert \mu_1 - \mu_2\rVert^2 + \mathrm{Tr}(C_1 + C_2 -
+        2\sqrt{(C_1\cdot C_2)})`.
         Stable version by Dougal J. Sutherland.
 
         Args:
@@ -200,6 +202,9 @@ class FIDEvaluator(Evaluator):
         """
         Generate data from prior or sampler fitted in the latent space
         and compute the FID for each modality.
+
+        Returns:
+            ~pythae.models.base.base_utils.ModelOutput: FIDs for all modalities.
         """
         output = dict()
         if self.sampler is None:
@@ -231,7 +236,7 @@ class FIDEvaluator(Evaluator):
         Frechet distance for gen_mod.
         """
 
-        generate_function = lambda inputs, n_samples: self.model.encode(
+        generate_function = lambda n_samples, inputs: self.model.encode(
             inputs=inputs, cond_mod=subset
         )
         fd = self.get_frechet_distance(gen_mod, generate_function)
@@ -242,7 +247,7 @@ class FIDEvaluator(Evaluator):
         self.metrics[f"Conditional FD from {subset} to {gen_mod}"] = fd
         return fd
 
-    def mvtcae_reproduce_fids(self, gen_mod):
+    def compute_all_conditional_fids(self, gen_mod):
         """
         For all subsets in modalities \gen mod, compute the FID when generating
         images from the subsets.

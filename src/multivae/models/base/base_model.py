@@ -39,9 +39,18 @@ def cross_entropy(input, target, eps=1e-6):
     @param eps: error to add (default: 1e-6)
     @return loss: torch.Tensor (size N)
     """
+    if isinstance(target, dict):
+        # converts to tokens proba instead of class id for text
+        _target = torch.zeros(input.shape[0] * input.shape[1], input.shape[-1]).to(
+            input.device
+        )
+        _target = _target.scatter(1, target["tokens"].reshape(-1, 1), 1)
+        input = input.reshape(input.shape[0] * input.shape[1], -1)
+    else:
+        _target = target
 
     log_input = F.log_softmax(input + eps, dim=-1)
-    loss = target * log_input
+    loss = _target * log_input
     return loss
 
 
@@ -397,6 +406,10 @@ class BaseMultiVAE(nn.Module):
             dir_path (str): The path where the model should be saved. If the path
                 path does not exist a folder will be created at the provided location.
         """
+        env_spec = EnvironmentConfig(
+            python_version=f"{sys.version_info[0]}.{sys.version_info[1]}"
+        )
+
         model_dict = {"model_state_dict": deepcopy(self.state_dict())}
 
         if not os.path.exists(dir_path):
@@ -406,6 +419,7 @@ class BaseMultiVAE(nn.Module):
             except FileNotFoundError as e:
                 raise e
 
+        env_spec.save_json(dir_path, "environment")
         self.model_config.save_json(dir_path, "model_config")
 
         for archi in self.model_config.custom_architectures:
@@ -521,16 +535,16 @@ class BaseMultiVAE(nn.Module):
             python_version = env_spec.python_version
             python_version_minor = python_version.split(".")[1]
 
-            if python_version_minor == "7" and sys.version_info[1] > 7:
+            if python_version_minor == "8" and sys.version_info[1] > 8:
                 raise LoadError(
-                    "Trying to reload a model saved with python3.7 with python3.8+. "
-                    "Please create a virtual env with python 3.7 to reload this model."
+                    "Trying to reload a model saved with python3.8 with python3.9+. "
+                    "Please create a virtual env with python 3.8 to reload this model."
                 )
 
-            elif int(python_version_minor) >= 8 and sys.version_info[1] == 7:
+            elif int(python_version_minor) >= 9 and sys.version_info[1] == 8:
                 raise LoadError(
-                    "Trying to reload a model saved with python3.8+ with python3.7. "
-                    "Please create a virtual env with python 3.8+ to reload this model."
+                    "Trying to reload a model saved with python3.9+ with python3.8. "
+                    "Please create a virtual env with python 3.9+ to reload this model."
                 )
 
     def compute_joint_nll(
@@ -724,7 +738,7 @@ class BaseMultiVAE(nn.Module):
 
         logger.info(f"Downloading {cls.__name__} files for rebuilding...")
 
-        # _ = hf_hub_download(repo_id=hf_hub_path, filename="environment.json")
+        _ = hf_hub_download(repo_id=hf_hub_path, filename="environment.json")
         config_path = hf_hub_download(repo_id=hf_hub_path, filename="model_config.json")
         dir_path = os.path.dirname(config_path)
 

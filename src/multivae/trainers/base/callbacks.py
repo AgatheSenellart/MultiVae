@@ -137,7 +137,7 @@ class CallbackHandler:
         cb_class = callback if isinstance(callback, type) else callback.__class__
         if cb_class in [c.__class__ for c in self.callbacks]:
             logger.warning(
-                f"You are adding a {cb_class} to the callbacks but there one is already used."
+                f"You are adding a {cb_class} to the callbacks but one is already used."
                 f" The current list of callbacks is\n: {self.callback_list}"
             )
         self.callbacks.append(cb)

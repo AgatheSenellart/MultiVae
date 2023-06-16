@@ -24,7 +24,7 @@ sys.path.insert(0, os.path.abspath("../../src/"))
 
 project = "multivae"
 copyright = "2023, Clement Chadebec"
-author = "Clement Chadebec & Agathe Sennellart"
+author = "Clement Chadebec & Agathe Senellart"
 
 # -- General configuration ---------------------------------------------------
 

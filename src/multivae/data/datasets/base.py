@@ -91,7 +91,7 @@ class IncompleteDataset(MultimodalBaseDataset):
         """
         # Select sample
         X = {modality: self.data[modality][index] for modality in self.data}
-        y = self.labels[index]
+        y = self.labels[index] if self.labels is not None else None
         m = {modality: self.masks[modality][index] for modality in self.masks}
 
         return DatasetOutput(data=X, labels=y, masks=m)

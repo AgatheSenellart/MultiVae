@@ -47,10 +47,10 @@ and install the library
 
 .. code-block:: bash
 
-   $ cd multimodal_vaes
+   $ cd MultiVae
    $ pip install -e .
 
-If you clone the multimodal_vaes's repository you will access to  the following:
+If you clone the MultiVae's repository you will access to  the following:
 
 - ``docs``: The folder in which the documentation can be retrieved.
 - ``tests``: multivae's unit-testing using pytest.

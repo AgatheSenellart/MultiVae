@@ -141,10 +141,8 @@ class MMVAEPlus(BaseMultiVAE):
         for cond_mod in self.encoders:
             output = self.encoders[cond_mod](inputs.data[cond_mod])
             mu, log_var = output.embedding, output.log_covariance
-            mu_style, log_var_style = (
-                output.style_embedding,
-                output.style_log_covariance,
-            )
+            mu_style = output.style_embedding
+            log_var_style = output.style_log_covariance
 
             sigma = self.log_var_to_std(log_var)
             sigma_style = self.log_var_to_std(log_var_style)
@@ -386,7 +384,7 @@ class MMVAEPlus(BaseMultiVAE):
         Return the estimated negative log-likelihood summed over the inputs.
         The negative log-likelihood is estimated using importance sampling.
 
-        Args :
+        Args:
             inputs : the data to compute the joint likelihood
 
         """

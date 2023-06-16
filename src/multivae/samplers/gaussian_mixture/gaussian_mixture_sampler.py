@@ -21,7 +21,9 @@ logger.setLevel(logging.INFO)
 
 
 class GaussianMixtureSampler(BaseSampler):
-    """Fits a Gaussian Mixture in the Multimodal Autoencoder's latent space.
+    """
+    
+    Fits a Gaussian Mixture in the Multimodal Autoencoder's latent space.
     If the model has several latent spaces, it fits a gaussian mixture per latent space.
 
     Args:
@@ -31,7 +33,7 @@ class GaussianMixtureSampler(BaseSampler):
 
     .. note::
 
-        The method :class:`~pythae.samplers.GaussianMixtureSampler.fit` must be called to fit the sampler
+        The method :class:`~multivae.samplers.GaussianMixtureSampler.fit` must be called to fit the sampler
         before sampling.
 
     """
@@ -131,7 +133,7 @@ class GaussianMixtureSampler(BaseSampler):
 
         if not self.is_fitted:
             raise ArithmeticError(
-                "The sampler needs to be fitted by calling smapler.fit() method"
+                "The sampler needs to be fitted by calling sampler.fit() method"
                 "before sampling."
             )
 

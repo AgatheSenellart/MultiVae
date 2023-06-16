@@ -105,41 +105,41 @@ def model(archi_and_config, request):
     return model
 
 
-# class Test_gmm_sampler():
+class Test_gmm_sampler():
 
 
-#     @pytest.fixture(params = [4,10])
-#     def sampler_config(self,request):
+    @pytest.fixture(params = [4,10])
+    def sampler_config(self,request):
 
-#         config = GaussianMixtureSamplerConfig(
-#             n_components=request.param
-#         )
+        config = GaussianMixtureSamplerConfig(
+            n_components=request.param
+        )
 
-#     @pytest.fixture
-#     def sampler(self,sampler_config, model):
+    @pytest.fixture
+    def sampler(self,sampler_config, model):
 
-#         sampler = GaussianMixtureSampler(model,sampler_config)
-#         return sampler
+        sampler = GaussianMixtureSampler(model,sampler_config)
+        return sampler
 
-#     def test_fit(self,sampler, dataset):
+    def test_fit(self,sampler, dataset):
 
-#         sampler.fit(dataset)
+        sampler.fit(dataset)
 
-#         assert hasattr(sampler, 'gmm')
-#         assert sampler.is_fitted
+        assert hasattr(sampler, 'gmm')
+        assert sampler.is_fitted
 
-#         if sampler.model.multiple_latent_spaces:
-#             assert hasattr(sampler, 'gmm')
+        if sampler.model.multiple_latent_spaces:
+            assert hasattr(sampler, 'gmm')
 
-#     def test_sample(self,sampler, dataset):
+    def test_sample(self,sampler, dataset):
 
-#         sampler.fit(dataset)
+        sampler.fit(dataset)
 
-#         output = sampler.sample(100)
+        output = sampler.sample(100)
 
-#         assert isinstance(output, ModelOutput)
-#         assert hasattr(output, 'z')
-#         assert output.z.shape == (100,sampler.model.latent_dim)
+        assert isinstance(output, ModelOutput)
+        assert hasattr(output, 'z')
+        assert output.z.shape == (100,sampler.model.latent_dim)
 
 
 class Test_iaf_sampler:
