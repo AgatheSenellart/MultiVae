@@ -546,13 +546,14 @@ class TestTraining:
         assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
 
     def test_compute_nll(self, model, dataset):
-        nll = model.compute_joint_nll(dataset, K=10, batch_size_K=2)
-        assert nll >= 0
-        assert type(nll) == torch.Tensor
-        assert nll.size() == torch.Size([])
+        if not hasattr(dataset, "masks"):
+            nll = model.compute_joint_nll(dataset, K=10, batch_size_K=2)
+            assert nll >= 0
+            assert type(nll) == torch.Tensor
+            assert nll.size() == torch.Size([])
 
-        cnll = model.cond_nll_from_subset(
-            dataset, ["mod1", "mod2"], ["mod3"], K=10, batch_size_k=2
-        )
-        assert type(cnll) == dict
-        assert "mod3" in cnll.keys()
+            cnll = model.cond_nll_from_subset(
+                dataset, ["mod1", "mod2"], ["mod3"], K=10, batch_size_k=2
+            )
+            assert type(cnll) == dict
+            assert "mod3" in cnll.keys()

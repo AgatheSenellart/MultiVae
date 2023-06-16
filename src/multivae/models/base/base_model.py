@@ -85,6 +85,8 @@ class BaseMultiVAE(nn.Module):
         self.n_modalities = model_config.n_modalities
         self.input_dims = model_config.input_dims
         self.reset_optimizer_epochs = []
+        self.multiple_latent_spaces = False  # Default value, this field must be changes
+        # in models using multiple latent spaces
 
         if encoders is None:
             if self.input_dims is None:
@@ -236,10 +238,32 @@ class BaseMultiVAE(nn.Module):
 
         """
 
-        if type(cond_mod) != list and cond_mod != "all":
-            raise AttributeError('cond_mod must be either a list or "all"')
+        # If the input cond_mod is a string : convert it to a list
+        if type(cond_mod) == str:
+            if cond_mod == "all":
+                cond_mod = list(self.encoders.keys())
+            elif cond_mod in self.encoders.keys():
+                cond_mod = [cond_mod]
+            else:
+                raise AttributeError(
+                    'If cond_mod is a string, it must either be "all" or a modality name'
+                    f" The provided string {cond_mod} is neither."
+                )
 
-        raise NotImplementedError("Must be defined in subclass.")
+        ignore_incomplete = kwargs.pop("ignore_incomplete", False)
+        # Deal with incomplete datasets
+        if hasattr(inputs, "masks") and not ignore_incomplete:
+            # Check that all modalities in cond_mod are available for all samples points.
+            mods_avail = torch.tensor(True)
+            for m in cond_mod:
+                mods_avail = torch.logical_and(mods_avail, inputs.masks[m])
+            if not torch.all(mods_avail):
+                raise AttributeError(
+                    "You tried to encode a incomplete dataset conditioning on",
+                    f"modalities {cond_mod}, but some samples are not available"
+                    "in all those modalities.",
+                )
+        return ModelOutput(cond_mod=cond_mod)
 
     def decode(self, embedding: ModelOutput, modalities: Union[list, str] = "all"):
         """Decode a latent variable z in all modalities specified in modalities.
@@ -272,7 +296,6 @@ class BaseMultiVAE(nn.Module):
                 outputs[m] = self.decoders[m](z).reconstruction
             return outputs
 
-    @torch.no_grad()
     def predict(
         self,
         inputs: MultimodalBaseDataset,
@@ -295,8 +318,15 @@ class BaseMultiVAE(nn.Module):
 
         """
         self.eval()
-
-        z = self.encode(inputs, cond_mod, N=N, flatten=True, **kwargs)
+        ignore_incomplete = kwargs.pop("ignore_incomplete", False)
+        z = self.encode(
+            inputs,
+            cond_mod,
+            N=N,
+            flatten=True,
+            ignore_incomplete=ignore_incomplete,
+            **kwargs,
+        )
         output = self.decode(z, gen_mod)
         n_data = len(z.z) // N
         if not flatten and N > 1:
@@ -376,6 +406,10 @@ class BaseMultiVAE(nn.Module):
             dir_path (str): The path where the model should be saved. If the path
                 path does not exist a folder will be created at the provided location.
         """
+        env_spec = EnvironmentConfig(
+            python_version=f"{sys.version_info[0]}.{sys.version_info[1]}"
+        )
+
         model_dict = {"model_state_dict": deepcopy(self.state_dict())}
 
         if not os.path.exists(dir_path):
@@ -385,6 +419,7 @@ class BaseMultiVAE(nn.Module):
             except FileNotFoundError as e:
                 raise e
 
+        env_spec.save_json(dir_path, "environment")
         self.model_config.save_json(dir_path, "model_config")
 
         for archi in self.model_config.custom_architectures:
@@ -500,16 +535,16 @@ class BaseMultiVAE(nn.Module):
             python_version = env_spec.python_version
             python_version_minor = python_version.split(".")[1]
 
-            if python_version_minor == "7" and sys.version_info[1] > 7:
+            if python_version_minor == "8" and sys.version_info[1] > 8:
                 raise LoadError(
-                    "Trying to reload a model saved with python3.7 with python3.8+. "
-                    "Please create a virtual env with python 3.7 to reload this model."
+                    "Trying to reload a model saved with python3.8 with python3.9+. "
+                    "Please create a virtual env with python 3.8 to reload this model."
                 )
 
-            elif int(python_version_minor) >= 8 and sys.version_info[1] == 7:
+            elif int(python_version_minor) >= 9 and sys.version_info[1] == 8:
                 raise LoadError(
-                    "Trying to reload a model saved with python3.8+ with python3.7. "
-                    "Please create a virtual env with python 3.8+ to reload this model."
+                    "Trying to reload a model saved with python3.9+ with python3.8. "
+                    "Please create a virtual env with python 3.9+ to reload this model."
                 )
 
     def compute_joint_nll(
@@ -703,7 +738,7 @@ class BaseMultiVAE(nn.Module):
 
         logger.info(f"Downloading {cls.__name__} files for rebuilding...")
 
-        # _ = hf_hub_download(repo_id=hf_hub_path, filename="environment.json")
+        _ = hf_hub_download(repo_id=hf_hub_path, filename="environment.json")
         config_path = hf_hub_download(repo_id=hf_hub_path, filename="model_config.json")
         dir_path = os.path.dirname(config_path)
 
@@ -753,7 +788,7 @@ class BaseMultiVAE(nn.Module):
         sample_shape = (
             [n_samples, self.latent_dim] if n_samples > 1 else [self.latent_dim]
         )
-        z = dist.Normal(0, 1).rsample(sample_shape)
+        z = dist.Normal(0, 1).rsample(sample_shape).to(self.device)
         return ModelOutput(z=z, one_latent_space=True)
 
     def cond_nll_from_subset(

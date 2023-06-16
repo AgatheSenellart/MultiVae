@@ -222,22 +222,18 @@ class MVAE(BaseMultiVAE):
         N: int = 1,
         **kwargs,
     ):
-        # If the input cond_mod is a string : convert it to a list
-        if type(cond_mod) == str:
-            if cond_mod == "all":
-                cond_mod = list(self.encoders.keys())
-            elif cond_mod in self.encoders.keys():
-                cond_mod = [cond_mod]
-            else:
-                raise AttributeError(
-                    'If cond_mod is a string, it must either be "all" or a modality name'
-                    f" The provided string {cond_mod} is neither."
-                )
+        cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
 
         sub_mu, sub_logvar = self.compute_mu_log_var_subset(inputs, cond_mod)
         sub_std = torch.exp(0.5 * sub_logvar)
         sample_shape = [N] if N > 1 else []
-        z = dist.Normal(sub_mu, sub_std).rsample(sample_shape)
+
+        return_mean = kwargs.pop("return_mean", False)
+
+        if return_mean:
+            z = torch.stack([sub_mu] * N) if N > 1 else sub_mu
+        else:
+            z = dist.Normal(sub_mu, sub_std).rsample(sample_shape)
         flatten = kwargs.pop("flatten", False)
         if flatten:
             z = z.reshape(-1, self.latent_dim)
@@ -252,7 +248,7 @@ class MVAE(BaseMultiVAE):
     ):
         """Computes the joint_negative_nll for a batch of inputs."""
 
-        # Then iter on each datapoint to compute the iwae estimate of ln(p(x))
+        # iter on each datapoint to compute the iwae estimate of ln(p(x))
         ll = 0
         n_data = len(inputs.data[list(inputs.data.keys())[0]])
         for i in range(n_data):
@@ -267,7 +263,7 @@ class MVAE(BaseMultiVAE):
                 ),
                 list(self.encoders.keys()),
             )
-            assert mu.shape == (1, self.latent_dim)
+
             sigma = torch.exp(0.5 * log_var)
             qz_xy = dist.Normal(mu, sigma)
 

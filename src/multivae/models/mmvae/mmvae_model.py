@@ -253,31 +253,30 @@ class MMVAE(BaseMultiVAE):
         N: int = 1,
         **kwargs,
     ):
-        # TODO : Deal with the case where you want to encode an incomplete dataset
+        cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
 
-        # If the input cond_mod is a string : convert it to a list
-        if type(cond_mod) == str:
-            if cond_mod == "all":
-                cond_mod = list(self.encoders.keys())
-            elif cond_mod in self.encoders.keys():
-                cond_mod = [cond_mod]
-            else:
-                raise AttributeError(
-                    'If cond_mod is a string, it must either be "all" or a modality name'
-                    f" The provided string {cond_mod} is neither."
-                )
-
+        return_mean = kwargs.pop("return_mean", False)
         if all([s in self.encoders.keys() for s in cond_mod]):
-            # Choose one of the conditioning modalities at random
-            mod = np.random.choice(cond_mod)
+            if return_mean:
+                emb = torch.stack(
+                    [self.encoders[mod](inputs.data[mod]).embedding for mod in cond_mod]
+                ).mean(0)
+                if N > 1:
+                    z = torch.stack([emb] * N)
+                else:
+                    z = emb
 
-            output = self.encoders[mod](inputs.data[mod])
+            else:
+                # Choose one of the conditioning modalities at random
+                mod = np.random.choice(cond_mod)
 
-            mu, log_var = output.embedding, output.log_covariance
-            sigma = self.log_var_to_std(log_var)
-            qz_x = self.post_dist(mu, sigma)
-            sample_shape = torch.Size([]) if N == 1 else torch.Size([N])
-            z = qz_x.rsample(sample_shape)
+                output = self.encoders[mod](inputs.data[mod])
+
+                mu, log_var = output.embedding, output.log_covariance
+                sigma = self.log_var_to_std(log_var)
+                qz_x = self.post_dist(mu, sigma)
+                sample_shape = torch.Size([]) if N == 1 else torch.Size([N])
+                z = qz_x.rsample(sample_shape)
 
             flatten = kwargs.pop("flatten", False)
             if flatten:
@@ -292,15 +291,12 @@ class MMVAE(BaseMultiVAE):
         Return the estimated negative log-likelihood summed over the inputs.
         The negative log-likelihood is estimated using importance sampling.
 
-        Args :
+        Args:
             inputs : the data to compute the joint likelihood
 
         """
 
-        logger.info(
-            "Started computing the negative log_likelihood on inputs. This function"
-            " can take quite a long time to run."
-        )
+        self.eval()
 
         # First compute all the parameters of the joint posterior q(z|x,y)
         post_params = []
@@ -387,5 +383,5 @@ class MMVAE(BaseMultiVAE):
 
     def generate_from_prior(self, n_samples, **kwargs):
         sample_shape = [n_samples] if n_samples > 1 else []
-        z = self.prior_dist(*self.pz_params).rsample(sample_shape)
+        z = self.prior_dist(*self.pz_params).rsample(sample_shape).to(self.device)
         return ModelOutput(z=z.squeeze(), one_latent_space=True)

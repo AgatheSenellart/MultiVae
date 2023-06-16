@@ -8,7 +8,9 @@ from torch.utils.data import DataLoader, TensorDataset
 from torchvision.transforms import Resize
 
 from multivae.data import MultimodalBaseDataset
+from multivae.data.utils import set_inputs_to_device
 from multivae.models.base import BaseMultiVAE
+from multivae.samplers import BaseSampler
 
 from ..base.evaluator_class import Evaluator
 from .fids_config import FIDEvaluatorConfig
@@ -68,6 +70,8 @@ class FIDEvaluator(Evaluator):
         test_dataset (MultimodalBaseDataset) : The dataset to use for computing the metrics.
         output (str) : The folder path to save metrics. The metrics will be saved in a metrics.txt file.
         eval_config (EvaluatorConfig) : The configuration class to specify parameters for the evaluation.
+        sampler (Basesampler) : The sampler used to generate from the latent space.
+            If None is provided, the latent codes are generated from prior. Default to None.
         custom_encoder (torch.nn.Module) : If you desire, you can provide our own embedding architecture to use
             instead of the InceptionV3 model to compute Fréchet Distances.
             By default, the pretrained InceptionV3 network is used. Default to None.
@@ -81,10 +85,11 @@ class FIDEvaluator(Evaluator):
         test_dataset,
         output=None,
         eval_config=FIDEvaluatorConfig(),
+        sampler: BaseSampler = None,
         custom_encoder=None,
         transform=None,
     ) -> None:
-        super().__init__(model, test_dataset, output, eval_config)
+        super().__init__(model, test_dataset, output, eval_config, sampler)
 
         if custom_encoder is not None:
             self.model_fd = custom_encoder
@@ -107,7 +112,7 @@ class FIDEvaluator(Evaluator):
         activations = [[], []]
 
         for batch in tqdm(self.test_loader):
-            batch.data = {m: batch.data[m].to(self.device) for m in batch.data}
+            batch = set_inputs_to_device(batch, self.device)
             # Compute activations for true data
             data = self.inception_transform(batch.data[mod]).to(self.device)
             pred = self.model_fd(data)
@@ -115,7 +120,7 @@ class FIDEvaluator(Evaluator):
             activations[0].append(pred)
 
             # Compute activations for generated data
-            latents = generate_latent_function(n_samples=len(pred), inputs=batch)
+            latents = generate_latent_function(len(pred), inputs=batch)
             latents.z = latents.z.to(self.device)
 
             samples = self.model.decode(latents, modalities=mod)
@@ -135,9 +140,11 @@ class FIDEvaluator(Evaluator):
 
     def calculate_frechet_distance(self, mu1, sigma1, mu2, sigma2, eps=1e-6):
         r"""Numpy implementation of the Frechet Distance.
-        The Frechet distance between two multivariate Gaussians :math:`X_1 \sim \mathcal{N}(\mu_1, C_1)`
+        The Frechet distance between two multivariate Gaussians :math:`X_1 \sim
+        \mathcal{N}(\mu_1, C_1)`
         and :math:`X_2 \sim \mathcal{N}(\mu_2, C_2)` is
-        :math:`d^2 = \lVert \mu_1 - \mu_2\rVert^2 + \mathrm{Tr}(C_1 + C_2 - 2\sqrt{(C_1\cdot C_2)})`.
+        :math:`d^2 = \lVert \mu_1 - \mu_2\rVert^2 + \mathrm{Tr}(C_1 + C_2 -
+        2\sqrt{(C_1\cdot C_2)})`.
         Stable version by Dougal J. Sutherland.
 
         Args:
@@ -191,18 +198,34 @@ class FIDEvaluator(Evaluator):
 
         return diff.dot(diff) + np.trace(sigma1) + np.trace(sigma2) - 2 * tr_covmean
 
-    def eval(self):
-        output = dict()
+    def unconditional_fids(self):
+        """
+        Generate data from prior or sampler fitted in the latent space
+        and compute the FID for each modality.
 
-        # Generate data from the prior and computes FID for each modality
-        generate_function = self.model.generate_from_prior
+        Returns:
+            ~pythae.models.base.base_utils.ModelOutput: FIDs for all modalities.
+        """
+        output = dict()
+        if self.sampler is None:
+            generate_function = self.model.generate_from_prior
+        else:
+            generate_function = self.sampler.sample
+
+        sampler_name = "prior" if self.sampler is None else self.sampler.name
         for mod in self.model.encoders:
             self.logger.info(f"Start computing FID for modality {mod}")
             fd = self.get_frechet_distance(mod, generate_function)
-            output[f"fd_{mod}"] = fd
-            self.logger.info(f"The FD for modality {mod} is {fd}")
-
+            output[f"fd_{mod}_sampler_{sampler_name}"] = fd
+            self.logger.info(
+                f"The FD for modality {mod} with sampler {sampler_name} is {fd}"
+            )
         self.metrics.update(output)
+
+        return ModelOutput(**output)
+
+    def eval(self):
+        self.unconditional_fids()
         self.log_to_wandb()
 
         return ModelOutput(**self.metrics)
@@ -213,7 +236,7 @@ class FIDEvaluator(Evaluator):
         Frechet distance for gen_mod.
         """
 
-        generate_function = lambda inputs, n_samples: self.model.encode(
+        generate_function = lambda n_samples, inputs: self.model.encode(
             inputs=inputs, cond_mod=subset
         )
         fd = self.get_frechet_distance(gen_mod, generate_function)
@@ -224,36 +247,7 @@ class FIDEvaluator(Evaluator):
         self.metrics[f"Conditional FD from {subset} to {gen_mod}"] = fd
         return fd
 
-    def compute_all_cond_fid_for_mod(self, gen_mod):
-        """
-        For all subsets in modalities/{gen mod}, compute the FID when generating
-        images from the subsets.
-        """
-
-        modalities = [k for k in self.model.encoders if k != gen_mod]
-        accs = []
-        for n in range(1, len(modalities) + 1):
-            subsets_of_size_n = combinations(
-                modalities,
-                n,
-            )
-            accs.append([])
-            for s in subsets_of_size_n:
-                s = list(s)
-                fd = self.compute_fid_from_conditional_generation(s, gen_mod)
-                accs[-1].append(fd)
-        mean_accs = [np.mean(l) for l in accs]
-        std_accs = [np.std(l) for l in accs]
-
-        self.logger.info(f"Mean subsets FDs for mod {gen_mod} :")
-        for i in range(len(mean_accs)):
-            self.logger.info(
-                f"Given {i+1} modalities : {mean_accs[i]} +- {std_accs[i]}"
-            )
-
-        return ModelOutput(mean_accs=mean_accs, std_accs=std_accs)
-
-    def mvtcae_reproduce_fids(self, gen_mod):
+    def compute_all_conditional_fids(self, gen_mod):
         """
         For all subsets in modalities \gen mod, compute the FID when generating
         images from the subsets.

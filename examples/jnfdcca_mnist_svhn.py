@@ -65,4 +65,3 @@ trainer.train()
 
 # data = set_inputs_to_device(eval_data[:100], device="cuda")
 # nll = model.compute_joint_nll(data)
-# print(nll)

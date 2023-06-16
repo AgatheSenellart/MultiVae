@@ -11,7 +11,7 @@ class MVTCAEConfig(BaseMultiVAEConfig):
     The code is based on the original implementation that can be found here :
     https://github.com/gr8joo/MVTCAE/blob/master/run_epochs.py
 
-    Args :
+    Args:
         n_modalities (int): The number of modalities. Default: None.
         latent_dim (int): The dimension of the latent space. Default: None.
         input_dims (dict[str,tuple]) : The modalities'names (str) and input shapes (tuple).

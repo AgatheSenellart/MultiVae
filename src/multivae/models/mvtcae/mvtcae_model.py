@@ -208,20 +208,7 @@ class MVTCAE(BaseMultiVAE):
         N: int = 1,
         **kwargs,
     ) -> ModelOutput:
-        # If the input cond_mod is a string : convert it to a list
-        if type(cond_mod) == str:
-            if cond_mod == "all":
-                cond_mod = list(self.encoders.keys())
-            elif cond_mod in self.encoders.keys():
-                cond_mod = [cond_mod]
-            else:
-                raise AttributeError(
-                    'If cond_mod is a string, it must either be "all" or a modality name'
-                    f" The provided string {cond_mod} is neither."
-                )
-
-        # If the dataset is incomplete, keep only the samples availables in all cond_mod
-        # modalities
+        cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
 
         # Only keep the relevant modalities for prediction
         cond_inputs = MultimodalBaseDataset(
@@ -231,7 +218,12 @@ class MVTCAE(BaseMultiVAE):
         latents_subsets = self.inference(cond_inputs)
         mu, log_var = latents_subsets["joint"]
         sample_shape = [N] if N > 1 else []
-        z = dist.Normal(mu, torch.exp(0.5 * log_var)).rsample(sample_shape)
+
+        return_mean = kwargs.pop("return_mean", False)
+        if return_mean:
+            z = torch.stack([mu] * N) if N > 1 else mu
+        else:
+            z = dist.Normal(mu, torch.exp(0.5 * log_var)).rsample(sample_shape)
         flatten = kwargs.pop("flatten", False)
         if flatten:
             z = z.reshape(-1, self.latent_dim)
@@ -244,18 +236,10 @@ class MVTCAE(BaseMultiVAE):
         K: int = 1000,
         batch_size_K: int = 100,
     ):
-        # Only keep the complete samples
-        all_modalities = list(self.encoders.keys())
-        if hasattr(inputs, "masks"):
-            filtered_inputs, filter = self._filter_inputs_with_masks(
-                inputs, all_modalities
-            )
-
-        else:
-            filtered_inputs = inputs
+        self.eval()
 
         # Compute the parameters of the joint posterior
-        mu, log_var = self.inference(filtered_inputs)["joint"]
+        mu, log_var = self.inference(inputs)["joint"]
 
         sigma = torch.exp(0.5 * log_var)
         qz_xy = dist.Normal(mu, sigma)
@@ -283,7 +267,9 @@ class MVTCAE(BaseMultiVAE):
                     x_m = inputs.data[mod][i]  # (nb_channels, w, h)
 
                     lpx_zs += (
-                        self.recon_log_probs[mod](recon, x_m)
+                        self.recon_log_probs[mod](
+                            recon, torch.stack([x_m] * len(recon))
+                        )
                         .reshape(recon.size(0), -1)
                         .sum(-1)
                     )

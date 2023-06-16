@@ -30,7 +30,7 @@ logger.setLevel(logging.INFO)
 class JNFDcca(BaseJointModel):
 
     """
-    The JNF model.
+    The JNFDcca model.
 
     Args:
 
@@ -239,27 +239,27 @@ class JNFDcca(BaseJointModel):
         N: int = 1,
         **kwargs,
     ) -> ModelOutput:
+        cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
+
         mcmc_steps = kwargs.pop("mcmc_steps", 100)
         n_lf = kwargs.pop("n_lf", 10)
         eps_lf = kwargs.pop("eps_lf", 0.01)
-
-        if type(cond_mod) == list and len(cond_mod) == 1:
-            cond_mod = cond_mod[0]
-
-        if cond_mod == "all" or (
-            type(cond_mod) == list and len(cond_mod) == self.n_modalities
-        ):
+        return_mean = kwargs.pop("return_mean", False)
+        if len(cond_mod) == self.n_modalities:
             output = self.joint_encoder(inputs.data)
             sample_shape = [] if N == 1 else [N]
-            z = dist.Normal(
-                output.embedding, torch.exp(0.5 * output.log_covariance)
-            ).rsample(sample_shape)
+            if return_mean:
+                z = torch.stack([output.embedding] * N) if N > 1 else output.embedding
+            else:
+                z = dist.Normal(
+                    output.embedding, torch.exp(0.5 * output.log_covariance)
+                ).rsample(sample_shape)
             if N > 1 and kwargs.pop("flatten", False):
                 N, l, d = z.shape
                 z = z.reshape(l * N, d)
             return ModelOutput(z=z, one_latent_space=True)
 
-        if type(cond_mod) == list and len(cond_mod) != 1:
+        elif len(cond_mod) != 1:
             z = self.sample_from_poe_subset(
                 cond_mod,
                 inputs.data,
@@ -275,7 +275,8 @@ class JNFDcca(BaseJointModel):
                 z = z.reshape(l * N, d)
             return ModelOutput(z=z, one_latent_space=True)
 
-        if cond_mod in self.modalities_name:
+        elif len(cond_mod) == 1:
+            cond_mod = cond_mod[0]
             dcca_embed = self.DCCA_module.networks[cond_mod](
                 inputs.data[cond_mod]
             ).embedding

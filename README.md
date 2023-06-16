@@ -44,8 +44,8 @@ It integrates model monitoring with [Wandb](https://wandb.ai) and a quick way to
 <!-- Add a demo for your project -->
 Install the library by running:
 ```shell
-git clone https://github.com/AgatheSenellart/multimodal_vaes.git
-cd multimodal_vaes
+git clone https://github.com/AgatheSenellart/MultiVae.git
+cd MultiVae
 pip install .
 ```
 
@@ -102,8 +102,8 @@ Several examples are provided in `examples/` - and a Getting Started notebook in
 
 
 ```shell
-git clone https://github.com/AgatheSenellart/multimodal_vaes.git
-cd multimodal_vaes
+git clone https://github.com/AgatheSenellart/MultiVae.git
+cd MultiVae
 pip install .
 ```
 

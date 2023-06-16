@@ -1,15 +1,24 @@
+import logging
 import math
 import os
+import tempfile
 from typing import Literal
 
 import numpy as np
 import torch
 from PIL import Image
 from pythae.data.datasets import DatasetOutput
+from torchvision.datasets.utils import download_and_extract_archive
 from torchvision.transforms import transforms
 
 from .base import MultimodalBaseDataset
 
+logger = logging.getLogger(__name__)
+
+# make it print to the console.
+console = logging.StreamHandler()
+logger.addHandler(console)
+logger.setLevel(logging.INFO)
 
 class MMNISTDataset(MultimodalBaseDataset):
     """
@@ -106,22 +115,13 @@ class MMNISTDataset(MultimodalBaseDataset):
             
     def __check_or_download_data__(self, data_path, unimodal_datapaths):
         # TODO : test this function
-        print(unimodal_datapaths[0])
         if not os.path.exists(unimodal_datapaths[0]) and self.download:
-            import zipfile
-            try :
-                import gdown
-            except:
-                raise AttributeError(
-                "The PolyMNIST dataset is not available at the"
-                " given datapath gdown is not installed; the data cannot be downloaded"
-            )
-
-            gdown.download(
-                    id="1vBYSCWpwrUlMsLrQrk-ValfwhxcCO4YM", output=data_path
-                )
-            with zipfile.ZipFile(os.path.join(data_path,'MMNIST.zip')) as zip_ref:
-                    zip_ref.extractall(data_path)
+            tempdir = tempfile.mkdtemp()
+            logger.info(f'Downloading the PolyMNIST dataset into {data_path}'
+                        ' Along with the dataset, the classifiers and inception networks are also downloaded.')
+            download_and_extract_archive(
+                url='https://zenodo.org/record/4899160/files/PolyMNIST.zip',
+                download_root=tempdir,extract_root=data_path)
             
         elif not os.path.exists(unimodal_datapaths[0]) and not self.download:
             raise AttributeError(

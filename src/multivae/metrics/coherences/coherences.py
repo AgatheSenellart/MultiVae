@@ -1,10 +1,13 @@
 from itertools import combinations
+from typing import List
 
 import numpy as np
 import torch
 from pythae.models.base.base_utils import ModelOutput
 
 from multivae.data import MultimodalBaseDataset
+from multivae.data.utils import set_inputs_to_device
+from multivae.samplers.base import BaseSampler
 
 from ..base.evaluator_class import Evaluator
 from .coherences_config import CoherenceEvaluatorConfig
@@ -21,6 +24,8 @@ class CoherenceEvaluator(Evaluator):
         test_dataset (MultimodalBaseDataset) : The dataset to use for computing the metrics.
         output (str) : The folder path to save metrics. The metrics will be saved in a metrics.txt file.
         eval_config (CoherencesEvaluatorConfig) : The configuration class to specify parameters for the evaluation.
+        sampler (BaseSampler) : A custom sampler for computing the joint coherence. If None is provided, samples
+            are generated from the prior.
     """
 
     def __init__(
@@ -30,8 +35,9 @@ class CoherenceEvaluator(Evaluator):
         test_dataset,
         output=None,
         eval_config=CoherenceEvaluatorConfig(),
+        sampler: BaseSampler = None,
     ) -> None:
-        super().__init__(model, test_dataset, output, eval_config)
+        super().__init__(model, test_dataset, output, eval_config, sampler)
         self.clfs = classifiers
         self.include_recon = eval_config.include_recon
         self.nb_samples_for_joint = eval_config.nb_samples_for_joint
@@ -41,6 +47,9 @@ class CoherenceEvaluator(Evaluator):
     def cross_coherences(self):
         """
         Computes all the coherences from one subset of modalities to another modality.
+
+        Returns:
+            float, float: The cross-coherences metric mean and std
         """
 
         modalities = list(self.model.encoders.keys())
@@ -71,21 +80,33 @@ class CoherenceEvaluator(Evaluator):
             )
         return mean_accs, std_accs
 
-    def all_accuracies_from_subset(self, subset):
+    def all_accuracies_from_subset(self, subset: List[str]):
         """
         Compute all the coherences generating from the modalities in subset to a modality
         that is not in subset.
 
+        Args:
+            subset (List[str]): The subset of modalities to consider.
+
         Returns:
             dict, float : The dictionary of all coherences from subset, and the mean coherence
         """
-
         accuracies = {}
         for batch in self.test_loader:
-            batch = MultimodalBaseDataset(
-                data={m: batch["data"][m].to(self.device) for m in batch["data"]},
-                labels=batch["labels"].to(self.device),
-            )
+
+            if not hasattr(batch, "labels"):
+                raise AttributeError(
+                    "Cross-modal coherence can not be computed "
+                    " on a dataset without labels"
+                )
+            elif batch.labels is None:
+                raise AttributeError(
+                    "Cross-modal coherence can not be computed "
+                    " on a dataset without labels, but the provided dataset"
+                    " has None instead of tensor labels"
+                )
+
+            batch = set_inputs_to_device(batch, device=self.device)
             pred_mods = [
                 m
                 for m in self.model.encoders
@@ -97,11 +118,11 @@ class CoherenceEvaluator(Evaluator):
                 pred_labels = torch.argmax(preds, dim=1)
                 try:
                     accuracies[f"subset_to_{pred_m}"] += torch.sum(
-                        pred_labels == batch.labels
+                        pred_labels.cpu() == batch.labels.cpu()
                     )
                 except:
                     accuracies[f"subset_to_{pred_m}"] = torch.sum(
-                        pred_labels == batch.labels
+                        pred_labels.cpu() == batch.labels.cpu()
                     )
 
         acc = {k: accuracies[k].cpu().numpy() / self.n_data for k in accuracies}
@@ -113,16 +134,35 @@ class CoherenceEvaluator(Evaluator):
         return acc, mean_pair_acc
 
     def joint_coherence(self):
-        """Generate in all modalities from the prior."""
+        """
+        Generate in all modalities from the prior and compute the percentage of samples where all modalities have the same
+        labels.
+
+        Returns:
+            float: The joint coherence metric
+        """
+
         all_labels = torch.tensor([]).to(self.device)
         samples_to_generate = self.nb_samples_for_joint
 
         # loop over batches
         while samples_to_generate > 0:
             batch_samples = min(self.batch_size, samples_to_generate)
-            output_prior = self.model.generate_from_prior(batch_samples)
+
+            if self.sampler is None:
+                output_prior = self.model.generate_from_prior(batch_samples)
+            else:
+                output_prior = self.sampler.sample(batch_samples)
+
             # set output to device
             output_prior.z = output_prior.z.to(self.device)
+            if not output_prior.one_latent_space:
+                for m in output_prior.modalities_z:
+                    output_prior.modalities_z[m] = output_prior.modalities_z[m].to(
+                        self.device
+                    )
+
+            # decode
             output_decode = self.model.decode(output_prior)
             labels = []
             for m in output_decode.keys():
@@ -136,8 +176,11 @@ class CoherenceEvaluator(Evaluator):
             samples_to_generate -= batch_samples
         joint_coherence = all_labels.mean()
 
-        self.logger.info(f"Joint coherence : {joint_coherence}")
-        self.metrics.update({"joint_coherence": joint_coherence})
+        sampler_name = "prior" if self.sampler is None else self.sampler.name
+        self.logger.info(
+            f"Joint coherence with sampler {sampler_name}: {joint_coherence}"
+        )
+        self.metrics.update({f"joint_coherence_{sampler_name}": joint_coherence})
         return joint_coherence
 
     def eval(self):

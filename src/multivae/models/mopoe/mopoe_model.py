@@ -34,7 +34,7 @@ class MoPoE(BaseMultiVAE):
         super().__init__(model_config, encoders, decoders)
 
         self.beta = model_config.beta
-        self.use_modality_specific_spaces = model_config.use_modality_specific_spaces
+        self.multiple_latent_spaces = model_config.use_modality_specific_spaces
         self.model_name = "MoPoE"
 
         list_subsets = self.model_config.subsets
@@ -167,7 +167,7 @@ class MoPoE(BaseMultiVAE):
         for m_key in self.encoders.keys():
             # reconstruct this modality from the shared embeddings representation
 
-            if self.use_modality_specific_spaces:
+            if self.multiple_latent_spaces:
                 try:
                     style_embeddings = latents["modalities"][m_key].style_embedding
                     full_embedding = torch.cat(
@@ -204,7 +204,7 @@ class MoPoE(BaseMultiVAE):
             loss += results["recon_" + m_key]
 
             # If using modality specific latent spaces, add modality specific klds
-            if self.use_modality_specific_spaces:
+            if self.multiple_latent_spaces:
                 style_mu = latents["modalities"][m_key].style_embedding
                 style_log_var = latents["modalities"][m_key].style_log_covariance
                 style_kld = -0.5 * (
@@ -367,23 +367,11 @@ class MoPoE(BaseMultiVAE):
         N: int = 1,
         **kwargs,
     ) -> ModelOutput:
-        # TODO : deal with the case where you want to encode
-        # an incomplete dataset
-
-        # If the input cond_mod is a string : convert it to a list
-        if type(cond_mod) == str:
-            if cond_mod == "all":
-                cond_mod = list(self.encoders.keys())
-            elif cond_mod in self.encoders.keys():
-                cond_mod = [cond_mod]
-            else:
-                raise AttributeError(
-                    'If cond_mod is a string, it must either be "all" or a modality name'
-                    f" The provided string {cond_mod} is neither."
-                )
+        cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
 
         # Compute the str associated to the subset
         key = "_".join(sorted(cond_mod))
+        return_mean = kwargs.pop("return_mean", False)
 
         # If the dataset is incomplete, keep only the samples availables in all cond_mod
         # modalities
@@ -391,13 +379,27 @@ class MoPoE(BaseMultiVAE):
         latents_subsets = self.inference(inputs)
 
         mu, log_var = latents_subsets["subsets"][key]
+
         sample_shape = [N] if N > 1 else []
-        z = dist.Normal(mu, torch.exp(0.5 * log_var)).rsample(sample_shape)
+        if return_mean:
+            if len(cond_mod) == self.n_modalities:
+                # joint posterior mean
+                mu = torch.stack(
+                    [
+                        latents_subsets["subsets"][k][0]
+                        for k in latents_subsets["subsets"]
+                    ]
+                ).mean(0)
+
+            z = torch.stack([mu] * N) if N > 1 else mu
+        else:
+            z = dist.Normal(mu, torch.exp(0.5 * log_var)).rsample(sample_shape)
+
         flatten = kwargs.pop("flatten", False)
         if flatten:
             z = z.reshape(-1, self.latent_dim)
 
-        if self.use_modality_specific_spaces:
+        if self.multiple_latent_spaces:
             modalities_z = dict()
             for m in self.encoders:
                 if m in cond_mod:
@@ -492,7 +494,10 @@ class MoPoE(BaseMultiVAE):
         self.eval()
 
         # Compute the parameters of the joint posterior
-        mu, log_var = self.inference(inputs)["joint"]
+        infer = self.inference(inputs)
+        mu, log_var = infer["joint"]
+        mus_subset = infer["mus"]
+        log_vars_subset = infer["logvars"]
 
         sigma = torch.exp(0.5 * log_var)
         qz_xy = dist.Normal(mu, sigma)
@@ -529,9 +534,18 @@ class MoPoE(BaseMultiVAE):
                 prior = dist.Normal(0, 1)
                 lpz = prior.log_prob(latents).sum(dim=-1)
 
-                # Compute posteriors -ln(q(z|x,y))
-                qz_xy = dist.Normal(mu[i], sigma[i])
-                lqz_xy = qz_xy.log_prob(latents).sum(dim=-1)
+                # Compute posteriors -ln(q(z|x,y) = -ln (1/S \sum q(z|x_s))
+
+                qz_xs = [
+                    dist.Normal(
+                        mus_subset[j][i], torch.exp(0.5 * log_vars_subset[j][i])
+                    )
+                    for j in range(len(mus_subset))
+                ]
+                lqz_xs = torch.stack([q.log_prob(latents).sum(-1) for q in qz_xs])
+                lqz_xy = torch.logsumexp(lqz_xs, dim=0) - np.log(
+                    len(lqz_xs)
+                )  # log_mean_exp
 
                 ln_px = torch.logsumexp(lpx_zs + lpz - lqz_xy, dim=0)
                 lnpxs.append(ln_px)

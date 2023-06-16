@@ -178,23 +178,24 @@ class JNF(BaseJointModel):
         n_lf = kwargs.pop("n_lf", 10)
         eps_lf = kwargs.pop("eps_lf", 0.01)
 
-        if type(cond_mod) == list and len(cond_mod) == 1:
-            cond_mod = cond_mod[0]
-
-        if cond_mod == "all" or (
-            type(cond_mod) == list and len(cond_mod) == self.n_modalities
-        ):
+        # Deal with incomplete datasets
+        cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
+        return_mean = kwargs.pop("return_mean", False)
+        if len(cond_mod) == self.n_modalities:
             output = self.joint_encoder(inputs.data)
             sample_shape = [] if N == 1 else [N]
-            z = dist.Normal(
-                output.embedding, torch.exp(0.5 * output.log_covariance)
-            ).rsample(sample_shape)
+            if return_mean:
+                z = torch.stack([output.embedding] * N) if N > 1 else output.embedding
+            else:
+                z = dist.Normal(
+                    output.embedding, torch.exp(0.5 * output.log_covariance)
+                ).rsample(sample_shape)
             if N > 1 and kwargs.pop("flatten", False):
                 N, l, d = z.shape
                 z = z.reshape(l * N, d)
             return ModelOutput(z=z, one_latent_space=True)
 
-        if type(cond_mod) == list and len(cond_mod) != 1:
+        elif len(cond_mod) != 1:
             z = self.sample_from_poe_subset(
                 cond_mod,
                 inputs.data,
@@ -210,7 +211,8 @@ class JNF(BaseJointModel):
                 z = z.reshape(l * N, d)
             return ModelOutput(z=z, one_latent_space=True)
 
-        if cond_mod in self.modalities_name:
+        elif len(cond_mod) == 1:
+            cond_mod = cond_mod[0]
             output = self.encoders[cond_mod](inputs.data[cond_mod])
             sample_shape = [] if N == 1 else [N]
 
@@ -359,15 +361,9 @@ class JNF(BaseJointModel):
             grad.append(g[0].detach().cpu())
 
             H0 = -ln_q_zxs + 0.5 * torch.norm(rho, dim=1) ** 2
-            # print(H0)
-            # print(model.G_inv(z).det())
-            for k in range(n_lf):
-                # z = z.clone().detach().requires_grad_(True)
-                # log_det = G(z).det().log()
 
-                # g = torch.zeros(n_samples, model.latent_dim).cuda()
-                # for i in range(n_samples):
-                #    g[0] = -grad(log_det, z)[0][0]
+            for k in range(n_lf):
+
 
                 # step 1
                 rho_ = rho - (eps_lf / 2) * (-g)
@@ -375,19 +371,11 @@ class JNF(BaseJointModel):
                 # step 2
                 z = z + eps_lf * rho_
 
-                # z_ = z_.clone().detach().requires_grad_(True)
-                # log_det = 0.5 * G(z).det().log()
-                # log_det = G(z_).det().log()
-
-                # g = torch.zeros(n_samples, model.latent_dim).cuda()
-                # for i in range(n_samples):
-                #    g[0] = -grad(log_det, z_)[0][0]
 
                 # Compute the updated gradient
                 ln_q_zxs, g = self.compute_poe_posterior(subset, z, data, divide_prior)
 
-                # print(g)
-                # g = (Sigma_inv @ (z - mu).T).reshape(n_samples, 2)
+
 
                 # step 3
                 rho__ = rho_ - (eps_lf / 2) * (-g)
@@ -399,12 +387,9 @@ class JNF(BaseJointModel):
                 # beta_sqrt_old = beta_sqrt
 
             H = -ln_q_zxs + 0.5 * torch.norm(rho, dim=1) ** 2
-            # print(H, H0)
 
             alpha = torch.exp(H0 - H)
-            # print(alpha)
 
-            # print(-log_pi(best_model, z, best_model.G), 0.5 * torch.norm(rho, dim=1) ** 2)
             acc = torch.rand(n_samples).to(device)
             moves = (acc < alpha).type(torch.int).reshape(n_samples, 1)
 
@@ -419,9 +404,6 @@ class JNF(BaseJointModel):
             ax.plot(pos[:, 0], pos[:, 1])
             ax.quiver(pos[:, 0], pos[:, 1], grad[:, 0], grad[:, 1])
 
-            # plt.savefig('monitor_hmc.png')
-        # 1/0
-        # print(acc_nbr[:10] / mcmc_steps)
         sh = (n_data, self.latent_dim) if K == 1 else (K, n_data, self.latent_dim)
         z = z.detach().resize(*sh)
         return z.detach()

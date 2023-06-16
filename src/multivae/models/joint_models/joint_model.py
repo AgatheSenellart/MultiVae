@@ -72,15 +72,10 @@ class BaseJointModel(BaseMultiVAE):
         Return the estimated negative log-likelihood summed over the input batch.
         The negative log-likelihood is estimated using importance sampling.
 
-        Args :
+        Args:
             inputs : the data to compute the joint likelihood"""
 
         # First compute all the parameters of the joint posterior q(z|x,y)
-
-        logger.info(
-            "Started computing the negative log_likelihood on inputs. This function"
-            " can take quite a long time to run."
-        )
 
         joint_output = self.joint_encoder(inputs.data)
         mu, log_var = joint_output.embedding, joint_output.log_covariance
