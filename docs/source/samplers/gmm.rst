@@ -9,7 +9,7 @@ Gaussian Mixture Model
 .. autoclass:: multivae.samplers.GaussianMixtureSampler
    :members:
 
-.. autoclass:: multivae.metrics.GaussianMixtureSamplerConfig
+.. autoclass:: multivae.samplers.GaussianMixtureSamplerConfig
    :members:
 
 
