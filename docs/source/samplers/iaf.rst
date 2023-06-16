@@ -6,10 +6,10 @@ Inverse Autoregressive Flows
 .. automodule::
    multivae.samplers.iaf_sampler
 
-.. autoclass:: multivae.samplers.IAFSampler
+.. autoclass:: multivae.samplers.IAFSamplerConfig
    :members:
 
-.. autoclass:: multivae.metrics.IAFSamplerConfig
+.. autoclass:: multivae.samplers.IAFSampler
    :members:
 
 

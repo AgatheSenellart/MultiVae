@@ -6,10 +6,10 @@ Masked Autoregressive Flows
 .. automodule::
    multivae.samplers.maf_sampler
 
-.. autoclass:: multivae.samplers.MAFSampler
+.. autoclass:: multivae.samplers.MAFSamplerConfig
    :members:
 
-.. autoclass:: multivae.metrics.MAFSamplerConfig
+.. autoclass:: multivae.samplers.MAFSampler
    :members:
 
 

@@ -4,7 +4,7 @@ Visualization
 
 
 .. automodule::
-   multivae.metrics.Visualization
+   multivae.metrics.visualization
 
 .. autoclass:: multivae.metrics.VisualizationConfig
    :members:
