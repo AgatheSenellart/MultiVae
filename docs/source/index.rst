@@ -4,7 +4,7 @@
    contain the root `toctree` directive.
 
 **********************************
-Welcome to multivae's documentation!
+Welcome to MultiVae's documentation!
 **********************************
 
 This library gathers some of the most common multi-modal Variational AutoEncoder (VAE)
@@ -20,11 +20,12 @@ implementation in PyTorch.
    datasets/multivae.datasets
    metrics/multivae.metrics
    trainers/multivae.trainers
+   samplers/multivae.samplers
 
 Setup
 ~~~~~~~~~~~~~
 
-To install the latest stable release of this library run the following using ``pip``
+To install the latest stable release of this library run the following :
 
 .. code-block:: bash
 
@@ -34,13 +35,13 @@ To install the latest version of this library run the following using ``pip``
 
 .. code-block:: bash
 
-   $ pip install git+https://github.com/clementchadebec/multimodal_vaes.git 
+   $ pip install git+https://github.com/AgatheSenellart/MultiVae.git 
 
 or alternatively you can clone the github repo to access to tests, tutorials and scripts.
 
 .. code-block:: bash
 
-   $ git clone https://github.com/clementchadebec/multimodal_vaes.git
+   $ git clone https://github.com/AgatheSenellart/MultiVae.git
 
 and install the library
 
