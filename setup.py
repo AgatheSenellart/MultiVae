@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="multivae",
-    version="0.0.1",
+    version="0.1.1",
     author="Agathe Senellart, Clement Chadebec",
     author_email="agathe.senellart@inria.fr",
     description="Unifying Generative Multimodel Variational Autoencoders in Pytorch",
