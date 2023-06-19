@@ -15,11 +15,14 @@
     <a>
 	    <img src='https://img.shields.io/badge/code%20style-black-black' />
 	</a>
+    <a href="https://codecov.io/gh/AgatheSenellart/MultiVae" > 
+        <img src="https://codecov.io/gh/AgatheSenellart/MultiVae/branch/main/graph/badge.svg?token=0077GYjHKo"/> 
+    </a>
 </p>
 
 
 
-<!-- Describe your project in brief -->
+
 
 This library implements some of the most common *Multimodal Variational Autoencoders* methods in a unifying framework for effective benchmarking and development. You can find the list of implemented models below.
 It includes ready to use datasets like MnistSvhn 🔢, CelebA 😎 and PolyMNIST, 
@@ -36,18 +39,24 @@ It integrates model monitoring with [Wandb](https://wandb.ai) and a quick way to
 |MMVAE|[Variational Mixture-of-Experts Autoencoders for Multi-Modal Deep Generative Models](https://proceedings.neurips.cc/paper/2019/hash/0ae775a8cb3b499ad1fca944e6f5c836-Abstract.html)|[link](https://github.com/iffsid/mmvae)|
 |MoPoE| [Generalized Multimodal ELBO](https://openreview.net/forum?id=5Y21V0RDBV)|[link](https://github.com/thomassutter/MoPoE)|
 |MVTCAE | [Multi-View Representation Learning via Total Correlation Objective](https://proceedings.neurips.cc/paper/2021/hash/65a99bb7a3115fdede20da98b08a370f-Abstract.html)|[link](https://github.com/gr8joo/MVTCAE/)|
-|JNF,JNF-DCCA| Improving Multimodal Joint Variational Autoencoders through Normalizing Flows and Correlation Analysis | link|
-|MMVAE + |MMVAE+: ENHANCING THE GENERATIVE QUALITY OF MULTIMODAL VAES WITHOUT COMPROMISES | [link](https://openreview.net/forum?id=sdQGxouELX)|
+|JNF,JNF-DCCA| [Improving Multimodal Joint Variational Autoencoders through Normalizing Flows and Correlation Analysis](https://arxiv.org/abs/2305.11832) | link|
+|MMVAE + |[MMVAE+: ENHANCING THE GENERATIVE QUALITY OF MULTIMODAL VAES WITHOUT COMPROMISES](https://openreview.net/forum?id=sdQGxouELX) | [link](https://openreview.net/forum?id=sdQGxouELX)|
 
 # Quickstart
 
-<!-- Add a demo for your project -->
 Install the library by running:
+
+```shell
+pip install multivae
+```
+or by cloning the repository:
+
 ```shell
 git clone https://github.com/AgatheSenellart/MultiVae.git
 cd MultiVae
 pip install .
 ```
+Cloning the repository gives you access to tutorial notebooks and scripts in the 'example' folder.
 
 Load a dataset easily:
 ```python

@@ -10,7 +10,7 @@ from torchvision.datasets import MNIST
 from .base import DatasetOutput, MultimodalBaseDataset
 
 
-class MnistLabels(MultimodalBaseDataset):
+class MnistLabels(MultimodalBaseDataset): # pragma: no cover
     def __init__(
         self, data_path: str, split: Literal["train", "test"] = "train",
         download=False,

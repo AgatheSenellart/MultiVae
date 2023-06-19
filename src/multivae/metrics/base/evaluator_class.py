@@ -93,7 +93,7 @@ class Evaluator:
             )
             return
 
-    def log_to_wandb(self):
+    def log_to_wandb(self): # pragma: no cover
         if self.wandb_run is not None:
             self.wandb_run.log(self.metrics)
 

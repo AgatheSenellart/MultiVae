@@ -22,7 +22,7 @@ console = logging.StreamHandler()
 logger.addHandler(console)
 logger.setLevel(logging.INFO)
 
-class CUB(MultimodalBaseDataset):
+class CUB(MultimodalBaseDataset): # pragma: no cover
     """
 
     A paired text img CUB dataset.
