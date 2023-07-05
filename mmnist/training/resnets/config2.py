@@ -146,7 +146,7 @@ class Enc(BaseEncoder):
             lv_w = self.fc_lv_w(out_w)
 
 
-            output['style_embedding'] = self.fc_mu_w(out_w),
+            output['style_embedding'] = self.fc_mu_w(out_w)
             output['style_log_covariance'] = lv_w
 
 
@@ -201,7 +201,7 @@ class Dec(BaseDecoder):
 
 base_training_config = dict(
     learning_rate=1e-3,
-    per_device_train_batch_size=256,
+    per_device_train_batch_size=128,
     num_epochs=500,
     optimizer_cls="Adam",
     optimizer_params={},
@@ -297,7 +297,7 @@ def eval_model(model, output_dir, train_data,test_data, wandb_path, seed):
     fid = FIDEvaluator(
         model, test_data, output=output_dir, eval_config=config
     )
-    fid.mvtcae_reproduce_fids(gen_mod="m0")
+    fid.compute_all_conditional_fids(gen_mod="m0")
     fid.finish()
     
     # Visualization

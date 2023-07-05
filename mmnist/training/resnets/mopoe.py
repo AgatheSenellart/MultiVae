@@ -38,7 +38,7 @@ trainer_config = BaseTrainerConfig(
     seed=args.seed,
     output_dir=f"compare_on_mmnist/{config_name}/{model.model_name}/seed_{args.seed}/missing_ratio_{args.missing_ratio}/",
 )
-trainer_config.num_epochs = 150 # enough for this model to reach convergence
+trainer_config.num_epochs = 500 # enough for this model to reach convergence
 trainer_config.learning_rate = 5e-4
 
 # Set up callbacks

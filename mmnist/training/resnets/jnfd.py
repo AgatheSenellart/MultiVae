@@ -29,7 +29,7 @@ model_config = JNFDccaConfig(
     latent_dim=128,
     warmup=200,
     nb_epochs_dcca=200,
-    embedding_dcca_dim=20,
+    embedding_dcca_dim=32,
 )
 
 dcca_networks = {

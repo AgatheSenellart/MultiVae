@@ -25,7 +25,7 @@ for model_name in models:
     results[model_name] = np.zeros((len(models[model_name]), 4))
     for i, model_instance in enumerate(models[model_name]):
         model = AutoModel.load_from_hf_hub(model_instance, allow_pickle=True)
-        fds = FIDEvaluator(model, test_set, output="./").mvtcae_reproduce_fids("m0")
+        fds = FIDEvaluator(model, test_set, output="./").compute_all_conditional_fids("m0")
         results[model_name][i] += fds.fids
 
 # config1

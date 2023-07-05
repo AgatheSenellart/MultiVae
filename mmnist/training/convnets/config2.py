@@ -148,4 +148,4 @@ def eval_model(model, output_dir, test_data, wandb_path):
 
     FIDEvaluator(
         model, test_data, output=output_dir, eval_config=config
-    ).mvtcae_reproduce_fids(gen_mod="m0")
+    ).compute_all_conditional_fids(gen_mod="m0")

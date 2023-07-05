@@ -95,7 +95,7 @@ if args.model_name == 'MVAE':
 
     FIDEvaluator(
             model, test_set, output=output_dir, eval_config=fid_config
-        ).mvtcae_reproduce_fids(gen_mod="m0")
+        ).compute_all_conditional_fids(gen_mod="m0")
 
 
 # Compute joint coherence from other samplers

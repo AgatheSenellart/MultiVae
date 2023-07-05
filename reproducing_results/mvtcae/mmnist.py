@@ -239,4 +239,4 @@ model = trainer._best_model
 
 coherences = CoherenceEvaluator(model, clfs, test_set, data_path).eval()
 
-fids = FIDEvaluator(model, test_set).mvtcae_reproduce_fids()
+fids = FIDEvaluator(model, test_set).compute_all_conditional_fids()

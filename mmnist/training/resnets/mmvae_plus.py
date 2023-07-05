@@ -39,11 +39,11 @@ model_config.latent_dim = 32
 
 
 encoders = {
-    m: Enc(model_config.modalities_specific_dim, ndim_u=model_config.latent_dim)
+    m: Enc(ndim_w = model_config.modalities_specific_dim, ndim_u=model_config.latent_dim)
     for m in modalities
 }
 decoders = {
-    m: Dec(model_config.latent_dim + model_config.modalities_specific_dim)
+    m: Dec(ndim = model_config.latent_dim + model_config.modalities_specific_dim)
     for m in modalities
 }
 
@@ -55,7 +55,9 @@ trainer_config = BaseTrainerConfig(
     output_dir=f"compare_on_mmnist/{config_name}/{model.model_name}/seed_{args.seed}/missing_ratio_{args.missing_ratio}/K_{model.K}",
 )
 trainer_config.per_device_train_batch_size = 32
-trainer_config.num_epochs = 70 if model.K==1 else 50 # enough for this model to reach convergence
+trainer_config.per_device_eval_batch_size = 32
+
+trainer_config.num_epochs = 150 if model.K==1 else 50 # enough for this model to reach convergence
 
 # Set up callbacks
 wandb_cb = WandbCallback()
