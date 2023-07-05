@@ -71,7 +71,11 @@ class JNF(BaseJointModel):
 
         self.model_name = "JNF"
         self.warmup = model_config.warmup
-        self.reset_optimizer_epochs = [self.warmup + 1]
+        self.two_steps_training = model_config.two_steps_training
+        if self.two_steps_training:
+            self.reset_optimizer_epochs = [self.warmup + 1]
+        else:
+            self.alpha = model_config.alpha
 
     def set_flows(self, flows: Dict[str, BaseNF]):
         # check that the keys corresponds with the encoders keys
@@ -129,44 +133,64 @@ class JNF(BaseJointModel):
         # Compute the KLD to the prior
         KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
 
-        if epoch <= self.warmup:
-            return ModelOutput(
-                recon_loss=recon_loss / len_batch,
-                KLD=KLD / len_batch,
-                loss=(recon_loss + KLD) / len_batch,
-                metrics=dict(kld_prior=KLD, recon_loss=recon_loss / len_batch, ljm=0),
-            )
+        if self.two_steps_training:
+            if epoch <= self.warmup:
+                return ModelOutput(
+                    # recon_loss=recon_loss / len_batch,
+                    # KLD=KLD / len_batch,
+                    loss=(recon_loss + KLD) / len_batch,
+                    metrics=dict(kld_prior=KLD, recon_loss=recon_loss / len_batch, ljm=0),
+                )
 
+            else:
+                self._set_torch_no_grad_on_joint_vae()
+                ljm = self.compute_ljm(inputs, z_joint)
+
+                return ModelOutput(
+                    # recon_loss=recon_loss / len_batch,
+                    # KLD=KLD / len_batch,
+                    loss=ljm / len_batch,
+                    # ljm=ljm / len_batch,
+                    metrics=dict(
+                        kld_prior=KLD,
+                        recon_loss=recon_loss / len_batch,
+                        ljm=ljm / len_batch,
+                    ),
+                )
+        
         else:
-            self._set_torch_no_grad_on_joint_vae()
-            ljm = 0
-            for mod in self.encoders:
-                mod_output = self.encoders[mod](inputs.data[mod])
-                mu0, log_var0 = mod_output.embedding, mod_output.log_covariance
-
-                sigma0 = torch.exp(0.5 * log_var0)
-                qz_x0 = dist.Normal(mu0, sigma0)
-
-                # Compute -ln q_\phi_mod(z_joint|x_mod)
-                flow_output = self.flows[mod](z_joint)
-                z0 = flow_output.out
-
-                ljm += -(
-                    qz_x0.log_prob(z0).sum(dim=-1) + flow_output.log_abs_det_jac
-                ).sum()
-
+            ljm = self.compute_ljm(inputs, z_joint)*self.alpha
+            beta = min(1,epoch/self.warmup)
             return ModelOutput(
-                recon_loss=recon_loss / len_batch,
-                KLD=KLD / len_batch,
-                loss=ljm / len_batch,
-                ljm=ljm / len_batch,
-                metrics=dict(
-                    kld_prior=KLD,
-                    recon_loss=recon_loss / len_batch,
-                    ljm=ljm / len_batch,
-                ),
-            )
+                    loss=(recon_loss + beta*(KLD+ljm)) / len_batch,
+                    metrics=dict(kld_prior=KLD, recon_loss=recon_loss / len_batch, ljm=ljm, beta=beta),
+                )
+            
 
+    def compute_ljm(self,inputs, z_joint):
+        """Compute the KL-divergence between unimodal posteriors and joint posterior.
+
+        Args:
+            inputs (MultimodalBaseDataset): the batch inputs
+            z_joint (tensor): The batch joint representation computed from the joint encoder.
+        """
+        ljm = 0
+        for mod in self.encoders:
+            mod_output = self.encoders[mod](inputs.data[mod])
+            mu0, log_var0 = mod_output.embedding, mod_output.log_covariance
+
+            sigma0 = torch.exp(0.5 * log_var0)
+            qz_x0 = dist.Normal(mu0, sigma0)
+
+            # Compute -ln q_\phi_mod(z_joint|x_mod)
+            flow_output = self.flows[mod](z_joint)
+            z0 = flow_output.out
+
+            ljm += -(
+                qz_x0.log_prob(z0).sum(dim=-1) + flow_output.log_abs_det_jac
+            ).sum()
+        return ljm
+    
     def encode(
         self,
         inputs: MultimodalBaseDataset,
