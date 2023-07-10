@@ -107,21 +107,23 @@ class Enc(BaseEncoder):
             nf0 = min(nf * 2**i, nf_max)
             nf1 = min(nf * 2 ** (i + 1), nf_max)
             blocks_w += [
-                # nn.MaxPool2d(3, stride=2, padding=1),
                 ResnetBlock(nf0, nf1),
             ]
             blocks_u += [
-                # nn.MaxPool2d(3, stride=2, padding=1),
                 ResnetBlock(nf0, nf1),
             ]
 
         if self.multiple_latent:
-            self.conv_img_w = nn.Conv2d(3, 1 * nf, 3, padding=1, bias=True)
+            self.conv_img_w = nn.Sequential(
+            nn.Conv2d(3, 1 * nf, 3,stride=2, padding=1, bias=True),
+            nn.Conv2d(nf, 1 * nf, 3,stride=2, padding=1, bias=True))
             self.resnet_w = nn.Sequential(*blocks_w)
             self.fc_mu_w = nn.Linear(self.nf0 * s0 * s0, ndim_w, bias=True)
             self.fc_lv_w = nn.Linear(self.nf0 * s0 * s0, ndim_w, bias=True)
 
-        self.conv_img_u = nn.Conv2d(3, 1 * nf, 3, padding=1, bias=True)
+        self.conv_img_u = nn.Sequential(
+            nn.Conv2d(3, 1 * nf, 3,stride=2, padding=1, bias=True),
+            nn.Conv2d(nf, 1 * nf, 3,stride=2, padding=1, bias=True))
         self.resnet_u = nn.Sequential(*blocks_u)
         self.fc_mu_u = nn.Linear(self.nf0 * s0 * s0, ndim_u,bias=True)
         self.fc_lv_u = nn.Linear(self.nf0 * s0 * s0, ndim_u,bias=True)
@@ -211,7 +213,7 @@ base_training_config = dict(
 )
 
 wandb_project = "compare_on_mmnist_resnet"
-config_name = "config_resnet"
+config_name = "config_adapted_resnets"
 
 
 #######################################

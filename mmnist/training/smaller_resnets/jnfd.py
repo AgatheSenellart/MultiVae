@@ -27,8 +27,8 @@ train_data, eval_data = random_split(
 model_config = JNFDccaConfig(
     **base_config,
     latent_dim=128,
-    warmup=30,
-    nb_epochs_dcca=30,
+    warmup=200,
+    nb_epochs_dcca=100,
     embedding_dcca_dim=32,
 )
 

@@ -1,7 +1,6 @@
 from config2 import *
 
-from multivae.models import JNFDcca, JNFDccaConfig
-from multivae.trainers import AddDccaTrainer, AddDccaTrainerConfig
+from multivae.models import MVTCAE, MVTCAEConfig
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--param_file", type=str)
@@ -17,40 +16,28 @@ train_data = MMNISTDataset(
     missing_ratio=args.missing_ratio,
     keep_incomplete=args.keep_incomplete,
 )
-
 test_data = MMNISTDataset(data_path="~/scratch/data", split="test")
 
 train_data, eval_data = random_split(
     train_data, [0.9, 0.1], generator=torch.Generator().manual_seed(args.seed)
 )
 
-model_config = JNFDccaConfig(
-    **base_config,
-    latent_dim=128,
-    warmup=30,
-    nb_epochs_dcca=30,
-    embedding_dcca_dim=32,
-)
+model_config = MVTCAEConfig(beta=2.5,
+                            alpha=5.0 / 6.0,
+                            latent_dim=512,
+                            **base_config)
 
-dcca_networks = {
-    k: Enc(ndim_w = 0,ndim_u=model_config.embedding_dcca_dim)
-    for k in modalities
-}
-
+encoders = {m : Enc(ndim_w=0,ndim_u=model_config.latent_dim) for m in modalities}
 decoders = {m : Dec(ndim=model_config.latent_dim) for m in modalities}
 
+model = MVTCAE(model_config, encoders=encoders, decoders=decoders)
 
-model = JNFDcca(model_config, dcca_networks=dcca_networks, decoders=decoders)
-
-trainer_config = AddDccaTrainerConfig(
+trainer_config = BaseTrainerConfig(
     **base_training_config,
-    learning_rate_dcca=1e-4,
-    per_device_dcca_train_batch_size=500,
-    per_device_dcca_eval_batch_size=500,
     seed=args.seed,
     output_dir=f"compare_on_mmnist/{config_name}/{model.model_name}/seed_{args.seed}/missing_ratio_{args.missing_ratio}/",
 )
-trainer_config.num_epochs = 600
+trainer_config.num_epochs = 300  # enough for this model to reach convergence
 
 # Set up callbacks
 wandb_cb = WandbCallback()
@@ -59,7 +46,7 @@ wandb_cb.run.config.update(args.__dict__)
 
 callbacks = [TrainingCallback(), ProgressBarCallback(), wandb_cb]
 
-trainer = AddDccaTrainer(
+trainer = BaseTrainer(
     model,
     train_dataset=train_data,
     eval_dataset=eval_data,
@@ -70,6 +57,7 @@ trainer.train()
 
 model = trainer._best_model
 save_model(model, args)
+
 ##################################################################################################################################
 # validate the model #############################################################################################################
 ##################################################################################################################################

@@ -1,7 +1,7 @@
 from config2 import *
+import numpy as np
 
-from multivae.models import JNFDcca, JNFDccaConfig
-from multivae.trainers import AddDccaTrainer, AddDccaTrainerConfig
+from multivae.models import MMVAEPlus, MMVAEPlusConfig
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--param_file", type=str)
@@ -24,33 +24,40 @@ train_data, eval_data = random_split(
     train_data, [0.9, 0.1], generator=torch.Generator().manual_seed(args.seed)
 )
 
-model_config = JNFDccaConfig(
+model_config = MMVAEPlusConfig(
     **base_config,
-    latent_dim=128,
-    warmup=30,
-    nb_epochs_dcca=30,
-    embedding_dcca_dim=32,
+    K=1,
+    prior_and_posterior_dist='laplace_with_softmax',
+    learn_shared_prior=False,
+    learn_modality_prior=True,
+    beta=2.5,
+    modalities_specific_dim=32,
+    reconstruction_option="joint_prior",
 )
+model_config.latent_dim = 32
 
-dcca_networks = {
-    k: Enc(ndim_w = 0,ndim_u=model_config.embedding_dcca_dim)
-    for k in modalities
+
+
+encoders = {
+    m: Enc(ndim_w = model_config.modalities_specific_dim, ndim_u=model_config.latent_dim)
+    for m in modalities
+}
+decoders = {
+    m: Dec(ndim = model_config.latent_dim + model_config.modalities_specific_dim)
+    for m in modalities
 }
 
-decoders = {m : Dec(ndim=model_config.latent_dim) for m in modalities}
+model = MMVAEPlus(model_config, encoders=encoders, decoders=decoders)
 
-
-model = JNFDcca(model_config, dcca_networks=dcca_networks, decoders=decoders)
-
-trainer_config = AddDccaTrainerConfig(
+trainer_config = BaseTrainerConfig(
     **base_training_config,
-    learning_rate_dcca=1e-4,
-    per_device_dcca_train_batch_size=500,
-    per_device_dcca_eval_batch_size=500,
     seed=args.seed,
-    output_dir=f"compare_on_mmnist/{config_name}/{model.model_name}/seed_{args.seed}/missing_ratio_{args.missing_ratio}/",
+    output_dir=f"compare_on_mmnist/{config_name}/{model.model_name}/seed_{args.seed}/missing_ratio_{args.missing_ratio}/K_{model.K}",
 )
-trainer_config.num_epochs = 600
+trainer_config.per_device_train_batch_size = 32
+trainer_config.per_device_eval_batch_size = 32
+
+trainer_config.num_epochs = 150 if model.K==1 else 50 # enough for this model to reach convergence
 
 # Set up callbacks
 wandb_cb = WandbCallback()
@@ -59,7 +66,7 @@ wandb_cb.run.config.update(args.__dict__)
 
 callbacks = [TrainingCallback(), ProgressBarCallback(), wandb_cb]
 
-trainer = AddDccaTrainer(
+trainer = BaseTrainer(
     model,
     train_dataset=train_data,
     eval_dataset=eval_data,
