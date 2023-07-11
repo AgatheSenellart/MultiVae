@@ -17,6 +17,7 @@ from multivae.models.nn.default_architectures import (
 
 from ..base import BaseMultiVAE
 from .mmvaePlus_config import MMVAEPlusConfig
+from .utils import split_inputs
 
 logger = logging.getLogger(__name__)
 console = logging.StreamHandler()
@@ -119,8 +120,43 @@ class MMVAEPlus(BaseMultiVAE):
             return F.softmax(log_var, dim=-1) * log_var.size(-1) + 1e-6
         else:
             return torch.exp(0.5 * log_var)
+        
+    
+    def forward(self, inputs:MultimodalBaseDataset, **kwargs):
+        
+        K = kwargs.pop('K', self.K)
 
-    def forward(self, inputs: MultimodalBaseDataset, **kwargs):
+        
+        if K == 1:
+            return self._forward(inputs, K= K, **kwargs)
+        
+        mini_batches = split_inputs(inputs,K)
+
+        output = self._forward(mini_batches[0], K=K,**kwargs)
+        if len(mini_batches) == 1:
+            return output
+        for mini_batch in mini_batches[1:]:
+            new_output = self._forward(mini_batch, **kwargs,K=K)
+            if hasattr(output, 'loss'):
+                output.loss += new_output.loss
+            if hasattr(output, 'zss'):
+                for k in output.zss:
+                    for j in output.zss[k] :
+                        output.zss[k][j] = torch.cat((output.zss[k][j], new_output.zss[k][j]), dim=1)
+            
+            if hasattr(output, 'reconstructions'):
+                for k in output.recon:
+                    for j in output.recon[k]:
+                        output.recon[k][j] = torch.cat((output.recon[k][j], new_output.recon[k][j]), dim=1)
+                        
+        return output
+            
+            
+            
+            
+        
+
+    def _forward(self, inputs: MultimodalBaseDataset, **kwargs):
         # TODO : maybe implement a minibatch strategy for stashing the gradients before
         # backpropagation when using a large number k.
         # Also, I've only implemented the dreg_looser loss but it may be nice to offer other options.
@@ -183,11 +219,8 @@ class MMVAEPlus(BaseMultiVAE):
                         mu_prior_mod,
                         sigma_prior_mod,
                     ).rsample([K])
-                    # print(w.shape)
-                    # print(u_x.shape,w.shape)
                     z_x = torch.cat([u_x, w], dim=-1)
                 # Decode
-                # print(z_x.shape)
                 decoder = self.decoders[recon_mod]
                 recon = decoder(z_x)["reconstruction"]
 
@@ -201,9 +234,7 @@ class MMVAEPlus(BaseMultiVAE):
 
         # Compute DREG loss
         if compute_loss:
-            # loss_output = self.dreg_looser(
-            #     qu_xs_detach, qw_xs_detach, embeddings, reconstructions, inputs
-            # )
+
             loss_output = self.dreg_looser(
                 qu_xs, qw_xs, embeddings, reconstructions, inputs
             )
@@ -237,8 +268,6 @@ class MMVAEPlus(BaseMultiVAE):
     def dreg_looser(self, qu_xs, qw_xs, embeddings, reconstructions, inputs):
         """
         The objective function used in the original implementation.
-        it is said to use the Dreg estimator but I am not sure it is done correctly since it doesn't
-        detach the parameters of the posteriors.
         """
 
         if hasattr(inputs, "masks"):

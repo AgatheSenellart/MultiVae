@@ -12,6 +12,7 @@ from multivae.data.datasets.base import MultimodalBaseDataset
 
 from ..base import BaseMultiVAE
 from .mmvae_config import MMVAEConfig
+from .utils import split_inputs
 
 logger = logging.getLogger(__name__)
 console = logging.StreamHandler()
@@ -95,8 +96,37 @@ class MMVAE(BaseMultiVAE):
         else:
             std = torch.exp(0.5 * self.prior_log_var)
         return mean, std
+    
+    
+    def forward(self, inputs:MultimodalBaseDataset, **kwargs):
+        
+        K = kwargs.pop('K', self.K)
 
-    def forward(self, inputs: MultimodalBaseDataset, **kwargs):
+        
+        if K == 1:
+            return self._forward(inputs, K= K, **kwargs)
+        
+        mini_batches = split_inputs(inputs,K)
+
+        output = self._forward(mini_batches[0], K=K,**kwargs)
+        if len(mini_batches) == 1:
+            return output
+        for mini_batch in mini_batches[1:]:
+            new_output = self._forward(mini_batch, **kwargs,K=K)
+            if hasattr(output, 'loss'):
+                output.loss += new_output.loss
+            if hasattr(output, 'zss'):
+                for k in output.zss:
+                    output.zss[k] = torch.cat((output.zss[k], new_output.zss[k]), dim=0)
+            
+            if hasattr(output, 'reconstructions'):
+                for k in output.recon:
+                    for j in output.recon[k]:
+                        output.recon[k][j] = torch.cat((output.recon[k][j], new_output.recon[k][j]), dim=0)
+                        
+        return output
+
+    def _forward(self, inputs: MultimodalBaseDataset, **kwargs):
         # TODO : maybe implement a minibatch strategy for stashing the gradients before
         # backpropagation when using a large number k.
         # Also, I've only implemented the dreg_looser loss but it may be nice to offer other options.
@@ -145,8 +175,7 @@ class MMVAE(BaseMultiVAE):
         else:
             loss_output = ModelOutput()
         if detailed_output:
-            loss_output["qz_xs"] = qz_xs
-            loss_output["qz_xs_detach"] = qz_xs_detach
+
             loss_output["zss"] = embeddings
             loss_output["recon"] = reconstructions
 

@@ -22,20 +22,20 @@ class Test_model:
     def dataset(self, request):
         # Create simple small dataset
         data = dict(
-            mod1=torch.Tensor([[1.0, 2.0], [4.0, 5.0]]),
-            mod2=torch.Tensor([[67.1, 2.3, 3.0], [1.3, 2.0, 3.0]]),
-            mod3=torch.Tensor([[37, 2, 4, 1], [8, 9, 7, 0]]),
-            mod4=torch.Tensor([[37, 2, 4, 1], [8, 9, 7, 0]]),
+            mod1=torch.Tensor([[1.0, 2.0], [4.0, 5.0],[4.0, 5.0]]),
+            mod2=torch.Tensor([[67.1, 2.3, 3.0], [1.3, 2.0, 3.0],[1.3, 2.0, 3.0]]),
+            mod3=torch.Tensor([[37, 2, 4, 1], [8, 9, 7, 0],[8, 9, 7, 0]]),
+            mod4=torch.Tensor([[37, 2, 4, 1], [8, 9, 7, 0],[8, 9, 7, 0]]),
         )
         labels = np.array([0, 1, 0, 0])
         if request.param == "complete":
             dataset = MultimodalBaseDataset(data, labels)
         else:
             masks = dict(
-                mod1=torch.Tensor([True, False]),
-                mod2=torch.Tensor([True, True]),
-                mod3=torch.Tensor([True, True]),
-                mod4=torch.Tensor([True, True]),
+                mod1=torch.Tensor([True, False, False]),
+                mod2=torch.Tensor([True, True, True]),
+                mod3=torch.Tensor([True, True, True]),
+                mod4=torch.Tensor([True, True, True]),
             )
             dataset = IncompleteDataset(data=data, masks=masks, labels=labels)
 
@@ -94,6 +94,16 @@ class Test_model:
         assert type(loss) == torch.Tensor
         assert loss.size() == torch.Size([])
         assert loss.requires_grad
+        
+        output = model(dataset, epoch=2, K=2,detailed_output = True)
+        loss = output.loss
+        assert type(loss) == torch.Tensor
+        assert loss.size() == torch.Size([])
+        assert loss.requires_grad
+        assert hasattr(output, 'zss')
+        assert len(output.zss['mod1']['u'][0]) == 3
+        assert hasattr(output, 'recon')
+
 
         # Try encoding and prediction
         outputs = model.encode(dataset[0])
@@ -105,13 +115,13 @@ class Test_model:
         embeddings = model.encode(dataset[0], N=2).z
         assert embeddings.shape == (2, 1, 5)
         embeddings = model.encode(dataset, cond_mod=["mod2"]).z
-        assert embeddings.shape == (2, 5)
+        assert embeddings.shape == (3, 5)
         embeddings = model.encode(dataset, cond_mod="mod3", N=10).z
-        assert embeddings.shape == (10, 2, 5)
+        assert embeddings.shape == (10, 3, 5)
         embeddings = model.encode(dataset, cond_mod=["mod2", "mod4"]).z
-        assert embeddings.shape == (2, 5)
+        assert embeddings.shape == (3, 5)
         embeddings = model.encode(dataset, ignore_incomplete=True).z
-        assert embeddings.shape == (2, 5)
+        assert embeddings.shape == (3, 5)
 
         if hasattr(dataset, "masks"):
             with pytest.raises(AttributeError):
@@ -121,23 +131,25 @@ class Test_model:
 
         Y = model.predict(dataset, cond_mod="mod2")
         assert isinstance(Y, ModelOutput)
-        assert Y.mod1.shape == (2, 2)
-        assert Y.mod2.shape == (2, 3)
+        assert Y.mod1.shape == (3, 2)
+        assert Y.mod2.shape == (3, 3)
 
         Y = model.predict(dataset, cond_mod="mod2", ignore_incomplete=True)
         assert isinstance(Y, ModelOutput)
-        assert Y.mod1.shape == (2, 2)
-        assert Y.mod2.shape == (2, 3)
+        assert Y.mod1.shape == (3, 2)
+        assert Y.mod2.shape == (3, 3)
 
         Y = model.predict(dataset, cond_mod="mod2", N=10)
         assert isinstance(Y, ModelOutput)
-        assert Y.mod1.shape == (10, 2, 2)
-        assert Y.mod2.shape == (10, 2, 3)
+        assert Y.mod1.shape == (10, 3, 2)
+        assert Y.mod2.shape == (10, 3, 3)
 
         Y = model.predict(dataset, cond_mod="mod2", N=10, flatten=True)
         assert isinstance(Y, ModelOutput)
-        assert Y.mod1.shape == (2 * 10, 2)
-        assert Y.mod2.shape == (2 * 10, 3)
+        assert Y.mod1.shape == (3 * 10, 2)
+        assert Y.mod2.shape == (3 * 10, 3)
+        
+        
 
 
 class Test_backward_with_missing_inputs:
