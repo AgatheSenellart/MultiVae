@@ -2,6 +2,9 @@ from config2 import *
 
 from multivae.models import JNFDcca, JNFDccaConfig
 from multivae.trainers import AddDccaTrainer, AddDccaTrainerConfig
+from multivae.models.nn.default_architectures import MultipleHeadJointEncoder
+from multivae.models.nn.mmnist import Encoder_ResNet_VAE_MMNIST
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--param_file", type=str)
@@ -32,15 +35,24 @@ model_config = JNFDccaConfig(
     embedding_dcca_dim=32,
 )
 
-dcca_networks = {
+head_encoders = {
     k: Enc(ndim_w = 0,ndim_u=model_config.embedding_dcca_dim)
+    for k in modalities
+}
+
+joint_encoder = MultipleHeadJointEncoder(head_encoders, model_config)
+
+dcca_networks = {
+    k: Encoder_ResNet_VAE_MMNIST(BaseAEConfig(
+            latent_dim=model_config.embedding_dcca_dim, style_dim=0, input_dim=(3, 28, 28)
+        ))
     for k in modalities
 }
 
 decoders = {m : Dec(ndim=model_config.latent_dim) for m in modalities}
 
 
-model = JNFDcca(model_config, dcca_networks=dcca_networks, decoders=decoders)
+model = JNFDcca(model_config, dcca_networks=dcca_networks, decoders=decoders, joint_encoder=joint_encoder)
 
 trainer_config = AddDccaTrainerConfig(
     **base_training_config,

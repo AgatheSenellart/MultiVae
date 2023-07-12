@@ -11,7 +11,7 @@ from multivae.trainers.base.callbacks import (
 wandb_project = 'MHD'
 config_name = 'mhd_config_1'
 device = 'cpu'
-project_path = ''
+project_path = './experiments_results'
 
 base_config = dict(
     n_modalities=3,
@@ -24,18 +24,20 @@ base_trainer_config = dict(
     per_device_train_batch_size=128,
     per_device_eval_batch_size=128,
     num_epochs=500,
-    learning_rate = 1e-3
+    learning_rate = 1e-3,
+    steps_predict=5
+
 )
 
 from multivae.data.datasets.mhd import MHD
 from torch.utils.data import random_split
 import os
 
-train_set = MHD('../data/MHD/mhd_train.pt', modalities=['audio', 'trajectory', 'image'])
-test_set = MHD('../data/MHD/mhd_test.pt', modalities=['audio', 'trajectory', 'image'])
+train_set = MHD('/home/asenella/scratch/data/MHD/mhd_train.pt', modalities=['audio', 'trajectory', 'image'])
+test_set = MHD('/home/asenella/scratch/data/MHD/mhd_test.pt', modalities=['audio', 'trajectory', 'image'])
 
 
-classifiers_path = '../data/MHD/classifiers'
+classifiers_path = '/home/asenella/scratch/data/MHD/classifiers'
 
 classifiers = dict(
     image = Image_Classifier(),
@@ -58,11 +60,11 @@ for s in state_dicts:
     classifiers[s].eval()
     
 
-from multivae.metrics import CoherenceEvaluator, CoherenceEvaluatorConfig
+from multivae.metrics import CoherenceEvaluator, CoherenceEvaluatorConfig, FIDEvaluator, FIDEvaluatorConfig
 
-def eval(path,model, classifiers):
+def eval(path,model, classifiers, wandb_path):
     
-    coherence_config = CoherenceEvaluatorConfig(128)
+    coherence_config = CoherenceEvaluatorConfig(128, wandb_path=wandb_path)
     CoherenceEvaluator(
         model=model,
         classifiers=classifiers,
@@ -70,4 +72,12 @@ def eval(path,model, classifiers):
         output=path,
         eval_config=coherence_config
         ).eval()
+    
+    
+    config = FIDEvaluatorConfig(batch_size=512, wandb_path=wandb_path)
+
+    FIDEvaluator(
+        model, test_set, output=path, eval_config=config
+    ).compute_all_conditional_fids(gen_mod="image")
+    
     

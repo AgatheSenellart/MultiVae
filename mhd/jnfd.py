@@ -1,4 +1,4 @@
-from multivae.models import JNFConfig, JNF
+from multivae.models import JNFDccaConfig, JNFDcca
 from config import *
 from multivae.models.base import BaseAEConfig
 from multivae.trainers.base.callbacks import (
@@ -11,9 +11,10 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--seed", type=int)
 args = parser.parse_args()
 
-model_config = JNFConfig(
+model_config = JNFDccaConfig(
     **base_config,
-    warmup=200
+    warmup=200,
+    nb_epochs_dcca=100
 )
 
 encoders = dict(
@@ -29,11 +30,11 @@ decoders = dict(
 )
 
 
-model = JNF(model_config, encoders, decoders)
+model = JNF(model_config, dcca_networks=encoders, decoders=decoders)
 
-from multivae.trainers import TwoStepsTrainer, TwoStepsTrainerConfig
+from multivae.trainers import AddDccaTrainer, AddDccaTrainerConfig
 
-trainer_config = TwoStepsTrainerConfig(
+trainer_config = AddDccaTrainerConfig(
     **base_trainer_config,
     output_dir=os.path.join(project_path, model_config.name),
     )
@@ -50,7 +51,7 @@ wandb_cb.run.config.update(args.__dict__)
 
 callbacks = [TrainingCallback(), ProgressBarCallback(), wandb_cb]
 
-trainer = TwoStepsTrainer(
+trainer = AddDccaTrainer(
     model, 
     train, 
     val, trainer_config, 
