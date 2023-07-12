@@ -7,15 +7,16 @@ from multivae.trainers.base.callbacks import (
     TrainingCallback,
     WandbCallback,
 )
+import json
 
 wandb_project = 'MHD'
 config_name = 'mhd_config_1'
 device = 'cpu'
-project_path = './experiments_results'
+project_path = './mhd_experiments'
 
 base_config = dict(
     n_modalities=3,
-    latent_dim=64,
+    latent_dim=128,
 
 )
 

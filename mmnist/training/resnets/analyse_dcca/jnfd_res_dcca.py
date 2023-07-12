@@ -1,89 +1,68 @@
 from config2 import *
 
-from multivae.models import JNFDcca, JNFDccaConfig
+from multivae.models import AutoModel
 from multivae.trainers import AddDccaTrainer, AddDccaTrainerConfig
 from multivae.models.nn.default_architectures import MultipleHeadJointEncoder
-from multivae.models.nn.mmnist import Encoder_ResNet_VAE_MMNIST
+from multivae.models.nn.mmnist import DecoderConvMMNIST, EncoderConvMMNIST_adapted
+from torch.utils.data import DataLoader
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--param_file", type=str)
-args = parser.parse_args()
-
-with open(args.param_file, "r") as fp:
-    info = json.load(fp)
-args = argparse.Namespace(**info)
 
 train_data = MMNISTDataset(
     data_path="~/scratch/data",
     split="train",
-    missing_ratio=args.missing_ratio,
-    keep_incomplete=args.keep_incomplete,
+    missing_ratio=0,
+    keep_incomplete=True,
 )
 
 test_data = MMNISTDataset(data_path="~/scratch/data", split="test")
 
 train_data, eval_data = random_split(
-    train_data, [0.9, 0.1], generator=torch.Generator().manual_seed(args.seed)
+    train_data, [0.9, 0.1], generator=torch.Generator().manual_seed(0)
 )
 
-model_config = JNFDccaConfig(
-    **base_config,
-    latent_dim=128,
-    warmup=30,
-    nb_epochs_dcca=30,
-    embedding_dcca_dim=32,
-)
 
-head_encoders = {
-    k: Enc(ndim_w = 0,ndim_u=model_config.embedding_dcca_dim)
-    for k in modalities
-}
+model = AutoModel.load_from_folder('/home/asenella/dev/multivae_package/compare_on_mmnist/config_resnet/JNFDcca/seed_0/missing_ratio_0/JNFDcca_training_2023-07-12_11-59-37/final_model')
 
-joint_encoder = MultipleHeadJointEncoder(head_encoders, model_config)
+#### Compute all embeddings for the DCCA ####
+from tqdm import tqdm
+from multivae.data.utils import set_inputs_to_device
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-dcca_networks = {
-    k: Encoder_ResNet_VAE_MMNIST(BaseAEConfig(
-            latent_dim=model_config.embedding_dcca_dim, style_dim=0, input_dim=(3, 28, 28)
-        ))
-    for k in modalities
-}
+model = model.to(device)
 
-decoders = {m : Dec(ndim=model_config.latent_dim) for m in modalities}
+test_loader = DataLoader(test_data, 128)
 
+embeddings = {k : [] for k in model.dcca_networks}
+labels = []
+for batch in tqdm(test_loader):
+    
+    batch = set_inputs_to_device(batch , device=device)
+    
+    for m in batch.data:
+        enc = model.dcca_networks[m](batch.data[m])
+        embeddings[m].append(enc.embedding)
+        
+    labels.append(batch.labels)
+        
 
-model = JNFDcca(model_config, dcca_networks=dcca_networks, decoders=decoders, joint_encoder=joint_encoder)
+embeddings = {k : torch.cat(embeddings[k], dim=0) for k in embeddings}
+labels = torch.cat(labels, dim=0)
 
-trainer_config = AddDccaTrainerConfig(
-    **base_training_config,
-    learning_rate_dcca=1e-4,
-    per_device_dcca_train_batch_size=500,
-    per_device_dcca_eval_batch_size=500,
-    seed=args.seed,
-    output_dir=f"compare_on_mmnist/{config_name}/{model.model_name}/seed_{args.seed}/missing_ratio_{args.missing_ratio}/",
-)
-trainer_config.num_epochs = 600
+import umap
+from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
 
-# Set up callbacks
-wandb_cb = WandbCallback()
-wandb_cb.setup(trainer_config, model_config, project_name=wandb_project)
-wandb_cb.run.config.update(args.__dict__)
-
-callbacks = [TrainingCallback(), ProgressBarCallback(), wandb_cb]
-
-trainer = AddDccaTrainer(
-    model,
-    train_dataset=train_data,
-    eval_dataset=eval_data,
-    training_config=trainer_config,
-    callbacks=callbacks,
-)
-trainer.train()
-
-model = trainer._best_model
-save_model(model, args)
-##################################################################################################################################
-# validate the model #############################################################################################################
-##################################################################################################################################
-
-eval_model(model, trainer.training_dir,train_data, test_data, wandb_cb.run.path,args.seed)
+for m in embeddings:
+    data = np.array(embeddings[m])
+    reducer = umap.UMAP()
+    
+    print(f'For modality {m}, min = {np.min(data)}, max = {np.max(data)}')
+    
+    scaled_data = StandardScaler().fit_transform(data)
+    
+    umap_data = reducer.fit_transform(scaled_data)
+    
+    plt.scatter(umap_data[:,0], umap_data[:,1], c = labels)
+    plt.savefig(f'embeddings_{m}.png')
+    plt.close()

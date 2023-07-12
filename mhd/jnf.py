@@ -7,15 +7,22 @@ from multivae.trainers.base.callbacks import (
     WandbCallback,
 )
 
+# Get the experiment configuration file
 parser = argparse.ArgumentParser()
-parser.add_argument("--seed", type=int)
+parser.add_argument("--param_file", type=str)
 args = parser.parse_args()
 
+with open(args.param_file, "r") as fp:
+    info = json.load(fp)
+args = argparse.Namespace(**info)
+
+# Model configuration 
 model_config = JNFConfig(
     **base_config,
-    warmup=200
+    warmup=100
 )
 
+#Architectures
 encoders = dict(
     image = Encoder_Conv_VAE_MNIST(BaseAEConfig((3,28,28), latent_dim = model_config.latent_dim)), 
     audio = SoundEncoder(model_config.latent_dim),
@@ -31,13 +38,15 @@ decoders = dict(
 
 model = JNF(model_config, encoders, decoders)
 
+# Training configuration
 from multivae.trainers import TwoStepsTrainer, TwoStepsTrainerConfig
 
 trainer_config = TwoStepsTrainerConfig(
     **base_trainer_config,
-    output_dir=os.path.join(project_path, model_config.name),
+    output_dir=os.path.join(project_path, model.model_name, f'beta_{int(args.beta*10)}', f'rescale_{args.use_rescaling}'),
     )
-    
+
+trainer_config.num_epochs = 200
 
 train, val = random_split(train_set, [0.9,0.1], generator=torch.Generator().manual_seed(args.seed))
 
@@ -57,9 +66,23 @@ trainer = TwoStepsTrainer(
     callbacks=callbacks,
 )
 
-
+# Train 
 trainer.train()
 model = trainer._best_model
 
+# Validate
 eval(trainer_config.output_dir, model, classifiers, wandb_cb.run.path)
+
+# Push to HuggingFaceHub
+
+from huggingface_hub import HfApi
+api = HfApi()
+
+api.upload_folder(
+    folder_path=os.path.join(trainer.training_dir, 'final_model'),
+    path_in_repo=f'{model.model_name}/beta_{int(args.beta*10)}/rescale_{args.use_rescaling}/seed_{args.seed}', # Upload to a specific folder
+    repo_id="asenella/MHD",
+    repo_type="space",
+)
+
 

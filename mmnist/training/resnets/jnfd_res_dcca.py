@@ -2,7 +2,7 @@ from config2 import *
 
 from multivae.models import JNFDcca, JNFDccaConfig
 from multivae.trainers import AddDccaTrainer, AddDccaTrainerConfig
-from multivae.models.nn.default_architectures import MultipleHeadJointEncoder
+from multivae.models.nn.default_architectures import MultipleHeadJointEncoder, Encoder_VAE_MLP
 from multivae.models.nn.mmnist import Encoder_ResNet_VAE_MMNIST
 
 
@@ -30,9 +30,10 @@ train_data, eval_data = random_split(
 model_config = JNFDccaConfig(
     **base_config,
     latent_dim=128,
-    warmup=30,
+    warmup=200,
     nb_epochs_dcca=30,
     embedding_dcca_dim=32,
+    apply_rescaling=True
 )
 
 head_encoders = {
@@ -52,18 +53,22 @@ dcca_networks = {
 
 decoders = {m : Dec(ndim=model_config.latent_dim) for m in modalities}
 
+encoders = {m : Encoder_VAE_MLP(BaseAEConfig(latent_dim = model_config.latent_dim, 
+                                     input_dim = (model_config.embedding_dcca_dim,)), num_hidden=2) for m in modalities}
 
-model = JNFDcca(model_config, dcca_networks=dcca_networks, decoders=decoders, joint_encoder=joint_encoder)
+
+model = JNFDcca(model_config, dcca_networks=dcca_networks, decoders=decoders, joint_encoder=joint_encoder,
+                encoders = encoders)
 
 trainer_config = AddDccaTrainerConfig(
     **base_training_config,
     learning_rate_dcca=1e-4,
-    per_device_dcca_train_batch_size=500,
-    per_device_dcca_eval_batch_size=500,
+    per_device_dcca_train_batch_size=800,
+    per_device_dcca_eval_batch_size=800,
     seed=args.seed,
     output_dir=f"compare_on_mmnist/{config_name}/{model.model_name}/seed_{args.seed}/missing_ratio_{args.missing_ratio}/",
 )
-trainer_config.num_epochs = model_config.nb_epochs_dcca +1
+trainer_config.num_epochs = 200+200+30
 
 # Set up callbacks
 wandb_cb = WandbCallback()
@@ -81,10 +86,10 @@ trainer = AddDccaTrainer(
 )
 trainer.train()
 
-# model = trainer._best_model
-# save_model(model, args)
-##################################################################################################################################
-# validate the model #############################################################################################################
-##################################################################################################################################
+model = trainer._best_model
+save_model(model, args)
+#################################################################################################################################
+### validate the model #############################################################################################################
+#################################################################################################################################
 
-# eval_model(model, trainer.training_dir,train_data, test_data, wandb_cb.run.path,args.seed)
+eval_model(model, trainer.training_dir,train_data, test_data, wandb_cb.run.path,args.seed)
