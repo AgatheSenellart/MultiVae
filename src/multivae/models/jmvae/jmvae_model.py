@@ -52,6 +52,7 @@ class JMVAE(BaseJointModel):
 
         self.alpha = model_config.alpha
         self.warmup = model_config.warmup
+        self.beta = model_config.beta
 
     def encode(
         self,
@@ -163,7 +164,7 @@ class JMVAE(BaseJointModel):
             ).sum()
 
         # Compute the KLD to the prior
-        KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
+        KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())*self.beta
 
         # Compute the KL between unimodal and joint encoders
         LJM = 0
@@ -187,14 +188,14 @@ class JMVAE(BaseJointModel):
 
         reg_loss = KLD + LJM
         if epoch >= self.warmup:
-            beta = 1
+            annealing_factor = 1
         else:
-            beta = epoch / self.warmup
+            annealing_factor = epoch / self.warmup
         recon_loss, reg_loss = recon_loss / len_batch, reg_loss / len_batch
         elbo = (recon_loss + KLD) / len_batch
-        loss = recon_loss + beta * reg_loss
+        loss = recon_loss + annealing_factor * reg_loss
 
-        metrics = dict(loss_no_ponderation=reg_loss + recon_loss, beta=beta, elbo=elbo)
+        metrics = dict(loss_no_ponderation=reg_loss + recon_loss, beta=annealing_factor, elbo=elbo)
 
         output = ModelOutput(loss=loss, metrics=metrics)
 

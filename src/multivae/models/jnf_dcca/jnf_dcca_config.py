@@ -30,6 +30,7 @@ class JNFDccaConfig(BaseJointModelConfig):
             Using True is more unstable. Default to False.
         apply_rescaling (bool) : If True, a MinMaxScaling is applied to the DCCA embeddings before training the rest of the model. 
             Default to False. 
+        beta (float) :Weighing factor for the regularization of the joint VAE. Default to 1.
 
     """
 
@@ -40,3 +41,4 @@ class JNFDccaConfig(BaseJointModelConfig):
         False  # Using True generally leads to NaN in the loss.
     )
     apply_rescaling : bool = False
+    beta: float = 1.

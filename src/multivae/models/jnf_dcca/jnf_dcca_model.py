@@ -110,6 +110,7 @@ class JNFDcca(BaseJointModel):
         self.DCCA_module = DCCA(self.dcca_config, dcca_networks)
         self.dcca_networks = self.DCCA_module.networks
         self.dcca_rescaler = MinMaxScaler() if model_config.apply_rescaling else None
+        self.beta = model_config.beta
         
 
         if flows is None:
@@ -129,14 +130,12 @@ class JNFDcca(BaseJointModel):
         ]
         
     def fit_dcca_scalers(self, dataloader, device):
-        
-        embeddings = {m : [] for m in self.encoders}
-        for batch in dataloader:
-            batch = set_inputs_to_device(batch, device)
-            for m in batch.data:
-                embeddings[m].append(self.dcca_networks[m](batch.data[m]).embedding)
-        embeddings = {m : torch.cat(embeddings[m], dim=0) for m in self.encoders}
-        
+        """Use one batch to fit the min max scaler on the dcca embeddings"""
+        batch = next(iter(dataloader))
+        batch = set_inputs_to_device(batch, device)
+        embeddings=dict()
+        for m in batch.data:
+            embeddings[m]= self.dcca_networks[m](batch.data[m]).embedding
         self.dcca_rescaler.fit(embeddings=embeddings)
 
     def set_flows(self, flows: Dict[str, BaseNF]):
@@ -206,7 +205,7 @@ class JNFDcca(BaseJointModel):
             ).sum()
 
         # Compute the KLD to the prior
-        KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
+        KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())*self.beta
 
         if epoch <= self.warmup + self.nb_epochs_dcca:
             return ModelOutput(
