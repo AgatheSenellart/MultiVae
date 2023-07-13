@@ -11,20 +11,23 @@ import json
 
 wandb_project = 'MHD'
 config_name = 'mhd_config_1'
-device = 'cpu'
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 project_path = './mhd_experiments'
 
 base_config = dict(
     n_modalities=3,
-    latent_dim=128,
+    latent_dim=64,
+    input_dims=dict(image = (3,28,28),
+                    audio = (1,32,128),
+                    trajectory = (200,))
 
 )
 
 
 base_trainer_config = dict(
-    per_device_train_batch_size=128,
+    per_device_train_batch_size=64,
     per_device_eval_batch_size=128,
-    num_epochs=500,
+    num_epochs=300,
     learning_rate = 1e-3,
     steps_predict=5
 

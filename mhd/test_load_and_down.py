@@ -19,10 +19,7 @@ args = argparse.Namespace(**info)
 # Model configuration 
 model_config = JNFConfig(
     **base_config,
-    warmup=200,
-    beta=args.beta,
-    uses_likelihood_rescaling=args.use_rescaling,
-    
+    warmup=100
 )
 
 #Architectures
@@ -46,10 +43,10 @@ from multivae.trainers import TwoStepsTrainer, TwoStepsTrainerConfig
 
 trainer_config = TwoStepsTrainerConfig(
     **base_trainer_config,
-    seed=args.seed,
     output_dir=os.path.join(project_path, model.model_name, f'beta_{int(args.beta*10)}', f'rescale_{args.use_rescaling}'),
     )
 
+trainer_config.num_epochs = 1
 
 train, val = random_split(train_set, [0.9,0.1], generator=torch.Generator().manual_seed(args.seed))
 
@@ -63,10 +60,9 @@ wandb_cb.run.config.update(args.__dict__)
 callbacks = [TrainingCallback(), ProgressBarCallback(), wandb_cb]
 
 trainer = TwoStepsTrainer(
-    model = model, 
-    train_dataset=train, 
-    eval_dataset=val,
-    training_config=trainer_config, 
+    model, 
+    val, 
+    val, trainer_config, 
     callbacks=callbacks,
 )
 
@@ -74,12 +70,16 @@ trainer = TwoStepsTrainer(
 trainer.train()
 model = trainer._best_model
 
-# Validate
-eval(trainer_config.output_dir, model, classifiers, wandb_cb.run.path)
-
 # Push to HuggingFaceHub
 
-model.push_to_hf_hub(f'asenella/{model.model_name}_beta_{int(args.beta*10)}_scale_{args.use_rescaling}_seed_{args.seed}')
+from huggingface_hub import HfApi
+api = HfApi()
 
+api.upload_folder(
+    folder_path=os.path.join(trainer.training_dir, 'final_model'),
+    path_in_repo=f'{model.model_name}/beta_{int(args.beta*10)}/rescale_{args.use_rescaling}/seed_{args.seed}', # Upload to a specific folder
+    repo_id="asenella/test_repository",
+    repo_type="model",
+)
 
 
