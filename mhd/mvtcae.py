@@ -1,4 +1,4 @@
-from multivae.models import JNFConfig, JNF
+from multivae.models import MVTCAEConfig, MVTCAE
 from config import *
 from multivae.models.base import BaseAEConfig
 from multivae.trainers.base.callbacks import (
@@ -17,11 +17,11 @@ with open(args.param_file, "r") as fp:
 args = argparse.Namespace(**info)
 
 # Model configuration 
-model_config = JNFConfig(
+model_config = MVTCAEConfig(
     **base_config,
-    warmup=200,
     beta=args.beta,
     uses_likelihood_rescaling=args.use_rescaling,
+    alpha=3/4
     
 )
 
@@ -39,12 +39,12 @@ decoders = dict(
 )
 
 
-model = JNF(model_config, encoders, decoders)
+model = MVTCAE(model_config, encoders, decoders)
 
 # Training configuration
-from multivae.trainers import TwoStepsTrainer, TwoStepsTrainerConfig
+from multivae.trainers import BaseTrainer, BaseTrainerConfig
 
-trainer_config = TwoStepsTrainerConfig(
+trainer_config = BaseTrainerConfig(
     **base_trainer_config,
     seed=args.seed,
     output_dir=os.path.join(project_path, model.model_name, f'beta_{int(args.beta*10)}', f'rescale_{args.use_rescaling}'),
@@ -62,7 +62,7 @@ wandb_cb.run.config.update(args.__dict__)
 
 callbacks = [TrainingCallback(), ProgressBarCallback(), wandb_cb]
 
-trainer = TwoStepsTrainer(
+trainer = BaseTrainer(
     model = model, 
     train_dataset=train, 
     eval_dataset=val,

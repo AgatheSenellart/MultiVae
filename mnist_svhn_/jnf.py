@@ -19,27 +19,15 @@ args = argparse.Namespace(**info)
 # Model configuration 
 model_config = JNFConfig(
     **base_config,
-    warmup=200,
+    warmup=100,
     beta=args.beta,
-    uses_likelihood_rescaling=args.use_rescaling,
-    
-)
-
-#Architectures
-encoders = dict(
-    image = Encoder_Conv_VAE_MNIST(BaseAEConfig((3,28,28), latent_dim = model_config.latent_dim)), 
-    audio = SoundEncoder(model_config.latent_dim),
-    trajectory = TrajectoryEncoder(200, layer_sizes=[512, 512, 512], output_dim=model_config.latent_dim)
-)
-
-decoders = dict(
-    image = Decoder_Conv_AE_MNIST(BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3,28,28))),
-    audio = SoundDecoder(model_config.latent_dim),
-    trajectory = TrajectoryDecoder(model_config.latent_dim, [512,512,512],output_dim=200)
+    uses_likelihood_rescaling=args.use_rescaling
 )
 
 
-model = JNF(model_config, encoders, decoders)
+
+
+model = JNF(model_config, encoders=encoders, decoders=decoders)
 
 # Training configuration
 from multivae.trainers import TwoStepsTrainer, TwoStepsTrainerConfig
@@ -47,7 +35,7 @@ from multivae.trainers import TwoStepsTrainer, TwoStepsTrainerConfig
 trainer_config = TwoStepsTrainerConfig(
     **base_trainer_config,
     seed=args.seed,
-    output_dir=os.path.join(project_path, model.model_name, f'beta_{int(args.beta*10)}', f'rescale_{args.use_rescaling}'),
+    output_dir=os.path.join(project_path, model.model_name, f'beta_{int(args.beta*10)}', f'rescale_{args.use_rescaling}', f'seed_{args.seed}'),
     )
 
 
@@ -79,7 +67,7 @@ eval(trainer_config.output_dir, model, classifiers, wandb_cb.run.path)
 
 # Push to HuggingFaceHub
 
-model.push_to_hf_hub(f'asenella/{model.model_name}_beta_{int(args.beta*10)}_scale_{args.use_rescaling}_seed_{args.seed}')
+model.push_to_hf_hub(f'asenella/ms_{model.model_name}_beta_{int(args.beta*10)}_scale_{args.use_rescaling}_seed_{args.seed}')
 
 
 

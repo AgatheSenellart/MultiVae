@@ -21,31 +21,24 @@ args = argparse.Namespace(**info)
 # Model configuration 
 model_config = JNFDccaConfig(
     **base_config,
-    warmup=200,
+    warmup=100,
     nb_epochs_dcca=100,
-    embedding_dcca_dim=20,
+    embedding_dcca_dim=9,
     beta = args.beta,
     uses_likelihood_rescaling=args.use_rescaling
 )
 
 #Architectures
 dcca_networks = dict(
-    image = Encoder_Conv_VAE_MNIST(BaseAEConfig((3,28,28), latent_dim = model_config.embedding_dcca_dim)), 
-    audio = SoundEncoder(model_config.embedding_dcca_dim),
-    trajectory = TrajectoryEncoder(200, layer_sizes=[512, 512, 512], output_dim=model_config.embedding_dcca_dim)
+    mnist = EncoderMNIST(num_hidden_layers=1, config=BaseAEConfig(latent_dim=model_config.embedding_dcca_dim,input_dim=(1,28,28))),
+    svhn = EncoderSVHN(config=BaseAEConfig(latent_dim=model_config.embedding_dcca_dim, input_dim=(3,32,32)))
 )
 
-decoders = dict(
-    image = Decoder_Conv_AE_MNIST(BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3,28,28))),
-    audio = SoundDecoder(model_config.latent_dim),
-    trajectory = TrajectoryDecoder(model_config.latent_dim, [512,512,512],output_dim=200)
-)
 
 joint_encoder = MultipleHeadJointEncoder(
     torch.nn.ModuleDict(
-    image = Encoder_Conv_VAE_MNIST(BaseAEConfig((3,28,28), latent_dim = model_config.latent_dim)), 
-    audio = SoundEncoder(model_config.latent_dim),
-    trajectory = TrajectoryEncoder(200, layer_sizes=[512, 512, 512], output_dim=model_config.latent_dim)
+    mnist = EncoderMNIST(num_hidden_layers=1, config=BaseAEConfig(latent_dim=model_config.latent_dim,input_dim=(1,28,28))),
+    svhn = EncoderSVHN(config=BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3,32,32)))
 )
 )
 
@@ -59,10 +52,10 @@ from multivae.trainers import AddDccaTrainer, AddDccaTrainerConfig
 trainer_config = AddDccaTrainerConfig(
     **base_trainer_config,
     seed=args.seed,
-    output_dir=os.path.join(project_path, model.model_name, f'beta_{int(args.beta*10)}', f'rescale_{args.use_rescaling}'),
+    output_dir=os.path.join(project_path, model.model_name, f'beta_{int(args.beta*10)}', f'rescale_{args.use_rescaling}', f'seed_{args.seed}'),
     per_device_dcca_train_batch_size=800,
     per_device_dcca_eval_batch_size=800,
-    learning_rate_dcca=1e-4
+    learning_rate_dcca=1e-3
     )
 
 trainer_config.num_epochs += model_config.nb_epochs_dcca
@@ -97,7 +90,7 @@ eval(trainer_config.output_dir, model, classifiers, wandb_cb.run.path)
 
 # Push to HuggingFaceHub
 
-model.push_to_hf_hub(f'asenella/{model.model_name}_beta_{int(args.beta*10)}_scale_{args.use_rescaling}_seed_{args.seed}')
+model.push_to_hf_hub(f'asenella/ms_{model.model_name}_beta_{int(args.beta*10)}_scale_{args.use_rescaling}_seed_{args.seed}')
 
 
 
