@@ -131,6 +131,23 @@ class TELBO(BaseJointModel):
         N: int = 1,
         **kwargs,
     ) -> ModelOutput:
+        
+        """
+        Generate encodings conditioning on all modalities or a subset of modalities.
+
+        Args:
+            inputs (MultimodalBaseDataset): The dataset to use for the conditional generation.
+            cond_mod (Union[list, str]): Either 'all' or a list of str containing the modalities
+                names to condition on.
+            N (int) : The number of encodings to sample for each datapoint. Default to 1.
+            
+        Returns:
+            ModelOutput instance with fields:
+                z (torch.Tensor (n_data, N, latent_dim))
+                one_latent_space (bool) = True 
+
+        """
+        
         self.eval()
 
         if type(cond_mod) == list and len(cond_mod) == 1:

@@ -325,6 +325,26 @@ class MMVAEPlus(BaseMultiVAE):
         N: int = 1,
         **kwargs,
     ):
+        
+        """
+        Generate encodings conditioning on all modalities or a subset of modalities.
+
+        Args:
+            inputs (MultimodalBaseDataset): The dataset to use for the conditional generation.
+            cond_mod (Union[list, str]): Either 'all' or a list of str containing the modalities
+                names to condition on.
+            N (int) : The number of encodings to sample for each datapoint. Default to 1.
+            
+        Returns:
+            ModelOutput instance with fields:
+                z (torch.Tensor (n_data, N, latent_dim))
+                one_latent_space (bool) = False
+                modalities_z (Dict[str,torch.Tensor (n_data, N, latent_dim) ])
+                
+                
+
+        """
+        
         cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
         if all([s in self.encoders.keys() for s in cond_mod]):
             # For the conditioning modalities we compute all the embeddings

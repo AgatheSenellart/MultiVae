@@ -60,8 +60,8 @@ class JMVAE(BaseJointModel):
         N: int = 1,
         **kwargs,
     ):
-        """Compute encodings from the posterior distributions conditioning on all the modalities or
-        a subset of the modalities.
+        """ Generate encodings conditioning on all modalities or a subset of modalities.
+
 
         Args:
             inputs (MultimodalBaseDataset): The data to encode.
@@ -74,8 +74,11 @@ class JMVAE(BaseJointModel):
             AttributeError: _description_
             AttributeError: _description_
 
+                Generate encodings conditioning on all modalities or a subset of modalities.
         Returns:
-            ModelOutput: Containing z the latent variables.
+            ModelOutput instance with fields:
+                z (torch.Tensor (n_data, N, latent_dim))
+                one_latent_space (bool) = True 
         """
         self.eval()
 
