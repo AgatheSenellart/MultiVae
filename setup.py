@@ -26,7 +26,7 @@ setup(
     package_dir={"": "src"},
     packages=find_packages(where="src"),
     install_requires=[
-        "pythae",
+        "pythae<=2.0",
         "cloudpickle>=2.1.0",
         "imageio",
         "numpy>=1.19",
