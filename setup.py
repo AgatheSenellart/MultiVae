@@ -30,7 +30,7 @@ setup(
         "cloudpickle>=2.1.0",
         "imageio",
         "numpy>=1.19",
-        "pydantic<=2.0",
+        "pydantic<=2.0.0",
         "scikit-learn",
         "scipy>=1.7.1",
         "torch>=1.10.1",
