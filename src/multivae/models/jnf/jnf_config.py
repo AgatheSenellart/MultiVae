@@ -24,7 +24,9 @@ class JNFConfig(BaseJointModelConfig):
             For instance, with normal or laplace distribution, you can pass the scale in this dictionary.
             ex :  {'mod1' : {scale : 0.75}}
         warmup (int): The number of warmup epochs during training. Default to 10.
+        beta (float): Weighing factor for the regularization of the joint VAE. Default to 1.
 
     """
 
     warmup: int = 10
+    beta: float = 1

@@ -71,6 +71,7 @@ class JNF(BaseJointModel):
 
         self.model_name = "JNF"
         self.warmup = model_config.warmup
+        self.beta = model_config.beta
         self.reset_optimizer_epochs = [self.warmup + 1]
 
     def set_flows(self, flows: Dict[str, BaseNF]):
@@ -127,7 +128,7 @@ class JNF(BaseJointModel):
             ).sum()
 
         # Compute the KLD to the prior
-        KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
+        KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())*self.beta
 
         if epoch <= self.warmup:
             return ModelOutput(

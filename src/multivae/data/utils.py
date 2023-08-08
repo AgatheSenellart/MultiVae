@@ -33,3 +33,30 @@ def set_inputs_to_device(inputs: Dict[str, Any], device: str = "cpu"):
         inputs_on_device = cuda_inputs
 
     return DatasetOutput(**inputs_on_device)
+
+
+
+class MinMaxScaler(torch.nn.Module):
+    """Transforms each modality inputs so that it has values between 0 and 1."""
+    
+    def __init__(self,*args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.is_fitted = False
+        
+        
+    def fit(self, embeddings : Dict[str, torch.tensor]):
+        
+        self.mins = {m : torch.min(embeddings[m]).detach() for m in embeddings}
+        self.maxs = {m: torch.max(embeddings[m]).detach() for m in embeddings}
+        
+        self.is_fitted = True
+    
+    def forward(self, embeddings : Dict[str, torch.tensor]):
+        new_embeddings = dict()
+        for m in embeddings:
+            new_embeddings[m] = (embeddings[m] - self.mins[m])/(self.maxs[m] - self.mins[m])
+        return new_embeddings
+    
+    def forward_modality(self, modality_embedding : torch.tensor, modality:str):
+        return (modality_embedding - self.mins[modality])/(self.maxs[modality] - self.mins[modality])
+            

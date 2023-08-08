@@ -9,7 +9,7 @@ from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
 from pythae.models.normalizing_flows.base import BaseNF
 from pythae.models.normalizing_flows.maf import MAF, MAFConfig
 from torch.nn import ModuleDict
-
+from multivae.data.utils import set_inputs_to_device, MinMaxScaler
 from multivae.models.nn.default_architectures import (
     BaseDictEncoders,
     MultipleHeadJointEncoder,
@@ -109,6 +109,9 @@ class JNFDcca(BaseJointModel):
 
         self.DCCA_module = DCCA(self.dcca_config, dcca_networks)
         self.dcca_networks = self.DCCA_module.networks
+        self.dcca_rescaler = MinMaxScaler() if model_config.apply_rescaling else None
+        self.beta = model_config.beta
+        
 
         if flows is None:
             flows = dict()
@@ -125,6 +128,15 @@ class JNFDcca(BaseJointModel):
             self.nb_epochs_dcca,
             self.nb_epochs_dcca + self.warmup,
         ]
+        
+    def fit_dcca_scalers(self, dataloader, device):
+        """Use one batch to fit the min max scaler on the dcca embeddings"""
+        batch = next(iter(dataloader))
+        batch = set_inputs_to_device(batch, device)
+        embeddings=dict()
+        for m in batch.data:
+            embeddings[m]= self.dcca_networks[m](batch.data[m]).embedding
+        self.dcca_rescaler.fit(embeddings=embeddings)
 
     def set_flows(self, flows: Dict[str, BaseNF]):
         # check that the keys corresponds with the encoders keys
@@ -161,6 +173,8 @@ class JNFDcca(BaseJointModel):
 
     def _set_torch_no_grad_on_dcca_module(self):
         self.DCCA_module.requires_grad_(False)
+        
+                
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs):
         epoch = kwargs.pop("epoch", 1)
@@ -191,7 +205,7 @@ class JNFDcca(BaseJointModel):
             ).sum()
 
         # Compute the KLD to the prior
-        KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
+        KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())*self.beta
 
         if epoch <= self.warmup + self.nb_epochs_dcca:
             return ModelOutput(
@@ -206,6 +220,10 @@ class JNFDcca(BaseJointModel):
             ljm = 0
             for mod in self.encoders:
                 dcca_embed = self.DCCA_module.networks[mod](inputs.data[mod]).embedding
+                
+                if self.dcca_rescaler is not None and self.dcca_rescaler.is_fitted:
+                    dcca_embed = self.dcca_rescaler.forward_modality(dcca_embed, mod)
+                
                 mod_output = self.encoders[mod](dcca_embed)
                 mu0, log_var0 = mod_output.embedding, mod_output.log_covariance
 
