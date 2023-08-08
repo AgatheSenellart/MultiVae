@@ -737,8 +737,12 @@ class BaseMultiVAE(nn.Module):
             from huggingface_hub import hf_hub_download
 
         logger.info(f"Downloading {cls.__name__} files for rebuilding...")
-
-        _ = hf_hub_download(repo_id=hf_hub_path, filename="environment.json")
+        try :
+            _ = hf_hub_download(repo_id=hf_hub_path, filename="environment.json")
+        except:
+            logger.info('No environment.json file found. If you have an error while pickling architectures,'
+                        'check that the python version used for saving is the same than the one',
+                        'you use for reloading the model.')
         config_path = hf_hub_download(repo_id=hf_hub_path, filename="model_config.json")
         dir_path = os.path.dirname(config_path)
 

@@ -149,6 +149,8 @@ class MMVAEPlus(BaseMultiVAE):
 
             # Shared latent variable
             qu_x = self.post_dist(mu, sigma)
+            
+            
             u_x = qu_x.rsample([K])
 
             # Private latent variable
@@ -189,7 +191,9 @@ class MMVAEPlus(BaseMultiVAE):
                 # Decode
                 # print(z_x.shape)
                 decoder = self.decoders[recon_mod]
-                recon = decoder(z_x)["reconstruction"]
+                z = z_x.reshape(-1,z_x.shape[-1])
+                recon = decoder(z)["reconstruction"]
+                recon = recon.reshape((*z_x.shape[:-1],*recon.shape[1:]))
 
                 reconstructions[cond_mod][recon_mod] = recon
 
