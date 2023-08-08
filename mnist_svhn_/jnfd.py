@@ -36,10 +36,11 @@ dcca_networks = dict(
 
 
 joint_encoder = MultipleHeadJointEncoder(
-    torch.nn.ModuleDict(
+    dict(
     mnist = EncoderMNIST(num_hidden_layers=1, config=BaseAEConfig(latent_dim=model_config.latent_dim,input_dim=(1,28,28))),
     svhn = EncoderSVHN(config=BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3,32,32)))
-)
+),
+    args=BaseAEConfig(latent_dim=model_config.latent_dim)
 )
 
 
@@ -82,15 +83,14 @@ trainer = AddDccaTrainer(
 # Train 
 trainer.train()
 model = trainer._best_model
+model.push_to_hf_hub(f'asenella/ms_{model.model_name}_beta_{int(args.beta*10)}_scale_{args.use_rescaling}_seed_{args.seed}')
+
 
 # Validate
 eval(trainer_config.output_dir, model, classifiers, wandb_cb.run.path)
 
-# Push to HuggingFaceHub
 
-# Push to HuggingFaceHub
 
-model.push_to_hf_hub(f'asenella/ms_{model.model_name}_beta_{int(args.beta*10)}_scale_{args.use_rescaling}_seed_{args.seed}')
 
 
 

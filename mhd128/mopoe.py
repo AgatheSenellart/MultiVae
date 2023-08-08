@@ -1,4 +1,4 @@
-from multivae.models import JMVAEConfig, JMVAE
+from multivae.models import MoPoE, MoPoEConfig
 from config import *
 from multivae.models.base import BaseAEConfig
 from multivae.trainers.base.callbacks import (
@@ -17,20 +17,28 @@ with open(args.param_file, "r") as fp:
 args = argparse.Namespace(**info)
 
 # Model configuration 
-model_config = JMVAEConfig(
+model_config = MoPoEConfig(
     **base_config,
-    warmup=100,
     beta=args.beta,
     uses_likelihood_rescaling=args.use_rescaling,
-    alpha=0.1
     
 )
 
 #Architectures
+encoders = dict(
+    image = Encoder_Conv_VAE_MNIST(BaseAEConfig((3,28,28), latent_dim = model_config.latent_dim)), 
+    audio = SoundEncoder(model_config.latent_dim),
+    trajectory = TrajectoryEncoder(200, layer_sizes=[512, 512, 512], output_dim=model_config.latent_dim)
+)
+
+decoders = dict(
+    image = Decoder_Conv_AE_MNIST(BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3,28,28))),
+    audio = SoundDecoder(model_config.latent_dim),
+    trajectory = TrajectoryDecoder(model_config.latent_dim, [512,512,512],output_dim=200)
+)
 
 
-
-model = JMVAE(model_config, encoders, decoders)
+model = MoPoE(model_config, encoders, decoders)
 
 # Training configuration
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
@@ -38,7 +46,8 @@ from multivae.trainers import BaseTrainer, BaseTrainerConfig
 trainer_config = BaseTrainerConfig(
     **base_trainer_config,
     seed=args.seed,
-    output_dir=os.path.join(project_path, model.model_name, f'beta_{int(args.beta*10)}', f'rescale_{args.use_rescaling}', f'seed_{args.seed}'),
+    output_dir=os.path.join(project_path, model.model_name, f'beta_{int(args.beta*10)}', f'rescale_{args.use_rescaling}'),
+    drop_last=True
     )
 
 
@@ -64,13 +73,13 @@ trainer = BaseTrainer(
 # Train 
 trainer.train()
 model = trainer._best_model
-model.push_to_hf_hub(f'asenella/ms_{model.model_name}_beta_{int(args.beta*10)}_scale_{args.use_rescaling}_seed_{args.seed}')
-
 
 # Validate
 eval(trainer_config.output_dir, model, classifiers, wandb_cb.run.path)
 
+# Push to HuggingFaceHub
 
+model.push_to_hf_hub(f'asenella/{model.model_name}_beta_{int(args.beta*10)}_scale_{args.use_rescaling}_seed_{args.seed}')
 
 
 

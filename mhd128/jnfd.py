@@ -92,7 +92,7 @@ trainer.train()
 model = trainer._best_model
 
 # Push to HuggingFaceHub
-model.push_to_hf_hub(f'asenella/{model.model_name}_beta_{int(args.beta*10)}_scale_{args.use_rescaling}_seed_{args.seed}')
+model.push_to_hf_hub(f'asenella/{config_name}_{model.model_name}_beta_{int(args.beta*10)}_scale_{args.use_rescaling}_seed_{args.seed}')
 
 # Validate
 eval(trainer_config.output_dir, model, classifiers, wandb_cb.run.path)

@@ -11,7 +11,7 @@ import json
 wandb_project = 'MNIST_SVHN'
 config_name = 'ms_config_1'
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-project_path = './ms_experiments'
+project_path = '/home/asenella/scratch/ms_experiments/'
 
 base_config = dict(
     n_modalities=2,

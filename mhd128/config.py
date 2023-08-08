@@ -10,9 +10,9 @@ from multivae.trainers.base.callbacks import (
 import json
 
 wandb_project = 'MHD'
-config_name = 'mhd_config_1'
+config_name = 'mhd128cd'
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-project_path = '/home/asenella/scratch/mhd_experiments/'
+project_path = '/home/asenella/scratch/mhd128_experiments/'
 
 base_config = dict(
     n_modalities=3,
@@ -37,8 +37,8 @@ from multivae.data.datasets.mhd import MHD
 from torch.utils.data import random_split
 import os
 
-train_set = MHD('/home/asenella/scratch/data/MHD', split='train', modalities=['audio', 'trajectory', 'image'])
-test_set = MHD('/home/asenella/scratch/data/MHD', split='test', modalities=['audio', 'trajectory', 'image'])
+train_set = MHD('/home/asenella/scratch/data/MHD/mhd_train.pt', modalities=['audio', 'trajectory', 'image'])
+test_set = MHD('/home/asenella/scratch/data/MHD/mhd_test.pt', modalities=['audio', 'trajectory', 'image'])
 
 
 classifiers_path = '/home/asenella/scratch/data/MHD/classifiers'
@@ -78,10 +78,10 @@ def eval(path,model, classifiers, wandb_path):
         ).eval()
     
     
-    # config = FIDEvaluatorConfig(batch_size=512, wandb_path=wandb_path)
+    config = FIDEvaluatorConfig(batch_size=512, wandb_path=wandb_path)
 
-    # FIDEvaluator(
-    #     model, test_set, output=path, eval_config=config
-    # ).compute_all_conditional_fids(gen_mod="image")
+    FIDEvaluator(
+        model, test_set, output=path, eval_config=config
+    ).compute_all_conditional_fids(gen_mod="image")
     
     

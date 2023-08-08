@@ -8,11 +8,12 @@ from multivae.trainers.base.callbacks import (
     WandbCallback,
 )
 import json
+import numpy as np
 
-wandb_project = 'MHD'
-config_name = 'mhd_config_1'
+wandb_project = 'incomplete_MHD'
+config_name = 'incomplete_mhd'
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-project_path = '/home/asenella/scratch/mhd_experiments/'
+project_path = '/home/asenella/scratch/incomplete_mhd_expes/'
 
 base_config = dict(
     n_modalities=3,
@@ -37,7 +38,17 @@ from multivae.data.datasets.mhd import MHD
 from torch.utils.data import random_split
 import os
 
-train_set = MHD('/home/asenella/scratch/data/MHD', split='train', modalities=['audio', 'trajectory', 'image'])
+# Define missing probabilities
+missing_probabilities = dict(
+    image = np.zeros(10)*1.0,
+    audio = np.linspace(0.1,0.8,10),
+    trajectory = np.linspace(0.3,0.4,10)
+    
+)
+
+# Define the incomplete dataset
+train_set = MHD('/home/asenella/scratch/data/MHD', split='train', modalities=['audio', 'trajectory', 'image'],
+                missing_probabilities=missing_probabilities)
 test_set = MHD('/home/asenella/scratch/data/MHD', split='test', modalities=['audio', 'trajectory', 'image'])
 
 
@@ -64,7 +75,7 @@ for s in state_dicts:
     classifiers[s].eval()
     
 
-from multivae.metrics import CoherenceEvaluator, CoherenceEvaluatorConfig, FIDEvaluator, FIDEvaluatorConfig
+from multivae.metrics import CoherenceEvaluator, CoherenceEvaluatorConfig, LikelihoodsEvaluator, LikelihoodsEvaluatorConfig
 
 def eval(path,model, classifiers, wandb_path):
     
@@ -77,11 +88,20 @@ def eval(path,model, classifiers, wandb_path):
         eval_config=coherence_config
         ).eval()
     
-    
-    # config = FIDEvaluatorConfig(batch_size=512, wandb_path=wandb_path)
+    likelihood_config= LikelihoodsEvaluatorConfig(
+        batch_size=128,
+        wandb_path=wandb_path,
+        num_samples=1000,
+        batch_size_k=200,
+    )
 
-    # FIDEvaluator(
-    #     model, test_set, output=path, eval_config=config
-    # ).compute_all_conditional_fids(gen_mod="image")
+    LikelihoodsEvaluator(model,
+                         test_dataset=test_set,
+                         output=path,
+                         eval_config=likelihood_config
+                         ).eval()
     
-    
+
+def save_to_hf(model, args):
+    model.push_to_hf_hub(
+        f'asenella/{config_name}_{model.model_name}_beta_{int(args.beta*10)}_scale_{args.use_rescaling}_seed_{args.seed}')

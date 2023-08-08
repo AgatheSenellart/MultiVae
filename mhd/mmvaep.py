@@ -23,7 +23,7 @@ model_config = MMVAEPlusConfig(
     beta=args.beta,
     uses_likelihood_rescaling=args.use_rescaling,
     K=1,
-    modalities_specific_dim=32,
+    modalities_specific_dim=32
 )
 model_config.latent_dim = 32
 
@@ -31,8 +31,8 @@ class wrapper_encoder_image(BaseEncoder):
     
     def __init__(self):
         super().__init__()
-        self.private = Encoder_Conv_VAE_MNIST(BaseAEConfig((3,28,28), latent_dim = model_config.latent_dim))
-        self.modality_specific = Encoder_Conv_VAE_MNIST(BaseAEConfig((3,28,28), latent_dim = model_config.modalities_specific_dim))
+        self.private = Encoder_Conv_VAE_MNIST(BaseAEConfig((1,28,28), latent_dim = model_config.latent_dim))
+        self.modality_specific = Encoder_Conv_VAE_MNIST(BaseAEConfig((1,28,28), latent_dim = model_config.modalities_specific_dim))
     
     def forward(self,input):
         output = self.private(input)
@@ -77,7 +77,7 @@ encoders = dict(
 )
 
 decoders = dict(
-    image = Decoder_Conv_AE_MNIST(BaseAEConfig(latent_dim=model_config.latent_dim+model_config.modalities_specific_dim, input_dim=(3,28,28))),
+    image = Decoder_Conv_AE_MNIST(BaseAEConfig(latent_dim=model_config.latent_dim+model_config.modalities_specific_dim)),
     audio = SoundDecoder(model_config.latent_dim+model_config.modalities_specific_dim),
     trajectory = TrajectoryDecoder(model_config.latent_dim+model_config.modalities_specific_dim, [512,512,512],output_dim=200)
 )
@@ -94,6 +94,7 @@ trainer_config = BaseTrainerConfig(
     output_dir=os.path.join(project_path, model.model_name, f'beta_{int(args.beta*10)}', f'rescale_{args.use_rescaling}'),
     )
 
+trainer_config.learning_rate = 1e-4
 
 train, val = random_split(train_set, [0.9,0.1], generator=torch.Generator().manual_seed(args.seed))
 
@@ -118,12 +119,13 @@ trainer = BaseTrainer(
 trainer.train()
 model = trainer._best_model
 
+# Push to HuggingFaceHub
+model.push_to_hf_hub(f'asenella/{model.model_name}_beta_{int(args.beta*10)}_scale_{args.use_rescaling}_seed_{args.seed}')
+
+
+
 # Validate
 eval(trainer_config.output_dir, model, classifiers, wandb_cb.run.path)
-
-# Push to HuggingFaceHub
-
-model.push_to_hf_hub(f'asenella/{model.model_name}_beta_{int(args.beta*10)}_scale_{args.use_rescaling}_seed_{args.seed}')
 
 
 
