@@ -57,7 +57,7 @@ class Reconstruction(Evaluator):
         """
 
         if self.metric_name in self.metrics_dict :
-            metric = self.metrics_dict[self.metric_name]()
+            metric = self.metrics_dict[self.metric_name]().to(self.device)
             for batch in self.test_loader:
                 batch = set_inputs_to_device(batch, self.device)
                 output = self.model.predict(batch, list(subset), list(subset))
@@ -85,7 +85,7 @@ class Reconstruction(Evaluator):
             
         self.logger.info(f"Subset {subset} reconstruction : {mean_recon_error} ")
         self.metrics.update(
-            {f'{subset} reconstruction error ({self.metric_name})' : {mean_recon_error}}
+            {f'{subset} reconstruction error ({self.metric_name})' : mean_recon_error}
         )
         
         return mean_recon_error
