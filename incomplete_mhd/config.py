@@ -77,9 +77,10 @@ for s in state_dicts:
 
 from multivae.metrics import CoherenceEvaluator, CoherenceEvaluatorConfig, LikelihoodsEvaluator, LikelihoodsEvaluatorConfig
 
-def eval(path,model, classifiers, wandb_path):
+def eval(path,model, classifiers, wandb_path=None):
     
-    coherence_config = CoherenceEvaluatorConfig(128, wandb_path=wandb_path)
+    coherence_config = CoherenceEvaluatorConfig(128, wandb_path=wandb_path, num_classes=10,give_details_per_class=True)
+    
     CoherenceEvaluator(
         model=model,
         classifiers=classifiers,

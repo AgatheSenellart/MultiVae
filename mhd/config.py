@@ -84,4 +84,7 @@ def eval(path,model, classifiers, wandb_path):
     #     model, test_set, output=path, eval_config=config
     # ).compute_all_conditional_fids(gen_mod="image")
     
-    
+
+def save_to_hf(model, args):
+    model.push_to_hf_hub(
+        f'asenella/{config_name}_{model.model_name}_beta_{int(args.beta*10)}_scale_{args.use_rescaling}_seed_{args.seed}')
