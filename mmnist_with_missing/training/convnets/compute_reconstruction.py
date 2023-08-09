@@ -51,7 +51,11 @@ for model_name in ['JMVAE', 'JNF', 'JNFDcca', 'MMVAE', 'MoPoE', 'MVTCAE','MVAE']
                                     project='reconstruction_mmnist',
                                     config=model.model_config.to_dict()
                                     )
-
+                wandb_run.config.update(
+                    dict(missing_ratio = missing_ratio,
+                         incomplete = incomplete,
+                         seed = seed)
+                )
 
                 if torch.cuda.is_available():   
                     model = model.cuda()
@@ -63,7 +67,7 @@ for model_name in ['JMVAE', 'JNF', 'JNFDcca', 'MMVAE', 'MoPoE', 'MVTCAE','MVAE']
                 if seed == 0:
                     
                     vis_config = VisualizationConfig(
-                        batch_size=128,
+                        batch_size=32,
                         wandb_path=wandb_run.path,
                         n_samples=1,
                         n_data_cond=8
@@ -77,10 +81,11 @@ for model_name in ['JMVAE', 'JNF', 'JNFDcca', 'MMVAE', 'MoPoE', 'MVTCAE','MVAE']
                     
                     vis_module.conditional_samples_subset(subset=list(model.encoders.keys()))
                     vis_module.finish()
+                    del vis_module, vis_config
                 
                 
                 recon_config = ReconstructionConfig(
-                    batch_size=128,
+                    batch_size=32,
                     wandb_path=wandb_run.path,
                     metric='SSIM'
                 )
@@ -96,7 +101,7 @@ for model_name in ['JMVAE', 'JNF', 'JNFDcca', 'MMVAE', 'MoPoE', 'MVTCAE','MVAE']
                 
                 
                 recon_config = ReconstructionConfig(
-                    batch_size=128,
+                    batch_size=32,
                     wandb_path=wandb_run.path,
                     metric='MSE'
                 )
@@ -108,6 +113,8 @@ for model_name in ['JMVAE', 'JNF', 'JNFDcca', 'MMVAE', 'MoPoE', 'MVTCAE','MVAE']
                             )
                 recon_module.eval()
                 recon_module.finish()
+                
+                del model, recon_module, recon_config
                 
                 
                 

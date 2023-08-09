@@ -99,7 +99,7 @@ trainer_config = BaseTrainerConfig(
 trainer_config.per_device_train_batch_size = 32
 trainer_config.per_device_eval_batch_size = 32
 trainer_config.learning_rate = 1e-4
-trainer_config.num_epochs = 150
+trainer_config.num_epochs = 100
 
 train, val = random_split(train_set, [0.9,0.1], generator=torch.Generator().manual_seed(args.seed))
 
