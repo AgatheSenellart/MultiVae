@@ -14,14 +14,18 @@ from .reconstruction_config import ReconstructionConfig
 from torchmetrics.classification import MulticlassAccuracy
 
 from torchmetrics.image import StructuralSimilarityIndexMeasure as SSIM
-from torchmetrics.image import TotalVariation as TV
 
 
 
 class Reconstruction(Evaluator):
     """
-    Class for computing coherences metrics.
-
+    Class for computing reconstruction metrics. 
+    Available metrics are 
+        - MSE (Mean Squared Error) : https://en.wikipedia.org/wiki/Mean_squared_error
+        - SSIM (Structural Similarity Index Measure ) : https://en.wikipedia.org/wiki/Structural_similarity,
+            only for images. 
+            
+    
     Args:
 
         model (BaseMultiVAE) : The model to evaluate.
