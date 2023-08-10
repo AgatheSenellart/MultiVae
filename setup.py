@@ -39,7 +39,8 @@ setup(
         "dataclasses>=0.6",
         "torchvision",
         "pandas",
-        "nltk"
+        "nltk",
+        "torchmetrics"
     ],
     python_requires=">=3.8",
 )
