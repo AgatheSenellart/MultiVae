@@ -61,7 +61,7 @@ class JMVAE(BaseJointModel):
         N: int = 1,
         **kwargs,
     ):
-        """ Generate encodings conditioning on all modalities or a subset of modalities.
+        """Generate encodings conditioning on all modalities or a subset of modalities.
 
 
         Args:
@@ -79,7 +79,7 @@ class JMVAE(BaseJointModel):
         Returns:
             ModelOutput instance with fields:
                 z (torch.Tensor (n_data, N, latent_dim))
-                one_latent_space (bool) = True 
+                one_latent_space (bool) = True
         """
         self.eval()
 
@@ -167,7 +167,7 @@ class JMVAE(BaseJointModel):
             ).sum()
 
         # Compute the KLD to the prior
-        KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())*self.beta
+        KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp()) * self.beta
 
         # Compute the KL between unimodal and joint encoders
         LJM = 0
@@ -198,7 +198,9 @@ class JMVAE(BaseJointModel):
         elbo = (recon_loss + KLD) / len_batch
         loss = recon_loss + annealing_factor * reg_loss
 
-        metrics = dict(loss_no_ponderation=reg_loss + recon_loss, beta=annealing_factor, elbo=elbo)
+        metrics = dict(
+            loss_no_ponderation=reg_loss + recon_loss, beta=annealing_factor, elbo=elbo
+        )
 
         output = ModelOutput(loss=loss, metrics=metrics)
 

@@ -30,11 +30,12 @@ class CoherenceEvaluatorConfig(EvaluatorConfig):
         include_recon (bool) : If True, we include the reconstructions in the mean conditional generations
             coherences. Default to False.
         nb_samples_for_joint (int): How many samples to use to compute joint coherence. Default to 10000.
-        give_details_per_class (bool) : Provide accuracy details per class. Default to False. 
+        give_details_per_class (bool) : Provide accuracy details per class. Default to False.
 
 
     """
-    num_classes : int = 10
+
+    num_classes: int = 10
     include_recon: bool = False
     nb_samples_for_joint: int = 10000
-    give_details_per_class : bool = False
+    give_details_per_class: bool = False

@@ -69,12 +69,12 @@ class TestBaseMetric:
 
 
 class TestCoherences:
-    @pytest.fixture(params=[[True, 21, False], [False, 3, False],[False, 3, True]])
+    @pytest.fixture(params=[[True, 21, False], [False, 3, False], [False, 3, True]])
     def config_params(self, request):
         return {
             "include_recon": request.param[0],
             "nb_samples_for_joint": request.param[1],
-            "details_per_class":request.param[2]
+            "details_per_class": request.param[2],
         }
 
     @pytest.fixture
@@ -95,21 +95,21 @@ class TestCoherences:
         config = CoherenceEvaluatorConfig(
             include_recon=config_params["include_recon"],
             nb_samples_for_joint=config_params["nb_samples_for_joint"],
-            give_details_per_class=config_params['details_per_class'],
-            num_classes=10
+            give_details_per_class=config_params["details_per_class"],
+            num_classes=10,
         )
 
         assert config.include_recon == config_params["include_recon"]
         assert config.nb_samples_for_joint == config_params["nb_samples_for_joint"]
-    
+
     def test_coherence_from_subset(
         self, jmvae_model, config_params, classifiers, output_logger_file, dataset
     ):
         config = CoherenceEvaluatorConfig(
             include_recon=config_params["include_recon"],
             nb_samples_for_joint=config_params["nb_samples_for_joint"],
-            give_details_per_class=config_params['details_per_class'],
-            num_classes=10
+            give_details_per_class=config_params["details_per_class"],
+            num_classes=10,
         )
 
         evaluator = CoherenceEvaluator(
@@ -120,15 +120,17 @@ class TestCoherences:
             eval_config=config,
         )
 
-        subset_dict, mean_acc, mean_acc_per_class = evaluator.all_accuracies_from_subset(['mnist'])
-        
-        assert 0 <= mean_acc <=1 
+        (
+            subset_dict,
+            mean_acc,
+            mean_acc_per_class,
+        ) = evaluator.all_accuracies_from_subset(["mnist"])
+
+        assert 0 <= mean_acc <= 1
         assert type(mean_acc_per_class) == np.ndarray
-        assert len(mean_acc_per_class)== config.num_classes
-        assert np.all(mean_acc_per_class >=0) and np.all(mean_acc_per_class <=1)
-        assert np.allclose(np.mean(mean_acc_per_class),mean_acc)
-        
-    
+        assert len(mean_acc_per_class) == config.num_classes
+        assert np.all(mean_acc_per_class >= 0) and np.all(mean_acc_per_class <= 1)
+        assert np.allclose(np.mean(mean_acc_per_class), mean_acc)
 
     def test_cross_coherence_compute(
         self, jmvae_model, config_params, classifiers, output_logger_file, dataset
@@ -136,8 +138,8 @@ class TestCoherences:
         config = CoherenceEvaluatorConfig(
             include_recon=config_params["include_recon"],
             nb_samples_for_joint=config_params["nb_samples_for_joint"],
-            give_details_per_class=config_params['details_per_class'],
-            num_classes=10
+            give_details_per_class=config_params["details_per_class"],
+            num_classes=10,
         )
 
         evaluator = CoherenceEvaluator(
@@ -150,20 +152,20 @@ class TestCoherences:
 
         cross_coherences = evaluator.cross_coherences()
         assert all([0 <= cc_score[0] <= 1 for cc_score in cross_coherences])
-        
+
         if config.give_details_per_class:
             assert all(
                 [
-                    (f"mean_coherence_1_class_{c}" in evaluator.metrics.keys()) for c in range(10)
+                    (f"mean_coherence_1_class_{c}" in evaluator.metrics.keys())
+                    for c in range(10)
                 ]
-                
             )
-            
+
             assert all(
                 [
-                    (0 <= evaluator.metrics[f"mean_coherence_1_class_{c}"] <=1) for c in range(10)
+                    (0 <= evaluator.metrics[f"mean_coherence_1_class_{c}"] <= 1)
+                    for c in range(10)
                 ]
-                
             )
 
     def test_joint_coherence_compute(
@@ -178,7 +180,7 @@ class TestCoherences:
         config = CoherenceEvaluatorConfig(
             include_recon=config_params["include_recon"],
             nb_samples_for_joint=config_params["nb_samples_for_joint"],
-            num_classes=10
+            num_classes=10,
         )
 
         evaluator = CoherenceEvaluator(
@@ -199,7 +201,7 @@ class TestCoherences:
         config = CoherenceEvaluatorConfig(
             include_recon=config_params["include_recon"],
             nb_samples_for_joint=config_params["nb_samples_for_joint"],
-            num_classes=10
+            num_classes=10,
         )
 
         evaluator = CoherenceEvaluator(
@@ -343,7 +345,3 @@ class Test_clustering:
         assert isinstance(output, ModelOutput)
         assert hasattr(output, "cluster_accuracy")
         assert output.cluster_accuracy >= 0 and output.cluster_accuracy <= 1
-
-
-
-

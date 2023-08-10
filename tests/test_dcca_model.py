@@ -11,16 +11,15 @@ from pythae.models.base.base_utils import ModelOutput
 from pythae.models.normalizing_flows import IAF, IAFConfig
 
 from multivae.data.datasets import MultimodalBaseDataset
+from multivae.data.utils import MinMaxScaler
 from multivae.models.auto_model.auto_model import AutoModel
 from multivae.models.dcca import DCCA, DCCAConfig
 from multivae.models.jnf_dcca import JNFDcca, JNFDccaConfig
 from multivae.models.nn.default_architectures import BaseDictEncoders, Decoder_AE_MLP
 from multivae.trainers.add_dcca_trainer import AddDccaTrainer, AddDccaTrainerConfig
-from multivae.data.utils import MinMaxScaler
 
 
 class Test_MinMaxScaler:
-    
     @fixture
     def dataset(self):
         # Create simple small dataset with 2 modalities
@@ -32,20 +31,19 @@ class Test_MinMaxScaler:
         labels = np.random.randint(2, size=200)
         dataset = MultimodalBaseDataset(data, labels)
         return dataset
-    
+
     def test(self, dataset):
-        
         inst = MinMaxScaler()
         inst.fit(dataset.data)
         assert inst.is_fitted
-        embed = inst.forward_modality(dataset.data['mod1'], modality='mod1')
-        assert torch.all(embed >=0)
-        assert torch.all(embed <=1)
-        
+        embed = inst.forward_modality(dataset.data["mod1"], modality="mod1")
+        assert torch.all(embed >= 0)
+        assert torch.all(embed <= 1)
+
         embed = inst.forward(dataset.data)
         for key in dataset.data:
-            assert torch.all(embed[key] >=0)
-            assert torch.all(embed[key] <=1)
+            assert torch.all(embed[key] >= 0)
+            assert torch.all(embed[key] <= 1)
 
 
 class TestDcca:
@@ -138,8 +136,8 @@ class TestJNFDcca:
             decoders=decoders,
             flows=flows,
         )
-    
-    @fixture(params = [True,False])
+
+    @fixture(params=[True, False])
     def rescale(self, request):
         return request.param
 
@@ -153,7 +151,7 @@ class TestJNFDcca:
             embedding_dcca_dim=2,
             nb_epochs_dcca=2,
             warmup=2,
-            apply_rescaling=rescale
+            apply_rescaling=rescale,
         )
 
         return model_config
@@ -199,7 +197,7 @@ class TestJNFDcca:
         assert hasattr(model, "dcca_networks")
         assert model.warmup == model_config.warmup
         assert model.nb_epochs_dcca == model_config.nb_epochs_dcca
-        
+
         if model_config.apply_rescaling:
             assert model.dcca_rescaler is not None
         else:
@@ -269,7 +267,7 @@ class TestJNFDcca:
         _ = trainer.train_step(epoch=1)
 
         step_1_model_state_dict = deepcopy(trainer.model.state_dict())
-        
+
         if trainer.model.dcca_rescaler is not None:
             assert not trainer.model.dcca_rescaler.is_fitted
 
@@ -285,11 +283,10 @@ class TestJNFDcca:
         _ = trainer.prepare_train_step(trainer.model.nb_epochs_dcca + 1, None, None)
         _ = trainer.train_step(epoch=trainer.model.nb_epochs_dcca + 1)
         assert trainer.training_config.learning_rate == 1e-3
-        
+
         if trainer.model.dcca_rescaler is not None:
             assert trainer.model.dcca_rescaler.is_fitted
-            
-        
+
         step_2_model_state_dict = deepcopy(trainer.model.state_dict())
 
         assert not all(
