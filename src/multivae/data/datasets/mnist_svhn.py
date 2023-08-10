@@ -16,7 +16,7 @@ logger.addHandler(console)
 logger.setLevel(logging.INFO)
 
 
-class MnistSvhn(MultimodalBaseDataset): # pragma: no cover
+class MnistSvhn(MultimodalBaseDataset):  # pragma: no cover
     """
 
     A paired MnistSvhn dataset.

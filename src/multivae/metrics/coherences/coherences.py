@@ -4,6 +4,7 @@ from typing import List
 import numpy as np
 import torch
 from pythae.models.base.base_utils import ModelOutput
+from torchmetrics.classification import MulticlassAccuracy
 
 from multivae.data import MultimodalBaseDataset
 from multivae.data.utils import set_inputs_to_device
@@ -11,7 +12,6 @@ from multivae.samplers.base import BaseSampler
 
 from ..base.evaluator_class import Evaluator
 from .coherences_config import CoherenceEvaluatorConfig
-from torchmetrics.classification import MulticlassAccuracy
 
 
 class CoherenceEvaluator(Evaluator):
@@ -44,7 +44,7 @@ class CoherenceEvaluator(Evaluator):
         self.nb_samples_for_joint = eval_config.nb_samples_for_joint
         self.num_classes = eval_config.num_classes
         self.give_details_per_classes = eval_config.give_details_per_class
-        assert (self.num_classes is not None,"Please provide the number of classes")
+        assert (self.num_classes is not None, "Please provide the number of classes")
         for k in self.clfs:
             self.clfs[k] = self.clfs[k].to(self.device).eval()
 
@@ -68,15 +68,19 @@ class CoherenceEvaluator(Evaluator):
             accs_per_class.append([])
             for s in subsets_of_size_n:
                 s = list(s)
-                subset_dict, mean_acc, mean_acc_per_class = self.all_accuracies_from_subset(s)
+                (
+                    subset_dict,
+                    mean_acc,
+                    mean_acc_per_class,
+                ) = self.all_accuracies_from_subset(s)
                 self.metrics.update(subset_dict)
                 accs[-1].append(mean_acc)
                 accs_per_class[-1].append(mean_acc_per_class)
-                
+
         mean_accs = [np.mean(l) for l in accs]
         std_accs = [np.std(l) for l in accs]
-        mean_accs_per_class = [np.mean(np.stack(l),axis=0) for l in accs_per_class]
-        
+        mean_accs_per_class = [np.mean(np.stack(l), axis=0) for l in accs_per_class]
+
         for i in range(len(mean_accs)):
             self.logger.info(
                 f"Conditional accuracies for {i+1} modalities : {mean_accs[i]} +- {std_accs[i]}"
@@ -87,19 +91,20 @@ class CoherenceEvaluator(Evaluator):
                     f"std_coherence_{i+1}": std_accs[i],
                 }
             )
-            
+
             if self.give_details_per_classes:
                 for c in range(self.num_classes):
                     self.logger.info(
-                f"Conditional accuracies for {i+1} modalities in class {c}: {mean_accs_per_class[i][c]}"
-            )
+                        f"Conditional accuracies for {i+1} modalities in class {c}: {mean_accs_per_class[i][c]}"
+                    )
                     self.metrics.update(
                         {
-                            f"mean_coherence_{i+1}_class_{c}": mean_accs_per_class[i][c],
-                            
+                            f"mean_coherence_{i+1}_class_{c}": mean_accs_per_class[i][
+                                c
+                            ],
                         }
                     )
-            
+
         return mean_accs, std_accs
 
     def all_accuracies_from_subset(self, subset: List[str]):
@@ -113,7 +118,7 @@ class CoherenceEvaluator(Evaluator):
         Returns:
             dict, float : The dictionary of all coherences from subset, and the mean coherence
         """
-        
+
         pred_mods = [
                 m
                 for m in self.model.encoders
@@ -126,9 +131,9 @@ class CoherenceEvaluator(Evaluator):
             m : MulticlassAccuracy(num_classes=self.num_classes, average=None).to(self.device)
             for m in pred_mods
             }
-        
-        for batch in self.test_loader:
 
+
+        for batch in self.test_loader:
             if not hasattr(batch, "labels"):
                 raise AttributeError(
                     "Cross-modal coherence can not be computed "
@@ -142,22 +147,25 @@ class CoherenceEvaluator(Evaluator):
                 )
 
             batch = set_inputs_to_device(batch, device=self.device)
-            
+
             output = self.model.predict(batch, list(subset), pred_mods)
             for pred_m in pred_mods:
                 preds = self.clfs[pred_m](output[pred_m])
-                acc = accuracies_per_class[pred_m](preds,batch.labels)
+                acc = accuracies_per_class[pred_m](preds, batch.labels)
 
-        acc_per_class = {f'{subset_name}_to_{m}' : accuracies_per_class[m].compute() for m in accuracies_per_class}
-        acc = {m : acc_per_class[m].mean() for m in acc_per_class}
+        acc_per_class = {
+            f"{subset_name}_to_{m}": accuracies_per_class[m].compute()
+            for m in accuracies_per_class
+        }
+        acc = {m: acc_per_class[m].mean() for m in acc_per_class}
 
         self.logger.info(f"Subset {subset} accuracies ")
         self.logger.info(acc.__str__())
         mean_pair_acc = np.mean(list(acc.values()))
         self.logger.info(f"Mean subset {subset} accuracies : " + str(mean_pair_acc))
-        mean_acc_per_class = np.mean(np.stack(list(acc_per_class.values())),axis=0)
+        mean_acc_per_class = np.mean(np.stack(list(acc_per_class.values())), axis=0)
 
-        return acc, mean_pair_acc,mean_acc_per_class
+        return acc, mean_pair_acc, mean_acc_per_class
 
     def joint_coherence(self):
         """

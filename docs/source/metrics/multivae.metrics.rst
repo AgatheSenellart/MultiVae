@@ -16,6 +16,7 @@ Metrics
     likelihoods
     clustering
     visualization
+    reconstruction
     
 Available Metrics
 -------------------------------------------
@@ -26,5 +27,6 @@ Available Metrics
     ~multivae.metrics.LikelihoodsEvaluator
     ~multivae.metrics.Clustering
     ~multivae.metrics.Visualization
+    ~multivae.metrics.Reconstruction
 
     :nosignatures:

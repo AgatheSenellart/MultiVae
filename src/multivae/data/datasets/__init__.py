@@ -3,10 +3,15 @@ In this section, you will find all the `built-in` datasets that are currently im
 """
 
 from .base import DatasetOutput, IncompleteDataset, MultimodalBaseDataset
-# from .cub import CUB
-from .mnist_svhn import MnistSvhn
 from .mhd import MHD
 
-__all__ = ["MultimodalBaseDataset", "MnistSvhn", "IncompleteDataset", "DatasetOutput", "MHD"]
+# from .cub import CUB
+from .mnist_svhn import MnistSvhn
 
-
+__all__ = [
+    "MultimodalBaseDataset",
+    "MnistSvhn",
+    "IncompleteDataset",
+    "DatasetOutput",
+    "MHD",
+]

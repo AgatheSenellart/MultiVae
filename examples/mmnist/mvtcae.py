@@ -4,7 +4,10 @@ from torch.utils.data import random_split
 
 from multivae.data.datasets.mmnist import MMNISTDataset
 from multivae.models import MVTCAE, MVTCAEConfig
-from multivae.models.nn.mmnist import Decoder_ResNet_AE_MMNIST, Encoder_ResNet_VAE_MMNIST
+from multivae.models.nn.mmnist import (
+    Decoder_ResNet_AE_MMNIST,
+    Encoder_ResNet_VAE_MMNIST,
+)
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 from multivae.trainers.base.callbacks import (
     ProgressBarCallback,
@@ -12,7 +15,9 @@ from multivae.trainers.base.callbacks import (
     WandbCallback,
 )
 
-train_data = MMNISTDataset(data_path="../../../data/MMNIST/", split="train", download=True)
+train_data = MMNISTDataset(
+    data_path="../../../data/MMNIST/", split="train", download=True
+)
 train_data, eval_data = random_split(
     train_data, [0.8, 0.2], generator=torch.Generator().manual_seed(42)
 )

@@ -1,5 +1,6 @@
-from pydantic.dataclasses import dataclass
 from typing import Literal
+
+from pydantic.dataclasses import dataclass
 
 from ..base.evaluator_config import EvaluatorConfig
 
@@ -27,11 +28,11 @@ class ReconstructionConfig(EvaluatorConfig):
 
             If None are provided, the metrics are not logged on wandb.
             Default to None.
-            
-        metric (Literal['SSIM', 'MSE']) : The metric to use to assess reconstruction quality. 
+
+        metric (Literal['SSIM', 'MSE']) : The metric to use to assess reconstruction quality.
             Default to 'SSIM'.
-        
+
 
     """
-    
-    metric : Literal['SSIM','MSE'] = 'SSIM'
+
+    metric: Literal["SSIM", "MSE"] = "SSIM"

@@ -12,9 +12,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/AgatheSenellart/MultiVae",
-    project_urls={
-        "Bug Tracker": "https://github.com/AgatheSenellart/MultiVae/issues"
-    },
+    project_urls={"Bug Tracker": "https://github.com/AgatheSenellart/MultiVae/issues"},
     classifiers=[
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.8",
@@ -39,7 +37,8 @@ setup(
         "dataclasses>=0.6",
         "torchvision",
         "pandas",
-        "nltk"
+        "nltk",
+        "torchmetrics",
     ],
     python_requires=">=3.8",
 )

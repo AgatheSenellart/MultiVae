@@ -3,6 +3,7 @@ import pytest
 import torch
 from pythae.models.base import BaseAEConfig
 
+from multivae.models.nn.cub import CubTextDecoderMLP, CubTextEncoder
 from multivae.models.nn.mmnist import (
     Decoder_ResNet_AE_MMNIST,
     DecoderConvMMNIST,
@@ -10,7 +11,6 @@ from multivae.models.nn.mmnist import (
     EncoderConvMMNIST,
 )
 from multivae.models.nn.svhn import Decoder_VAE_SVHN, Encoder_VAE_SVHN
-from multivae.models.nn.cub import CubTextEncoder, CubTextDecoderMLP
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -61,8 +61,12 @@ def ae_cub_config(request):
 @pytest.fixture()
 def cub_like_data(ae_cub_config):
     return dict(
-        tokens=torch.randint(0, ae_cub_config.input_dim[1], (3, ae_cub_config.input_dim[0])).to(device),
-        padding_mask=torch.randint(0, 1, (3, ae_cub_config.input_dim[0])).to(device).type(torch.float)
+        tokens=torch.randint(
+            0, ae_cub_config.input_dim[1], (3, ae_cub_config.input_dim[0])
+        ).to(device),
+        padding_mask=torch.randint(0, 1, (3, ae_cub_config.input_dim[0]))
+        .to(device)
+        .type(torch.float),
     )
 
 
@@ -133,21 +137,23 @@ class TestCUBNets:
             max_sentence_length=ae_cub_config.input_dim[0],
             ntokens=ae_cub_config.input_dim[1],
             embed_size=512,
-            ff_size=128
+            ff_size=128,
         ).to(device)
         decoder = CubTextDecoderMLP(ae_cub_config).to(device)
 
         enc_out = encoder(cub_like_data)
 
         assert enc_out.embedding.shape == (
-            cub_like_data['tokens'].shape[0],
+            cub_like_data["tokens"].shape[0],
             ae_cub_config.latent_dim,
         )
         assert enc_out.log_covariance.shape == (
-            cub_like_data['tokens'].shape[0],
+            cub_like_data["tokens"].shape[0],
             ae_cub_config.latent_dim,
         )
 
         dec_out = decoder(enc_out.embedding)
 
-        assert dec_out.reconstruction.shape == cub_like_data["tokens"].shape + (ae_cub_config.input_dim[1],)
+        assert dec_out.reconstruction.shape == cub_like_data["tokens"].shape + (
+            ae_cub_config.input_dim[1],
+        )

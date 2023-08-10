@@ -6,9 +6,9 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
 from multivae.data.datasets.base import MultimodalBaseDataset
+from multivae.data.utils import set_inputs_to_device
 from multivae.models.jnf_dcca import JNFDcca
 from multivae.trainers.base.callbacks import TrainingCallback
-from multivae.data.utils import set_inputs_to_device
 
 from ..base import BaseTrainer
 from .add_dcca_trainer_config import AddDccaTrainerConfig
@@ -118,7 +118,7 @@ class AddDccaTrainer(BaseTrainer):
             # If the model uses DCCA rescaling, fit the min_max scaler
             if self.model.dcca_rescaler is not None:
                 self.model.fit_dcca_scalers(self.train_loader, self.device)
-            
+
             # Change the train and eval_loader and reset the optimizer
             self.train_loader = self.get_train_dataloader(self.train_dataset)
             self.eval_loader = self.get_eval_dataloader(self.eval_dataset)
@@ -131,8 +131,6 @@ class AddDccaTrainer(BaseTrainer):
             self.set_scheduler()
             best_train_loss = 1e10
             best_eval_loss = 1e10
-            
-            
 
         elif epoch == self.model.nb_epochs_dcca + self.model.warmup + 1:
             # Just reset the optimizer
@@ -147,7 +145,3 @@ class AddDccaTrainer(BaseTrainer):
             best_eval_loss = 1e10
 
         return best_train_loss, best_eval_loss
-
-    
-    
-    

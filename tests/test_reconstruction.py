@@ -9,8 +9,7 @@ from torch import nn
 
 from multivae.data.datasets.base import MultimodalBaseDataset
 from multivae.metrics.base import Evaluator, EvaluatorConfig
-from multivae.metrics.reconstruction import ReconstructionConfig, Reconstruction
-
+from multivae.metrics.reconstruction import Reconstruction, ReconstructionConfig
 from multivae.models import JMVAE, JMVAEConfig, MoPoE, MoPoEConfig
 from multivae.samplers import GaussianMixtureSampler, GaussianMixtureSamplerConfig
 
@@ -38,29 +37,21 @@ def output_logger_file(tmpdir):
     return os.path.join(tmpdir, "logger_metrics")
 
 
-
 class TestReconstruction:
-    @pytest.fixture(params=['SSIM','MSE'])
+    @pytest.fixture(params=["SSIM", "MSE"])
     def config_params(self, request):
-        return {
-            "metric" : request.param
-        }
-
+        return {"metric": request.param}
 
     def test_reconstruction_config(self, config_params):
         config = ReconstructionConfig(
             metric=config_params["metric"],
-            
         )
         assert config.metric == config_params["metric"]
-        
 
     def test_reconstruction_subset_compute(
         self, jmvae_model, config_params, output_logger_file, dataset
     ):
-        config = ReconstructionConfig(
-            metric=config_params['metric']
-        )
+        config = ReconstructionConfig(metric=config_params["metric"])
 
         evaluator = Reconstruction(
             model=jmvae_model,
@@ -69,21 +60,17 @@ class TestReconstruction:
             eval_config=config,
         )
 
-        reconstruction_error = evaluator.reconstruction_from_subset(['mnist'])
+        reconstruction_error = evaluator.reconstruction_from_subset(["mnist"])
         assert type(reconstruction_error) == torch.Tensor
         assert reconstruction_error.size() == torch.Size([])
-        
-        assert f'{["mnist"]} reconstruction error ({config_params["metric"]})' in evaluator.metrics
-        
 
-    
-
-    def test_eval(
-        self, jmvae_model, config_params, output_logger_file, dataset
-    ):
-        config = ReconstructionConfig(
-            metric=config_params['metric']
+        assert (
+            f'{["mnist"]} reconstruction error ({config_params["metric"]})'
+            in evaluator.metrics
         )
+
+    def test_eval(self, jmvae_model, config_params, output_logger_file, dataset):
+        config = ReconstructionConfig(metric=config_params["metric"])
 
         evaluator = Reconstruction(
             model=jmvae_model,
@@ -96,10 +83,11 @@ class TestReconstruction:
         assert all(
             [
                 key in metrics.keys()
-                for key in [f'{["mnist"]} reconstruction error ({config_params["metric"]})', 
-                            f'{["svhn"]} reconstruction error ({config_params["metric"]})',
-                            f'{list(jmvae_model.encoders.keys())} reconstruction error ({config_params["metric"]})',
-                            ]
+                for key in [
+                    f'{["mnist"]} reconstruction error ({config_params["metric"]})',
+                    f'{["svhn"]} reconstruction error ({config_params["metric"]})',
+                    f'{list(jmvae_model.encoders.keys())} reconstruction error ({config_params["metric"]})',
+                ]
             ]
         )
 
