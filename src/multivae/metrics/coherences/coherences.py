@@ -122,7 +122,10 @@ class CoherenceEvaluator(Evaluator):
         
         subset_name = '_'.join(subset)
         
-        accuracies_per_class = {m : MulticlassAccuracy(num_classes=self.num_classes, average=None) for m in pred_mods}
+        accuracies_per_class = {
+            m : MulticlassAccuracy(num_classes=self.num_classes, average=None).to(self.device)
+            for m in pred_mods
+            }
         
         for batch in self.test_loader:
 
