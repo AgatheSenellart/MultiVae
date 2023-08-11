@@ -4,7 +4,6 @@ from typing import List
 import numpy as np
 import torch
 from pythae.models.base.base_utils import ModelOutput
-from torchmetrics.classification import MulticlassAccuracy
 from torchmetrics.image import StructuralSimilarityIndexMeasure as SSIM
 
 from multivae.data import MultimodalBaseDataset
@@ -68,10 +67,10 @@ class Reconstruction(Evaluator):
                 batch = set_inputs_to_device(batch, self.device)
                 output = self.model.predict(batch, list(subset), list(subset))
                 for mod in subset:
-                    preds = output[mod]
-                    target = batch.data[mod]
-                    mean_recon_error += torch.sum((preds - target) ** 2)
-                    n_data += len(preds)
+                    diff2 = (output[mod] - batch.data[mod]).detach()**2
+                    mean_recon_error += diff2.sum()
+                    n_data += len(diff2)
+                    torch.cuda.empty_cache()
             mean_recon_error = mean_recon_error / n_data
         else:
             raise (
