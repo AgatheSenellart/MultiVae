@@ -186,7 +186,7 @@ class MVAE(BaseMultiVAE):
             # Add the unimodal subsets
             subsets.extend([[m] for m in self.encoders])
             # Add random subsets
-            if self.k > 0:
+            if self.k > 0 and self.training:
                 random_idx = choice(
                     np.arange(len(self.subsets)), size=self.k, replace=False
                 )

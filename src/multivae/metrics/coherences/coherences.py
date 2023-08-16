@@ -154,7 +154,7 @@ class CoherenceEvaluator(Evaluator):
                 acc = accuracies_per_class[pred_m](preds, batch.labels)
 
         acc_per_class = {
-            f"{subset_name}_to_{m}": accuracies_per_class[m].compute()
+            f"{subset_name}_to_{m}": accuracies_per_class[m].compute().cpu()
             for m in accuracies_per_class
         }
         acc = {m: acc_per_class[m].mean() for m in acc_per_class}
