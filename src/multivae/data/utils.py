@@ -39,6 +39,29 @@ def set_inputs_to_device(inputs: Dict[str, Any], device: str = "cpu"):
     return DatasetOutput(**inputs_on_device)
 
 
+def get_batch_size(inputs: Dict[str, Any]):
+    """Get the batch size from an batch input"""
+    k = list(inputs.data.keys())[0]
+    return  len(inputs.data[k])
+
+
+def drop_unused_modalities(inputs : Dict[str, Any]):
+    """Drops modalities that are unavailable for an entire batch. """
+    if not hasattr(inputs, 'masks'):
+        return inputs
+    else:
+        mods = list(inputs.masks.keys()).copy()
+        for m in mods:
+            if not torch.any(inputs.masks[m]):
+                inputs.data.pop(m)
+                inputs.masks.pop(m)
+        return inputs
+                
+            
+    
+    
+
+
 class MinMaxScaler(torch.nn.Module):
     """Transforms each modality inputs so that it has values between 0 and 1."""
 

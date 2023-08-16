@@ -319,7 +319,7 @@ class MMVAEPlus(BaseMultiVAE):
 
         lws = (grad_wt * lws).sum(0) / n_mods_sample  # mean over modalities
 
-        return ModelOutput(loss=-lws.sum(), metrics=dict(mean_loss_batch=-lws.mean()))
+        return ModelOutput(loss=-lws.mean(-1).sum(), metrics=dict())
 
     def encode(
         self,

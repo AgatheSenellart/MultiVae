@@ -17,7 +17,7 @@ from torchvision.utils import make_grid
 
 from ...data import MultimodalBaseDataset
 from ...data.datasets.utils import adapt_shape
-from ...data.utils import set_inputs_to_device
+from ...data.utils import set_inputs_to_device, get_batch_size
 from ...models import BaseMultiVAE
 from .base_trainer_config import BaseTrainerConfig
 from .callbacks import (
@@ -577,10 +577,12 @@ class BaseTrainer:
         self.model.eval()
 
         epoch_loss = 0
+        n_samples_compute = 0
         epoch_metrics = {}
 
         for inputs in self.eval_loader:
             inputs = set_inputs_to_device(inputs, device=self.device)
+            batch_size = get_batch_size(inputs)
 
             try:
                 with torch.no_grad():
@@ -601,7 +603,8 @@ class BaseTrainer:
 
             loss = model_output.loss
 
-            epoch_loss += loss.item()
+            epoch_loss += loss.item()*batch_size
+            n_samples_compute += batch_size
             update_dict(epoch_metrics, model_output.metrics)
 
             if epoch_loss != epoch_loss:
@@ -609,7 +612,7 @@ class BaseTrainer:
 
             self.callback_handler.on_eval_step_end(training_config=self.training_config)
 
-        epoch_loss /= len(self.eval_loader)
+        epoch_loss /= n_samples_compute
         epoch_metrics = {
             k: epoch_metrics[k] / len(self.eval_loader) for k in epoch_metrics
         }
@@ -635,10 +638,12 @@ class BaseTrainer:
         self.model.train()
 
         epoch_loss = 0
+        n_samples_compute = 0
         epoch_model_metrics = {}
         batch_idx = 0
         for inputs in self.train_loader:
             inputs = set_inputs_to_device(inputs, device=self.device)
+            batch_size = get_batch_size(inputs)
 
             model_output = self.model(
                 inputs,
@@ -651,7 +656,8 @@ class BaseTrainer:
             self._optimizers_step(model_output)
 
             loss = model_output.loss
-            epoch_loss += loss.item()
+            epoch_loss += loss.item()*batch_size
+            n_samples_compute+= batch_size
             update_dict(epoch_model_metrics, model_output.metrics)
 
             if epoch_loss != epoch_loss:
@@ -667,7 +673,7 @@ class BaseTrainer:
         else:
             self.model.update()
 
-        epoch_loss /= len(self.train_loader)
+        epoch_loss /= n_samples_compute
         epoch_model_metrics = {
             k: epoch_model_metrics[k] / len(self.train_loader)
             for k in epoch_model_metrics
