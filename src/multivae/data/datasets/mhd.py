@@ -28,11 +28,15 @@ class MHD(IncompleteDataset):  # pragma: no cover
     simulate missingness in the data, depending on the dataclass.
     For that the missing_probabilities input provides probabilities of missingness for each class,
     for each modality. For instance,
-    ```
-    missing_probabilities = {image = np.zeros(10,).float(),
-                             audio = np.zeros(10,).float(),
-                             trajectory = [0.1,0.3,0.4,0.,0.,0.,0.,0.,0.,0.9]}
-    ```
+
+    .. code-block:: python
+
+        >>> missing_probabilities = {
+        ...     image = np.zeros(10,).float(),
+        ...     audio = np.zeros(10,).float(),
+        ...     trajectory = [0.1,0.3,0.4,0.,0.,0.,0.,0.,0.,0.9]
+        ... }
+
     will define a dataset with missing samples in the trajectory modality only in the classes
     0,1,2, et 9.
 

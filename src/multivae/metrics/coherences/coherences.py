@@ -120,18 +120,17 @@ class CoherenceEvaluator(Evaluator):
         """
 
         pred_mods = [
-                m
-                for m in self.model.encoders
-                if (m not in subset) or self.include_recon
-            ]
-        
-        subset_name = '_'.join(subset)
-        
-        accuracies_per_class = {
-            m : MulticlassAccuracy(num_classes=self.num_classes, average=None).to(self.device)
-            for m in pred_mods
-            }
+            m for m in self.model.encoders if (m not in subset) or self.include_recon
+        ]
 
+        subset_name = "_".join(subset)
+
+        accuracies_per_class = {
+            m: MulticlassAccuracy(num_classes=self.num_classes, average=None).to(
+                self.device
+            )
+            for m in pred_mods
+        }
 
         for batch in self.test_loader:
             if not hasattr(batch, "labels"):

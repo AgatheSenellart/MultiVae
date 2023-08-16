@@ -20,8 +20,8 @@ Available Samplers
 -------------------------------------------
 
 .. autosummary::
-    ~multivae.metrics.Base
+    ~multivae.samplers.BaseSampler
     ~multivae.samplers.GaussianMixtureSampler
-    ~multivae.metrics.MAFSampler
-    ~multivae.metrics.IAFSampler
+    ~multivae.samplers.MAFSampler
+    ~multivae.samplers.IAFSampler
     :nosignatures:

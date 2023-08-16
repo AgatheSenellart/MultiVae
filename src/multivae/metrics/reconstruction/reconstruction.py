@@ -17,10 +17,11 @@ from .reconstruction_config import ReconstructionConfig
 class Reconstruction(Evaluator):
     """
     Class for computing reconstruction metrics.
-    Available metrics are
-        - MSE (Mean Squared Error) : https://en.wikipedia.org/wiki/Mean_squared_error
-        - SSIM (Structural Similarity Index Measure ) : https://en.wikipedia.org/wiki/Structural_similarity,
-            only for images.
+    Available metrics are:
+
+        - MSE (Mean Squared Error): https://en.wikipedia.org/wiki/Mean_squared_error
+        - SSIM (Structural Similarity Index Measure ):
+          https://en.wikipedia.org/wiki/Structural_similarity, only for images.
 
 
     Args:
@@ -67,7 +68,7 @@ class Reconstruction(Evaluator):
                 batch = set_inputs_to_device(batch, self.device)
                 output = self.model.predict(batch, list(subset), list(subset))
                 for mod in subset:
-                    diff2 = (output[mod] - batch.data[mod]).detach()**2
+                    diff2 = (output[mod] - batch.data[mod]).detach() ** 2
                     mean_recon_error += diff2.sum()
                     n_data += len(diff2)
                     torch.cuda.empty_cache()
