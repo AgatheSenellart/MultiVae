@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from typing import Union
 
 import numpy as np
@@ -68,18 +69,16 @@ class MHD(IncompleteDataset):  # pragma: no cover
         seed=0,
     ):
         self.data_file = os.path.join(datapath, f"mhd_{split}.pt")
-        print(self.data_file)
+
         self.modalities = modalities
         if not os.path.exists(self.data_file):
             if not download:
                 raise RuntimeError(
-                    f"Dataset not found at path {datapath} and download is set to False"
+                    f"Dataset not found at path {datapath} and download is set to False. "
                     "Please change the path or set download to True"
                 )
             else:
                 try:
-                    import gdown
-
                     self.__download__(split, datapath)
 
                 except:
@@ -136,15 +135,20 @@ class MHD(IncompleteDataset):  # pragma: no cover
                 self.data[k] = self.data[k].permute(*reverse_dim_order)
 
     def __download__(self, split, datapath):  # pragram : no cover
+        import gdown
+
+        if not os.path.exists(datapath):
+            os.makedirs(Path(datapath), exist_ok=True)
+
         if split == "train":
             gdown.download(
                 "https://docs.google.com/uc?export=download&id=1Tj1i-hXA0INQpU0jmuTMO4IwfDoGD2oV",
-                output=datapath,
+                output=os.path.join(datapath, f"mhd_{split}.pt"),
             )
         else:
             gdown.download(
                 "https://docs.google.com/uc?export=download&id=1qiEjFNCFn1ws383pKmY3zJtm4JDymOU6",
-                output=datapath,
+                output=os.path.join(datapath, f"mhd_{split}.pt"),
             )
 
     def __getitem__(self, index):
