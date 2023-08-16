@@ -9,6 +9,7 @@ import torch.nn.functional as F
 from pythae.models.base.base_utils import ModelOutput
 from torch.distributions import Laplace, Normal
 
+from multivae.data.utils import drop_unused_modalities
 from multivae.data.datasets.base import MultimodalBaseDataset
 from multivae.models.nn.default_architectures import (
     BaseDictDecodersMultiLatents,
@@ -124,6 +125,9 @@ class MMVAEPlus(BaseMultiVAE):
         # TODO : maybe implement a minibatch strategy for stashing the gradients before
         # backpropagation when using a large number k.
         # Also, I've only implemented the dreg_looser loss but it may be nice to offer other options.
+        
+        # Drop unused modalities
+        inputs = drop_unused_modalities(inputs)
 
         # First compute all the encodings for all modalities
         embeddings = {}
@@ -265,12 +269,15 @@ class MMVAEPlus(BaseMultiVAE):
 
             # For the shared latent variable it is the same
             if hasattr(inputs, "masks"):
-                lqu_x = torch.stack(
-                    [
-                        qu_xs[m].log_prob(u).sum(-1) * inputs.masks[m].float()
-                        for m in qu_xs
-                    ]
-                )  # n_modalities,K,nbatch
+                
+                qu_x = []
+                for m in qu_xs:
+                    qu = qu_xs[m].log_prob(u).sum(-1)
+                    # for unavailable modalities, set the log prob to -infinity so that it accounts for 0 
+                    # in the log_sum_exp.
+                    qu[torch.stack([inputs.masks[m] == False]*len(u))] = -torch.inf
+                    qu_x.append(qu)
+                lqu_x = torch.stack(qu_x)  # n_modalities,K,nbatch
             else:
                 lqu_x = torch.stack(
                     [qu_xs[m].log_prob(u).sum(-1) for m in qu_xs]
@@ -283,7 +290,7 @@ class MMVAEPlus(BaseMultiVAE):
             # Then we have to add the modality specific posterior
             lqw_x = qw_xs[mod].log_prob(w).sum(-1)
 
-            # The reconstructions are the same
+            # The reconstructions are the same as in the MMVAE
             lpx_z = 0
             for recon_mod in reconstructions[mod]:
                 x_recon = reconstructions[mod][recon_mod]

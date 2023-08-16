@@ -106,7 +106,7 @@ class MMVAE(BaseMultiVAE):
 
         # First compute all the encodings for all modalities
         
-        # drop modalities that are completely unavailable to avoid Nan in backward
+        # drop modalities that are completely unavailable in the batch to avoid Nan in backward
         inputs = drop_unused_modalities(inputs)
         
         embeddings = {}
@@ -144,7 +144,7 @@ class MMVAE(BaseMultiVAE):
 
         # Compute DREG loss
         if compute_loss:
-            # TODO : change
+            
             loss_output = self.dreg_looser(
                 qz_xs_detach, embeddings, reconstructions, inputs
             )
