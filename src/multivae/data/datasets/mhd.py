@@ -128,7 +128,7 @@ class MHD(IncompleteDataset):  # pragma: no cover
             # To be sure, also erase the content of the masked samples
             for k in self.masks:
                 reverse_dim_order = tuple(np.arange(len(self.data[k].shape))[::-1])
-                self.data[k] = self.data[k].permute(*reverse_dim_order)
+                self.data[k] = self.data[k].permute(*reverse_dim_order).float()
                 # now the batch dimension is last
                 self.data[k] *= self.masks[k].float()  # erase missing samples
                 # put dimensions back in order
