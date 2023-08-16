@@ -10,6 +10,7 @@ from pythae.models.normalizing_flows.base import BaseNF
 from pythae.models.normalizing_flows.maf import MAF, MAFConfig
 from torch.nn import ModuleDict
 
+from multivae.data.utils import MinMaxScaler, set_inputs_to_device
 from multivae.models.nn.default_architectures import (
     BaseDictEncoders,
     MultipleHeadJointEncoder,
@@ -109,6 +110,8 @@ class JNFDcca(BaseJointModel):
 
         self.DCCA_module = DCCA(self.dcca_config, dcca_networks)
         self.dcca_networks = self.DCCA_module.networks
+        self.dcca_rescaler = MinMaxScaler() if model_config.apply_rescaling else None
+        self.beta = model_config.beta
 
         if flows is None:
             flows = dict()
@@ -125,6 +128,15 @@ class JNFDcca(BaseJointModel):
             self.nb_epochs_dcca,
             self.nb_epochs_dcca + self.warmup,
         ]
+
+    def fit_dcca_scalers(self, dataloader, device):
+        """Use one batch to fit the min max scaler on the dcca embeddings"""
+        batch = next(iter(dataloader))
+        batch = set_inputs_to_device(batch, device)
+        embeddings = dict()
+        for m in batch.data:
+            embeddings[m] = self.dcca_networks[m](batch.data[m]).embedding
+        self.dcca_rescaler.fit(embeddings=embeddings)
 
     def set_flows(self, flows: Dict[str, BaseNF]):
         # check that the keys corresponds with the encoders keys
@@ -191,7 +203,7 @@ class JNFDcca(BaseJointModel):
             ).sum()
 
         # Compute the KLD to the prior
-        KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
+        KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp()) * self.beta
 
         if epoch <= self.warmup + self.nb_epochs_dcca:
             return ModelOutput(
@@ -206,6 +218,10 @@ class JNFDcca(BaseJointModel):
             ljm = 0
             for mod in self.encoders:
                 dcca_embed = self.DCCA_module.networks[mod](inputs.data[mod]).embedding
+
+                if self.dcca_rescaler is not None and self.dcca_rescaler.is_fitted:
+                    dcca_embed = self.dcca_rescaler.forward_modality(dcca_embed, mod)
+
                 mod_output = self.encoders[mod](dcca_embed)
                 mu0, log_var0 = mod_output.embedding, mod_output.log_covariance
 
@@ -239,33 +255,32 @@ class JNFDcca(BaseJointModel):
         N: int = 1,
         **kwargs,
     ) -> ModelOutput:
-        
         """
-        Generate encodings conditioning on all modalities or a subset of modalities.
+         Generate encodings conditioning on all modalities or a subset of modalities.
 
-        Args:
-            inputs (MultimodalBaseDataset): The dataset to use for the conditional generation.
-            cond_mod (Union[list, str]): Either 'all' or a list of str containing the modalities
-                names to condition on.
-            N (int) : The number of encodings to sample for each datapoint. Default to 1.
-        
-        **kwargs:
-            mcmc_steps(int) : the number of Monte-Carlo step to perform when sampling from the product
-                of experts. Default to 100. If the coherences results are bad and the latent space is quite large,
-                consider augmenting this number.
-            n_lf (int) : The number of leapfrog steps in the Hamiltonian Monte Carlo Sampling. 
-                Default to 10.
-            eps_lf (float) : the time step to use in the Hamiltonian Monte Carlo Sampling. 
-                default to 0.01.
-                
-       Returns:
-            ModelOutput instance with fields:
-                z (torch.Tensor (n_data, N, latent_dim))
-                one_latent_space (bool) = True
-        
+         Args:
+             inputs (MultimodalBaseDataset): The dataset to use for the conditional generation.
+             cond_mod (Union[list, str]): Either 'all' or a list of str containing the modalities
+                 names to condition on.
+             N (int) : The number of encodings to sample for each datapoint. Default to 1.
+
+         **kwargs:
+             mcmc_steps(int) : the number of Monte-Carlo step to perform when sampling from the product
+                 of experts. Default to 100. If the coherences results are bad and the latent space is quite large,
+                 consider augmenting this number.
+             n_lf (int) : The number of leapfrog steps in the Hamiltonian Monte Carlo Sampling.
+                 Default to 10.
+             eps_lf (float) : the time step to use in the Hamiltonian Monte Carlo Sampling.
+                 default to 0.01.
+
+        Returns:
+             ModelOutput instance with fields:
+                 z (torch.Tensor (n_data, N, latent_dim))
+                 one_latent_space (bool) = True
+
 
         """
-        
+
         cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
 
         mcmc_steps = kwargs.pop("mcmc_steps", 100)

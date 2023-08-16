@@ -71,6 +71,7 @@ class JNF(BaseJointModel):
 
         self.model_name = "JNF"
         self.warmup = model_config.warmup
+        self.beta = model_config.beta
         self.reset_optimizer_epochs = [self.warmup + 1]
 
     def set_flows(self, flows: Dict[str, BaseNF]):
@@ -127,7 +128,7 @@ class JNF(BaseJointModel):
             ).sum()
 
         # Compute the KLD to the prior
-        KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
+        KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp()) * self.beta
 
         if epoch <= self.warmup:
             return ModelOutput(
@@ -174,7 +175,6 @@ class JNF(BaseJointModel):
         N: int = 1,
         **kwargs,
     ) -> ModelOutput:
-        
         """
         Generate encodings conditioning on all modalities or a subset of modalities.
 
@@ -183,26 +183,25 @@ class JNF(BaseJointModel):
             cond_mod (Union[list, str]): Either 'all' or a list of str containing the modalities
                 names to condition on.
             N (int) : The number of encodings to sample for each datapoint. Default to 1.
-        
+
         **kwargs:
             mcmc_steps(int) : the number of Monte-Carlo step to perform when sampling from the product
                 of experts. Default to 100. If the coherences results are bad and the latent space is quite large,
                 consider augmenting this number.
-            n_lf (int) : The number of leapfrog steps in the Hamiltonian Monte Carlo Sampling. 
+            n_lf (int) : The number of leapfrog steps in the Hamiltonian Monte Carlo Sampling.
                 Default to 10.
-            eps_lf (float) : the time step to use in the Hamiltonian Monte Carlo Sampling. 
+            eps_lf (float) : the time step to use in the Hamiltonian Monte Carlo Sampling.
                 default to 0.01.
-        
+
         Returns:
             ModelOutput instance with fields:
                 z (torch.Tensor (n_data, N, latent_dim))
-                one_latent_space (bool) = True 
-                        
+                one_latent_space (bool) = True
+
 
 
         """
-        
-        
+
         mcmc_steps = kwargs.pop("mcmc_steps", 100)
         n_lf = kwargs.pop("n_lf", 10)
         eps_lf = kwargs.pop("eps_lf", 0.01)
@@ -392,19 +391,14 @@ class JNF(BaseJointModel):
             H0 = -ln_q_zxs + 0.5 * torch.norm(rho, dim=1) ** 2
 
             for k in range(n_lf):
-
-
                 # step 1
                 rho_ = rho - (eps_lf / 2) * (-g)
 
                 # step 2
                 z = z + eps_lf * rho_
 
-
                 # Compute the updated gradient
                 ln_q_zxs, g = self.compute_poe_posterior(subset, z, data, divide_prior)
-
-
 
                 # step 3
                 rho__ = rho_ - (eps_lf / 2) * (-g)

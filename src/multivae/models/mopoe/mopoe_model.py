@@ -375,16 +375,15 @@ class MoPoE(BaseMultiVAE):
             cond_mod (Union[list, str]): Either 'all' or a list of str containing the modalities
                 names to condition on.
             N (int) : The number of encodings to sample for each datapoint. Default to 1.
-            
+
         Returns:
             ModelOutput instance with fields:
                 z (torch.Tensor (n_data, N, latent_dim))
-                one_latent_space (bool) 
+                one_latent_space (bool)
                 modalities_z (Dict[str,torch.Tensor (n_data, N, latent_dim) ])
-                
+
         """
-        
-        
+
         cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
 
         # Compute the str associated to the subset

@@ -24,8 +24,11 @@ class JMVAEConfig(BaseJointModelConfig):
             The KL terms in the objective are weighted by a factor beta which is linearly brought to
             1 during the first warmup epochs. Default to 10.
         use_default_joint (bool) :  A boolean encoding if the joint encoder used is the default one.
+        beta (float) : Weighing term for the regularization of the joint posterior to the prior.
+            This parameter doesn't exist in the original method, it is a simple add-on. Default to 1.
 
     """
 
     alpha: float = 0.1
     warmup: int = 10
+    beta: float = 1.0

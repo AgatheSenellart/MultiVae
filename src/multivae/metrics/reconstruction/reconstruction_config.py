@@ -1,13 +1,15 @@
+from typing import Literal
+
 from pydantic.dataclasses import dataclass
 
 from ..base.evaluator_config import EvaluatorConfig
 
 
 @dataclass
-class CoherenceEvaluatorConfig(EvaluatorConfig):
+class ReconstructionConfig(EvaluatorConfig):
     """
 
-    Config class for the evaluation of the coherences module.
+    Config class for a quantitative evaluation of the reconstruction quality.
 
     Args:
         batch_size (int) : The batch size to use in the evaluation.
@@ -26,16 +28,11 @@ class CoherenceEvaluatorConfig(EvaluatorConfig):
 
             If None are provided, the metrics are not logged on wandb.
             Default to None.
-        num_classes (int) : Number of Classes. Default to 10.
-        include_recon (bool) : If True, we include the reconstructions in the mean conditional generations
-            coherences. Default to False.
-        nb_samples_for_joint (int): How many samples to use to compute joint coherence. Default to 10000.
-        give_details_per_class (bool) : Provide accuracy details per class. Default to False.
+
+        metric (Literal['SSIM', 'MSE']) : The metric to use to assess reconstruction quality.
+            Default to 'SSIM'.
 
 
     """
 
-    num_classes: int = 10
-    include_recon: bool = False
-    nb_samples_for_joint: int = 10000
-    give_details_per_class: bool = False
+    metric: Literal["SSIM", "MSE"] = "SSIM"

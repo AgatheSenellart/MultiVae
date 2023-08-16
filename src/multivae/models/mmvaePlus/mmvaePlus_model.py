@@ -149,6 +149,7 @@ class MMVAEPlus(BaseMultiVAE):
 
             # Shared latent variable
             qu_x = self.post_dist(mu, sigma)
+
             u_x = qu_x.rsample([K])
 
             # Private latent variable
@@ -189,7 +190,9 @@ class MMVAEPlus(BaseMultiVAE):
                 # Decode
                 # print(z_x.shape)
                 decoder = self.decoders[recon_mod]
-                recon = decoder(z_x)["reconstruction"]
+                z = z_x.reshape(-1, z_x.shape[-1])
+                recon = decoder(z)["reconstruction"]
+                recon = recon.reshape((*z_x.shape[:-1], *recon.shape[1:]))
 
                 reconstructions[cond_mod][recon_mod] = recon
 
@@ -325,7 +328,6 @@ class MMVAEPlus(BaseMultiVAE):
         N: int = 1,
         **kwargs,
     ):
-        
         """
         Generate encodings conditioning on all modalities or a subset of modalities.
 
@@ -334,17 +336,17 @@ class MMVAEPlus(BaseMultiVAE):
             cond_mod (Union[list, str]): Either 'all' or a list of str containing the modalities
                 names to condition on.
             N (int) : The number of encodings to sample for each datapoint. Default to 1.
-            
+
         Returns:
             ModelOutput instance with fields:
                 z (torch.Tensor (n_data, N, latent_dim))
                 one_latent_space (bool) = False
                 modalities_z (Dict[str,torch.Tensor (n_data, N, latent_dim) ])
-                
-                
+
+
 
         """
-        
+
         cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
         if all([s in self.encoders.keys() for s in cond_mod]):
             # For the conditioning modalities we compute all the embeddings

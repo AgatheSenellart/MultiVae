@@ -114,8 +114,11 @@ class AddDccaTrainer(BaseTrainer):
             logger.info(
                 "End the training of the DCCA module and move on to the joint VAE."
             )
-            # Change the train and eval_loader and reset the optimizer
+            # If the model uses DCCA rescaling, fit the min_max scaler
+            if self.model.dcca_rescaler is not None:
+                self.model.fit_dcca_scalers(self.train_loader, self.device)
 
+            # Change the train and eval_loader and reset the optimizer
             self.train_loader = self.get_train_dataloader(self.train_dataset)
             self.eval_loader = self.get_eval_dataloader(self.eval_dataset)
             logger.info(
