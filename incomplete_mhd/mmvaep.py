@@ -98,10 +98,11 @@ trainer_config = BaseTrainerConfig(
 
 trainer_config.per_device_train_batch_size = 32
 trainer_config.per_device_eval_batch_size = 32
-trainer_config.learning_rate = 1e-4
-trainer_config.num_epochs = 100
+trainer_config.learning_rate = 1e-5
 
-train, val = random_split(train_set, [0.9,0.1], generator=torch.Generator().manual_seed(args.seed))
+trainer_config.num_epochs = 75
+
+train, val = random_split(train_set, [5/6,1/6], generator=torch.Generator().manual_seed(args.seed))
 
 
 
@@ -115,7 +116,7 @@ callbacks = [TrainingCallback(), ProgressBarCallback(), wandb_cb]
 trainer = BaseTrainer(
     model = model, 
     train_dataset=train, 
-    eval_dataset=val,
+    # eval_dataset=val,
     training_config=trainer_config, 
     callbacks=callbacks,
 )
@@ -125,7 +126,7 @@ trainer.train()
 model = trainer._best_model
 
 # Push to HuggingFaceHub
-save_to_hf(model, args)
+# save_to_hf(model, args)
 
 # Validate
 eval(trainer_config.output_dir, model, classifiers, wandb_cb.run.path)

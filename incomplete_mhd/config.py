@@ -13,7 +13,7 @@ import numpy as np
 wandb_project = 'incomplete_MHD'
 config_name = 'incomplete_mhd'
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-project_path = '/home/asenella/scratch/incomplete_mhd_expes/'
+project_path = '/home/asenella/scratch/incomplete_mhd_expes_clean/'
 
 base_config = dict(
     n_modalities=3,
@@ -26,10 +26,10 @@ base_config = dict(
 
 
 base_trainer_config = dict(
-    per_device_train_batch_size=64,
+    per_device_train_batch_size=128,
     per_device_eval_batch_size=128,
-    num_epochs=300,
-    learning_rate = 1e-3,
+    num_epochs=500,
+    learning_rate = 1e-4,
     steps_predict=5
 
 )

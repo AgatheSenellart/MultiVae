@@ -1,4 +1,4 @@
-from multivae.models import JMVAEConfig, JMVAE
+from multivae.models import MVAEConfig, MVAE
 from config import *
 from multivae.models.base import BaseAEConfig
 from multivae.trainers.base.callbacks import (
@@ -17,12 +17,13 @@ with open(args.param_file, "r") as fp:
 args = argparse.Namespace(**info)
 
 # Model configuration 
-model_config = JMVAEConfig(
+model_config = MVAEConfig(
     **base_config,
-    warmup=200,
     beta=args.beta,
     uses_likelihood_rescaling=args.use_rescaling,
-    alpha=0.1
+    use_subsampling=True,
+    k=1,
+    warmup=100
     
 )
 
@@ -40,7 +41,7 @@ decoders = dict(
 )
 
 
-model = JMVAE(model_config, encoders, decoders)
+model = MVAE(model_config, encoders, decoders)
 
 # Training configuration
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
@@ -52,7 +53,7 @@ trainer_config = BaseTrainerConfig(
     )
 
 
-train, val = random_split(train_set, [5/6,1/6], generator=torch.Generator().manual_seed(args.seed))
+train, val = random_split(train_set, [0.9,0.1], generator=torch.Generator().manual_seed(args.seed))
 
 
 
@@ -75,11 +76,10 @@ trainer = BaseTrainer(
 trainer.train()
 model = trainer._best_model
 
-
-# Push to HuggingFaceHub
-save_to_hf(model, args)
+save_to_hf(model,args)
 
 # Validate
 eval(trainer_config.output_dir, model, classifiers, wandb_cb.run.path)
+
 
 

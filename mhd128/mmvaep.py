@@ -22,7 +22,9 @@ model_config = MMVAEPlusConfig(
     **base_config,
     beta=args.beta,
     uses_likelihood_rescaling=args.use_rescaling,
-    K=1,
+    prior_and_posterior_dist="laplace_with_softmax",
+    learn_shared_prior=False,
+    K=10,
     modalities_specific_dim=32
 )
 model_config.latent_dim = 32
@@ -94,6 +96,7 @@ trainer_config = BaseTrainerConfig(
     output_dir=os.path.join(project_path, model.model_name, f'beta_{int(args.beta*10)}', f'rescale_{args.use_rescaling}'),
     )
 
+trainer_config.num_epochs = 75
 
 train, val = random_split(train_set, [0.9,0.1], generator=torch.Generator().manual_seed(args.seed))
 
