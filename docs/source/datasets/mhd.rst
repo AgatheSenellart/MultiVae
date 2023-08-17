@@ -1,5 +1,5 @@
 **********************************
-MHD dataset
+MHD
 **********************************
 
 .. autoclass:: multivae.data.datasets.MHD

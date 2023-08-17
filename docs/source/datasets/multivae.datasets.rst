@@ -13,6 +13,7 @@ Datasets
     incomplete
     mnist_svhn
     cub
+    mhd
 
 .. automodule::
     multivae.data.datasets
