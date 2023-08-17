@@ -142,7 +142,7 @@ class MMVAEPlus(BaseMultiVAE):
         detailed_output = kwargs.pop("detailed_output", False)
         K = kwargs.pop("K", self.K)
 
-        for cond_mod in self.encoders:
+        for cond_mod in inputs.data:
             output = self.encoders[cond_mod](inputs.data[cond_mod])
             mu, log_var = output.embedding, output.log_covariance
             mu_style = output.style_embedding
@@ -167,7 +167,7 @@ class MMVAEPlus(BaseMultiVAE):
             # Then compute all the cross-modal reconstructions
             reconstructions[cond_mod] = {}
 
-            for recon_mod in self.decoders:
+            for recon_mod in inputs.data:
                 # Self-reconstruction
                 if recon_mod == cond_mod:
                     z_x = torch.cat([u_x, w_x], dim=-1)
