@@ -81,14 +81,14 @@ class Visualization(Evaluator):
 
         return recon_image
 
-    def conditional_samples_subset(self, subset):
+    def conditional_samples_subset(self, subset, gen_mod='all'):
         dataloader = DataLoader(self.test_dataset, batch_size=self.n_data_cond)
         data = next(iter(dataloader))
         # set inputs to device
         data = set_inputs_to_device(data, self.device)
 
         recon = self.model.predict(
-            data, subset, "all", N=self.n_samples, flatten=True, ignore_incomplete=True
+            data, subset, gen_mod, N=self.n_samples, flatten=True, ignore_incomplete=True
         )
         recon.update({f"original_{m}": data.data[m] for m in subset})
         recon, shape = adapt_shape(recon)

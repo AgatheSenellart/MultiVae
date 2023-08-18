@@ -8,6 +8,13 @@ from multivae.metrics.fids.fids import adapt_shape_for_fid
 from multivae.models import MVTCAE, MVTCAEConfig
 from multivae.models.nn.default_architectures import Encoder_VAE_MLP
 from multivae.samplers import GaussianMixtureSampler, GaussianMixtureSamplerConfig
+from multivae.models.nn.svhn import Encoder_VAE_SVHN
+from pythae.models.nn.benchmarks.mnist import Encoder_Conv_VAE_MNIST, BaseAEConfig
+from torch import nn
+
+
+    
+                
 
 
 # @pytest.mark.slow
@@ -30,15 +37,6 @@ class TestFIDMetrics:
             labels=torch.ones((1024,)),
         )
 
-    @pytest.fixture(params=["custom_config", "default_config"])
-    def config(self, request):
-        config = FIDEvaluatorConfig(
-            batch_size=64, resize=False, inception_weights_path="./fids.pt"
-        )
-        if request.param == "custom_config":
-            return config
-        else:
-            return FIDEvaluatorConfig(batch_size=64)
 
     @pytest.fixture(params=[True, False])
     def sampler(self, request, model, dataset):
@@ -49,22 +47,42 @@ class TestFIDMetrics:
             sampler = GaussianMixtureSampler(model, sampler_config)
             sampler.fit(dataset)
             return sampler
+        
+    @pytest.fixture(params=['custom', 'default'])
+    def encoders_and_config(self, request):
+        
+        if request.param == 'default':
+            return dict(
+                eval_config = FIDEvaluatorConfig(batch_size=64), custom_encoders=None,
+                transform = adapt_shape_for_fid(resize=False)
+            )
+        else:
+            
 
-    @pytest.fixture(params=[None, lambda x: adapt_shape_for_fid(resize=False)(x)])
-    def fid_model(self, model, dataset, config, sampler, request):
+            
+            return dict(
+                custom_encoders = dict( 
+                        m1 = Encoder_Conv_VAE_MNIST(BaseAEConfig(input_dim=(1,28,28), latent_dim=10)),
+                        m0 = Encoder_VAE_SVHN(BaseAEConfig(input_dim=(3,32,32),latent_dim=12))
+                        ),
+                eval_config = FIDEvaluatorConfig(
+            batch_size=64
+        ), 
+                transform = None)
+
+    @pytest.fixture
+    def fid_model(self, model, dataset, sampler, encoders_and_config):
         return FIDEvaluator(
             model=model,
             test_dataset=dataset,
             output=None,
-            eval_config=config,
-            custom_encoder=None,
-            transform=request.param,
             sampler=sampler,
+            **encoders_and_config
         )  # Add test with custom encoder
 
-    def test(self, fid_model, config):
+    def test(self, fid_model, encoders_and_config):
         assert (fid_model.n_data) == 128
         assert len(fid_model.test_loader) > 0
-        assert fid_model.batch_size == config.batch_size
+        assert fid_model.batch_size == encoders_and_config['eval_config'].batch_size
         output = fid_model.eval()
         assert isinstance(output, ModelOutput)
