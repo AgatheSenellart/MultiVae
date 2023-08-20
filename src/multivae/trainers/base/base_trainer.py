@@ -485,7 +485,9 @@ class BaseTrainer:
             else:
                 epoch_eval_loss = self.best_eval_loss
                 self._schedulers_step(epoch_train_loss)
-            if epoch <= self.training_config.start_keep_best_epoch:
+            if epoch <= self.training_config.start_keep_best_epoch or (
+                hasattr(self.model, 'warmup') and epoch <= self.model.warmup    
+            ):
                 # save the model, don't keep track of the best loss
                 best_model = deepcopy(self.model)
                 self._best_model = best_model

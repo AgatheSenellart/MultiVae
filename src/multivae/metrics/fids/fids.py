@@ -92,7 +92,7 @@ class FIDEvaluator(Evaluator):
         super().__init__(model, test_dataset, output, eval_config, sampler)
 
         if custom_encoders is not None:
-            self.model_fds = custom_encoders
+            self.model_fds = {m : custom_encoders[m].to(self.device) for m in custom_encoders}
         else:
             self.model_fds = {m: wrapper_inception(
                 dims=eval_config.dims_inception,
@@ -128,7 +128,6 @@ class FIDEvaluator(Evaluator):
                     pred = pred.embedding
                 
                 del data
-                print(pred.shape)
                 activations[0].append(pred)
 
                 # Compute activations for generated data
@@ -145,11 +144,10 @@ class FIDEvaluator(Evaluator):
                 
                 if isinstance(pred_gen, ModelOutput):
                     pred_gen = pred_gen.embedding
-                print(pred_gen.shape)
                 activations[1].append(pred_gen)
                 del data_gen
 
-        activations = [np.concatenate(l, axis=0) for l in activations]
+        activations = [torch.concatenate(l, dim=0).cpu().numpy() for l in activations]
 
         # Compute activation statistics
         mus = [np.mean(act, axis=0) for act in activations]
