@@ -8,6 +8,7 @@ from multivae.trainers.base.callbacks import (
     WandbCallback,
 )
 import json
+from compute_mfd import compute_mfd
 
 wandb_project = 'MHD'
 config_name = 'mhd_config_1'
@@ -64,7 +65,7 @@ for s in state_dicts:
     classifiers[s].eval()
     
 
-from multivae.metrics import CoherenceEvaluator, CoherenceEvaluatorConfig, FIDEvaluator, FIDEvaluatorConfig
+from multivae.metrics import CoherenceEvaluator, CoherenceEvaluatorConfig, Reconstruction, ReconstructionConfig
 
 def eval(path,model, classifiers, wandb_path):
     
@@ -78,11 +79,27 @@ def eval(path,model, classifiers, wandb_path):
         ).eval()
     
     
-    # config = FIDEvaluatorConfig(batch_size=512, wandb_path=wandb_path)
-
-    # FIDEvaluator(
-    #     model, test_set, output=path, eval_config=config
-    # ).compute_all_conditional_fids(gen_mod="image")
+    for m in ['SSIM', 'MSE']:
+                
+        recon_config = ReconstructionConfig(
+            batch_size=64,
+            wandb_path=wandb_path,
+            metric=m
+        )
+        
+        recon_module = Reconstruction(
+            model, 
+            test_dataset=test_set,
+            output=path,
+            eval_config=recon_config
+        )
+        
+        recon_module.reconstruction_from_subset(['audio'])
+        recon_module.reconstruction_from_subset(['image'])
+        recon_module.log_to_wandb()
+        recon_module.finish()
+        
+    compute_mfd(model, wandb_path,path)
     
 
 def save_to_hf(model, args):

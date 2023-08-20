@@ -9,6 +9,7 @@ from multivae.trainers.base.callbacks import (
 )
 import json
 import numpy as np
+from compute_mfd import compute_mfd
 
 wandb_project = 'incomplete_MHD'
 config_name = 'incomplete_mhd'
@@ -76,6 +77,7 @@ for s in state_dicts:
     
 
 from multivae.metrics import CoherenceEvaluator, CoherenceEvaluatorConfig, LikelihoodsEvaluator, LikelihoodsEvaluatorConfig
+from multivae.metrics import ReconstructionConfig, Reconstruction
 
 def eval(path,model, classifiers, wandb_path=None):
     
@@ -89,18 +91,28 @@ def eval(path,model, classifiers, wandb_path=None):
         eval_config=coherence_config
         ).eval()
     
-    likelihood_config= LikelihoodsEvaluatorConfig(
-        batch_size=128,
-        wandb_path=wandb_path,
-        num_samples=1000,
-        batch_size_k=200,
-    )
-
-    LikelihoodsEvaluator(model,
-                         test_dataset=test_set,
-                         output=path,
-                         eval_config=likelihood_config
-                         ).eval()
+    for m in ['SSIM', 'MSE']:
+                
+        recon_config = ReconstructionConfig(
+            batch_size=64,
+            wandb_path=wandb_path,
+            metric=m
+        )
+        
+        recon_module = Reconstruction(
+            model, 
+            test_dataset=test_set,
+            output=path,
+            eval_config=recon_config
+        )
+        
+        recon_module.reconstruction_from_subset(['audio'])
+        recon_module.reconstruction_from_subset(['image'])
+        recon_module.log_to_wandb()
+        recon_module.finish()
+    
+    compute_mfd(model, wandb_path,path)
+   
     
 
 def save_to_hf(model, args):

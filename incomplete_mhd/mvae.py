@@ -21,8 +21,7 @@ model_config = MVAEConfig(
     **base_config,
     beta=args.beta,
     uses_likelihood_rescaling=args.use_rescaling,
-    use_subsampling=True,
-    k=1,
+    use_subsampling=False,
     warmup=100
     
 )
@@ -53,7 +52,7 @@ trainer_config = BaseTrainerConfig(
     )
 
 
-train, val = random_split(train_set, [0.9,0.1], generator=torch.Generator().manual_seed(args.seed))
+train, val = random_split(train_set, [5/6,1/6], generator=torch.Generator().manual_seed(args.seed))
 
 
 

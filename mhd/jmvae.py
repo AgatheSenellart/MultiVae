@@ -19,7 +19,7 @@ args = argparse.Namespace(**info)
 # Model configuration 
 model_config = JMVAEConfig(
     **base_config,
-    warmup=200,
+    warmup=100,
     beta=args.beta,
     uses_likelihood_rescaling=args.use_rescaling,
     alpha=0.1

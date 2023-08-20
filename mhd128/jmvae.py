@@ -14,15 +14,14 @@ args = parser.parse_args()
 
 with open(args.param_file, "r") as fp:
     info = json.load(fp)
-args = argparse.Namespace(**info)
+args = info
+
 
 # Model configuration 
 model_config = JMVAEConfig(
     **base_config,
-    warmup=200,
-    beta=args.beta,
-    uses_likelihood_rescaling=args.use_rescaling,
-    alpha=0.1
+    warmup=100,
+    **args
     
 )
 
@@ -45,21 +44,24 @@ model = JMVAE(model_config, encoders, decoders)
 # Training configuration
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 
+id = [(f'{m}_{int(args[m]*100)}' if (type(args[m])==float) else f'{m}_{args[m]}') for m in args]
+
+
 trainer_config = BaseTrainerConfig(
     **base_trainer_config,
-    seed=args.seed,
-    output_dir=os.path.join(project_path, model.model_name, f'beta_{int(args.beta*10)}', f'rescale_{args.use_rescaling}'),
+    seed=args['seed'],
+    output_dir=os.path.join(project_path, model.model_name, *id),
     )
 
 
-train, val = random_split(train_set, [0.9,0.1], generator=torch.Generator().manual_seed(args.seed))
+train, val = random_split(train_set, [0.9,0.1], generator=torch.Generator().manual_seed(args['seed']))
 
 
 
 # Set up callbacks
 wandb_cb = WandbCallback()
 wandb_cb.setup(trainer_config, model_config, project_name=wandb_project)
-wandb_cb.run.config.update(args.__dict__)
+wandb_cb.run.config.update(args)
 
 callbacks = [TrainingCallback(), ProgressBarCallback(), wandb_cb]
 
@@ -75,12 +77,10 @@ trainer = BaseTrainer(
 trainer.train()
 model = trainer._best_model
 
+# Push to HuggingFaceHub
+save_to_hf(model, id)
+
 # Validate
 eval(trainer_config.output_dir, model, classifiers, wandb_cb.run.path)
-
-# Push to HuggingFaceHub
-
-model.push_to_hf_hub(f'asenella/{model.model_name}_beta_{int(args.beta*10)}_scale_{args.use_rescaling}_seed_{args.seed}')
-
 
 

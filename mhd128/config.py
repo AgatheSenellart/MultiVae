@@ -19,7 +19,8 @@ base_config = dict(
     latent_dim=128,
     input_dims=dict(image = (3,28,28),
                     audio = (1,32,128),
-                    trajectory = (200,))
+                    trajectory = (200,)),
+    uses_likelihood_rescaling=True
 
 )
 
@@ -64,7 +65,8 @@ for s in state_dicts:
     classifiers[s].eval()
     
 
-from multivae.metrics import CoherenceEvaluator, CoherenceEvaluatorConfig, FIDEvaluator, FIDEvaluatorConfig
+from multivae.metrics import CoherenceEvaluator, CoherenceEvaluatorConfig
+from multivae.metrics import Reconstruction, ReconstructionConfig
 
 def eval(path,model, classifiers, wandb_path):
     
@@ -76,15 +78,27 @@ def eval(path,model, classifiers, wandb_path):
         output=path,
         eval_config=coherence_config
         ).eval()
-    
-    
-    # config = FIDEvaluatorConfig(batch_size=512, wandb_path=wandb_path)
+    for m in ['SSIM', 'MSE'] :
+        recon_config=ReconstructionConfig(
+            batch_size=128,
+            wandb_path=wandb_path,
+            metric=m
+            
+        )
+        recon_module = Reconstruction(
+            model, 
+            test_set,
+            output=path,
+            eval_config=recon_config
+        )
+        
+        recon_module.reconstruction_from_subset(['audio'])
+        recon_module.reconstruction_from_subset(['image'])
 
-    # FIDEvaluator(
-    #     model, test_set, output=path, eval_config=config
-    # ).compute_all_conditional_fids(gen_mod="image")
+        recon_module.log_to_wandb()
+        recon_module.finish()
     
 
-def save_to_hf(model, args):
+def save_to_hf(model, id):
     model.push_to_hf_hub(
-        f'asenella/{config_name}_{model.model_name}_beta_{int(args.beta*10)}_scale_{args.use_rescaling}_seed_{args.seed}')
+        f'asenella/{config_name}_{"_".join(id)}')

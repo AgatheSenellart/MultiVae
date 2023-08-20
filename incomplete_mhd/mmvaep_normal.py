@@ -24,7 +24,7 @@ model_config = MMVAEPlusConfig(
     uses_likelihood_rescaling=args.use_rescaling,
     prior_and_posterior_dist="normal",
     learn_shared_prior=False,
-    K=1,
+    K=10,
     modalities_specific_dim=32
 )
 model_config.latent_dim = 32
@@ -96,11 +96,10 @@ trainer_config = BaseTrainerConfig(
     output_dir=os.path.join(project_path, model.model_name, f'beta_{int(args.beta*10)}', f'rescale_{args.use_rescaling}'),
     )
 
-trainer_config.per_device_train_batch_size = 32
-trainer_config.per_device_eval_batch_size = 32
-trainer_config.learning_rate = 1e-5
-
-trainer_config.num_epochs = 75
+trainer_config.per_device_train_batch_size = 64
+trainer_config.per_device_eval_batch_size = 64
+trainer_config.learning_rate = 0.5e-4
+trainer_config.num_epochs = 100
 
 train, val = random_split(train_set, [5/6,1/6], generator=torch.Generator().manual_seed(args.seed))
 

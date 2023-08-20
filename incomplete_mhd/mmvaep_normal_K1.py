@@ -15,18 +15,19 @@ args = parser.parse_args()
 
 with open(args.param_file, "r") as fp:
     info = json.load(fp)
-args = info
-
+args = argparse.Namespace(**info)
 
 # Model configuration 
 model_config = MMVAEPlusConfig(
     **base_config,
-    **args,
+    beta=args.beta,
+    uses_likelihood_rescaling=args.use_rescaling,
+    prior_and_posterior_dist="normal",
     learn_shared_prior=False,
-    K=10,
-    modalities_specific_dim=64
+    K=1,
+    modalities_specific_dim=32
 )
-model_config.latent_dim = 64
+model_config.latent_dim = 32
 
 class wrapper_encoder_image(BaseEncoder):
     
@@ -89,32 +90,33 @@ model = MMVAEPlus(model_config, encoders, decoders)
 # Training configuration
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 
-id = [(f'{m}_{int(args[m]*100)}' if (type(args[m])==float) else f'{m}_{args[m]}') for m in args]
-
-
 trainer_config = BaseTrainerConfig(
     **base_trainer_config,
-    seed=args['seed'],
-    output_dir=os.path.join(project_path, model.model_name, *id),
+    seed=args.seed,
+    output_dir=os.path.join(project_path, model.model_name, f'beta_{int(args.beta*10)}', f'rescale_{args.use_rescaling}'),
     )
+
+trainer_config.per_device_train_batch_size = 32
+trainer_config.per_device_eval_batch_size = 32
+trainer_config.learning_rate = 1e-5
 
 trainer_config.num_epochs = 150
 
-train, val = random_split(train_set, [0.9,0.1], generator=torch.Generator().manual_seed(args['seed']))
+train, val = random_split(train_set, [5/6,1/6], generator=torch.Generator().manual_seed(args.seed))
 
 
 
 # Set up callbacks
 wandb_cb = WandbCallback()
 wandb_cb.setup(trainer_config, model_config, project_name=wandb_project)
-wandb_cb.run.config.update(args)
+wandb_cb.run.config.update(args.__dict__)
 
 callbacks = [TrainingCallback(), ProgressBarCallback(), wandb_cb]
 
 trainer = BaseTrainer(
     model = model, 
     train_dataset=train, 
-    eval_dataset=val,
+    # eval_dataset=val,
     training_config=trainer_config, 
     callbacks=callbacks,
 )
@@ -124,7 +126,7 @@ trainer.train()
 model = trainer._best_model
 
 # Push to HuggingFaceHub
-save_to_hf(model, id)
+# save_to_hf(model, args)
 
 # Validate
 eval(trainer_config.output_dir, model, classifiers, wandb_cb.run.path)

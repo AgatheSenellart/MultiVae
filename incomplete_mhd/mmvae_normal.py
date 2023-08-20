@@ -52,10 +52,10 @@ trainer_config = BaseTrainerConfig(
     output_dir=os.path.join(project_path, model.model_name, f'beta_{int(args.beta*10)}', f'rescale_{args.use_rescaling}', f'K_{model.K}'),
     )
 
-trainer_config.per_device_train_batch_size = 32
-trainer_config.per_device_eval_batch_size = 32
-trainer_config.learning_rate = 1e-5
-trainer_config.num_epochs=75
+trainer_config.per_device_train_batch_size = 64
+trainer_config.per_device_eval_batch_size = 64
+trainer_config.learning_rate=0.5e-4
+trainer_config.num_epochs=100
 
 train, val = random_split(train_set, [5/6,1/6], generator=torch.Generator().manual_seed(args.seed))
 
