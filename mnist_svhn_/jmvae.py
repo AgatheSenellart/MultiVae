@@ -14,23 +14,22 @@ args = parser.parse_args()
 
 with open(args.param_file, "r") as fp:
     info = json.load(fp)
-args = argparse.Namespace(**info)
+args = info
 
 # Model configuration 
 model_config = JMVAEConfig(
     **base_config,
     warmup=100,
-    beta=args.beta,
-    uses_likelihood_rescaling=args.use_rescaling,
-    alpha=0.1
+    **args,
     
 )
 
 #Architectures
 
-
-
 model = JMVAE(model_config, encoders, decoders)
+
+id = [(f'{m}_{int(args[m]*100)}' if (type(args[m])==float) else f'{m}_{args[m]}') for m in args]
+
 
 # Training configuration
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
@@ -38,7 +37,7 @@ from multivae.trainers import BaseTrainer, BaseTrainerConfig
 trainer_config = BaseTrainerConfig(
     **base_trainer_config,
     seed=args.seed,
-    output_dir=os.path.join(project_path, model.model_name, f'beta_{int(args.beta*10)}', f'rescale_{args.use_rescaling}', f'seed_{args.seed}'),
+    output_dir=os.path.join(project_path, model.model_name, *id),
     )
 
 
@@ -64,8 +63,8 @@ trainer = BaseTrainer(
 # Train 
 trainer.train()
 model = trainer._best_model
-model.push_to_hf_hub(f'asenella/ms_{model.model_name}_beta_{int(args.beta*10)}_scale_{args.use_rescaling}_seed_{args.seed}')
 
+save_to_hf(model, id)
 
 # Validate
 eval(trainer_config.output_dir, model, classifiers, wandb_cb.run.path)

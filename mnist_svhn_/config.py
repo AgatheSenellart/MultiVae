@@ -19,7 +19,9 @@ base_config = dict(
     input_dims=dict(mnist = (1,28,28),
                     svhn = (3,32,32)),
     decoders_dist=dict(mnist = 'laplace', svhn ='laplace'),
-    decoder_dist_params=dict(mnist = dict(scale=0.75), svhn=dict(scale=0.75))
+    decoder_dist_params=dict(mnist = dict(scale=0.75), svhn=dict(scale=0.75)),
+    uses_likelihood_rescaling=True
+
 
 )
 
@@ -123,5 +125,8 @@ def eval(path,model, classifiers, wandb_path):
     FIDEvaluator(
         model, test_set, output=path, eval_config=config
     ).compute_all_conditional_fids(gen_mod="svhn")
+
     
-    
+def save_to_hf(model, id):
+    model.push_to_hf_hub(
+        f'asenella/{config_name}_{"_".join(id)}')

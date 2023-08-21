@@ -16,16 +16,14 @@ args = parser.parse_args()
 
 with open(args.param_file, "r") as fp:
     info = json.load(fp)
-args = argparse.Namespace(**info)
+args = info
 
 # Model configuration 
 model_config = JNFDccaConfig(
     **base_config,
     warmup=100,
     nb_epochs_dcca=100,
-    embedding_dcca_dim=9,
-    beta = args.beta,
-    uses_likelihood_rescaling=args.use_rescaling
+    **args,
 )
 
 #Architectures
@@ -47,13 +45,15 @@ joint_encoder = MultipleHeadJointEncoder(
 
 model = JNFDcca(model_config, dcca_networks=dcca_networks, decoders=decoders, joint_encoder=joint_encoder)
 
+id = [(f'{m}_{int(args[m]*100)}' if (type(args[m])==float) else f'{m}_{args[m]}') for m in args]
+
 # Training configuration
 from multivae.trainers import AddDccaTrainer, AddDccaTrainerConfig
 
 trainer_config = AddDccaTrainerConfig(
     **base_trainer_config,
     seed=args.seed,
-    output_dir=os.path.join(project_path, model.model_name, f'beta_{int(args.beta*10)}', f'rescale_{args.use_rescaling}', f'seed_{args.seed}'),
+    output_dir=os.path.join(project_path, model.model_name, *id),
     per_device_dcca_train_batch_size=800,
     per_device_dcca_eval_batch_size=800,
     learning_rate_dcca=1e-3
@@ -83,7 +83,7 @@ trainer = AddDccaTrainer(
 # Train 
 trainer.train()
 model = trainer._best_model
-model.push_to_hf_hub(f'asenella/ms_{model.model_name}_beta_{int(args.beta*10)}_scale_{args.use_rescaling}_seed_{args.seed}')
+save_to_hf(model, id)
 
 
 # Validate

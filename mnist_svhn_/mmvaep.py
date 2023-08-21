@@ -15,17 +15,15 @@ args = parser.parse_args()
 
 with open(args.param_file, "r") as fp:
     info = json.load(fp)
-args = argparse.Namespace(**info)
+args = info
+
 
 # Model configuration 
 model_config = MMVAEPlusConfig(
     **base_config,
-    beta=args.beta,
-    uses_likelihood_rescaling=args.use_rescaling,
-    K=1,
-    modalities_specific_dim=15,
+    **args,
 )
-model_config.latent_dim = 5
+model_config.latent_dim = 10
 
 class wrapper_encoder_mnist(BaseEncoder):
     
@@ -63,10 +61,10 @@ encoders = dict(
     svhn = wrapper_encoder_svhn()
 )
 
-
-
-
 model = MMVAEPlus(model_config, encoders, decoders)
+
+id = [(f'{m}_{int(args[m]*100)}' if (type(args[m])==float) else f'{m}_{args[m]}') for m in args]
+
 
 # Training configuration
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
@@ -74,7 +72,7 @@ from multivae.trainers import BaseTrainer, BaseTrainerConfig
 trainer_config = BaseTrainerConfig(
     **base_trainer_config,
     seed=args.seed,
-    output_dir=os.path.join(project_path, model.model_name, f'beta_{int(args.beta*10)}', f'rescale_{args.use_rescaling}', f'seed_{args.seed}'),
+    output_dir=os.path.join(project_path, model.model_name, *id),
     )
 
 
@@ -101,7 +99,7 @@ trainer = BaseTrainer(
 trainer.train()
 model = trainer._best_model
 # Push to HuggingFaceHub
-model.push_to_hf_hub(f'asenella/ms_{model.model_name}_beta_{int(args.beta*10)}_scale_{args.use_rescaling}_seed_{args.seed}')
+save_to_hf(model, id)
 
 
 # Validate
