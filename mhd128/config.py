@@ -8,19 +8,19 @@ from multivae.trainers.base.callbacks import (
     WandbCallback,
 )
 import json
-from compute_mfd import compute_mfd
 
-wandb_project = 'MHD'
-config_name = 'mhd_config_1'
+wandb_project = 'MHD128'
+config_name = 'mhd128'
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-project_path = '/home/asenella/scratch/mhd_experiments/'
+project_path = '/home/asenella/scratch/mhd128_experiments/'
 
 base_config = dict(
     n_modalities=3,
-    latent_dim=64,
+    latent_dim=128,
     input_dims=dict(image = (3,28,28),
                     audio = (1,32,128),
-                    trajectory = (200,))
+                    trajectory = (200,)),
+    uses_likelihood_rescaling=True
 
 )
 
@@ -65,7 +65,8 @@ for s in state_dicts:
     classifiers[s].eval()
     
 
-from multivae.metrics import CoherenceEvaluator, CoherenceEvaluatorConfig, Reconstruction, ReconstructionConfig
+from multivae.metrics import CoherenceEvaluator, CoherenceEvaluatorConfig
+from multivae.metrics import Reconstruction, ReconstructionConfig
 
 def eval(path,model, classifiers, wandb_path):
     
@@ -77,31 +78,27 @@ def eval(path,model, classifiers, wandb_path):
         output=path,
         eval_config=coherence_config
         ).eval()
-    
-    
-    for m in ['SSIM', 'MSE']:
-                
-        recon_config = ReconstructionConfig(
-            batch_size=64,
+    for m in ['SSIM', 'MSE'] :
+        recon_config=ReconstructionConfig(
+            batch_size=128,
             wandb_path=wandb_path,
             metric=m
+            
         )
-        
         recon_module = Reconstruction(
             model, 
-            test_dataset=test_set,
+            test_set,
             output=path,
             eval_config=recon_config
         )
         
         recon_module.reconstruction_from_subset(['audio'])
         recon_module.reconstruction_from_subset(['image'])
+
         recon_module.log_to_wandb()
         recon_module.finish()
-        
-    compute_mfd(model, wandb_path,path)
     
 
-def save_to_hf(model, args):
+def save_to_hf(model, id):
     model.push_to_hf_hub(
-        f'asenella/{config_name}_{model.model_name}_beta_{int(args.beta*10)}_scale_{args.use_rescaling}_seed_{args.seed}')
+        f'asenella/{config_name}_{"_".join(id)}')

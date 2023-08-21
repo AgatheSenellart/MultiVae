@@ -68,7 +68,7 @@ trainer_config = AddDccaTrainerConfig(
 
 trainer_config.num_epochs += model_config.nb_epochs_dcca
 
-train, val = random_split(train_set, [0.9,0.1], generator=torch.Generator().manual_seed(args.seed))
+train, val = random_split(train_set, [5/6,1/6], generator=torch.Generator().manual_seed(args.seed))
 
 
 
@@ -92,7 +92,7 @@ trainer.train()
 model = trainer._best_model
 
 # Push to HuggingFaceHub
-model.push_to_hf_hub(f'asenella/{model.model_name}_beta_{int(args.beta*10)}_scale_{args.use_rescaling}_seed_{args.seed}')
+save_to_hf(model, args)
 
 # Validate
 eval(trainer_config.output_dir, model, classifiers, wandb_cb.run.path)

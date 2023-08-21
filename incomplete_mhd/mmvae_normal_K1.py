@@ -1,4 +1,4 @@
-from multivae.models import JMVAEConfig, JMVAE
+from multivae.models import MMVAEConfig, MMVAE
 from config import *
 from multivae.models.base import BaseAEConfig
 from multivae.trainers.base.callbacks import (
@@ -17,12 +17,13 @@ with open(args.param_file, "r") as fp:
 args = argparse.Namespace(**info)
 
 # Model configuration 
-model_config = JMVAEConfig(
+model_config = MMVAEConfig(
     **base_config,
-    warmup=100,
     beta=args.beta,
     uses_likelihood_rescaling=args.use_rescaling,
-    alpha=0.1
+    K=1,
+    prior_and_posterior_dist='normal',
+    learn_prior=False
     
 )
 
@@ -40,7 +41,7 @@ decoders = dict(
 )
 
 
-model = JMVAE(model_config, encoders, decoders)
+model = MMVAE(model_config, encoders, decoders)
 
 # Training configuration
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
@@ -48,11 +49,15 @@ from multivae.trainers import BaseTrainer, BaseTrainerConfig
 trainer_config = BaseTrainerConfig(
     **base_trainer_config,
     seed=args.seed,
-    output_dir=os.path.join(project_path, model.model_name, f'beta_{int(args.beta*10)}', f'rescale_{args.use_rescaling}'),
+    output_dir=os.path.join(project_path, model.model_name, f'beta_{int(args.beta*10)}', f'rescale_{args.use_rescaling}', f'K_{model.K}'),
     )
 
+trainer_config.per_device_train_batch_size = 32
+trainer_config.per_device_eval_batch_size = 32
+trainer_config.learning_rate = 1e-5
+trainer_config.num_epochs=150
 
-train, val = random_split(train_set, [0.9,0.1], generator=torch.Generator().manual_seed(args.seed))
+train, val = random_split(train_set, [5/6,1/6], generator=torch.Generator().manual_seed(args.seed))
 
 
 
@@ -66,7 +71,7 @@ callbacks = [TrainingCallback(), ProgressBarCallback(), wandb_cb]
 trainer = BaseTrainer(
     model = model, 
     train_dataset=train, 
-    eval_dataset=val,
+    # eval_dataset=val,
     training_config=trainer_config, 
     callbacks=callbacks,
 )
@@ -75,12 +80,9 @@ trainer = BaseTrainer(
 trainer.train()
 model = trainer._best_model
 
+# save_to_hf(model, args)
+
 # Validate
 eval(trainer_config.output_dir, model, classifiers, wandb_cb.run.path)
-
-# Push to HuggingFaceHub
-
-model.push_to_hf_hub(f'asenella/{model.model_name}_beta_{int(args.beta*10)}_scale_{args.use_rescaling}_seed_{args.seed}')
-
 
 

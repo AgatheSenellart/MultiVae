@@ -22,7 +22,7 @@ model_config = MMVAEPlusConfig(
     **base_config,
     beta=args.beta,
     uses_likelihood_rescaling=args.use_rescaling,
-    prior_and_posterior_dist="laplace_with_softmax",
+    prior_and_posterior_dist="normal",
     learn_shared_prior=False,
     K=10,
     modalities_specific_dim=32
@@ -96,9 +96,12 @@ trainer_config = BaseTrainerConfig(
     output_dir=os.path.join(project_path, model.model_name, f'beta_{int(args.beta*10)}', f'rescale_{args.use_rescaling}'),
     )
 
-trainer_config.num_epochs = 75
+trainer_config.per_device_train_batch_size = 64
+trainer_config.per_device_eval_batch_size = 64
+trainer_config.learning_rate = 0.5e-4
+trainer_config.num_epochs = 100
 
-train, val = random_split(train_set, [0.9,0.1], generator=torch.Generator().manual_seed(args.seed))
+train, val = random_split(train_set, [5/6,1/6], generator=torch.Generator().manual_seed(args.seed))
 
 
 
@@ -112,7 +115,7 @@ callbacks = [TrainingCallback(), ProgressBarCallback(), wandb_cb]
 trainer = BaseTrainer(
     model = model, 
     train_dataset=train, 
-    eval_dataset=val,
+    # eval_dataset=val,
     training_config=trainer_config, 
     callbacks=callbacks,
 )
@@ -122,9 +125,7 @@ trainer.train()
 model = trainer._best_model
 
 # Push to HuggingFaceHub
-model.push_to_hf_hub(f'asenella/{model.model_name}_beta_{int(args.beta*10)}_scale_{args.use_rescaling}_seed_{args.seed}')
-
-
+# save_to_hf(model, args)
 
 # Validate
 eval(trainer_config.output_dir, model, classifiers, wandb_cb.run.path)

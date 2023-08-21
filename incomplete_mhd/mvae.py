@@ -1,4 +1,4 @@
-from multivae.models import MoPoE, MoPoEConfig
+from multivae.models import MVAEConfig, MVAE
 from config import *
 from multivae.models.base import BaseAEConfig
 from multivae.trainers.base.callbacks import (
@@ -14,21 +14,33 @@ args = parser.parse_args()
 
 with open(args.param_file, "r") as fp:
     info = json.load(fp)
-args = info
+args = argparse.Namespace(**info)
 
 # Model configuration 
-model_config = MoPoEConfig(
+model_config = MVAEConfig(
     **base_config,
-    **args
+    beta=args.beta,
+    uses_likelihood_rescaling=args.use_rescaling,
+    use_subsampling=False,
+    warmup=100
     
 )
 
 #Architectures
+encoders = dict(
+    image = Encoder_Conv_VAE_MNIST(BaseAEConfig((3,28,28), latent_dim = model_config.latent_dim)), 
+    audio = SoundEncoder(model_config.latent_dim),
+    trajectory = TrajectoryEncoder(200, layer_sizes=[512, 512, 512], output_dim=model_config.latent_dim)
+)
 
-model = MoPoE(model_config, encoders, decoders)
+decoders = dict(
+    image = Decoder_Conv_AE_MNIST(BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3,28,28))),
+    audio = SoundDecoder(model_config.latent_dim),
+    trajectory = TrajectoryDecoder(model_config.latent_dim, [512,512,512],output_dim=200)
+)
 
-id = [(f'{m}_{int(args[m]*100)}' if (type(args[m])==float) else f'{m}_{args[m]}') for m in args]
 
+model = MVAE(model_config, encoders, decoders)
 
 # Training configuration
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
@@ -36,12 +48,11 @@ from multivae.trainers import BaseTrainer, BaseTrainerConfig
 trainer_config = BaseTrainerConfig(
     **base_trainer_config,
     seed=args.seed,
-    output_dir=os.path.join(project_path, model.model_name, *id),
-    drop_last=True
+    output_dir=os.path.join(project_path, model.model_name, f'beta_{int(args.beta*10)}', f'rescale_{args.use_rescaling}'),
     )
 
 
-train, val = random_split(train_set, [0.9,0.1], generator=torch.Generator().manual_seed(args.seed))
+train, val = random_split(train_set, [5/6,1/6], generator=torch.Generator().manual_seed(args.seed))
 
 
 
@@ -64,14 +75,10 @@ trainer = BaseTrainer(
 trainer.train()
 model = trainer._best_model
 
-# Push to HuggingFaceHub
-
-save_to_hf(model, id)
+save_to_hf(model,args)
 
 # Validate
 eval(trainer_config.output_dir, model, classifiers, wandb_cb.run.path)
-
-
 
 
 

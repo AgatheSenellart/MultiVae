@@ -8,12 +8,13 @@ from multivae.trainers.base.callbacks import (
     WandbCallback,
 )
 import json
+import numpy as np
 from compute_mfd import compute_mfd
 
-wandb_project = 'MHD'
-config_name = 'mhd_config_1'
+wandb_project = 'incomplete_MHD'
+config_name = 'incomplete_mhd'
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-project_path = '/home/asenella/scratch/mhd_experiments/'
+project_path = '/home/asenella/scratch/incomplete_mhd_expes_clean/'
 
 base_config = dict(
     n_modalities=3,
@@ -26,10 +27,10 @@ base_config = dict(
 
 
 base_trainer_config = dict(
-    per_device_train_batch_size=64,
+    per_device_train_batch_size=128,
     per_device_eval_batch_size=128,
-    num_epochs=300,
-    learning_rate = 1e-3,
+    num_epochs=500,
+    learning_rate = 1e-4,
     steps_predict=5
 
 )
@@ -38,7 +39,17 @@ from multivae.data.datasets.mhd import MHD
 from torch.utils.data import random_split
 import os
 
-train_set = MHD('/home/asenella/scratch/data/MHD', split='train', modalities=['audio', 'trajectory', 'image'])
+# Define missing probabilities
+missing_probabilities = dict(
+    image = np.zeros(10)*1.0,
+    audio = np.linspace(0.1,0.8,10),
+    trajectory = np.linspace(0.3,0.4,10)
+    
+)
+
+# Define the incomplete dataset
+train_set = MHD('/home/asenella/scratch/data/MHD', split='train', modalities=['audio', 'trajectory', 'image'],
+                missing_probabilities=missing_probabilities)
 test_set = MHD('/home/asenella/scratch/data/MHD', split='test', modalities=['audio', 'trajectory', 'image'])
 
 
@@ -65,11 +76,13 @@ for s in state_dicts:
     classifiers[s].eval()
     
 
-from multivae.metrics import CoherenceEvaluator, CoherenceEvaluatorConfig, Reconstruction, ReconstructionConfig
+from multivae.metrics import CoherenceEvaluator, CoherenceEvaluatorConfig, LikelihoodsEvaluator, LikelihoodsEvaluatorConfig
+from multivae.metrics import ReconstructionConfig, Reconstruction
 
-def eval(path,model, classifiers, wandb_path):
+def eval(path,model, classifiers, wandb_path=None):
     
-    coherence_config = CoherenceEvaluatorConfig(128, wandb_path=wandb_path)
+    coherence_config = CoherenceEvaluatorConfig(128, wandb_path=wandb_path, num_classes=10,give_details_per_class=True)
+    
     CoherenceEvaluator(
         model=model,
         classifiers=classifiers,
@@ -77,7 +90,6 @@ def eval(path,model, classifiers, wandb_path):
         output=path,
         eval_config=coherence_config
         ).eval()
-    
     
     for m in ['SSIM', 'MSE']:
                 
@@ -98,8 +110,9 @@ def eval(path,model, classifiers, wandb_path):
         recon_module.reconstruction_from_subset(['image'])
         recon_module.log_to_wandb()
         recon_module.finish()
-        
+    
     compute_mfd(model, wandb_path,path)
+   
     
 
 def save_to_hf(model, args):

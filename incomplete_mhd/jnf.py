@@ -14,22 +14,32 @@ args = parser.parse_args()
 
 with open(args.param_file, "r") as fp:
     info = json.load(fp)
-args = info
+args = argparse.Namespace(**info)
 
 # Model configuration 
 model_config = JNFConfig(
     **base_config,
-    warmup=100,
-    **args
+    warmup=200,
+    beta=args.beta,
+    uses_likelihood_rescaling=args.use_rescaling,
+    
+)
+
+#Architectures
+encoders = dict(
+    image = Encoder_Conv_VAE_MNIST(BaseAEConfig((3,28,28), latent_dim = model_config.latent_dim)), 
+    audio = SoundEncoder(model_config.latent_dim),
+    trajectory = TrajectoryEncoder(200, layer_sizes=[512, 512, 512], output_dim=model_config.latent_dim)
+)
+
+decoders = dict(
+    image = Decoder_Conv_AE_MNIST(BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3,28,28))),
+    audio = SoundDecoder(model_config.latent_dim),
+    trajectory = TrajectoryDecoder(model_config.latent_dim, [512,512,512],output_dim=200)
 )
 
 
-
-
-model = JNF(model_config, encoders=encoders, decoders=decoders)
-
-id = [(f'{m}_{int(args[m]*100)}' if (type(args[m])==float) else f'{m}_{args[m]}') for m in args]
-
+model = JNF(model_config, encoders, decoders)
 
 # Training configuration
 from multivae.trainers import TwoStepsTrainer, TwoStepsTrainerConfig
@@ -37,11 +47,11 @@ from multivae.trainers import TwoStepsTrainer, TwoStepsTrainerConfig
 trainer_config = TwoStepsTrainerConfig(
     **base_trainer_config,
     seed=args.seed,
-    output_dir=os.path.join(project_path, model.model_name, *id),
+    output_dir=os.path.join(project_path, model.model_name, f'beta_{int(args.beta*10)}', f'rescale_{args.use_rescaling}'),
     )
 
 
-train, val = random_split(train_set, [0.9,0.1], generator=torch.Generator().manual_seed(args.seed))
+train, val = random_split(train_set, [5/6,1/6], generator=torch.Generator().manual_seed(args.seed))
 
 
 
@@ -65,12 +75,10 @@ trainer.train()
 model = trainer._best_model
 
 # Push to HuggingFaceHub
-
-save_to_hf(model, id)
+save_to_hf(model, args)
 
 # Validate
 eval(trainer_config.output_dir, model, classifiers, wandb_cb.run.path)
-
 
 
 

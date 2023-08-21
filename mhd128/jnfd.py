@@ -23,9 +23,8 @@ model_config = JNFDccaConfig(
     **base_config,
     warmup=200,
     nb_epochs_dcca=100,
-    embedding_dcca_dim=20,
-    beta = args.beta,
-    uses_likelihood_rescaling=args.use_rescaling
+    **args
+    
 )
 
 #Architectures
@@ -92,7 +91,7 @@ trainer.train()
 model = trainer._best_model
 
 # Push to HuggingFaceHub
-model.push_to_hf_hub(f'asenella/{model.model_name}_beta_{int(args.beta*10)}_scale_{args.use_rescaling}_seed_{args.seed}')
+save_to_hf(model, args)
 
 # Validate
 eval(trainer_config.output_dir, model, classifiers, wandb_cb.run.path)
