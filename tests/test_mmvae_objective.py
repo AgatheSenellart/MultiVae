@@ -191,7 +191,7 @@ class Test_mmvae_obj:
             qz_xs_detach, px_zs, zss, model, x, rescale_factors, K=model.K
         )
 
-        assert test_loss / 2 == out.loss
+        assert torch.allclose(test_loss / 2, out.loss)
 
         test_iwae = -_m_iwae_test(
             qz_xs, px_zs, zss, model, x, rescale_factors, K=model.K
