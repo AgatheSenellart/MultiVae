@@ -96,8 +96,6 @@ class MMVAE(BaseMultiVAE):
         else:
             std = torch.exp(0.5 * self.prior_log_var)
         return mean, std
-    
-    
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs):
         # TODO : maybe implement a minibatch strategy for stashing the gradients before
@@ -105,10 +103,10 @@ class MMVAE(BaseMultiVAE):
         # Also, I've only implemented the dreg_looser loss but it may be nice to offer other options.
 
         # First compute all the encodings for all modalities
-        
+
         # drop modalities that are completely unavailable in the batch to avoid Nan in backward
         inputs = drop_unused_modalities(inputs)
-        
+
         embeddings = {}
         qz_xs = {}
         qz_xs_detach = {}
@@ -144,7 +142,6 @@ class MMVAE(BaseMultiVAE):
 
         # Compute DREG loss
         if compute_loss:
-            
             loss_output = self.dreg_looser(
                 qz_xs_detach, embeddings, reconstructions, inputs
             )
@@ -180,21 +177,17 @@ class MMVAE(BaseMultiVAE):
                 lqz_x = []
                 for m in qz_xs:
                     qz = qz_xs[m].log_prob(z).sum(-1)
-                    qz[torch.stack([inputs.masks[m]==False]*len(z))] = -torch.inf
-                    lqz_x.append(
-                        qz
-                    )
-                
-                lqz_x = torch.stack(
-                    lqz_x
-                )  # n_modalities,K,nbatch
+                    qz[torch.stack([inputs.masks[m] == False] * len(z))] = -torch.inf
+                    lqz_x.append(qz)
+
+                lqz_x = torch.stack(lqz_x)  # n_modalities,K,nbatch
             else:
                 lqz_x = torch.stack(
                     [qz_xs[m].log_prob(z).sum(-1) for m in qz_xs]
                 )  # n_modalities,K,nbatch
 
             lqz_x = torch.logsumexp(lqz_x, dim=0) - torch.log(
-                n_mods_sample   
+                n_mods_sample
             )  # log_mean_exp
             lpx_z = 0
             for recon_mod in reconstructions[mod]:
@@ -231,7 +224,7 @@ class MMVAE(BaseMultiVAE):
 
         lws = (grad_wt * lws).sum(0) / n_mods_sample  # mean over modalities
 
-        return ModelOutput(loss=-lws.mean(-1).sum(), metrics = dict())
+        return ModelOutput(loss=-lws.mean(-1).sum(), metrics=dict())
 
     def iwae(self, qz_xs, zss, reconstructions, inputs):
         lw_mod = []

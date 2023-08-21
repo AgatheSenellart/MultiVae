@@ -92,19 +92,24 @@ class FIDEvaluator(Evaluator):
         super().__init__(model, test_dataset, output, eval_config, sampler)
 
         if custom_encoders is not None:
-            self.model_fds = {m : custom_encoders[m].to(self.device) for m in custom_encoders}
+            self.model_fds = {
+                m: custom_encoders[m].to(self.device) for m in custom_encoders
+            }
         else:
-            self.model_fds = {m: wrapper_inception(
-                dims=eval_config.dims_inception,
-                device=self.device,
-                path_state_dict=eval_config.inception_weights_path,
-            ) for m in model.encoders}
+            self.model_fds = {
+                m: wrapper_inception(
+                    dims=eval_config.dims_inception,
+                    device=self.device,
+                    path_state_dict=eval_config.inception_weights_path,
+                )
+                for m in model.encoders
+            }
         if transform is not None:
             self.inception_transform = transform
         elif transform is None and custom_encoders is None:
             # reshape for FID
             self.inception_transform = adapt_shape_for_fid()
-        else: 
+        else:
             self.inception_transform = None
 
     def get_frechet_distance(self, mod, generate_latent_function):
@@ -117,16 +122,16 @@ class FIDEvaluator(Evaluator):
             for batch in tqdm(self.test_loader):
                 batch = set_inputs_to_device(batch, self.device)
                 # Compute activations for true data
-                
+
                 if self.inception_transform is not None:
                     batch.data[mod] = self.inception_transform(batch.data[mod])
-                    
+
                 data = batch.data[mod].to(self.device)
                 pred = self.model_fds[mod](data)
-                
+
                 if isinstance(pred, ModelOutput):
                     pred = pred.embedding
-                
+
                 del data
                 activations[0].append(pred)
 
@@ -135,13 +140,13 @@ class FIDEvaluator(Evaluator):
                 latents.z = latents.z.to(self.device)
 
                 samples = self.model.decode(latents, modalities=mod)
-                
+
                 if self.inception_transform is not None:
                     samples[mod] = self.inception_transform(samples[mod])
                 data_gen = samples[mod]
                 del samples
                 pred_gen = self.model_fds[mod](data_gen)
-                
+
                 if isinstance(pred_gen, ModelOutput):
                     pred_gen = pred_gen.embedding
                 activations[1].append(pred_gen)

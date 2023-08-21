@@ -53,18 +53,19 @@ class Test:
         config3 = BaseAEConfig(input_dim=(4,), latent_dim=5)
         config4 = BaseAEConfig(input_dim=(4,), latent_dim=5)
 
+        encoders = dict(
+            mod1=Encoder_VAE_MLP(config1),
+            mod2=Encoder_VAE_MLP(config2),
+            mod3=Encoder_VAE_MLP(config3),
+            mod4=Encoder_VAE_MLP(config4),
+        )
 
-        encoders = dict(mod1=Encoder_VAE_MLP(config1),
-                        mod2=Encoder_VAE_MLP(config2),
-                        mod3=Encoder_VAE_MLP(config3),
-                        mod4=Encoder_VAE_MLP(config4))
-
-        decoders = dict(mod1=Decoder_AE_MLP(config1),
-                        mod2=Decoder_AE_MLP(config2),
-                        mod3=Decoder_AE_MLP(config3),
-                        mod4=Decoder_AE_MLP(config4),
-
-                        )
+        decoders = dict(
+            mod1=Decoder_AE_MLP(config1),
+            mod2=Decoder_AE_MLP(config2),
+            mod3=Decoder_AE_MLP(config3),
+            mod4=Decoder_AE_MLP(config4),
+        )
 
         return dict(
             encoders=encoders,
@@ -78,7 +79,9 @@ class Test:
             latent_dim=5,
             input_dims=dict(mod1=(2,), mod2=(3,), mod3=(4,), mod4=(4,)),
             use_likelihood_rescaling=request.param,
-            decoders_dist=dict(mod1="laplace", mod2="laplace", mod3="laplace", mod4='laplace'),
+            decoders_dist=dict(
+                mod1="laplace", mod2="laplace", mod3="laplace", mod4="laplace"
+            ),
             decoder_dist_params=dict(mod1={"scale": 0.75}, mod2={"scale": 0.75}),
         )
 
@@ -95,7 +98,9 @@ class Test:
 
     def test(self, model, dataset, model_config):
         model_config = MMVAEConfig(**model_config)
-        assert model_config.decoders_dist == dict(mod1="laplace", mod2="laplace", mod3="laplace", mod4='laplace')
+        assert model_config.decoders_dist == dict(
+            mod1="laplace", mod2="laplace", mod3="laplace", mod4="laplace"
+        )
 
         assert model_config.decoder_dist_params == dict(
             mod1={"scale": 0.75}, mod2={"scale": 0.75}

@@ -9,8 +9,8 @@ import torch.nn.functional as F
 from pythae.models.base.base_utils import ModelOutput
 from torch.distributions import Laplace, Normal
 
-from multivae.data.utils import drop_unused_modalities
 from multivae.data.datasets.base import MultimodalBaseDataset
+from multivae.data.utils import drop_unused_modalities
 from multivae.models.nn.default_architectures import (
     BaseDictDecodersMultiLatents,
     BaseDictEncoders_MultiLatents,
@@ -125,7 +125,7 @@ class MMVAEPlus(BaseMultiVAE):
         # TODO : maybe implement a minibatch strategy for stashing the gradients before
         # backpropagation when using a large number k.
         # Also, I've only implemented the dreg_looser loss but it may be nice to offer other options.
-        
+
         # Drop unused modalities
         inputs = drop_unused_modalities(inputs)
 
@@ -269,13 +269,12 @@ class MMVAEPlus(BaseMultiVAE):
 
             # For the shared latent variable it is the same
             if hasattr(inputs, "masks"):
-                
                 qu_x = []
                 for m in qu_xs:
                     qu = qu_xs[m].log_prob(u).sum(-1)
-                    # for unavailable modalities, set the log prob to -infinity so that it accounts for 0 
+                    # for unavailable modalities, set the log prob to -infinity so that it accounts for 0
                     # in the log_sum_exp.
-                    qu[torch.stack([inputs.masks[m] == False]*len(u))] = -torch.inf
+                    qu[torch.stack([inputs.masks[m] == False] * len(u))] = -torch.inf
                     qu_x.append(qu)
                 lqu_x = torch.stack(qu_x)  # n_modalities,K,nbatch
             else:

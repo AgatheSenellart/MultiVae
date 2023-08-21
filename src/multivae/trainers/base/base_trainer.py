@@ -17,7 +17,7 @@ from torchvision.utils import make_grid
 
 from ...data import MultimodalBaseDataset
 from ...data.datasets.utils import adapt_shape
-from ...data.utils import set_inputs_to_device, get_batch_size
+from ...data.utils import get_batch_size, set_inputs_to_device
 from ...models import BaseMultiVAE
 from .base_trainer_config import BaseTrainerConfig
 from .callbacks import (
@@ -486,7 +486,7 @@ class BaseTrainer:
                 epoch_eval_loss = self.best_eval_loss
                 self._schedulers_step(epoch_train_loss)
             if epoch <= self.training_config.start_keep_best_epoch or (
-                hasattr(self.model, 'warmup') and epoch <= self.model.warmup    
+                hasattr(self.model, "warmup") and epoch <= self.model.warmup
             ):
                 # save the model, don't keep track of the best loss
                 best_model = deepcopy(self.model)
@@ -605,7 +605,7 @@ class BaseTrainer:
 
             loss = model_output.loss
 
-            epoch_loss += loss.item()*batch_size
+            epoch_loss += loss.item() * batch_size
             n_samples_compute += batch_size
             update_dict(epoch_metrics, model_output.metrics)
 
@@ -658,8 +658,8 @@ class BaseTrainer:
             self._optimizers_step(model_output)
 
             loss = model_output.loss
-            epoch_loss += loss.item()*batch_size
-            n_samples_compute+= batch_size
+            epoch_loss += loss.item() * batch_size
+            n_samples_compute += batch_size
             update_dict(epoch_model_metrics, model_output.metrics)
 
             if epoch_loss != epoch_loss:
