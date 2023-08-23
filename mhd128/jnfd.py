@@ -16,13 +16,14 @@ args = parser.parse_args()
 
 with open(args.param_file, "r") as fp:
     info = json.load(fp)
-args = argparse.Namespace(**info)
+args = info
 
 # Model configuration 
 model_config = JNFDccaConfig(
     **base_config,
     warmup=200,
-    nb_epochs_dcca=100,
+    nb_epochs_dcca=150,
+    weights_dcca= dict(image_trajectory = 10),
     **args
     
 )
@@ -55,11 +56,13 @@ model = JNFDcca(model_config, dcca_networks=dcca_networks, decoders=decoders, jo
 
 # Training configuration
 from multivae.trainers import AddDccaTrainer, AddDccaTrainerConfig
+id = [(f'{m}_{int(args[m]*100)}' if (type(args[m])==float) else f'{m}_{args[m]}') for m in args]
+
 
 trainer_config = AddDccaTrainerConfig(
     **base_trainer_config,
-    seed=args.seed,
-    output_dir=os.path.join(project_path, model.model_name, f'beta_{int(args.beta*10)}', f'rescale_{args.use_rescaling}'),
+    seed=args['seed'],
+    output_dir=os.path.join(project_path, model.model_name, *id),
     per_device_dcca_train_batch_size=800,
     per_device_dcca_eval_batch_size=800,
     learning_rate_dcca=1e-4
@@ -67,14 +70,14 @@ trainer_config = AddDccaTrainerConfig(
 
 trainer_config.num_epochs += model_config.nb_epochs_dcca
 
-train, val = random_split(train_set, [0.9,0.1], generator=torch.Generator().manual_seed(args.seed))
+train, val = random_split(train_set, [0.9,0.1], generator=torch.Generator().manual_seed(args['seed']))
 
 
 
 # Set up callbacks
 wandb_cb = WandbCallback()
 wandb_cb.setup(trainer_config, model_config, project_name=wandb_project)
-wandb_cb.run.config.update(args.__dict__)
+wandb_cb.run.config.update(args)
 
 callbacks = [TrainingCallback(), ProgressBarCallback(), wandb_cb]
 
@@ -91,7 +94,7 @@ trainer.train()
 model = trainer._best_model
 
 # Push to HuggingFaceHub
-save_to_hf(model, args)
+save_to_hf(model, id)
 
 # Validate
 eval(trainer_config.output_dir, model, classifiers, wandb_cb.run.path)

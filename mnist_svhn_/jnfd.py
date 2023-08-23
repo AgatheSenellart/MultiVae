@@ -59,7 +59,7 @@ trainer_config = AddDccaTrainerConfig(
     learning_rate_dcca=1e-3
     )
 
-trainer_config.num_epochs += model_config.nb_epochs_dcca
+
 
 train, val = random_split(train_set, [0.9,0.1], generator=torch.Generator().manual_seed(args.seed))
 

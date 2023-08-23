@@ -32,9 +32,18 @@ id = [(f'{m}_{int(args[m]*100)}' if (type(args[m])==float) else f'{m}_{args[m]}'
 
 
 # Training configuration
-from multivae.trainers import TwoStepsTrainer, TwoStepsTrainerConfig
 
-trainer_config = TwoStepsTrainerConfig(
+if args['one_step_training']:
+    from multivae.trainers import BaseTrainer, BaseTrainerConfig
+    trainer_class = BaseTrainer
+    trainer_config_class = BaseTrainerConfig
+else:
+    from multivae.trainers import TwoStepsTrainer, TwoStepsTrainerConfig
+    trainer_class = TwoStepsTrainer
+    trainer_config_class = TwoStepsTrainerConfig
+     
+
+trainer_config = trainer_config_class(
     **base_trainer_config,
     seed=args.seed,
     output_dir=os.path.join(project_path, model.model_name, *id),
@@ -52,7 +61,7 @@ wandb_cb.run.config.update(args.__dict__)
 
 callbacks = [TrainingCallback(), ProgressBarCallback(), wandb_cb]
 
-trainer = TwoStepsTrainer(
+trainer = trainer_class(
     model = model, 
     train_dataset=train, 
     eval_dataset=val,

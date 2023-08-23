@@ -97,8 +97,8 @@ trainer_config = BaseTrainerConfig(
     seed=args['seed'],
     output_dir=os.path.join(project_path, model.model_name, *id),
     )
-
-trainer_config.num_epochs = 150
+if model_config.K == 10:
+    trainer_config.num_epochs = 100
 
 train, val = random_split(train_set, [0.9,0.1], generator=torch.Generator().manual_seed(args['seed']))
 

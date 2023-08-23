@@ -36,19 +36,19 @@ from multivae.trainers import BaseTrainer, BaseTrainerConfig
 
 trainer_config = BaseTrainerConfig(
     **base_trainer_config,
-    seed=args.seed,
+    seed=args['seed'],
     output_dir=os.path.join(project_path, model.model_name, *id),
     )
 
 
-train, val = random_split(train_set, [0.9,0.1], generator=torch.Generator().manual_seed(args.seed))
+train, val = random_split(train_set, [0.9,0.1], generator=torch.Generator().manual_seed(args['seed']))
 
 
 
 # Set up callbacks
 wandb_cb = WandbCallback()
 wandb_cb.setup(trainer_config, model_config, project_name=wandb_project)
-wandb_cb.run.config.update(args.__dict__)
+wandb_cb.run.config.update(args)
 
 callbacks = [TrainingCallback(), ProgressBarCallback(), wandb_cb]
 

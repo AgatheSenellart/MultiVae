@@ -61,6 +61,11 @@ encoders = dict(
     svhn = wrapper_encoder_svhn()
 )
 
+decoders = dict(
+    mnist = DecoderMNIST(num_hidden_layers=1, config=BaseAEConfig(latent_dim=model_config.latent_dim+model_config.modalities_specific_dim,input_dim=(1,28,28))),
+    svhn = DecoderSVHN(config=BaseAEConfig(latent_dim=model_config.latent_dim+model_config.modalities_specific_dim, input_dim=(3,32,32)))
+)
+
 model = MMVAEPlus(model_config, encoders, decoders)
 
 id = [(f'{m}_{int(args[m]*100)}' if (type(args[m])==float) else f'{m}_{args[m]}') for m in args]
@@ -71,19 +76,21 @@ from multivae.trainers import BaseTrainer, BaseTrainerConfig
 
 trainer_config = BaseTrainerConfig(
     **base_trainer_config,
-    seed=args.seed,
+    seed=args['seed'],
     output_dir=os.path.join(project_path, model.model_name, *id),
     )
 
+if model_config.K == 10:
+    trainer_config.num_epochs = 100
 
-train, val = random_split(train_set, [0.9,0.1], generator=torch.Generator().manual_seed(args.seed))
+train, val = random_split(train_set, [0.9,0.1], generator=torch.Generator().manual_seed(args['seed']))
 
 
 
 # Set up callbacks
 wandb_cb = WandbCallback()
 wandb_cb.setup(trainer_config, model_config, project_name=wandb_project)
-wandb_cb.run.config.update(args.__dict__)
+wandb_cb.run.config.update(args)
 
 callbacks = [TrainingCallback(), ProgressBarCallback(), wandb_cb]
 

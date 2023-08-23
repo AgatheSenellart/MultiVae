@@ -29,7 +29,7 @@ base_config = dict(
 base_trainer_config = dict(
     per_device_train_batch_size=128,
     per_device_eval_batch_size=128,
-    num_epochs=200,
+    num_epochs=300,
     learning_rate = 1e-3,
     steps_predict=5
 
