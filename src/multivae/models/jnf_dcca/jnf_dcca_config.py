@@ -40,5 +40,6 @@ class JNFDccaConfig(BaseJointModelConfig):
     use_all_singular_values: bool = (
         False  # Using True generally leads to NaN in the loss.
     )
+    weights_dcca : dict = None
     apply_rescaling: bool = False
     beta: float = 1.0

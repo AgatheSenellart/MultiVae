@@ -66,9 +66,10 @@ class JNFDcca(BaseJointModel):
         **kwargs,
     ):
         self.dcca_config = DCCAConfig(
-            n_modalities=model_config.n_modalities,
             embedding_dim=model_config.embedding_dcca_dim,
+            weights=model_config.weights_dcca,
             use_all_singular_values=model_config.use_all_singular_values,
+            n_modalities=model_config.n_modalities
         )
 
         if dcca_networks is None:

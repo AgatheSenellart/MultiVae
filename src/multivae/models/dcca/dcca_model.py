@@ -18,6 +18,7 @@ class DCCA(Module):
         self.latent_dim = config.embedding_dim
         self.use_all_singular_values = config.use_all_singular_values
         self.set_networks(networks)
+        self.weights = config.weights
 
         if self.config.n_modalities == 2:
             self.loss = cca_loss(self.latent_dim, self.use_all_singular_values).loss
@@ -49,13 +50,13 @@ class DCCA(Module):
                 f"The DCCA networks have modalities {self.networks.keys()}"
             )
 
-        embeddings = []
+        embeddings = dict()
         for m in inputs.data:
-            embeddings.append(self.networks[m](inputs.data[m]).embedding)
+            embeddings[m] = (self.networks[m](inputs.data[m]).embedding)
 
         # Compute CCA loss or MultiCCA loss between the embeddings
 
-        loss = self.loss(embeddings)
+        loss = self.loss(embeddings, weights=self.weights)
 
         output = ModelOutput(loss=loss, metrics={})
         return output

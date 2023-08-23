@@ -17,6 +17,7 @@ from multivae.models.dcca import DCCA, DCCAConfig
 from multivae.models.jnf_dcca import JNFDcca, JNFDccaConfig
 from multivae.models.nn.default_architectures import BaseDictEncoders, Decoder_AE_MLP
 from multivae.trainers.add_dcca_trainer import AddDccaTrainer, AddDccaTrainerConfig
+from multivae.models.dcca.objectives import return_weights
 
 
 class Test_MinMaxScaler:
@@ -44,13 +45,45 @@ class Test_MinMaxScaler:
         for key in dataset.data:
             assert torch.all(embed[key] >= 0)
             assert torch.all(embed[key] <= 1)
+            
+
+class Test_return_weights:
+    
+    @fixture(
+        params= [
+            dict(mod1_mod2 = 2, mod2_mod3 = 3),
+            None,
+        ]
+    )
+    def weights_dict(self,request):
+        return request.param
+
+    def test_weights(self, weights_dict):
+        
+        if weights_dict is None:
+            for m in ['mod1', 'mod2', 'mod3']:
+                for j in ['mod1', 'mod2', 'mod3']:
+                    assert return_weights(m,j,weights_dict) == 1
+        
+        else:
+            
+            for k in weights_dict:
+                m1, m2 = k.split('_')
+                assert return_weights(m1,m2,weights_dict) == weights_dict[k]
+                assert return_weights(m2,m1,weights_dict) == weights_dict[k]
+        
+        
+        
+        
 
 
 class TestDcca:
     @fixture(
         params=[
-            dict(n_modalities=2, embedding_dim=5, use_all_singular_values=False),
-            dict(n_modalities=5, embedding_dim=10, use_all_singular_values=False),
+            dict(n_modalities=2, embedding_dim=5, use_all_singular_values=False, weights = None),
+            dict(n_modalities=5, embedding_dim=10, use_all_singular_values=False, weights=None),
+            dict(n_modalities=5, embedding_dim=10, use_all_singular_values=False, weights=dict(mod1_mod2 = 10)),
+
         ]
     )
     def inputs(self, request):
@@ -69,6 +102,7 @@ class TestDcca:
 
         assert model.latent_dim == config.embedding_dim
         assert model.use_all_singular_values == config.use_all_singular_values
+        assert model.weights == config.weights
 
         output = model(data)
         assert hasattr(output, "loss")

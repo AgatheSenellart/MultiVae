@@ -1,20 +1,29 @@
-from typing import List
+from typing import Dict, Union, List
 
 import torch
 from torch import Tensor
+import logging
 
+logger = logging.getLogger(__name__)
+console = logging.StreamHandler()
+logger.addHandler(console)
+logger.setLevel(logging.INFO)
 
 class cca_loss:
     def __init__(self, outdim_size, use_all_singular_values):
         self.outdim_size = outdim_size
         self.use_all_singular_values = use_all_singular_values
 
-    def loss(self, H_list: List[Tensor]):
+    def loss(self, H: Union[Dict[str,Tensor], List[Tensor]],**kwargs):
         """
 
         It is the loss function of CCA as introduced in the original paper. There can be other formulations.
 
         """
+        if type(H) is dict:
+            H_list = list(H.values())
+        else:
+            H_list = H
 
         r1 = 1e-3
         r2 = 1e-3
@@ -94,6 +103,19 @@ class cca_loss:
             U = U.topk(self.outdim_size)[0]
             corr = torch.sum(torch.sqrt(U))
         return -corr
+    
+    
+def return_weights(m1:str, m2:str,weights:dict):
+    if weights is None:
+        w = 1
+    elif f'{m1}_{m2}' in weights.keys():
+        w = weights[f'{m1}_{m2}']
+    elif f'{m2}_{m1}' in weights.keys():
+        w = weights[f'{m2}_{m1}']
+    else :
+        w = 1
+    return w
+
 
 
 class mcca_loss:
@@ -107,11 +129,20 @@ class mcca_loss:
         self.use_all_singular_values = use_all_singular_values
         self.cca_loss = cca_loss(outdim_size, use_all_singular_values).loss
 
-    def loss(self, H_list):
+    def loss(self, H, **kwargs):
+        
+        weights = kwargs.pop('weights', None)
+        
         loss = 0
-        for i, h1 in enumerate(H_list):
-            for j, h2 in enumerate(H_list):
+        for i, m1 in enumerate(H):
+            for j, m2 in enumerate(H):
                 if i < j:
-                    loss += self.cca_loss([h1, h2])
+                    
+                    # get the weight if one is given
+                    w = return_weights(m1,m2,weights)
+                    
+                    
+                    h1,h2 = H[m1], H[m2]
+                    loss += w*self.cca_loss([h1, h2])
 
         return loss
