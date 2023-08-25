@@ -69,7 +69,6 @@ class MHD(IncompleteDataset):  # pragma: no cover
         seed=0,
     ):
         self.data_file = os.path.join(datapath, f"mhd_{split}.pt")
-
         self.modalities = modalities
         if not os.path.exists(self.data_file):
             if not download:

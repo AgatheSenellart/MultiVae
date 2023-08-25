@@ -10,6 +10,7 @@ from pythae.models.base.base_utils import ModelOutput
 from torch.distributions import Laplace, Normal
 
 from multivae.data.datasets.base import MultimodalBaseDataset
+from multivae.data.utils import drop_unused_modalities
 from multivae.models.nn.default_architectures import (
     BaseDictDecodersMultiLatents,
     BaseDictEncoders_MultiLatents,
@@ -125,6 +126,9 @@ class MMVAEPlus(BaseMultiVAE):
         # backpropagation when using a large number k.
         # Also, I've only implemented the dreg_looser loss but it may be nice to offer other options.
 
+        # Drop unused modalities
+        inputs = drop_unused_modalities(inputs)
+
         # First compute all the encodings for all modalities
         embeddings = {}
         qu_xs = {}
@@ -138,7 +142,7 @@ class MMVAEPlus(BaseMultiVAE):
         detailed_output = kwargs.pop("detailed_output", False)
         K = kwargs.pop("K", self.K)
 
-        for cond_mod in self.encoders:
+        for cond_mod in inputs.data:
             output = self.encoders[cond_mod](inputs.data[cond_mod])
             mu, log_var = output.embedding, output.log_covariance
             mu_style = output.style_embedding
@@ -163,7 +167,7 @@ class MMVAEPlus(BaseMultiVAE):
             # Then compute all the cross-modal reconstructions
             reconstructions[cond_mod] = {}
 
-            for recon_mod in self.decoders:
+            for recon_mod in inputs.data:
                 # Self-reconstruction
                 if recon_mod == cond_mod:
                     z_x = torch.cat([u_x, w_x], dim=-1)
@@ -265,12 +269,14 @@ class MMVAEPlus(BaseMultiVAE):
 
             # For the shared latent variable it is the same
             if hasattr(inputs, "masks"):
-                lqu_x = torch.stack(
-                    [
-                        qu_xs[m].log_prob(u).sum(-1) * inputs.masks[m].float()
-                        for m in qu_xs
-                    ]
-                )  # n_modalities,K,nbatch
+                qu_x = []
+                for m in qu_xs:
+                    qu = qu_xs[m].log_prob(u).sum(-1)
+                    # for unavailable modalities, set the log prob to -infinity so that it accounts for 0
+                    # in the log_sum_exp.
+                    qu[torch.stack([inputs.masks[m] == False] * len(u))] = -torch.inf
+                    qu_x.append(qu)
+                lqu_x = torch.stack(qu_x)  # n_modalities,K,nbatch
             else:
                 lqu_x = torch.stack(
                     [qu_xs[m].log_prob(u).sum(-1) for m in qu_xs]
@@ -283,7 +289,7 @@ class MMVAEPlus(BaseMultiVAE):
             # Then we have to add the modality specific posterior
             lqw_x = qw_xs[mod].log_prob(w).sum(-1)
 
-            # The reconstructions are the same
+            # The reconstructions are the same as in the MMVAE
             lpx_z = 0
             for recon_mod in reconstructions[mod]:
                 x_recon = reconstructions[mod][recon_mod]
@@ -319,7 +325,7 @@ class MMVAEPlus(BaseMultiVAE):
 
         lws = (grad_wt * lws).sum(0) / n_mods_sample  # mean over modalities
 
-        return ModelOutput(loss=-lws.sum(), metrics=dict(mean_loss_batch=-lws.mean()))
+        return ModelOutput(loss=-lws.mean(-1).sum(), metrics=dict())
 
     def encode(
         self,

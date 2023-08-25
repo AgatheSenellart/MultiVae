@@ -93,7 +93,7 @@ trainer.train()
 
 See https://multivae.readthedocs.io
 
-Several examples are provided in `examples/` - and a Getting Started notebook in `examples/tutorial_notebooks`.
+Several examples are provided in `examples/` - as well as tutorial notebooks on how to use the main features of MultiVae(training, metrics, samplers) in the folder `examples/tutorial_notebooks`. As an introduction to the package, see the `getting_started.ipynb` notebook.
 
 # Table of Contents
 
@@ -130,10 +130,15 @@ If you want to contribute to the project, for instance by adding models to the l
 ```shell
 pip install -e .
 ```
+In order to propose a contribution, you can follow the guidelines in `CONTRIBUTING.md` file. Detailed tutorials are provided on how to implement a new model, sampler, metrics or dataset.
 
 # Reproducibility statement
 
-All implemented models are validated by reproducing a key result of the paper. 
+Most implemented models are validated by reproducing a key result of the paper.
+
+![Alt text](./static/reproduction_results.png)
+
+
 
 # License
 [(Back to top)](#table-of-contents)

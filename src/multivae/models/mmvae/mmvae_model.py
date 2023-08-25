@@ -9,6 +9,7 @@ from pythae.models.base.base_utils import ModelOutput
 from torch.distributions import Laplace, Normal
 
 from multivae.data.datasets.base import MultimodalBaseDataset
+from multivae.data.utils import drop_unused_modalities
 
 from ..base import BaseMultiVAE
 from .mmvae_config import MMVAEConfig
@@ -102,6 +103,10 @@ class MMVAE(BaseMultiVAE):
         # Also, I've only implemented the dreg_looser loss but it may be nice to offer other options.
 
         # First compute all the encodings for all modalities
+
+        # drop modalities that are completely unavailable in the batch to avoid Nan in backward
+        inputs = drop_unused_modalities(inputs)
+
         embeddings = {}
         qz_xs = {}
         qz_xs_detach = {}
@@ -111,7 +116,7 @@ class MMVAE(BaseMultiVAE):
         detailed_output = kwargs.pop("detailed_output", False)
         K = kwargs.pop("K", self.K)
 
-        for cond_mod in self.encoders:
+        for cond_mod in inputs.data:
             output = self.encoders[cond_mod](inputs.data[cond_mod])
             mu, log_var = output.embedding, output.log_covariance
 
@@ -125,7 +130,7 @@ class MMVAE(BaseMultiVAE):
 
             # Then compute all the cross-modal reconstructions
             reconstructions[cond_mod] = {}
-            for recon_mod in self.decoders:
+            for recon_mod in inputs.data:
                 decoder = self.decoders[recon_mod]
                 recon = decoder(z_x)["reconstruction"]
 
@@ -137,7 +142,6 @@ class MMVAE(BaseMultiVAE):
 
         # Compute DREG loss
         if compute_loss:
-            # TODO : change
             loss_output = self.dreg_looser(
                 qz_xs_detach, embeddings, reconstructions, inputs
             )
@@ -170,12 +174,13 @@ class MMVAE(BaseMultiVAE):
             lpz = prior.log_prob(z).sum(-1)
 
             if hasattr(inputs, "masks"):
-                lqz_x = torch.stack(
-                    [
-                        qz_xs[m].log_prob(z).sum(-1) * inputs.masks[m].float()
-                        for m in qz_xs
-                    ]
-                )  # n_modalities,K,nbatch
+                lqz_x = []
+                for m in qz_xs:
+                    qz = qz_xs[m].log_prob(z).sum(-1)
+                    qz[torch.stack([inputs.masks[m] == False] * len(z))] = -torch.inf
+                    lqz_x.append(qz)
+
+                lqz_x = torch.stack(lqz_x)  # n_modalities,K,nbatch
             else:
                 lqz_x = torch.stack(
                     [qz_xs[m].log_prob(z).sum(-1) for m in qz_xs]
@@ -219,7 +224,7 @@ class MMVAE(BaseMultiVAE):
 
         lws = (grad_wt * lws).sum(0) / n_mods_sample  # mean over modalities
 
-        return ModelOutput(loss=-lws.sum(), metrics=dict(mean_loss_batch=-lws.mean()))
+        return ModelOutput(loss=-lws.mean(-1).sum(), metrics=dict())
 
     def iwae(self, qz_xs, zss, reconstructions, inputs):
         lw_mod = []

@@ -86,23 +86,31 @@ class FIDEvaluator(Evaluator):
         output=None,
         eval_config=FIDEvaluatorConfig(),
         sampler: BaseSampler = None,
-        custom_encoder=None,
+        custom_encoders=None,
         transform=None,
     ) -> None:
         super().__init__(model, test_dataset, output, eval_config, sampler)
 
-        if custom_encoder is not None:
-            self.model_fd = custom_encoder
+        if custom_encoders is not None:
+            self.model_fds = {
+                m: custom_encoders[m].to(self.device) for m in custom_encoders
+            }
         else:
-            self.model_fd = wrapper_inception(
-                dims=eval_config.dims_inception,
-                device=self.device,
-                path_state_dict=eval_config.inception_weights_path,
-            )
+            self.model_fds = {
+                m: wrapper_inception(
+                    dims=eval_config.dims_inception,
+                    device=self.device,
+                    path_state_dict=eval_config.inception_weights_path,
+                )
+                for m in model.encoders
+            }
         if transform is not None:
             self.inception_transform = transform
-        else:
+        elif transform is None and custom_encoders is None:
+            # reshape for FID
             self.inception_transform = adapt_shape_for_fid()
+        else:
+            self.inception_transform = None
 
     def get_frechet_distance(self, mod, generate_latent_function):
         """
@@ -110,27 +118,41 @@ class FIDEvaluator(Evaluator):
         """
         self.model.eval()
         activations = [[], []]
+        with torch.no_grad():
+            for batch in tqdm(self.test_loader):
+                batch = set_inputs_to_device(batch, self.device)
+                # Compute activations for true data
 
-        for batch in tqdm(self.test_loader):
-            batch = set_inputs_to_device(batch, self.device)
-            # Compute activations for true data
-            data = self.inception_transform(batch.data[mod]).to(self.device)
-            pred = self.model_fd(data)
-            del data
-            activations[0].append(pred)
+                if self.inception_transform is not None:
+                    batch.data[mod] = self.inception_transform(batch.data[mod])
 
-            # Compute activations for generated data
-            latents = generate_latent_function(len(pred), inputs=batch)
-            latents.z = latents.z.to(self.device)
+                data = batch.data[mod].to(self.device)
+                pred = self.model_fds[mod](data)
 
-            samples = self.model.decode(latents, modalities=mod)
-            data_gen = self.inception_transform(samples[mod])
-            del samples
-            pred_gen = self.model_fd(data_gen)
-            activations[1].append(pred_gen)
-            del data_gen
+                if isinstance(pred, ModelOutput):
+                    pred = pred.embedding
 
-        activations = [np.concatenate(l, axis=0) for l in activations]
+                del data
+                activations[0].append(pred)
+
+                # Compute activations for generated data
+                latents = generate_latent_function(len(pred), inputs=batch)
+                latents.z = latents.z.to(self.device)
+
+                samples = self.model.decode(latents, modalities=mod)
+
+                if self.inception_transform is not None:
+                    samples[mod] = self.inception_transform(samples[mod])
+                data_gen = samples[mod]
+                del samples
+                pred_gen = self.model_fds[mod](data_gen)
+
+                if isinstance(pred_gen, ModelOutput):
+                    pred_gen = pred_gen.embedding
+                activations[1].append(pred_gen)
+                del data_gen
+
+        activations = [torch.concatenate(l, dim=0).cpu().numpy() for l in activations]
 
         # Compute activation statistics
         mus = [np.mean(act, axis=0) for act in activations]

@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
 from multivae.data.datasets.base import MultimodalBaseDataset
+from multivae.data.utils import set_inputs_to_device
 from multivae.models.jnf_dcca import JNFDcca
 from multivae.trainers.base.callbacks import TrainingCallback
 

@@ -355,5 +355,5 @@ class wrapper_inception(nn.Module):
         if pred.size(2) != 1 or pred.size(3) != 1:
             pred = F.adaptive_avg_pool2d(pred, output_size=(1, 1))
 
-        pred = pred.squeeze(3).squeeze(2).cpu().numpy()
+        pred = pred.squeeze(3).squeeze(2)
         return pred
