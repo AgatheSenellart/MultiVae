@@ -66,6 +66,11 @@ class AutoConfig(BaseConfig):
             from ..mmvaePlus import MMVAEPlusConfig
 
             model_config = MMVAEPlusConfig.from_json_file(json_path)
+            
+        elif config_name == "NexusConfig":
+            from ..nexus import NexusConfig
+
+            model_config = NexusConfig.from_json_file(json_path)
 
         else:
             raise NameError(

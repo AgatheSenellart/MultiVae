@@ -1,4 +1,4 @@
-from .jnf_config import JNFConfig
-from .nexus_model import JNF
+from .nexus_config import NexusConfig
+from .nexus_model import Nexus
 
-__all__ = ["JNFConfig", "JNF"]
+__all__ = ["NexusConfig", "Nexus"]

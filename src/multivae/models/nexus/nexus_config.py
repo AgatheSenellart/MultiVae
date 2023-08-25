@@ -25,20 +25,22 @@ class NexusConfig(BaseMultiVAEConfig):
             ex :  {'mod1' : {scale : 0.75}}
         modalities_specific_dim (Dict[int]) : dimensions of the first level latent variables for all modalities,
             noted at z^(i) in the paper. Default to None
-        alpha (float) : hyperparameter that scales the top level KL divergences.
-        beta (dict[str, float]) : hyperparameters that scales the bottom modality-specific KL divergence.
+        bottom_betas (dict[str, float]) : hyperparameters that scales the bottom modality-specific KL divergence.
         top_level_scalings (dict[str, float]) : hyperparameters that scales the modality specific representation
             reconstruction terms.
         dropout_rate (float between 0 and 1) : dropout rate of the modalities during training. Default to 0.
         msg_dim (int) : Dimension of the messages from each modality. Default to 10.
-        
-        
+        aggregator (Literal['mean']): Default to 'mean'
+        beta (float): parameter that scales the KL of the higher level ELBO. Default to 1.
+        gammas (Dict[str, float]). Default to None.
     """
 
     modalities_specific_dim : Dict[str, int] = None
-    alpha : float = 1
-    beta : Dict[str, float] = None
+    bottom_betas : Dict[str, float] = None
     top_level_scalings : Dict[str, float] = None
     dropout_rate : float = 0
     msg_dim : int = 10
+    aggregator: Literal['mean'] = 'mean'
+    beta: float = 1
+    gammas : Dict[str, float] = None
     

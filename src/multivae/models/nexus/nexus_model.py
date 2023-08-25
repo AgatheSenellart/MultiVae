@@ -10,6 +10,8 @@ from multivae.models.base import BaseDecoder, BaseEncoder
 from pythae.models.normalizing_flows.base import BaseNF
 from pythae.models.normalizing_flows.maf import MAF, MAFConfig
 from torch.nn import ModuleDict
+import torch.distributions as dist
+
 
 from ...data.datasets.base import MultimodalBaseDataset
 from ..base import BaseMultiVAE
@@ -47,6 +49,12 @@ class Nexus(BaseMultiVAE):
 
         top_encoders (Dict[str, ~multivae.models.base.BaseEncoder]) : An instance of
             BaseEncoder that takes all the first level representations to generate the messages that will be aggregated.
+            Each encoder is
+            an instance of Multivae's BaseEncoder whose output is of the form:
+                ```ModelOutput(
+                    embedding = ...,
+                    log_covariance = ...,
+                )
             
         joint_encoder (~multivae.models.base.BaseEncoder): The encoder that takes the aggregated message and 
             encode it to obtain the high level latent distribution.
@@ -70,12 +78,18 @@ class Nexus(BaseMultiVAE):
         
         if top_encoders is None:
             top_encoders = self.default_top_encoders(model_config)
+        else:
+            self.model_config.custom_architectures.append('top_encoders')
             
         if top_decoders is None:
             top_decoders = self.default_top_decoders(model_config)
+        else:
+            self.model_config.custom_architectures.append('top_decoders')
         
         if joint_encoder is None:
             joint_encoder = self.default_joint_encoder(model_config)
+        else:
+            self.model_config.custom_architectures.append('joint_encoder')
             
         self.set_top_decoders(top_decoders)
         self.set_top_encoders(top_encoders)
@@ -85,11 +99,34 @@ class Nexus(BaseMultiVAE):
         
         self.dropout = model_config.dropout_rate
         self.top_level_scalings = model_config.top_level_scalings
+        self.set_bottom_betas(model_config.bottom_betas)
+        self.set_gammas(model_config.gammas)
+        
         self.beta = model_config.beta
-        self.alpha = model_config.alpha
+        self.aggregator_function = model_config.aggregator
         
         
         
+    
+    def set_bottom_betas(self, bottom_betas):
+        if bottom_betas is None:
+            self.bottom_betas =  {m : 1. for m in self.encoders}
+        else :
+            if bottom_betas.keys() != self.encoders.keys():
+                raise AttributeError('The bottom_betas keys do not match the modalities'
+                                     'names in encoders.')
+            else:
+                self.bottom_betas =  bottom_betas
+                
+    def set_gammas(self, gammas):
+        if gammas is None:
+            self.gammas =  {m : 1. for m in self.encoders}
+        else :
+            if gammas.keys() != self.encoders.keys():
+                raise AttributeError('The gammas keys do not match the modalities'
+                                     'names in encoders.')
+            else:
+                self.gammas =  gammas
         
 
     def default_encoders(self, model_config : NexusConfig):
@@ -184,7 +221,80 @@ class Nexus(BaseMultiVAE):
         
     def forward(self, inputs: MultimodalBaseDataset):
         
-        # Compute the first level elbos
+        # Compute the first level representations and ELBOs
+        modalities_msg = dict()
+        first_level_elbos = 0
+        first_level_z = dict()
         
-        # Compute the second level elbos
-        return 
+        for m in inputs.data:
+            
+            output_m = self.encoders[m](inputs.data[m])
+            mu, logvar = output_m.embedding, output_m.log_covariance
+            sigma = torch.exp(0.5*logvar)
+            
+            z = dist.Normal(mu,sigma).rsample()
+            
+            # re-decode
+            recon = self.decoders[m](z).reconstruction
+            
+             
+            # Compute the ELBO
+            logprob = -(self.recon_log_probs[m](recon, inputs.data[m])
+                        * self.rescale_factors[m]).reshape(recon.size(0), -1).sum(-1)
+            
+            KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp(), dim=1)
+            
+            elbo = logprob + KLD*self.bottom_betas[m]
+            
+            if hasattr(inputs, 'masks'):
+                elbo = elbo*inputs.masks[m].float()
+                z = z*inputs.masks[m].float()
+            
+            first_level_elbos += elbo
+            
+            msg = self.top_encoders[m](z).embedding
+            modalities_msg[m] = msg
+            first_level_z[m] = z
+            
+        # Compute the aggregation
+        if self.aggregator_function == 'mean':
+            aggregated_msg = torch.sum(
+                torch.stack(list(modalities_msg.values()), dim=0),dim=0
+            )
+            
+            if hasattr(inputs,'masks'):
+                normalization_per_sample = torch.stack(
+                    [inputs.masks[m] for m in inputs.masks], dim=0).sum(0)
+            
+            else:
+                normalization_per_sample = self.n_modalities
+            
+            aggregated_msg /= normalization_per_sample
+            
+        else:
+            raise AttributeError(f'The aggregator function {self.aggregator}'
+                                 'is not supported at the moment for the nexus model.')
+        
+        # Compute the higher level latent variable and ELBO
+        joint_output = self.joint_encoder(aggregated_msg)
+        joint_mu, joint_log_var = joint_output.mu, joint_output.log_covariance
+        joint_sigma = torch.exp(0.5*joint_log_var)
+        
+        joint_z = dist.Normal(joint_mu, joint_sigma).rsample()
+        
+        joint_elbo = 0
+        for m in self.top_decoders:
+            
+            recon = self.top_decoders[m](joint_z).reconstruction
+            
+            joint_elbo += -(dist.Normal(recon,scale=1).log_prob(first_level_z[m])
+                        * self.gammas[m]).sum(-1)
+        
+        joint_KLD = -0.5 * torch.sum(1 + joint_log_var - joint_mu.pow(2) - joint_log_var.exp(), dim=1)
+        joint_elbo += self.beta*joint_KLD
+        
+        total_loss = joint_elbo + first_level_elbos
+        
+            
+        
+        return ModelOutput(loss = total_loss.mean(0), metrics={})
