@@ -143,5 +143,5 @@ Most implemented models are validated by reproducing a key result of the paper.
 # License
 [(Back to top)](#table-of-contents)
 
-Apache License 2.0
+
 
