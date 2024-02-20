@@ -1,5 +1,6 @@
 import logging
 from typing import Dict, Union
+from multivae.data.datasets.base import MultimodalBaseDataset
 from multivae.models.nn.default_architectures import nn,BaseAEConfig,Encoder_VAE_MLP, Decoder_AE_MLP
 
 import numpy as np
@@ -93,19 +94,16 @@ class Nexus(BaseMultiVAE):
             
         self.set_top_decoders(top_decoders)
         self.set_top_encoders(top_encoders)
-        self.joint_encoder(joint_encoder)
+        self.set_joint_encoder(joint_encoder)
         
-        self.model_name = 'Nexus'
+        self.model_name = 'NEXUS'
         
         self.dropout = model_config.dropout_rate
-        self.top_level_scalings = model_config.top_level_scalings
         self.set_bottom_betas(model_config.bottom_betas)
         self.set_gammas(model_config.gammas)
         
         self.beta = model_config.beta
         self.aggregator_function = model_config.aggregator
-        
-        
         
     
     def set_bottom_betas(self, bottom_betas):
@@ -161,12 +159,12 @@ class Nexus(BaseMultiVAE):
         
         if model_config.modalities_specific_dim is None:
             raise AttributeError("Please provide encoders architectures or "
-                                 "valid input_dims and modalities_specific_dim in the"
+                                 "valid modalities_specific_dim in the"
                                  "model configuration")
         
         encoders = nn.ModuleDict()
         for mod in model_config.input_dims:
-            config = BaseAEConfig(input_dim=model_config.modalities_specific_dim[mod], 
+            config = BaseAEConfig(input_dim=(model_config.modalities_specific_dim[mod],), 
                                  latent_dim=model_config.msg_dim)
             encoders[mod] = Encoder_VAE_MLP(config)
         return encoders
@@ -175,14 +173,14 @@ class Nexus(BaseMultiVAE):
         
         if model_config.input_dims is None or model_config.modalities_specific_dim is None:
             raise AttributeError("Please provide encoders architectures or "
-                                 "valid input_dims and modalities_specific_dim in the"
+                                 "valid modalities_specific_dim in the"
                                  "model configuration")
         
         decoders = nn.ModuleDict()
         for mod in model_config.input_dims:
-            config = BaseAEConfig(input_dim=model_config.modalities_specific_dim[mod], 
-                                 latent_dim=model_config.msg_dim)
-            decoders[mod] = Encoder_VAE_MLP(config)
+            config = BaseAEConfig(input_dim=(model_config.modalities_specific_dim[mod],), 
+                                 latent_dim=model_config.latent_dim)
+            decoders[mod] = Decoder_AE_MLP(config)
         return decoders
     
     def default_joint_encoder(self, model_config: NexusConfig):
@@ -219,7 +217,7 @@ class Nexus(BaseMultiVAE):
                 
         
         
-    def forward(self, inputs: MultimodalBaseDataset):
+    def forward(self, inputs: MultimodalBaseDataset, **kwargs):
         
         # Compute the first level representations and ELBOs
         modalities_msg = dict()
@@ -246,38 +244,25 @@ class Nexus(BaseMultiVAE):
             
             elbo = logprob + KLD*self.bottom_betas[m]
             
+            msg = self.top_encoders[m](z).embedding
+
+            
             if hasattr(inputs, 'masks'):
                 elbo = elbo*inputs.masks[m].float()
-                z = z*inputs.masks[m].float()
+                z = (z.permute(1,0) *inputs.masks[m].float()).permute(1,0)
+                msg = (msg.permute(1,0) *inputs.masks[m].float()).permute(1,0)
             
             first_level_elbos += elbo
             
-            msg = self.top_encoders[m](z).embedding
             modalities_msg[m] = msg
             first_level_z[m] = z
             
         # Compute the aggregation
-        if self.aggregator_function == 'mean':
-            aggregated_msg = torch.sum(
-                torch.stack(list(modalities_msg.values()), dim=0),dim=0
-            )
-            
-            if hasattr(inputs,'masks'):
-                normalization_per_sample = torch.stack(
-                    [inputs.masks[m] for m in inputs.masks], dim=0).sum(0)
-            
-            else:
-                normalization_per_sample = self.n_modalities
-            
-            aggregated_msg /= normalization_per_sample
-            
-        else:
-            raise AttributeError(f'The aggregator function {self.aggregator}'
-                                 'is not supported at the moment for the nexus model.')
+        aggregated_msg = self.aggregate_msg(inputs, modalities_msg)
         
         # Compute the higher level latent variable and ELBO
         joint_output = self.joint_encoder(aggregated_msg)
-        joint_mu, joint_log_var = joint_output.mu, joint_output.log_covariance
+        joint_mu, joint_log_var = joint_output.embedding, joint_output.log_covariance
         joint_sigma = torch.exp(0.5*joint_log_var)
         
         joint_z = dist.Normal(joint_mu, joint_sigma).rsample()
@@ -298,3 +283,109 @@ class Nexus(BaseMultiVAE):
             
         
         return ModelOutput(loss = total_loss.mean(0), metrics={})
+    
+    def rsample(self, encoder_output:ModelOutput, N=1, flatten=False):
+        mu = encoder_output.embedding
+        sigma = torch.exp(0.5*encoder_output.log_covariance)
+        shape = [] if N==1 else [N]
+        print(mu.shape)
+    
+        z = dist.Normal(mu, sigma).rsample(shape)
+        if N > 1 and flatten:
+            N, l, d = z.shape
+            z = z.reshape(l * N, d)
+        return z
+    
+    def aggregate_msg(self, inputs:MultimodalBaseDataset, modalities_msg:dict):
+        
+        if self.aggregator_function == 'mean':
+            aggregated_msg = torch.sum(
+                torch.stack(list(modalities_msg.values()), dim=0),dim=0
+            )
+            
+            if hasattr(inputs,'masks'):
+                normalization_per_sample = torch.stack(
+                    [inputs.masks[m] for m in inputs.masks], dim=0).sum(0)
+            
+            else:
+                normalization_per_sample = len(modalities_msg.keys())
+            
+            aggregated_msg = (aggregated_msg.t()/normalization_per_sample).t()
+            return aggregated_msg
+            
+        else:
+            raise AttributeError(f'The aggregator function {self.aggregator}'
+                                 'is not supported at the moment for the nexus model.')
+        
+    
+    def encode(self, inputs: MultimodalBaseDataset, cond_mod: list | str = "all", N: int = 1, **kwargs) :
+        cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
+    
+        """
+        This function computes the high level representation of the input modalities. It returns a ModelOutput
+        instance 
+        
+        python```
+        return ModelOutput(z = ...,
+                           modalities_z = ...,
+                           one_latent_space=...)
+        ```
+        
+        It is assumed that for all inputs, the modalities in cond_mod are available.
+        
+
+        """
+        
+        modalities_z = dict()
+        modalities_msg = dict()
+        flatten = kwargs.pop('flatten',False)
+        
+        # Encode each modality with the bottom encoders
+        for m in cond_mod:
+            output_m = self.encoders[m](inputs.data[m])
+            modalities_z[m] = self.rsample(output_m,N,flatten)
+            print(f'modalities_z : {modalities_z[m].shape}')
+            modalities_msg[m] = self.top_encoders[m](output_m.embedding).embedding
+            print(f'modalities_msg : {modalities_msg[m].shape}')
+
+
+        
+        # Compute high level representation
+        aggregated_msg = self.aggregate_msg(inputs, modalities_msg)
+        print(f'aggregated_msg : {aggregated_msg.shape}')
+
+            
+        z = self.rsample(self.joint_encoder(aggregated_msg), N=N, flatten=flatten)
+        
+        
+        return ModelOutput(
+            z= z,
+            one_latent_space = True,
+            modalities_z = modalities_z
+        )
+    
+    def decode(self, embedding: ModelOutput, modalities: list | str = "all", **kwargs):
+        
+        self.eval()
+        
+        if modalities=='all':
+            modalities=list(self.encoders.keys())
+        
+        use_bottom_z_for_reconstruction = kwargs.pop('use_bottom_z_for_recon',False)
+        
+        outputs = ModelOutput()
+        
+        for m in modalities:
+            
+            if (use_bottom_z_for_reconstruction) and (m in embedding.modalities_z.keys()):
+                z_m = embedding.modalities_z[m]
+            else:
+                z_m = self.top_decoders[m](embedding.z).reconstruction
+                
+            outputs[m] = self.decoders[m](z_m).reconstruction
+        
+        return outputs
+            
+        
+            
+            
