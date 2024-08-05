@@ -124,8 +124,10 @@ class MMVAE(BaseMultiVAE):
 
             qz_x = self.post_dist(mu, sigma)
             z_x = qz_x.rsample([K])
+
             # The DREG loss uses detached parameters in the loss computation afterwards.
             qz_x_detach = self.post_dist(mu.detach(), sigma.detach())
+
             # Then compute all the cross-modal reconstructions
             reconstructions[cond_mod] = {}
             for recon_mod in inputs.data:
@@ -133,11 +135,10 @@ class MMVAE(BaseMultiVAE):
                 recon = decoder(z_x)["reconstruction"]
                 recon = recon.reshape((*z_x.shape[:-1], *recon.shape[1:]))
                 reconstructions[cond_mod][recon_mod] = recon
+
             qz_xs[cond_mod] = qz_x
             embeddings[cond_mod] = z_x
             qz_xs_detach[cond_mod] = qz_x_detach
-
-
 
         # Compute DREG loss
         if compute_loss:
