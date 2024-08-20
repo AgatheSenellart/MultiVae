@@ -24,14 +24,14 @@ from multivae.trainers import BaseTrainer, BaseTrainerConfig
 class Test:
     @pytest.fixture(params=["complete", "incomplete"])
     def dataset(self, request):
-        # Create simple small dataset
+        # Create simple small dataset with two multimodal samples
         data = dict(
             mod1=torch.Tensor([[1.0, 2.0], [4.0, 5.0]]),
             mod2=torch.Tensor([[67.1, 2.3, 3.0], [1.3, 2.0, 3.0]]),
             mod3=torch.Tensor([[37, 2, 4, 1], [8, 9, 7, 0]]),
             mod4=torch.Tensor([[37, 2, 4, 1], [8, 9, 7, 0]]),
         )
-        labels = np.array([0, 1, 0, 0])
+        labels = np.array([0, 1])
         if request.param == "complete":
             dataset = MultimodalBaseDataset(data, labels)
         else:
@@ -82,7 +82,7 @@ class Test:
             decoders_dist=dict(
                 mod1="laplace", mod2="laplace", mod3="laplace", mod4="laplace"
             ),
-            decoder_dist_params=dict(mod1={"scale": 0.75}, mod2={"scale": 0.75}),
+            decoder_dist_params=dict(mod1={"scale": 0.75}, mod2={"scale": 0.75})
         )
 
         return model_config
@@ -107,6 +107,8 @@ class Test:
         )
         assert model.K == model_config.K
 
+        # Try forward
+        
         output = model(dataset, epoch=2)
         loss = output.loss
         assert type(loss) == torch.Tensor
