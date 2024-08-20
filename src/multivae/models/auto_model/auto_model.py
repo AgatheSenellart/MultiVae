@@ -81,6 +81,11 @@ class AutoModel(nn.Module):
             from ..mmvaePlus import MMVAEPlus
 
             model = MMVAEPlus.load_from_folder(dir_path)
+            
+        elif model_name == "JNFCLIPConfig":
+            from ..jnf_clip import JNFCLIP
+            
+            model = JNFCLIP.load_from_folder(dir_path)
 
         else:
             raise NameError(

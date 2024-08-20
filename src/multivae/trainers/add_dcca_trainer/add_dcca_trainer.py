@@ -110,13 +110,23 @@ class AddDccaTrainer(BaseTrainer):
         Function to operate changes between train_steps such as resetting the optimizer and
         the best losses values.
         """
+        if hasattr(self.model,'nb_epochs_dcca'):
+            nb_epochs_pretraining = self.model.nb_epochs_dcca
+        elif hasattr(self.model, 'nb_epochs_clip'):
+            nb_epochs_pretraining = self.model.nb_epochs_clip
+        else:
+            raise AttributeError(
+                'The model trained with the AddDCCA trainer is not JNFDCCA'
+                'nor JNFCLIP and therefore the AddDCCAtrainer is not suited'
+                ' for this model.'
+            )
 
-        if epoch == self.model.nb_epochs_dcca + 1:
+        if epoch == nb_epochs_pretraining + 1:
             logger.info(
                 "End the training of the DCCA module and move on to the joint VAE."
             )
             # If the model uses DCCA rescaling, fit the min_max scaler
-            if self.model.dcca_rescaler is not None:
+            if hasattr(self.model,'dcca_rescaler') and self.model.dcca_rescaler is not None:
                 self.model.fit_dcca_scalers(self.train_loader, self.device)
 
             # Change the train and eval_loader and reset the optimizer
@@ -132,7 +142,7 @@ class AddDccaTrainer(BaseTrainer):
             best_train_loss = 1e10
             best_eval_loss = 1e10
 
-        elif epoch == self.model.nb_epochs_dcca + self.model.warmup + 1:
+        elif epoch == nb_epochs_pretraining + self.model.warmup + 1:
             # Just reset the optimizer
             logger.info(
                 "End the training of the joint VAE and move on to learning the unimodal "

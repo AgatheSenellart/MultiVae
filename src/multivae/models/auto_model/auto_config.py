@@ -66,6 +66,11 @@ class AutoConfig(BaseConfig):
             from ..mmvaePlus import MMVAEPlusConfig
 
             model_config = MMVAEPlusConfig.from_json_file(json_path)
+            
+        elif config_name == 'JNFCLIPConfig':
+            from ..jnf_clip import JNFCLIPConfig
+            
+            model_config = JNFCLIPConfig.from_json_file(json_path)
 
         else:
             raise NameError(
