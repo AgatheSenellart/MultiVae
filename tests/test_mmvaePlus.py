@@ -27,7 +27,7 @@ class Test_model:
             mod3=torch.Tensor([[37, 2, 4, 1], [8, 9, 7, 0]]),
             mod4=torch.Tensor([[37, 2, 4, 1], [8, 9, 7, 0]]),
         )
-        labels = np.array([0, 1, 0, 0])
+        labels = np.array([0, 1])
         if request.param == "complete":
             dataset = MultimodalBaseDataset(data, labels)
         else:
@@ -213,7 +213,7 @@ class TestTraining:
             mod3=torch.Tensor([[37, 2, 4, 1], [8, 9, 7, 0]]),
             mod4=torch.Tensor([[37, 2, 4, 1], [8, 9, 7, 0]]),
         )
-        labels = np.array([0, 1, 0, 0])
+        labels = np.array([0, 1])
         if request.param == "complete":
             dataset = MultimodalBaseDataset(data, labels)
         else:

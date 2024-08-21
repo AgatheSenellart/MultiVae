@@ -18,14 +18,14 @@ from multivae.trainers.base.base_trainer_config import BaseTrainerConfig
 class Test_model:
     @pytest.fixture(params=["complete", "incomplete"])
     def dataset(self, request):
-        # Create simple small dataset
+        # Create simple small dataset with six modalities
         data = dict(
             mod1=torch.randn((6, 2)),
             mod2=torch.randn((6, 3)),
             mod3=torch.randn((6, 4)),
             mod4=torch.randn((6, 4)),
         )
-        labels = np.array([0, 1, 0, 0])
+        labels = np.array([0, 1,0,0,0,0])
         if request.param == "complete":
             dataset = MultimodalBaseDataset(data, labels)
         else:
@@ -214,14 +214,14 @@ class Test_backward_with_missing_inputs:
 class TestTraining:
     @pytest.fixture(params=["complete", "incomplete"])
     def dataset(self, request):
-        # Create simple small dataset
+        # Create simple small dataset with two modalities
         data = dict(
             mod1=torch.Tensor([[1.0, 2.0], [4.0, 5.0]]),
             mod2=torch.Tensor([[67.1, 2.3, 3.0], [1.3, 2.0, 3.0]]),
             mod3=torch.Tensor([[37, 2, 4, 1], [8, 9, 7, 0]]),
             mod4=torch.Tensor([[37, 2, 4, 1], [8, 9, 7, 0]]),
         )
-        labels = np.array([0, 1, 0, 0])
+        labels = np.array([0, 1])
         if request.param == "complete":
             dataset = MultimodalBaseDataset(data, labels)
         else:
