@@ -132,7 +132,10 @@ class MMVAE(BaseMultiVAE):
             reconstructions[cond_mod] = {}
             for recon_mod in inputs.data:
                 decoder = self.decoders[recon_mod]
-                recon = decoder(z_x)["reconstruction"]
+                # z_x is of shape (K,n_batch, latent_dim), we need to reshape it to make compatible with any decoder
+                z = z_x.reshape(-1, z_x.shape[-1]) # K*n_batch, latent_dim
+                recon = decoder(z)["reconstruction"]
+                recon = recon.reshape((*z_x.shape[:-1], *recon.shape[1:]))
 
                 reconstructions[cond_mod][recon_mod] = recon
 
