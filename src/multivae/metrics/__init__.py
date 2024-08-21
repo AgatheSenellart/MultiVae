@@ -6,6 +6,7 @@ from .fids.fids import FIDEvaluator
 from .fids.fids_config import FIDEvaluatorConfig
 from .latent_clustering.clustering_class import Clustering, ClusteringConfig
 from .likelihoods.likelihoods import LikelihoodsEvaluator, LikelihoodsEvaluatorConfig
+from .reconstruction import Reconstruction, ReconstructionConfig
 from .visualization import Visualization, VisualizationConfig
 
 __all__ = [
@@ -19,4 +20,6 @@ __all__ = [
     "VisualizationConfig",
     "Clustering",
     "ClusteringConfig",
+    "Reconstruction",
+    "ReconstructionConfig",
 ]

@@ -31,13 +31,13 @@ class BaseMultiVAEConfig(BaseConfig):
 
     n_modalities: Union[int, None] = None
     latent_dim: int = 10
-    input_dims: dict = None
+    input_dims: Union[dict, None] = None
     uses_likelihood_rescaling: bool = False
-    rescale_factors: dict = None
-    decoders_dist: Dict[
-        str, Literal["normal", "bernoulli", "laplace", "categorical"]
+    rescale_factors: Union[dict, None] = None
+    decoders_dist: Union[
+        Dict[str, Literal["normal", "bernoulli", "laplace", "categorical"]], None
     ] = None
-    decoder_dist_params: dict = None
+    decoder_dist_params: Union[dict, None] = None
     custom_architectures: list = field(default_factory=lambda: [])
 
 

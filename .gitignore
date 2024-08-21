@@ -136,7 +136,7 @@ dummy_output_dir
 *.mat
 *.pt
 trained_models/
-data
+
 
 compare_on_mmnist/
 examples/mmnist/validate/results/compare_mmnist_2205.csv
@@ -147,3 +147,4 @@ examples/mmnist/validate/plots.ipynb
 examples/mmnist/validate/results/
 validate_mmnist/
 examples/tutorial_notebooks/metrics/conditional_from_subset_['m0'].png
+src/multivae/data/datasets/celebattr.py

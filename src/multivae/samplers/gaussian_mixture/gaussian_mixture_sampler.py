@@ -22,7 +22,7 @@ logger.setLevel(logging.INFO)
 
 class GaussianMixtureSampler(BaseSampler):
     """
-    
+
     Fits a Gaussian Mixture in the Multimodal Autoencoder's latent space.
     If the model has several latent spaces, it fits a gaussian mixture per latent space.
 

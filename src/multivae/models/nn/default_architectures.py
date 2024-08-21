@@ -167,7 +167,7 @@ class MultipleHeadJointEncoder(BaseEncoder):
 
     def __init__(
         self,
-        dict_encoders: nn.ModuleDict,
+        dict_encoders: dict,
         args: dict,
         hidden_dim=512,
         n_hidden_layers=2,

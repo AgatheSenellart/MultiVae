@@ -6,7 +6,7 @@ from torchvision.datasets import CelebA
 from .base import DatasetOutput, MultimodalBaseDataset
 
 
-class CelebAttr(MultimodalBaseDataset): # pragma: no cover
+class CelebAttr(MultimodalBaseDataset):  # pragma: no cover
     def __init__(
         self,
         root: str,

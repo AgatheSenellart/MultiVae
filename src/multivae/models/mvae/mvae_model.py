@@ -186,7 +186,7 @@ class MVAE(BaseMultiVAE):
             # Add the unimodal subsets
             subsets.extend([[m] for m in self.encoders])
             # Add random subsets
-            if self.k > 0:
+            if self.k > 0 and self.training:
                 random_idx = choice(
                     np.arange(len(self.subsets)), size=self.k, replace=False
                 )
@@ -222,8 +222,27 @@ class MVAE(BaseMultiVAE):
         N: int = 1,
         **kwargs,
     ):
+        """
+        Generate encodings conditioning on all modalities or a subset of modalities.
+
+        Args:
+            inputs (MultimodalBaseDataset): The dataset to use for the conditional generation.
+            cond_mod (Union[list, str]): Either 'all' or a list of str containing the modalities
+                names to condition on.
+            N (int) : The number of encodings to sample for each datapoint. Default to 1.
+
+        Returns:
+            ModelOutput instance with fields:
+                z (torch.Tensor (n_data, N, latent_dim))
+                one_latent_space (bool) = True
+
+        """
+
+        # Call super to perform some checks and preprocess the cond_mod argument
+        # you obtain a list of the modalities' names to condition on
         cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
 
+        # Compute the latent variable conditioning on input modalities
         sub_mu, sub_logvar = self.compute_mu_log_var_subset(inputs, cond_mod)
         sub_std = torch.exp(0.5 * sub_logvar)
         sample_shape = [N] if N > 1 else []
