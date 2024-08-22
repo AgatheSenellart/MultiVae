@@ -25,7 +25,7 @@ class Test_model:
             mod3=torch.randn((6, 4)),
             mod4=torch.randn((6, 4)),
         )
-        labels = np.array([0, 1,0,0,0,0])
+        labels = np.array([0, 1, 0, 0, 0, 0])
         if request.param == "complete":
             dataset = MultimodalBaseDataset(data, labels)
         else:

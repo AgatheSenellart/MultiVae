@@ -123,7 +123,7 @@ class MMVAE(BaseMultiVAE):
             sigma = self.log_var_to_std(log_var)
 
             qz_x = self.post_dist(mu, sigma)
-            z_x = qz_x.rsample([K]) # K,n_batch,latent_dim
+            z_x = qz_x.rsample([K])  # K,n_batch,latent_dim
 
             # The DREG loss uses detached parameters in the loss computation afterwards.
             qz_x_detach = self.post_dist(mu.detach(), sigma.detach())
@@ -132,7 +132,7 @@ class MMVAE(BaseMultiVAE):
             reconstructions[cond_mod] = {}
             for recon_mod in inputs.data:
                 decoder = self.decoders[recon_mod]
-                z = z_x.reshape(-1, z_x.shape[-1]) # (K*n_batch, latent_dim)
+                z = z_x.reshape(-1, z_x.shape[-1])  # (K*n_batch, latent_dim)
                 recon = decoder(z)["reconstruction"]
                 recon = recon.reshape((*z_x.shape[:-1], *recon.shape[1:]))
                 reconstructions[cond_mod][recon_mod] = recon

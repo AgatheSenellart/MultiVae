@@ -10,7 +10,7 @@ from pythae.models.nn.benchmarks.mnist.convnets import (
     Decoder_Conv_AE_MNIST,
     Encoder_Conv_AE_MNIST,
 )
-from pythae.models.nn.default_architectures import Encoder_VAE_MLP, Decoder_AE_MLP
+from pythae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
 from pythae.models.normalizing_flows import IAF, IAFConfig
 from torch import nn
 
@@ -81,7 +81,7 @@ class Test:
             decoders_dist=dict(
                 mod1="laplace", mod2="laplace", mod3="laplace", mod4="laplace"
             ),
-            decoder_dist_params=dict(mod1={"scale": 0.75}, mod2={"scale": 0.75})
+            decoder_dist_params=dict(mod1={"scale": 0.75}, mod2={"scale": 0.75}),
         )
 
         return model_config
@@ -107,7 +107,7 @@ class Test:
         assert model.K == model_config.K
 
         # Try forward
-        
+
         output = model(dataset, epoch=2)
         loss = output.loss
         assert type(loss) == torch.Tensor

@@ -68,12 +68,10 @@ class IncompleteDataset(MultimodalBaseDataset):
         self.masks = masks
         self.labels = labels
         self.check_lenght()
-        
 
     def check_lenght(self):
-    
         length = len(self.data[list(self.data)[0]])
-        
+
         # check that all modalities have the same number of samples
         for m in self.data:
             if len(self.data[m]) != length or len(self.masks[m]) != length:
@@ -81,17 +79,16 @@ class IncompleteDataset(MultimodalBaseDataset):
                     "The size of the provided datasets/masks doesn't correspond between modalities!"
                 )
         # check that labels have the same number of samples
-        if self.labels is not None :
-            if len(self.labels) != length :
+        if self.labels is not None:
+            if len(self.labels) != length:
                 raise AttributeError(
                     "The size of the provided datasets/masks doesn't correspond with the labels"
                 )
-        return 
-    
+        return
+
     def __len__(self):
-    
         length = len(self.data[list(self.data)[0]])
-        
+
         return length
 
     def __getitem__(self, index):
