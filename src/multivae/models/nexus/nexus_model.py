@@ -102,7 +102,7 @@ class Nexus(BaseMultiVAE):
         self.set_bottom_betas(model_config.bottom_betas)
         self.set_gammas(model_config.gammas)
         
-        self.beta = model_config.beta
+        self.beta = model_config.top_beta
         self.aggregator_function = model_config.aggregator
         
     
@@ -259,6 +259,7 @@ class Nexus(BaseMultiVAE):
             
         # Compute the aggregation
         aggregated_msg = self.aggregate_msg(inputs, modalities_msg)
+        
         
         # Compute the higher level latent variable and ELBO
         joint_output = self.joint_encoder(aggregated_msg)

@@ -12,10 +12,10 @@ class NexusConfig(BaseMultiVAEConfig):
         n_modalities (int): The number of modalities. Default: None.
         latent_dim (int): The dimension of the higher level latent space called z_{\sigma} in the paper. Default: None.
         input_dims (dict[str,tuple]) : The modalities'names (str) and input shapes (tuple).
-        uses_likelihood_rescaling (bool): To mitigate modality collapse, it is possible to use likelihood rescaling.
+        uses_likelihood_rescaling (bool): To mitigate modality collapse, it is possible to use likelihood rescaling on the 
+            reconstruction terms for each modality. 
             (see : https://proceedings.mlr.press/v162/javaloy22a.html).
-            The inputs_dim must be provided to compute the likelihoods rescalings. It is used in a number of models
-            which is why we include it here. Default to False.
+            . Default to False.
         decoders_dist (Dict[str, Union[function, str]]). The decoder distributions to use per modality.
             Per modality, you can provide a string in ['normal','bernoulli','laplace']. If None is provided,
             a normal distribution is used for each modality.
@@ -29,9 +29,11 @@ class NexusConfig(BaseMultiVAEConfig):
         dropout_rate (float between 0 and 1) : dropout rate of the modalities during training. Default to 0.
         msg_dim (int) : Dimension of the messages from each modality. Default to 10.
         aggregator (Literal['mean']): Default to 'mean'
-        beta (float): parameter that scales the KL of the higher level ELBO. Default to 1.
+        top_beta (float): parameter that scales the KL of the higher level ELBO. Default to 1.
         gammas (Dict[str, float]). Default to None. Factors that rescale the reconstruction of
             each top-level representation of each modality.
+        rescale_factors (Dict[str, float]). Default to None. Factors that rescale the reconstruction of
+            each modality. Correspond to the lambda factors in the appendix of the paper. 
     """
 
     modalities_specific_dim : Dict[str, int] = None
@@ -40,6 +42,6 @@ class NexusConfig(BaseMultiVAEConfig):
     dropout_rate : float = 0
     msg_dim : int = 10
     aggregator: Literal['mean'] = 'mean'
-    beta: float = 1
+    top_beta: float = 1
     gammas : Dict[str, float] = None
     
