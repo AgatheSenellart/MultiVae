@@ -58,29 +58,28 @@ class Test:
             decoders=decoders,
             flows=flows,
         )
-        
+
     @pytest.fixture(params=[True, False])
-    def use_likelihood_rescaling(self,request):
+    def use_likelihood_rescaling(self, request):
         return request.param
-    
+
     @pytest.fixture(params=[True, False])
-    def two_steps_training(self,request):
+    def two_steps_training(self, request):
         return request.param
-    
+
     @pytest.fixture(params=[0.1, 1.2])
-    def alpha(self,request):
+    def alpha(self, request):
         return request.param
-    
 
     @pytest.fixture
-    def model_config(self, use_likelihood_rescaling,two_steps_training,alpha):
+    def model_config(self, use_likelihood_rescaling, two_steps_training, alpha):
         model_config = JNFConfig(
             n_modalities=3,
             latent_dim=5,
             input_dims=dict(mod1=(2,), mod2=(3,), mod3=(4,)),
             use_likelihood_rescaling=use_likelihood_rescaling,
             two_steps_training=two_steps_training,
-            alpha=alpha
+            alpha=alpha,
         )
 
         return model_config
@@ -95,7 +94,6 @@ class Test:
         return model
 
     def test(self, model, dataset, model_config):
-        
         # tests on model init
         assert model.warmup == model_config.warmup
         assert model.two_steps_training == model_config.two_steps_training
@@ -112,23 +110,23 @@ class Test:
         assert type(loss) == torch.Tensor
         assert loss.size() == torch.Size([])
         assert loss.requires_grad
-        
+
         if model.two_steps_training:
-            assert output.metrics['ljm']==0
+            assert output.metrics["ljm"] == 0
         else:
-            assert output.metrics,'beta' < 1
-        
+            assert output.metrics, "beta" < 1
+
         # test model forward after warmup
         output = model(dataset, epoch=model_config.warmup + 2)
         loss = output.loss
         assert type(loss) == torch.Tensor
         assert loss.size() == torch.Size([])
         assert loss.requires_grad
-        
+
         if model.two_steps_training:
-            assert output.metrics['ljm']!=0
+            assert output.metrics["ljm"] != 0
         else:
-            assert output.metrics,'beta' == 1
+            assert output.metrics, "beta" == 1
 
         # Try encoding and prediction
 

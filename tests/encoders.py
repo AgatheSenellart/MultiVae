@@ -130,8 +130,6 @@ class Encoder_test_multilatents(BaseEncoder):
         return output
 
 
-
-
 class Decoder_test(BaseDecoder):
     def __init__(self, args: dict):
         BaseDecoder.__init__(self)
@@ -150,13 +148,11 @@ class Decoder_test(BaseDecoder):
         self.depth = len(layers)
 
     def forward(self, z: torch.Tensor, output_layer_levels: List[int] = None):
-
         output = ModelOutput()
 
         max_depth = self.depth
 
         if output_layer_levels is not None:
-
             assert all(
                 self.depth >= levels > 0 or levels == -1
                 for levels in output_layer_levels

@@ -218,7 +218,3 @@ class MultipleHeadJointEncoder(BaseEncoder):
         output = ModelOutput(embedding=embedding, log_covariance=log_covariance)
 
         return output
-
-
-
-        

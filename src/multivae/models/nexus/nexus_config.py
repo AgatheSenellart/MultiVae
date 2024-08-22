@@ -1,6 +1,9 @@
-from pydantic.dataclasses import dataclass
-from ..base import BaseMultiVAEConfig
 from typing import Dict, Literal
+
+from pydantic.dataclasses import dataclass
+
+from ..base import BaseMultiVAEConfig
+
 
 @dataclass
 class NexusConfig(BaseMultiVAEConfig):
@@ -12,8 +15,8 @@ class NexusConfig(BaseMultiVAEConfig):
         n_modalities (int): The number of modalities. Default: None.
         latent_dim (int): The dimension of the higher level latent space called z_{\sigma} in the paper. Default: None.
         input_dims (dict[str,tuple]) : The modalities'names (str) and input shapes (tuple).
-        uses_likelihood_rescaling (bool): To mitigate modality collapse, it is possible to use likelihood rescaling on the 
-            reconstruction terms for each modality. 
+        uses_likelihood_rescaling (bool): To mitigate modality collapse, it is possible to use likelihood rescaling on the
+            reconstruction terms for each modality.
             (see : https://proceedings.mlr.press/v162/javaloy22a.html).
             . Default to False.
         decoders_dist (Dict[str, Union[function, str]]). The decoder distributions to use per modality.
@@ -22,7 +25,7 @@ class NexusConfig(BaseMultiVAEConfig):
         decoder_dist_params (Dict[str,dict]) : Parameters for the output decoder distributions, for
             computing the log-probability.
             For instance, with normal or laplace distribution, you can pass the scale in this dictionary.
-            ex :  {'mod1' : {scale : 0.75}}
+            ex :  {'mod1' : {scale : 0.75}}. Default to standard distribution.
         modalities_specific_dim (Dict[int]) : dimensions of the first level latent variables for all modalities,
             noted at z^(i) in the paper. Default to None
         bottom_betas (dict[str, float]) : hyperparameters that scales the bottom modality-specific KL divergence.
@@ -33,15 +36,13 @@ class NexusConfig(BaseMultiVAEConfig):
         gammas (Dict[str, float]). Default to None. Factors that rescale the reconstruction of
             each top-level representation of each modality.
         rescale_factors (Dict[str, float]). Default to None. Factors that rescale the reconstruction of
-            each modality. Correspond to the lambda factors in the appendix of the paper. 
+            each modality. Correspond to the lambda factors in the appendix of the paper.
     """
 
-    modalities_specific_dim : Dict[str, int] = None
-    bottom_betas : Dict[str, float] = None
-    top_level_scalings : Dict[str, float] = None
-    dropout_rate : float = 0
-    msg_dim : int = 10
-    aggregator: Literal['mean'] = 'mean'
+    modalities_specific_dim: Dict[str, int] = None
+    bottom_betas: Dict[str, float] = None
+    dropout_rate: float = 0
+    msg_dim: int = 10
+    aggregator: Literal["mean"] = "mean"
     top_beta: float = 1
-    gammas : Dict[str, float] = None
-    
+    gammas: Dict[str, float] = None

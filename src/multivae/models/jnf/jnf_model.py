@@ -141,7 +141,9 @@ class JNF(BaseJointModel):
                     # recon_loss=recon_loss / len_batch,
                     # KLD=KLD / len_batch,
                     loss=(recon_loss + KLD) / len_batch,
-                    metrics=dict(kld_prior=KLD, recon_loss=recon_loss / len_batch, ljm=0),
+                    metrics=dict(
+                        kld_prior=KLD, recon_loss=recon_loss / len_batch, ljm=0
+                    ),
                 )
 
             else:
@@ -159,17 +161,18 @@ class JNF(BaseJointModel):
                         ljm=ljm / len_batch,
                     ),
                 )
-        
-        else:
-            ljm = self.compute_ljm(inputs, z_joint)*self.alpha
-            beta = min(1,epoch/self.warmup)
-            return ModelOutput(
-                    loss=(recon_loss + beta*(KLD+ljm)) / len_batch,
-                    metrics=dict(kld_prior=KLD, recon_loss=recon_loss / len_batch, ljm=ljm, beta=beta),
-                )
-            
 
-    def compute_ljm(self,inputs, z_joint):
+        else:
+            ljm = self.compute_ljm(inputs, z_joint) * self.alpha
+            beta = min(1, epoch / self.warmup)
+            return ModelOutput(
+                loss=(recon_loss + beta * (KLD + ljm)) / len_batch,
+                metrics=dict(
+                    kld_prior=KLD, recon_loss=recon_loss / len_batch, ljm=ljm, beta=beta
+                ),
+            )
+
+    def compute_ljm(self, inputs, z_joint):
         """Compute the KL-divergence between unimodal posteriors and joint posterior.
 
         Args:
@@ -188,11 +191,9 @@ class JNF(BaseJointModel):
             flow_output = self.flows[mod](z_joint)
             z0 = flow_output.out
 
-            ljm += -(
-                qz_x0.log_prob(z0).sum(dim=-1) + flow_output.log_abs_det_jac
-            ).sum()
+            ljm += -(qz_x0.log_prob(z0).sum(dim=-1) + flow_output.log_abs_det_jac).sum()
         return ljm
-    
+
     def encode(
         self,
         inputs: MultimodalBaseDataset,
