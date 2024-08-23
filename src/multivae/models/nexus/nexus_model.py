@@ -108,6 +108,7 @@ class Nexus(BaseMultiVAE):
 
         self.beta = model_config.top_beta
         self.aggregator_function = model_config.aggregator
+        self.warmup = model_config.warmup
 
     def set_bottom_betas(self, bottom_betas):
         if bottom_betas is None:
@@ -245,6 +246,10 @@ class Nexus(BaseMultiVAE):
             self.joint_encoder = joint_encoder
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs):
+        
+        epoch = kwargs.pop("epoch", 1)
+        annealing = min(epoch/self.warmup, 1.0)
+        
         # Compute the first level representations and ELBOs
         modalities_msg = dict()
         first_level_elbos = 0
@@ -272,9 +277,9 @@ class Nexus(BaseMultiVAE):
 
             KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp(), dim=1)
 
-            elbo = logprob + KLD * self.bottom_betas[m]
+            elbo = logprob + KLD * self.bottom_betas[m] * annealing
 
-            msg = self.top_encoders[m](z).embedding
+            msg = self.top_encoders[m](z.clone().detach()).embedding
 
             if hasattr(inputs, "masks"):
                 elbo = elbo * inputs.masks[m].float()
@@ -307,7 +312,7 @@ class Nexus(BaseMultiVAE):
         joint_KLD = -0.5 * torch.sum(
             1 + joint_log_var - joint_mu.pow(2) - joint_log_var.exp(), dim=1
         )
-        joint_elbo += self.beta * joint_KLD
+        joint_elbo += self.beta * joint_KLD * annealing
 
         total_loss = joint_elbo + first_level_elbos
 

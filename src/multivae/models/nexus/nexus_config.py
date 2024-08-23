@@ -37,6 +37,7 @@ class NexusConfig(BaseMultiVAEConfig):
             each top-level representation of each modality.
         rescale_factors (Dict[str, float]). Default to None. Factors that rescale the reconstruction of
             each modality. Correspond to the lambda factors in the appendix of the paper.
+        warmup (int) : number of epochs for the annealing of the KL terms in the loss. Default to 20.
     """
 
     modalities_specific_dim: Dict[str, int] = None
@@ -46,3 +47,4 @@ class NexusConfig(BaseMultiVAEConfig):
     aggregator: Literal["mean"] = "mean"
     top_beta: float = 1
     gammas: Dict[str, float] = None
+    warmup: int = 20
