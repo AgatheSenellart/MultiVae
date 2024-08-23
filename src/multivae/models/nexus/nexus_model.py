@@ -388,7 +388,7 @@ class Nexus(BaseMultiVAE):
     def encode(
         self,
         inputs: MultimodalBaseDataset,
-        cond_mod: list | str = "all",
+        cond_mod: Union[list, str] = "all",
         N: int = 1,
         **kwargs,
     ):
@@ -426,7 +426,7 @@ class Nexus(BaseMultiVAE):
 
         return ModelOutput(z=z, one_latent_space=True, modalities_z=modalities_z)
 
-    def decode(self, embedding: ModelOutput, modalities: list | str = "all", **kwargs):
+    def decode(self, embedding: ModelOutput, modalities: Union[list,str] = "all", **kwargs):
         self.eval()
 
         if modalities == "all":
