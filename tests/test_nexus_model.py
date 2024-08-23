@@ -21,15 +21,15 @@ from multivae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 
 
-class Test:
+class Test_forward_encode_and_predict:
     @pytest.fixture(params=["complete", "incomplete"])
     def dataset(self, request):
         # Create simple small dataset
         data = dict(
-            mod1=torch.Tensor(np.random.random((4, 1, 28, 28))),
-            mod2=torch.Tensor(np.random.random((4, 3, 28, 28))),
-            mod3=torch.Tensor(np.random.random((4, 3, 32, 32))),
-            mod4=torch.Tensor(np.random.random((4, 1, 32, 23))),
+            mod1=torch.Tensor(np.random.random((4, 1, 12, 12))),
+            mod2=torch.Tensor(np.random.random((4, 3, 7, 7))),
+            mod3=torch.Tensor(np.random.random((4, 3))),
+            mod4=torch.Tensor(np.random.random((4, 5))),
         )
         labels = np.array([0, 1, 0, 1])
         if request.param == "complete":
@@ -50,10 +50,10 @@ class Test:
             dict(
                 n_modalities=4,
                 input_dims=dict(
-                    mod1=(1, 28, 28),
-                    mod2=(3, 28, 28),
-                    mod3=(3, 32, 32),
-                    mod4=(1, 32, 23),
+                    mod1=(1, 12, 12),
+                    mod2=(3, 7 , 7),
+                    mod3=(3,),
+                    mod4=(5,),
                 ),
                 modalities_specific_dim=dict(mod1=3, mod2=4, mod3=3, mod4=4),
                 gammas=dict(mod1=1.2, mod2=1.3, mod3=1.0, mod4=3.0),
@@ -65,10 +65,10 @@ class Test:
             dict(
                 n_modalities=4,
                 input_dims=dict(
-                    mod1=(1, 28, 28),
-                    mod2=(3, 28, 28),
-                    mod3=(3, 32, 32),
-                    mod4=(1, 32, 23),
+                    mod1=(1, 12, 12),
+                    mod2=(3, 7 , 7),
+                    mod3=(3,),
+                    mod4=(5,),
                 ),
                 modalities_specific_dim=dict(mod1=3, mod2=4, mod3=3, mod4=4),
                 gammas=dict(mod1=1.2, mod2=1.3, mod3=1.0, mod4=3.0),
@@ -81,10 +81,10 @@ class Test:
             dict(
                 n_modalities=4,
                 input_dims=dict(
-                    mod1=(1, 28, 28),
-                    mod2=(3, 28, 28),
-                    mod3=(3, 32, 32),
-                    mod4=(1, 32, 23),
+                    mod1=(1, 12, 12),
+                    mod2=(3, 7 , 7),
+                    mod3=(3,),
+                    mod4=(5,),
                 ),
                 modalities_specific_dim=dict(mod1=3, mod2=4, mod3=3, mod4=4),
                 gammas=None,
@@ -95,10 +95,10 @@ class Test:
             dict(
                 n_modalities=4,
                 input_dims=dict(
-                    mod1=(1, 28, 28),
-                    mod2=(3, 28, 28),
-                    mod3=(3, 32, 32),
-                    mod4=(1, 32, 23),
+                    mod1=(1, 12, 12),
+                    mod2=(3, 7 , 7),
+                    mod3=(3,),
+                    mod4=(5,),
                 ),
                 modalities_specific_dim=dict(mod1=3, mod2=4, mod3=3, mod4=4),
                 gammas=dict(mod1=1.2, mod2=1.3, mod3=1.0, mod4=3.0),
@@ -109,10 +109,10 @@ class Test:
             dict(
                 n_modalities=4,
                 input_dims=dict(
-                    mod1=(1, 28, 28),
-                    mod2=(3, 28, 28),
-                    mod3=(3, 32, 32),
-                    mod4=(1, 32, 23),
+                    mod1=(1, 12, 12),
+                    mod2=(3, 7 , 7),
+                    mod3=(3,),
+                    mod4=(5,),
                 ),
                 modalities_specific_dim=dict(mod1=3, mod2=4, mod3=3, mod4=4),
                 gammas=dict(mod1=1.2, mod2=1.3, mod3=1.0, mod4=3.0),
@@ -123,10 +123,10 @@ class Test:
             dict(
                 n_modalities=4,
                 input_dims=dict(
-                    mod1=(1, 28, 28),
-                    mod2=(3, 28, 28),
-                    mod3=(3, 32, 32),
-                    mod4=(1, 32, 23),
+                    mod1=(1, 12, 12),
+                    mod2=(3, 7 , 7),
+                    mod3=(3,),
+                    mod4=(5,),
                 ),
                 modalities_specific_dim=dict(mod1=3, mod2=4, mod3=3, mod4=4),
                 gammas=dict(mod1=1.2, mod2=1.3, mod3=1.0, mod4=3.0),
@@ -138,10 +138,10 @@ class Test:
             dict(
                 n_modalities=4,
                 input_dims=dict(
-                    mod1=(1, 28, 28),
-                    mod2=(3, 28, 28),
-                    mod3=(3, 32, 32),
-                    mod4=(1, 32, 23),
+                    mod1=(1, 12, 12),
+                    mod2=(3, 7 , 7),
+                    mod3=(3,),
+                    mod4=(5,),
                 ),
                 modalities_specific_dim=dict(mod1=3, mod2=4, mod3=3, mod4=4),
                 gammas=dict(mod1=1.2, mod2=1.3, mod3=1.0, mod4=3.0),
@@ -153,10 +153,10 @@ class Test:
             dict(
                 n_modalities=4,
                 input_dims=dict(
-                    mod1=(1, 28, 28),
-                    mod2=(3, 28, 28),
-                    mod3=(3, 32, 32),
-                    mod4=(1, 32, 23),
+                    mod1=(1, 12, 12),
+                    mod2=(3, 7 , 7),
+                    mod3=(3,),
+                    mod4=(5,),
                 ),
                 modalities_specific_dim=dict(mod1=3, mod2=4, mod3=3, mod4=4),
                 gammas=dict(mod1=1.2, mod2=1.3, mod3=1.0, mod4=3.0),
@@ -353,18 +353,18 @@ class Test:
 
         Y = model.predict(dataset, cond_mod="mod2")
         assert isinstance(Y, ModelOutput)
-        assert Y.mod1.shape == (4, 1, 28, 28)
-        assert Y.mod2.shape == (4, 3, 28, 28)
+        assert Y.mod1.shape == (4, 1, 12, 12)
+        assert Y.mod2.shape == (4, 3, 7, 7)
 
         Y = model.predict(dataset, cond_mod="mod2", N=10)
         assert isinstance(Y, ModelOutput)
-        assert Y.mod1.shape == (10, 4, 1, 28, 28)
-        assert Y.mod2.shape == (10, 4, 3, 28, 28)
+        assert Y.mod1.shape == (10, 4, 1, 12, 12)
+        assert Y.mod2.shape == (10, 4, 3, 7, 7)
 
         Y = model.predict(dataset, cond_mod="mod2", N=10, flatten=True)
         assert isinstance(Y, ModelOutput)
-        assert Y.mod1.shape == (4 * 10, 1, 28, 28)
-        assert Y.mod2.shape == (4 * 10, 3, 28, 28)
+        assert Y.mod1.shape == (4 * 10, 1, 12, 12)
+        assert Y.mod2.shape == (4 * 10, 3, 7, 7)
 
     def test_grad_with_missing_inputs(self, model, dataset):
         # check that the grad with regard to missing modality is 0
@@ -382,6 +382,112 @@ class Test:
             for param in model.encoders["mod1"].parameters():
                 assert not torch.all(param.grad == 0)
 
+    
+class Test_training:
+    @pytest.fixture(params=["complete", "incomplete"])
+    def dataset(self, request):
+        # Create simple small dataset
+        data = dict(
+            mod1=torch.Tensor(np.random.random((4, 1, 12, 12))),
+            mod2=torch.Tensor(np.random.random((4, 3, 7, 7)))
+        )
+        labels = np.array([0, 1, 0, 1])
+        if request.param == "complete":
+            dataset = MultimodalBaseDataset(data, labels)
+        else:
+            masks = dict(
+                mod1=torch.Tensor([True, True, False, False]),
+                mod2=torch.Tensor([True, True, True, True]),
+                
+            )
+            dataset = IncompleteDataset(data=data, masks=masks, labels=labels)
+
+        return dataset
+
+    @pytest.fixture(
+        params=[
+            dict(
+                n_modalities=2,
+                input_dims=dict(
+                    mod1=(1, 12, 12),
+                    mod2=(3, 7, 7),
+                   
+                ),
+                modalities_specific_dim=dict(mod1=3, mod2=4),
+                gammas=dict(mod1=1.2, mod2=1.3),
+                bottom_betas=dict(mod1=2.0, mod2=1.0),
+                msg_dim=14,
+                latent_dim=3,
+                uses_likelihood_rescaling=True,
+            )
+        ]
+    )
+    def custom_config_archi(self, request):
+        encoders = dict()
+        decoders = dict()
+        top_encoders = dict()
+        top_decoders = dict()
+        for m in request.param["modalities_specific_dim"]:
+            encoders[m] = Encoder_test(
+                BaseAEConfig(
+                    input_dim=request.param["input_dims"][m],
+                    latent_dim=request.param["modalities_specific_dim"][m],
+                )
+            )
+
+            decoders[m] = Decoder_test(
+                BaseAEConfig(
+                    input_dim=request.param["input_dims"][m],
+                    latent_dim=request.param["modalities_specific_dim"][m],
+                )
+            )
+
+            top_encoders[m] = Encoder_test(
+                BaseAEConfig(
+                    input_dim=(request.param["modalities_specific_dim"][m],),
+                    latent_dim=request.param["msg_dim"],
+                )
+            )
+
+            top_decoders[m] = Decoder_test(
+                BaseAEConfig(
+                    input_dim=(request.param["modalities_specific_dim"][m],),
+                    latent_dim=request.param["latent_dim"],
+                )
+            )
+
+        joint_encoder = Encoder_test(
+            BaseAEConfig(
+                input_dim=(request.param["msg_dim"],),
+                latent_dim=request.param["latent_dim"],
+            )
+        )
+
+        model_config = NexusConfig(**request.param)
+
+        for key in request.param:
+            assert model_config.to_dict()[key] == request.param[key]
+
+        return dict(
+            encoders=encoders,
+            decoders=decoders,
+            top_encoders=top_encoders,
+            top_decoders=top_decoders,
+            joint_encoder=joint_encoder,
+            model_config=model_config,
+        )
+
+    @pytest.fixture(params=[
+        "custom_architectures",
+        "default_architectures"
+        ])
+    def model(self, custom_config_archi, request):
+        if request.param == "custom_architectures":
+            return Nexus(**custom_config_archi)
+        else:
+            return Nexus(model_config=custom_config_archi["model_config"])
+
+   
     @pytest.fixture
     def training_config(self, tmpdir):
         tmpdir.mkdir("dummy_folder")
@@ -618,8 +724,8 @@ class Test:
         assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
 
 
-#     def test_compute_nll(self, model, dataset):
-#         nll = model.compute_joint_nll(dataset, K=10, batch_size_K=2)
-#         assert nll >= 0
-#         assert type(nll) == torch.Tensor
-#         assert nll.size() == torch.Size([])
+# #     def test_compute_nll(self, model, dataset):
+# #         nll = model.compute_joint_nll(dataset, K=10, batch_size_K=2)
+# #         assert nll >= 0
+# #         assert type(nll) == torch.Tensor
+# #         assert nll.size() == torch.Size([])
