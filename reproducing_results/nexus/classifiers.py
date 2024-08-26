@@ -92,3 +92,13 @@ class Trajectory_Classifier(nn.Module):
     def forward(self, x):
         h = self.network(x)
         return self.out(h)
+    
+    
+
+
+class Label_Classifier(nn.Module):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        
+    def forward(self,x):
+        return x
