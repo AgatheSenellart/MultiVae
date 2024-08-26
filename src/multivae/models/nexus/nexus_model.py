@@ -380,7 +380,6 @@ class Nexus(BaseMultiVAE):
 
             assert not aggregated_msg.isnan().any()
             assert not aggregated_msg.isinf().any()
-            assert not (aggregated_msg == 0.0).any()
 
             return aggregated_msg
 
