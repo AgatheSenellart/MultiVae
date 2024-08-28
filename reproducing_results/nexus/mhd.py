@@ -17,6 +17,10 @@ from multivae.trainers.base.callbacks import (
     WandbCallback,
 )
 from architectures import *
+from image_architectures import *
+from trajectory_architectures import *
+from sound_architectures import *
+from symbol_architectures import *
 
 # import the datasets
 train_set = MHD('/home/asenella/scratch/data/MHD', split='train', modalities=['audio', 'trajectory', 'image', 'label'])
@@ -40,19 +44,21 @@ model_config = NexusConfig(
     rescale_factors=dict(image = 1.0, trajectory=50.0, audio = 1.0, label=50.0),
     top_beta=1.0,
     warmup = 20,
-    dropout_rate=0.2)
+    dropout_rate=0.2,
+    decoders_dist=dict(image = 'normal', audio='normal',trajectory = 'normal',label='bernoulli'),
+    )
 
 
 model = Nexus(model_config,
-              encoders = dict(image = ImageEncoder((1,28, 28), model_config.modalities_specific_dim['image']),
+              encoders = dict(image = ImageEncoder('image_encoder', 28, 1, [32,64], [128,128], model_config.modalities_specific_dim['image']),
                               audio = SoundEncoder(model_config.modalities_specific_dim['audio']),
-                              trajectory = TrajectoryEncoder(200,layer_sizes=[512, 512, 512], output_dim=16),
-                              label = LabelEncoder(5)
+                              trajectory = TrajectoryEncoder('traj_encoder', 200, [512, 512, 512], model_config.modalities_specific_dim['trajectory']),
+                              label = SymbolEncoder('symbol_encoder', 10, [128, 128, 128], model_config.modalities_specific_dim['label'])
                               ),
-              decoders=dict(image = ImageDecoder((1,28,28),model_config.modalities_specific_dim['image']),
+              decoders=dict(image = ImageDecoder('image_decoder', model_config.modalities_specific_dim['image'], 1, [64,32], [128,128], 28),
                             audio = SoundDecoder(model_config.modalities_specific_dim['audio']),
-                            trajectory = TrajectoryDecoder(16, [512, 512,512], 200),
-                            label = LabelDecoder(5)
+                            trajectory = TrajectoryDecoder( 'traj_decoder', model_config.modalities_specific_dim['trajectory'], [512, 512, 512], 200),
+                            label = SymbolDecoder('symbol_encoder', model_config.modalities_specific_dim['label'], [128, 128, 128], 10)
                             ),
               top_encoders=dict(image = TopEncoder(model_config.modalities_specific_dim['image'],model_config.msg_dim),
                                 audio = TopEncoder(model_config.modalities_specific_dim['audio'],model_config.msg_dim),
