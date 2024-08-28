@@ -1,4 +1,4 @@
-from typing import Dict, Literal
+from typing import Dict, Literal, List
 
 from pydantic.dataclasses import dataclass
 
@@ -39,6 +39,8 @@ class NexusConfig(BaseMultiVAEConfig):
         rescale_factors (Dict[str, float]). Default to None. Factors that rescale the reconstruction of
             each modality. Correspond to the lambda factors in the appendix of the paper.
         warmup (int) : number of epochs for the annealing of the KL terms in the loss. Default to 20.
+        adapt_top_decoder_variance (List['str']) : For the listed modalities adapt the scale of the top decoders using the procedure 
+            cited in https://arxiv.org/pdf/2006.13202 . Default to [].
     """
 
     modalities_specific_dim: Dict[str, int] = None
@@ -49,3 +51,4 @@ class NexusConfig(BaseMultiVAEConfig):
     top_beta: float = 1
     gammas: Dict[str, float] = None
     warmup: int = 20
+    adapt_top_decoder_variance : List[str] = None

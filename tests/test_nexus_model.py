@@ -165,6 +165,22 @@ class Test_forward_encode_and_predict:
                 latent_dim=4,
                 top_beta=3,
             ),
+            dict(
+                n_modalities=4,
+                input_dims=dict(
+                    mod1=(1, 12, 12),
+                    mod2=(3, 7 , 7),
+                    mod3=(3,),
+                    mod4=(5,),
+                ),
+                modalities_specific_dim=dict(mod1=3, mod2=4, mod3=3, mod4=4),
+                gammas=dict(mod1=1.2, mod2=1.3, mod3=1.0, mod4=3.0),
+                bottom_betas=dict(mod1=2.0, mod2=1.0, mod3=1.4, mod4=0.4),
+                msg_dim=11,
+                latent_dim=4,
+                top_beta=3,
+                adapt_top_decoder_variance = ['mod1']
+            )
         ]
     )
     def custom_config_archi(self, request):

@@ -109,6 +109,16 @@ class Nexus(BaseMultiVAE):
         self.beta = model_config.top_beta
         self.aggregator_function = model_config.aggregator
         self.warmup = model_config.warmup
+        self.adapt_top_decoder_variance = self.set_top_decoder_variance(model_config)
+    
+    def set_top_decoder_variance(self, config):
+        if config.adapt_top_decoder_variance is None:
+            return []
+        else :
+            for m in config.adapt_top_decoder_variance :
+                if m not in self.modalities_name:
+                    raise AttributeError(f"A string provided in *adapt_top_decoder_variance* field doesn't match any of the modalities name : {m} is not in {self.modalities_name}")
+            return config.adapt_top_decoder_variance
 
     def set_bottom_betas(self, bottom_betas):
         if bottom_betas is None:
@@ -265,7 +275,7 @@ class Nexus(BaseMultiVAE):
             # re-decode
             recon = self.decoders[m](z).reconstruction
 
-            # Compute the ELBO
+            # Compute the modalities specific ELBOs
             logprob = (
                 -(
                     self.recon_log_probs[m](recon, inputs.data[m])
@@ -279,8 +289,10 @@ class Nexus(BaseMultiVAE):
 
             elbo = logprob + KLD * self.bottom_betas[m] * annealing
 
+            # Pass the modality specific latent variable through the top encoder to compute the message
             msg = self.top_encoders[m](z.clone().detach()).embedding
 
+            # Use masks to filter out unavailable samples
             if hasattr(inputs, "masks"):
                 elbo = elbo * inputs.masks[m].float()
                 z = (z.permute(1, 0) * inputs.masks[m].float()).permute(1, 0)
@@ -291,7 +303,7 @@ class Nexus(BaseMultiVAE):
             modalities_msg[m] = msg
             first_level_z[m] = z
 
-        # Compute the aggregation
+        # Aggregate the modalities messages
         aggregated_msg = self.aggregate_msg(inputs, modalities_msg, apply_dropout=True)
 
         # Compute the higher level latent variable and ELBO
@@ -305,8 +317,15 @@ class Nexus(BaseMultiVAE):
         for m in self.top_decoders:
             recon = self.top_decoders[m](joint_z).reconstruction
 
+            # Eventually adapt the scale of the top decoder
+            if m in self.adapt_top_decoder_variance :
+                scale = ((first_level_z[m].clone().detach() - recon) ** 2).mean([0, 1], keepdim=True).sqrt()
+            else :
+                scale = 1
+
+            
             joint_elbo += -(
-                dist.Normal(recon, scale=1).log_prob(first_level_z[m]) * self.gammas[m]
+                dist.Normal(recon, scale).log_prob(first_level_z[m]) * self.gammas[m]
             ).sum(-1)
 
         joint_KLD = -0.5 * torch.sum(
@@ -316,7 +335,10 @@ class Nexus(BaseMultiVAE):
 
         total_loss = joint_elbo + first_level_elbos
 
-        return ModelOutput(loss=total_loss.mean(0), metrics={})
+        return ModelOutput(loss=total_loss.mean(0), 
+                           metrics={'annealing' : annealing,
+                                    'joint_elbo' : joint_elbo,
+                                    'joint_KLD' : joint_KLD})
 
     def rsample(self, encoder_output: ModelOutput, N=1, flatten=False):
         mu = encoder_output.embedding
