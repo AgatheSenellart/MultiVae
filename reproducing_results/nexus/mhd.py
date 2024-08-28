@@ -44,8 +44,9 @@ model_config = NexusConfig(
     rescale_factors=dict(image = 1.0, trajectory=50.0, audio = 1.0, label=50.0),
     top_beta=1.0,
     warmup = 20,
-    dropout_rate=0.2,
+    dropout_rate=0.,
     decoders_dist=dict(image = 'normal', audio='normal',trajectory = 'normal',label='bernoulli'),
+    adapt_top_decoder_variance=['audio'],
     )
 
 
