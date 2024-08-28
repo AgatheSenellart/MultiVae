@@ -12,16 +12,17 @@ class NexusConfig(BaseMultiVAEConfig):
     "Leveraging hierarchy in multimodal generative models for effective cross-modality inference" (Vasco et al 2022)
 
     Args:
-        n_modalities (int): The number of modalities. Default: None.
-        latent_dim (int): The dimension of the higher level latent space called z_{\sigma} in the paper. Default: None.
+    
+        n_modalities (int) : The number of modalities. Default to None.
+        latent_dim (int) : The dimension of the higher level latent space called z_{\sigma} in the paper. Default: None.
         input_dims (dict[str,tuple]) : The modalities'names (str) and input shapes (tuple).
-        uses_likelihood_rescaling (bool): To mitigate modality collapse, it is possible to use likelihood rescaling on the
+        uses_likelihood_rescaling (bool) : To mitigate modality collapse, it is possible to use likelihood rescaling on the
             reconstruction terms for each modality.
             (see : https://proceedings.mlr.press/v162/javaloy22a.html).
             . Default to False.
         decoders_dist (Dict[str, Union[function, str]]). The decoder distributions to use per modality.
-            Per modality, you can provide a string in ['normal','bernoulli','laplace']. If None is provided,
-            a normal distribution is used for each modality.
+            Per modality, you can provide a string in ['normal','bernoulli','laplace']. For Bernoulli distribution,
+            the decoder is expected to output **logits**. If None is provided, a normal distribution is used for each modality.
         decoder_dist_params (Dict[str,dict]) : Parameters for the output decoder distributions, for
             computing the log-probability.
             For instance, with normal or laplace distribution, you can pass the scale in this dictionary.
