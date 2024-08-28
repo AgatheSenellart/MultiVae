@@ -337,8 +337,8 @@ class Nexus(BaseMultiVAE):
 
         return ModelOutput(loss=total_loss.mean(0), 
                            metrics={'annealing' : annealing,
-                                    'joint_elbo' : joint_elbo,
-                                    'joint_KLD' : joint_KLD})
+                                    'joint_elbo' : joint_elbo.mean(0),
+                                    'joint_KLD' : joint_KLD.mean(0)})
 
     def rsample(self, encoder_output: ModelOutput, N=1, flatten=False):
         mu = encoder_output.embedding
