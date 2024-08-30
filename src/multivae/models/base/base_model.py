@@ -138,17 +138,16 @@ class BaseMultiVAE(nn.Module):
                 )
 
         self.use_likelihood_rescaling = model_config.uses_likelihood_rescaling
-        if self.use_likelihood_rescaling:
-            if self.model_config.rescale_factors is not None:
+        if self.model_config.rescale_factors is not None:
                 self.rescale_factors = model_config.rescale_factors
-            elif self.input_dims is None:
-                raise AttributeError(
+        elif model_config.uses_likelihood_rescaling and self.input_dims is None:
+            raise AttributeError(
                     " inputs_dim = None but (use_likelihood_rescaling = True"
                     " in model_config)"
                     " To compute likelihood rescalings we need the input dimensions."
                     " Please provide a valid dictionary for input_dims."
                 )
-            else:
+        elif model_config.uses_likelihood_rescaling and self.input_dims is not None:
                 max_dim = max(*[np.prod(self.input_dims[k]) for k in self.input_dims])
                 self.rescale_factors = {
                     k: max_dim / np.prod(self.input_dims[k]) for k in self.input_dims

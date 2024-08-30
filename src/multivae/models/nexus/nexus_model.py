@@ -377,13 +377,16 @@ class Nexus(BaseMultiVAE):
                 # we iter over the batch samples
                 for i in range(len(tensor_modalities_msg)):
                     msgs = tensor_modalities_msg[i] # n_modalities, msg_dim
-
-                    bernoulli_drop = dist.Bernoulli(self.dropout).sample()
+                    
+                    bernoulli_drop = dist.Bernoulli(self.dropout).sample().item()
                     if bernoulli_drop == 1:
                         
                         subset_size = np.random.randint(1,self.n_modalities)
                         
-                        msgs = msgs[torch.randperm(self.n_modalities)][:subset_size]
+                        msgs = msgs[torch.randperm(self.n_modalities)]
+                        
+                        msgs = msgs[:subset_size]
+                        
                     batch_msgs.append(msgs.mean(0))
                 
                 aggregated_msg = torch.stack(batch_msgs,dim=0)
@@ -431,7 +434,7 @@ class Nexus(BaseMultiVAE):
         for m in cond_mod:
             output_m = self.encoders[m](inputs.data[m])
             modalities_z[m] = self.rsample(output_m, N, flatten)
-            modalities_msg[m] = self.top_encoders[m](output_m.embedding).embedding
+            modalities_msg[m] = self.top_encoders[m](self.rsample(output_m)).embedding
 
         # Compute high level representation
         if self.aggregator_function == 'mean':
@@ -449,7 +452,7 @@ class Nexus(BaseMultiVAE):
         if modalities == "all":
             modalities = list(self.encoders.keys())
 
-        use_bottom_z_for_reconstruction = kwargs.pop("use_bottom_z_for_recon", False)
+        use_bottom_z_for_reconstruction = kwargs.pop("use_bottom_z_for_recon", True)
 
         outputs = ModelOutput()
 
