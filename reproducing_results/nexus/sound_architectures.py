@@ -162,6 +162,7 @@ class SoundEncoder(BaseEncoder):
         self.network = s_vae.mod_encoder
 
     def forward(self,x):
+        self.eval()
         with torch.no_grad():
             embedding, log_var = self.network(x)
             return ModelOutput(
@@ -176,6 +177,7 @@ class SoundDecoder(BaseDecoder):
         self.network = s_vae.mod_decoder
 
     def forward(self,x):
+        self.eval()
         with torch.no_grad():
             recon = self.network(x)
             return ModelOutput(
