@@ -40,13 +40,13 @@ for s in state_dicts:
 
 
 # Load the model 
-model_path = '/home/asenella/dev/multivae_package/dummy_output_dir/NEXUS_training_2024-08-28_16-58-08/final_model'
+model_path = '/home/asenella/dev/multivae_package/reproduce_nexus/seed_1/NEXUS_training_2024-08-30_16-24-40/final_model'
 model = AutoModel.load_from_folder(model_path)
 
 
 eval_config = CoherenceEvaluatorConfig(
     batch_size=64,
-    wandb_path="multimodal_vaes/reproducing_nexus/yokuodyw",
+    wandb_path="multimodal_vaes/reproducing_nexus/h42fpzv7",
     num_classes=10
 )
 

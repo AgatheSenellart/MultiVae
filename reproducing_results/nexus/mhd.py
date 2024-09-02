@@ -40,7 +40,6 @@ train_set, eval_set = random_split(train_set,[0.9, 0.1])
 
 
 # Model config
-
 model_config = NexusConfig(
     n_modalities=4,
     input_dims = dict(image = (1,28,28), audio = (1,32,28), trajectory = (200,), label=(10,)),
@@ -101,7 +100,8 @@ training_config = BaseTrainerConfig(
     steps_predict=5,
     optimizer_cls="Adam",
     seed=args.seed, 
-    output_dir=f'reproduce_nexus/seed_{args.seed}'
+    output_dir=f'reproduce_nexus/seed_{args.seed}', 
+    start_keep_best_epoch=model_config.warmup + 1
 )
 
 # Set up callbacks
@@ -124,8 +124,11 @@ trainer._best_model.push_to_hf_hub(
     f"asenella/reproduce_nexus_seed_{args.seed}"
 )
 
-###### Validate ########
+wandb_cb.run.finish()
 
+#####################################################################################################################################
+###############################################        Validate         #############################################################
+#####################################################################################################################################
 
 ####  Load classifiers
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -153,8 +156,9 @@ for s in state_dicts:
 
 eval_config = CoherenceEvaluatorConfig(
     batch_size=64,
-    wandb_path="multimodal_vaes/reproducing_nexus/yokuodyw",
-    num_classes=10
+    wandb_path = wandb_cb.run.path ,
+    num_classes=10,
+    
 )
 
 eval_module = CoherenceEvaluator(model = trainer._best_model, 
