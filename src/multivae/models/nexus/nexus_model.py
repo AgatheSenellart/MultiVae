@@ -452,7 +452,7 @@ class Nexus(BaseMultiVAE):
         if modalities == "all":
             modalities = list(self.encoders.keys())
 
-        use_bottom_z_for_reconstruction = kwargs.pop("use_bottom_z_for_recon", True)
+        use_bottom_z_for_reconstruction = kwargs.pop("use_bottom_z_for_recon", False)
 
         outputs = ModelOutput()
 

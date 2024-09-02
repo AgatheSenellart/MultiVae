@@ -329,7 +329,7 @@ class BaseMultiVAE(nn.Module):
         output = self.decode(z, gen_mod)
         n_data = len(z.z) // N
         if not flatten and N > 1:
-            for m in self.encoders:
+            for m in output:
                 output[m] = output[m].reshape(N, n_data, *output[m].shape[1:])
         return output
 
