@@ -30,6 +30,7 @@ class CoherenceEvaluatorConfig(EvaluatorConfig):
         include_recon (bool) : If True, we include the reconstructions in the mean conditional generations
             coherences. Default to False.
         nb_samples_for_joint (int): How many samples to use to compute joint coherence. Default to 10000.
+        nb_samples_for_cross (int): How many generations per sample to use when computing cross coherences. Default to 1.
         give_details_per_class (bool) : Provide accuracy details per class. Default to False.
 
 
@@ -38,4 +39,5 @@ class CoherenceEvaluatorConfig(EvaluatorConfig):
     num_classes: int = 10
     include_recon: bool = False
     nb_samples_for_joint: int = 10000
+    nb_samples_for_cross: int = 1
     give_details_per_class: bool = False

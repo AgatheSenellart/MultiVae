@@ -42,6 +42,7 @@ class CoherenceEvaluator(Evaluator):
         self.clfs = classifiers
         self.include_recon = eval_config.include_recon
         self.nb_samples_for_joint = eval_config.nb_samples_for_joint
+        self.nb_samples_for_cross = eval_config.nb_samples_for_cross
         self.num_classes = eval_config.num_classes
         self.give_details_per_classes = eval_config.give_details_per_class
         assert (self.num_classes is not None, "Please provide the number of classes")
@@ -147,10 +148,14 @@ class CoherenceEvaluator(Evaluator):
 
             batch = set_inputs_to_device(batch, device=self.device)
 
-            output = self.model.predict(batch, list(subset), pred_mods)
+            output = self.model.predict(batch, list(subset), pred_mods, N=self.nb_samples_for_cross, flatten=True)
             for pred_m in pred_mods:
                 preds = self.clfs[pred_m](output[pred_m])
-                acc = accuracies_per_class[pred_m](preds, batch.labels)
+                if self.nb_samples_for_cross > 1 :
+                    labels = torch.stack([batch.labels]*self.nb_samples_for_cross,dim=0).reshape(-1,*batch.labels.shape[1:])
+                else :
+                    labels = batch.labels
+                acc = accuracies_per_class[pred_m](preds, labels)
 
         acc_per_class = {
             f"{subset_name}_to_{m}": accuracies_per_class[m].compute().cpu()
