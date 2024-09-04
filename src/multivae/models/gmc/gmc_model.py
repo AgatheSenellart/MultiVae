@@ -32,7 +32,6 @@ class GMC(Module):
         self.latent_dim = config.embedding_dim
         self.common_dim = config.common_dim
         self.temperature = config.temperature
-        self.use_all_singular_values = config.use_all_singular_values
         self.set_networks(processors)
         self.set_joint_encoder(joint_encoder)
         self.set_shared_encoder(shared_encoder)
@@ -68,18 +67,18 @@ class GMC(Module):
         
         if not isinstance(joint_encoder, BaseJointEncoder):
             raise AttributeError("The joint encoder must be an instance of the ~multivae.models.nn.base_architectures.BaseJointEncoder class.")
-        if not joint_encoder.latent_dim != self.common_dim:
+        if joint_encoder.latent_dim != self.common_dim:
             raise AttributeError("The joint encoder 'latent_dim' attribute doesn't match the model config 'common_dim' attribute. ")
         self.joint_encoder = joint_encoder
         
-    def forward(self, inputs: MultimodalBaseDataset):
+    def forward(self, inputs: MultimodalBaseDataset) -> ModelOutput:
         """Basic training step"""
         
         # Compute all the modalities specific representations
         
         modalities_z = dict()
         
-        for m in inputs:
+        for m in inputs.data:
             
             h = self.networks[m](inputs.data[m]).embedding
             z = self.shared_encoder(h).embedding
@@ -90,9 +89,9 @@ class GMC(Module):
         joint_z = self.shared_encoder(joint_h).embedding
         
         # Compute the loss
-        loss = self.infonce(modalities_z, joint_z)
+        output = ModelOutput(loss = self.infonce(modalities_z, joint_z), metrics = {})
         
-        return loss
+        return output
         
     
     def infonce(self, modalities_z, joint_z):

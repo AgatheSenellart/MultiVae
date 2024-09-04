@@ -204,7 +204,7 @@ class MultipleHeadJointEncoder(BaseJointEncoder):
 
         Args:
             dict_encoders (dict): Contains an instance of BaseEncoder for each modality (key).
-            args (dict): config dictionary. Contains the latent dim.
+            args (BaseAEConfig): config dictionary. Contains the latent dim.
             hidden_dim (int) : Default to 512.
             n_hidden_layers (int) : Default to 2.
     """
@@ -212,7 +212,7 @@ class MultipleHeadJointEncoder(BaseJointEncoder):
     def __init__(
         self,
         dict_encoders: dict,
-        args: dict,
+        args: BaseAEConfig,
         hidden_dim=512,
         n_hidden_layers=2,
         **kwargs,
