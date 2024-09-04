@@ -839,3 +839,8 @@ class BaseMultiVAE(nn.Module):
 
         cnll = {m: torch.logsumexp(torch.stack(cnll[mod]), dim=0) for m in cnll}
         return cnll
+
+    def cuda(self):
+        self.device = "cuda"
+        return super().cuda()
+        

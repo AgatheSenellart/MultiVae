@@ -45,7 +45,7 @@ class CoherenceEvaluator(Evaluator):
         self.nb_samples_for_cross = eval_config.nb_samples_for_cross
         self.num_classes = eval_config.num_classes
         self.give_details_per_classes = eval_config.give_details_per_class
-        assert (self.num_classes is not None, "Please provide the number of classes")
+        assert self.num_classes is not None, "Please provide the number of classes"
         for k in self.clfs:
             self.clfs[k] = self.clfs[k].to(self.device).eval()
 
