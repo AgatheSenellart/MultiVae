@@ -114,22 +114,22 @@ def eval_model(model, output_dir, train_data,test_data, wandb_path, seed):
         vis_module.finish()
         
     # Gaussian Sampler
-    # from multivae.samplers import GaussianMixtureSampler, GaussianMixtureSamplerConfig
+    from multivae.samplers import GaussianMixtureSampler, GaussianMixtureSamplerConfig
 
-    # sampler = GaussianMixtureSampler(model)
-    # sampler.fit(train_data)
-    # config = CoherenceEvaluatorConfig(batch_size=128, wandb_path=wandb_path)
+    sampler = GaussianMixtureSampler(model)
+    sampler.fit(train_data)
+    config = CoherenceEvaluatorConfig(batch_size=128, wandb_path=wandb_path)
 
-    # module_eval = CoherenceEvaluator(model,load_mmnist_classifiers(),test_data,eval_config=config,sampler=sampler)
-    # module_eval.joint_coherence()
-    # module_eval.log_to_wandb()
-    # module_eval.finish()
+    module_eval = CoherenceEvaluator(model,load_mmnist_classifiers(),test_data,eval_config=config,sampler=sampler)
+    module_eval.joint_coherence()
+    module_eval.log_to_wandb()
+    module_eval.finish()
 
-    # if seed == 0:
-    #     vis_module = Visualization(model, test_data,eval_config=vis_config,output = output_dir, sampler=sampler)
-    #     vis_module.eval()
-    #     vis_module.finish()
+    if seed == 0:
+        vis_module = Visualization(model, test_data,eval_config=vis_config,output = output_dir, sampler=sampler)
+        vis_module.eval()
+        vis_module.finish()
         
-def save_to_hf(model, id):
+def save_to_hf(model, args):
     model.push_to_hf_hub(
-        f'asenella/{config_name}_{"_".join(id)}')
+        f'asenella/project_{config_name}_{"_".join(args)}')

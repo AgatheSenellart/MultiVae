@@ -158,6 +158,7 @@ eval_config = CoherenceEvaluatorConfig(
     batch_size=64,
     wandb_path = wandb_cb.run.path ,
     num_classes=10,
+    nb_samples_for_cross=500
     
 )
 
@@ -168,4 +169,4 @@ eval_module = CoherenceEvaluator(model = trainer._best_model,
                                  eval_config = eval_config
                                  )
 
-eval_module.cross_coherences()
+eval_module.eval()

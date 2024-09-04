@@ -4,18 +4,13 @@ from multivae.models import JNF, JNFConfig
 from multivae.trainers import TwoStepsTrainer, TwoStepsTrainerConfig
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--param_file", type=str)
+parser.add_argument("--seed", type=int)
 args = parser.parse_args()
 
-with open(args.param_file, "r") as fp:
-    info = json.load(fp)
-args = argparse.Namespace(**info)
 
 train_data = MMNISTDataset(
     data_path="~/scratch/data",
-    split="train",
-    missing_ratio=args.missing_ratio,
-    keep_incomplete=args.keep_incomplete,
+    split="train"
 )
 
 test_data = MMNISTDataset(data_path="~/scratch/data", split="test")
@@ -26,22 +21,25 @@ train_data, eval_data = random_split(
 
 model_config = JNFConfig(
     **base_config,
-    warmup=200,
-    latent_dim=128
+    warmup=100,
+    latent_dim=128,
+    two_steps_training=True,
+    beta=1.
 )
 
 encoders = {m : Enc(ndim_w=0,ndim_u=model_config.latent_dim) for m in modalities}
 decoders = {m : Dec(ndim=model_config.latent_dim) for m in modalities}
 
+# MAYBE : try with a different joint encoder model ?
 
 model = JNF(model_config, encoders=encoders, decoders=decoders)
 
 trainer_config = TwoStepsTrainerConfig(
     **base_training_config,
     seed=args.seed,
-    output_dir=f"compare_on_mmnist/{config_name}/{model.model_name}/seed_{args.seed}/missing_ratio_{args.missing_ratio}/",
+    output_dir=f"{config_name}/{model.model_name}/seed_{args.seed}",
 )
-trainer_config.num_epochs = 500
+trainer_config.num_epochs = 200
 
 # Set up callbacks
 wandb_cb = WandbCallback()
@@ -60,7 +58,10 @@ trainer = TwoStepsTrainer(
 trainer.train()
 
 model = trainer._best_model
-save_model(model, args)
+
+id = [model.model_name,f'seed_{args.seed}']
+
+save_to_hf(model, id) 
 ##################################################################################################################################
 # validate the model #############################################################################################################
 ##################################################################################################################################
