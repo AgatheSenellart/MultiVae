@@ -138,17 +138,16 @@ class BaseMultiVAE(nn.Module):
                 )
 
         self.use_likelihood_rescaling = model_config.uses_likelihood_rescaling
-        if self.use_likelihood_rescaling:
-            if self.model_config.rescale_factors is not None:
+        if self.model_config.rescale_factors is not None:
                 self.rescale_factors = model_config.rescale_factors
-            elif self.input_dims is None:
-                raise AttributeError(
+        elif model_config.uses_likelihood_rescaling and self.input_dims is None:
+            raise AttributeError(
                     " inputs_dim = None but (use_likelihood_rescaling = True"
                     " in model_config)"
                     " To compute likelihood rescalings we need the input dimensions."
                     " Please provide a valid dictionary for input_dims."
                 )
-            else:
+        elif model_config.uses_likelihood_rescaling and self.input_dims is not None:
                 max_dim = max(*[np.prod(self.input_dims[k]) for k in self.input_dims])
                 self.rescale_factors = {
                     k: max_dim / np.prod(self.input_dims[k]) for k in self.input_dims
@@ -330,7 +329,7 @@ class BaseMultiVAE(nn.Module):
         output = self.decode(z, gen_mod)
         n_data = len(z.z) // N
         if not flatten and N > 1:
-            for m in self.encoders:
+            for m in output:
                 output[m] = output[m].reshape(N, n_data, *output[m].shape[1:])
         return output
 
@@ -840,3 +839,8 @@ class BaseMultiVAE(nn.Module):
 
         cnll = {m: torch.logsumexp(torch.stack(cnll[mod]), dim=0) for m in cnll}
         return cnll
+
+    def cuda(self):
+        self.device = "cuda"
+        return super().cuda()
+        

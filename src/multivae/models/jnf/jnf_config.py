@@ -17,16 +17,20 @@ class JNFConfig(BaseJointModelConfig):
             The inputs_dim must be provided to compute the likelihoods rescalings. It is used in a number of models
             which is why we include it here. Default to False.
         decoders_dist (Dict[str, Union[function, str]]). The decoder distributions to use per modality.
-            Per modality, you can provide a string in ['normal','bernoulli','laplace']. If None is provided,
-            a normal distribution is used for each modality.
+            Per modality, you can provide a string in ['normal','bernoulli','laplace']. For Bernoulli distribution,
+            the decoder is expected to output **logits**. If None is provided, a normal distribution is used for each modality.
         decoder_dist_params (Dict[str,dict]) : Parameters for the output decoder distributions, for
             computing the log-probability.
             For instance, with normal or laplace distribution, you can pass the scale in this dictionary.
             ex :  {'mod1' : {scale : 0.75}}
         warmup (int): The number of warmup epochs during training. Default to 10.
+        two_steps_training (bool): Whether to use a two-steps training or a one step training with annealing. Default to True.
+        alpha (float): If using a one step training, the alpha parameter for the LJM term. Default to 0.1.
         beta (float): Weighing factor for the regularization of the joint VAE. Default to 1.
 
     """
 
     warmup: int = 10
+    two_steps_training: bool = True
+    alpha: float = 0.1
     beta: float = 1

@@ -69,12 +69,13 @@ class TestBaseMetric:
 
 
 class TestCoherences:
-    @pytest.fixture(params=[[True, 21, False], [False, 3, False], [False, 3, True]])
+    @pytest.fixture(params=[[True, 21, 1, False], [False, 3, 15, False], [False, 3, 34, True]])
     def config_params(self, request):
         return {
             "include_recon": request.param[0],
             "nb_samples_for_joint": request.param[1],
-            "details_per_class": request.param[2],
+            "nb_samples_for_cross" : request.param[2],
+            "details_per_class": request.param[3],
         }
 
     @pytest.fixture

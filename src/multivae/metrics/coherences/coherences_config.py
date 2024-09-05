@@ -14,7 +14,7 @@ class CoherenceEvaluatorConfig(EvaluatorConfig):
         wandb_path (str) : The user can provide the path of the wandb run with a
             format 'entity/projet_name/run_id' where the metrics should be logged.
             For an existing run (the training run), the info can be found in the training dir (in wandb_info.json)
-            at the end of training (if wandb was used) or on the hugging_face webpage of the run.
+            at the end of training (if wandb was used) or on the WandB webpage of the run.
             Otherwise the user can create a new wandb run and get the path with :
 
                 .. code-block:: python
@@ -30,6 +30,7 @@ class CoherenceEvaluatorConfig(EvaluatorConfig):
         include_recon (bool) : If True, we include the reconstructions in the mean conditional generations
             coherences. Default to False.
         nb_samples_for_joint (int): How many samples to use to compute joint coherence. Default to 10000.
+        nb_samples_for_cross (int): How many generations per sample to use when computing cross coherences. Default to 1.
         give_details_per_class (bool) : Provide accuracy details per class. Default to False.
 
 
@@ -38,4 +39,5 @@ class CoherenceEvaluatorConfig(EvaluatorConfig):
     num_classes: int = 10
     include_recon: bool = False
     nb_samples_for_joint: int = 10000
+    nb_samples_for_cross: int = 1
     give_details_per_class: bool = False
