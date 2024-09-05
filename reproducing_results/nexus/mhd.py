@@ -21,6 +21,15 @@ from image_architectures import *
 from trajectory_architectures import *
 from sound_architectures import *
 from symbol_architectures import *
+import argparse
+from multivae.metrics import CoherenceEvaluator, CoherenceEvaluatorConfig
+from classifiers import *
+import os
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--seed", default=8)
+args = parser.parse_args()
 
 # import the datasets
 train_set = MHD('/home/asenella/scratch/data/MHD', split='train', modalities=['audio', 'trajectory', 'image', 'label'])
@@ -44,8 +53,8 @@ model_config = NexusConfig(
     rescale_factors=dict(image = 1.0, trajectory=50.0, audio = 1.0, label=50.0),
     top_beta=1.0,
     warmup = 20,
-    dropout_rate=0.,
-    decoders_dist=dict(image = 'normal', audio='normal',trajectory = 'normal',label='bernoulli'),
+    dropout_rate=0.2,
+    decoders_dist=dict(image = 'normal', audio='normal',trajectory = 'normal',label='categorical'),
     adapt_top_decoder_variance=['audio'],
     )
 
@@ -91,6 +100,8 @@ training_config = BaseTrainerConfig(
     learning_rate=1e-3,
     steps_predict=5,
     optimizer_cls="Adam",
+    seed=args.seed, 
+    output_dir=f'reproduce_nexus/seed_{args.seed}'
 )
 
 # Set up callbacks
@@ -109,6 +120,48 @@ trainer = BaseTrainer(
 
 trainer.train()
 
-# trainer._best_model.push_to_hf_hub(
-#     f"asenella/reproduce_nexus"
-# )
+trainer._best_model.push_to_hf_hub(
+    f"asenella/reproduce_nexus_seed_{args.seed}"
+)
+
+###### Validate ########
+
+
+####  Load classifiers
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+
+classifiers_path = '/home/asenella/scratch/data/MHD/classifiers'
+
+classifiers = dict(
+    image = Image_Classifier(),
+    audio = Sound_Classifier(),
+    trajectory = Trajectory_Classifier(), 
+    label = Label_Classifier()
+)
+
+state_dicts = dict(
+    image = torch.load(os.path.join(classifiers_path, 'best_image_classifier_model.pth.tar'), map_location=device)['state_dict'],
+    audio = torch.load(os.path.join(classifiers_path, 'best_sound_classifier_model.pth.tar'), map_location=device)['state_dict'],
+    trajectory = torch.load(os.path.join(classifiers_path, 'best_trajectory_classifier_model.pth.tar'), map_location=device)['state_dict'],
+)
+
+for s in state_dicts:
+    classifiers[s].load_state_dict(state_dicts[s])
+    classifiers[s].eval()
+
+
+eval_config = CoherenceEvaluatorConfig(
+    batch_size=64,
+    wandb_path="multimodal_vaes/reproducing_nexus/yokuodyw",
+    num_classes=10
+)
+
+eval_module = CoherenceEvaluator(model = trainer._best_model, 
+                                 classifiers= classifiers,
+                                 test_dataset=test_set,
+                                 output=trainer.training_dir,
+                                 eval_config = eval_config
+                                 )
+
+eval_module.cross_coherences()
