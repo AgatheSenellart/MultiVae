@@ -4,10 +4,11 @@ from multivae.data.datasets import MultimodalBaseDataset
 import torch 
 import numpy as np
 from multivae.models.nn.default_architectures import BaseDictEncoders, MultipleHeadJointEncoder, Encoder_VAE_MLP, ModelOutput, BaseAEConfig
+import os
+
 
 class Test:
-    
-    
+
     
     @pytest.fixture(params=[2,3])
     def n_modalities(self, request):
@@ -24,7 +25,8 @@ class Test:
         
         data = dict()
         for m in input_dims:
-            data[m] = torch.from_numpy(np.random.randn(10,*input_dims[m])).float()
+            data[m] = torch.from_numpy(np.random.randn(100,*input_dims[m])).float()
+
             
         return MultimodalBaseDataset(data=data)
     
@@ -62,7 +64,7 @@ class Test:
     def shared_encoder(self, model_config):
         
         
-        return Encoder_VAE_MLP(BaseAEConfig(latent_dim = model_config.embedding_dim, input_dim = (model_config.common_dim,)))
+        return Encoder_VAE_MLP(BaseAEConfig(latent_dim = model_config.latent_dim, input_dim = (model_config.common_dim,)))
     
     @pytest.fixture
     def model(self, model_config,encoders, joint_encoder, shared_encoder):
@@ -79,7 +81,21 @@ class Test:
         
         assert isinstance(loss, torch.Tensor)
         
-        assert 
+    
+    def test_encode(self, model, dataset):
+        
+        for cond_mod in ['all','m1']:
+            output = model.encode(dataset,cond_mod = cond_mod)
+            assert isinstance(output, ModelOutput)
+            embedding = output.embedding
+            assert isinstance(embedding, torch.Tensor)
+            assert embedding.shape == (len(dataset),model.latent_dim)
+            
+        
+        
+        
+
+        
 
         
         

@@ -2,7 +2,7 @@ from typing import Dict, Union
 import torch
 from pythae.models.base.base_utils import ModelOutput
 from pythae.models.nn import BaseEncoder
-from multivae.models.nn import BaseJointEncoder
+from multivae.models.base import BaseJointEncoder
 from torch.nn import Module, ModuleDict
 
 from ...data.datasets import MultimodalBaseDataset
@@ -27,9 +27,10 @@ class GMC(Module):
         
         super().__init__()
 
-        self.config = config
+        self.model_config = config
+        self.model_name = 'GMC'
         self.n_modalities = config.n_modalities
-        self.latent_dim = config.embedding_dim
+        self.latent_dim = config.latent_dim
         self.common_dim = config.common_dim
         self.temperature = config.temperature
         self.set_networks(processors)
@@ -71,7 +72,7 @@ class GMC(Module):
             raise AttributeError("The joint encoder 'latent_dim' attribute doesn't match the model config 'common_dim' attribute. ")
         self.joint_encoder = joint_encoder
         
-    def forward(self, inputs: MultimodalBaseDataset) -> ModelOutput:
+    def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
         """Basic training step"""
         
         # Compute all the modalities specific representations
@@ -79,7 +80,7 @@ class GMC(Module):
         modalities_z = dict()
         
         for m in inputs.data:
-            
+            print(m)
             h = self.networks[m](inputs.data[m]).embedding
             z = self.shared_encoder(h).embedding
             modalities_z[m] = z
@@ -156,13 +157,13 @@ class GMC(Module):
         
         # joint encoding
         if cond_mod == 'all':
-            z = self.shared_encoder(self.joint_encoder(inputs.data).embedding)
+            h = self.joint_encoder(inputs.data).embedding
+            output = self.shared_encoder(h)
         # modality encoding
         elif cond_mod in self.networks:
-            z = self.shared_encoder(self.networks[cond_mod](inputs.data).embedding)
+            output = self.shared_encoder(self.networks[cond_mod](inputs.data[cond_mod]).embedding)
         else :
             raise AttributeError("cond_mod must be : either a modality's name or equal to 'all' (for joint representation). ")
         
-        return ModelOutput(embedding = z)
+        return output
             
-                
