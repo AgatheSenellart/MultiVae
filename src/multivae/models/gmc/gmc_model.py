@@ -80,7 +80,6 @@ class GMC(Module):
         modalities_z = dict()
         
         for m in inputs.data:
-            print(m)
             h = self.networks[m](inputs.data[m]).embedding
             z = self.shared_encoder(h).embedding
             modalities_z[m] = z
