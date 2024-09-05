@@ -109,6 +109,6 @@ trainer = BaseTrainer(
 
 trainer.train()
 
-trainer._best_model.push_to_hf_hub(
-    f"asenella/reproduce_nexus"
-)
+# trainer._best_model.push_to_hf_hub(
+#     f"asenella/reproduce_nexus"
+# )
