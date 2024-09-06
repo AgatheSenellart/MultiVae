@@ -5,6 +5,7 @@ import torch
 import numpy as np
 from multivae.models.nn.default_architectures import BaseDictEncoders, MultipleHeadJointEncoder, Encoder_VAE_MLP, ModelOutput, BaseAEConfig
 import os
+from copy import deepcopy
 
 
 class Test:
@@ -69,7 +70,7 @@ class Test:
     @pytest.fixture
     def model(self, model_config,encoders, joint_encoder, shared_encoder):
         
-        return GMC(config=model_config, processors=encoders, joint_encoder=joint_encoder, shared_encoder=shared_encoder)
+        return GMC(model_config=model_config, processors=encoders, joint_encoder=joint_encoder, shared_encoder=shared_encoder)
     
     
     def test_forward(self, model, dataset):
@@ -94,7 +95,39 @@ class Test:
         
         
         
-
+    def test_save_load(self, model, dataset, tmpdir):
+        
+        # perform one step optimization
+        optimizer = torch.optim.Adam(model.parameters())
+    
+        optimizer.zero_grad()
+        
+        loss = model(dataset).loss
+        
+        loss.backward()
+        
+        optimizer.step()
+        
+        tmpdir.mkdir("dummy_folder")
+        dir_path = os.path.join(tmpdir, "dummy_folder")
+        
+        model_before_save = deepcopy(model)
+        
+        model.save(dir_path)
+        
+        model_after_save = GMC.load_from_folder(dir_path)
+        
+        assert all(
+            [
+                torch.equal(
+                    model_after_save.state_dict()[key].cpu(), model_before_save.state_dict()[key].cpu()
+                )
+                for key in model.state_dict().keys()
+            ]
+        )
+        
+        
+        
         
 
         

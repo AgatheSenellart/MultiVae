@@ -71,6 +71,11 @@ class AutoConfig(BaseConfig):
             from ..nexus import NexusConfig
 
             model_config = NexusConfig.from_json_file(json_path)
+            
+        elif config_name == "GMCConfig":
+            from ..gmc import GMCConfig
+
+            model_config = GMCConfig.from_json_file(json_path)
 
         else:
             raise NameError(

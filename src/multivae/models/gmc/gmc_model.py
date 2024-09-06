@@ -11,7 +11,7 @@ from .gmc_config import GMCConfig
 from multivae.models.base import BaseModel
 
 class GMC(BaseModel):
-    def __init__(self, config: GMCConfig, processors: Dict[str, BaseEncoder], joint_encoder : BaseJointEncoder, shared_encoder : BaseEncoder) -> None:
+    def __init__(self, model_config: GMCConfig, processors: Dict[str, BaseEncoder], joint_encoder : BaseJointEncoder, shared_encoder : BaseEncoder) -> None:
         # """
         # Implements the Geometric Multimodal Contrastive Learning from :
         # https://arxiv.org/abs/2202.03390
@@ -26,38 +26,42 @@ class GMC(BaseModel):
         #     shared_encoder (BaseEncoder) : The shared projection head. 
         # """
         
-        super().__init__()
+        super().__init__(model_config)
 
-        self.model_config = config
+        
         self.model_name = 'GMC'
-        self.n_modalities = config.n_modalities
-        self.latent_dim = config.latent_dim
-        self.common_dim = config.common_dim
-        self.temperature = config.temperature
-        self.set_networks(processors)
+        self.n_modalities = model_config.n_modalities
+        self.latent_dim = model_config.latent_dim
+        self.common_dim = model_config.common_dim
+        self.temperature = model_config.temperature
+        self.set_processors(processors)
         self.set_joint_encoder(joint_encoder)
         self.set_shared_encoder(shared_encoder)
         
-        self.model_config.custom_architectures.append("processors")
+        self.model_config.custom_architectures.extend([
+            "processors", 
+            "joint_encoder",
+            "shared_encoder"
+        ])
 
 
-    def set_processors(self, networks):
+    def set_processors(self, processors):
         self.processors = ModuleDict()
         assert (
-            len(networks) == self.n_modalities
+            len(processors) == self.n_modalities
         ), "The number of provided processors doesn't match the number of modalities."
 
-        for m in networks:
-            if not isinstance(networks[m], BaseEncoder):
+        for m in processors:
+            if not isinstance(processors[m], BaseEncoder):
                 raise AttributeError(
                     "The GMC processors must be instances of pythae BaseEncoder class."
                 )
-            if networks[m].latent_dim != self.common_dim:
+            if processors[m].latent_dim != self.common_dim:
                 raise AttributeError(
                     f"One of the GMC processor network (modality : {m}) doesn't have the same common dim as the model"
-                    f" itself. ({networks[m].latent_dim} is different {self.common_dim})"
+                    f" itself. ({processors[m].latent_dim} is different {self.common_dim})"
                 )
-            self.processors[m] = networks[m]
+            self.processors[m] = processors[m]
             
     def set_shared_encoder(self, shared_encoder):
         if not isinstance(shared_encoder, BaseEncoder):
@@ -83,7 +87,7 @@ class GMC(BaseModel):
         modalities_z = dict()
         
         for m in inputs.data:
-            h = self.networks[m](inputs.data[m]).embedding
+            h = self.processors[m](inputs.data[m]).embedding
             z = self.shared_encoder(h).embedding
             modalities_z[m] = z
         
@@ -162,8 +166,8 @@ class GMC(BaseModel):
             h = self.joint_encoder(inputs.data).embedding
             output = self.shared_encoder(h)
         # modality encoding
-        elif cond_mod in self.networks:
-            output = self.shared_encoder(self.networks[cond_mod](inputs.data[cond_mod]).embedding)
+        elif cond_mod in self.processors:
+            output = self.shared_encoder(self.processors[cond_mod](inputs.data[cond_mod]).embedding)
         else :
             raise AttributeError("cond_mod must be : either a modality's name or equal to 'all' (for joint representation). ")
         

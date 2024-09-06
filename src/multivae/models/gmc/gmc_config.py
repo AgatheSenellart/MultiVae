@@ -1,10 +1,10 @@
 from pydantic.dataclasses import dataclass
 from dataclasses import field
 from typing import Dict
-
+from pythae.config import BaseConfig
 
 @dataclass
-class GMCConfig:
+class GMCConfig(BaseConfig):
     
     n_modalities: int = 2
     input_dims : Dict[str,tuple] = None
