@@ -41,9 +41,12 @@ class MultimodalBaseDataset(Dataset):
         """
         # Select sample
         X = {modality: self.data[modality][index] for modality in self.data}
-        y = self.labels[index] if self.labels is not None else None
-
-        return DatasetOutput(data=X, labels=y)
+        
+        if self.labels is not None: 
+            y = self.labels[index] 
+            return DatasetOutput(data=X, labels=y)
+        else :
+            return DatasetOutput(data = X)
 
 
 class IncompleteDataset(MultimodalBaseDataset):
