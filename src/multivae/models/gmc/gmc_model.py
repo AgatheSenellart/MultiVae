@@ -7,22 +7,26 @@ from torch.nn import Module, ModuleDict
 from ...data.datasets import MultimodalBaseDataset
 from .gmc_config import GMCConfig
 
+from multivae.models.base import BaseModel
 
-class GMC(Module):
+
+class GMC(BaseModel):
     def __init__(self, config: GMCConfig, processors: Dict[str, BaseEncoder], shared_encoder : BaseEncoder) -> None:
         super().__init__()
 
-        self.config = config
+        self.model_config = config
         self.n_modalities = config.n_modalities
         self.latent_dim = config.embedding_dim
         self.common_dim = config.common_dim
         self.use_all_singular_values = config.use_all_singular_values
-        self.set_networks(processors)
+        self.set_processors(processors)
         self.set_shared_encoder(shared_encoder)
+        
+        self.model_config.custom_architectures.append("processors")
 
 
-    def set_networks(self, networks):
-        self.networks = ModuleDict()
+    def set_processors(self, networks):
+        self.processors = ModuleDict()
         assert (
             len(networks) == self.n_modalities + 1
         ), "The number of provided processors doesn't match the number of modalities."
@@ -40,7 +44,7 @@ class GMC(Module):
                     f"One of the GMC processor network (modality : {m}) doesn't have the same common dim as the model"
                     f" itself. ({networks[m].latent_dim} is different {self.common_dim})"
                 )
-            self.networks[m] = networks[m]
+            self.processors[m] = networks[m]
             
     def set_shared_encoder(self, shared_encoder):
         if not isinstance(shared_encoder, BaseEncoder):
@@ -66,3 +70,6 @@ class GMC(Module):
         # Compute the joint representation
         
         joint_z = self.networks['joint'](inputs)
+        
+        
+    

@@ -2,7 +2,7 @@ import logging
 from typing import List, Optional
 
 from multivae.data.datasets.base import MultimodalBaseDataset
-from multivae.models.base.base_model import BaseMultiVAE
+from multimodal_vaes.src.multivae.models.base.base_ae_model import BaseMultiVAE
 from multivae.trainers.base.callbacks import TrainingCallback
 
 from ..base import BaseTrainer

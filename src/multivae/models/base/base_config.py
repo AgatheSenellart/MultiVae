@@ -4,6 +4,8 @@ from typing import Dict, Literal, Tuple, Union
 from pydantic.dataclasses import dataclass
 from pythae.config import BaseConfig
 
+    
+
 
 @dataclass
 class BaseMultiVAEConfig(BaseConfig):
