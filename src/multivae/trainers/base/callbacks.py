@@ -384,8 +384,6 @@ class WandbCallback(TrainingCallback):  # pragma: no cover
     def on_prediction_step(self, training_config: BaseTrainerConfig, **kwargs):
         kwargs.pop("global_step", None)
 
-        column_names = ["images_id", "truth", "reconstruction", "normal_generation"]
-
         reconstructions = kwargs.pop("reconstructions", None)
 
         for cond_mod in reconstructions:

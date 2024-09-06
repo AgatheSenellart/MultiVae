@@ -18,7 +18,7 @@ from torchvision.utils import make_grid
 from ...data import MultimodalBaseDataset
 from ...data.datasets.utils import adapt_shape
 from ...data.utils import get_batch_size, set_inputs_to_device
-from ...models import BaseMultiVAE
+from ...models import BaseMultiVAE, BaseModel
 from .base_trainer_config import BaseTrainerConfig
 from .callbacks import (
     CallbackHandler,
@@ -40,7 +40,7 @@ class BaseTrainer:
     """Base class to perform model training.
 
     Args:
-        model (BaseMultiVAE): A instance of :class:`~multivae.models.BaseMultiVAE` to train.
+        model (BaseModel): A instance of :class:`~multivae.models.BaseMultiVAE` to train.
 
         train_dataset (MultimodalBaseDataset): The training dataset of type
             :class:`~multivae.data.datasets.MultimodalBaseDataset`
@@ -61,7 +61,7 @@ class BaseTrainer:
 
     def __init__(
         self,
-        model: BaseMultiVAE,
+        model: BaseModel,
         train_dataset: MultimodalBaseDataset,
         eval_dataset: Optional[MultimodalBaseDataset] = None,
         training_config: Optional[BaseTrainerConfig] = None,
@@ -521,7 +521,8 @@ class BaseTrainer:
                 best_model = deepcopy(self.model)
                 self._best_model = best_model
 
-            if (
+            # For BaseMultiVae models, compute reconstruction
+            if (isinstance(self.model,BaseMultiVAE) and
                 self.training_config.steps_predict is not None
                 and (epoch % self.training_config.steps_predict == 0 or epoch == 1)
                 and self.is_main_process
@@ -694,7 +695,7 @@ class BaseTrainer:
 
         return epoch_loss, epoch_model_metrics
 
-    def save_model(self, model: BaseMultiVAE, dir_path: str):
+    def save_model(self, model: BaseModel, dir_path: str):
         """This method saves the final model along with the config files
 
         Args:
@@ -717,7 +718,7 @@ class BaseTrainer:
 
         self.callback_handler.on_save(self.training_config, dir_path=dir_path)
 
-    def save_checkpoint(self, model: BaseMultiVAE, dir_path, epoch: int):
+    def save_checkpoint(self, model: BaseModel, dir_path, epoch: int):
         """Saves a checkpoint alowing to restart training from here
 
         Args:
@@ -767,6 +768,9 @@ class BaseTrainer:
         )
 
     def predict(self, model: BaseMultiVAE, epoch: int, n_data=8):
+        
+        '''For BaseMultiVaE models, compute self and cross reconstructions during training.'''
+        
         model.eval()
 
         if self.eval_dataset is not None:
@@ -776,8 +780,6 @@ class BaseTrainer:
             inputs = next(iter(DataLoader(self.train_dataset, batch_size=n_data)))
             inputs = set_inputs_to_device(inputs, self.device)
 
-        # recon_dir = self.training_dir + '/reconstructions/'
-        # os.makedirs(recon_dir,exist_ok=True)
         all_recons = dict()
         for mod in inputs.data:
             recon = model.predict(

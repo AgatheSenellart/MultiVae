@@ -86,6 +86,11 @@ class AutoModel(nn.Module):
             from ..nexus import Nexus
 
             model = Nexus.load_from_folder(dir_path)
+        
+        elif model_name == "GMCConfig":
+            from ..gmc import GMC
+
+            model = GMC.load_from_folder(dir_path)
 
         else:
             raise NameError(
@@ -183,7 +188,7 @@ class AutoModel(nn.Module):
             from ..nexus import Nexus
 
             model = Nexus.load_from_hf_hub(hf_hub_path, allow_pickle)
-
+        
         else:
             raise NameError(
                 "Cannot reload automatically the model... "
