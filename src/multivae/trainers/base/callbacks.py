@@ -11,7 +11,7 @@ from typing import Literal
 import numpy as np
 from tqdm.auto import tqdm
 
-from ...models import BaseMultiVAEConfig
+from pythae.models.base.base_config import BaseConfig
 from .base_trainer_config import BaseTrainerConfig
 
 logger = logging.getLogger(__name__)
@@ -319,7 +319,7 @@ class WandbCallback(TrainingCallback):  # pragma: no cover
     def setup(
         self,
         training_config: BaseTrainerConfig,
-        model_config: BaseMultiVAEConfig = None,
+        model_config: BaseConfig = None,
         project_name: str = "multivae_experiment",
         entity_name: str = None,
         run_id: str = None,
