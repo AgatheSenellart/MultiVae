@@ -1,12 +1,11 @@
 from multivae.models.gmc import GMC, GMCConfig
 from multivae.data.datasets import MHD
 from architectures import *
-from torch.optim import Adam
-from tqdm import tqdm
-import wandb
+from multivae.trainers import BaseTrainer, BaseTrainerConfig
+from multivae.trainers.base.callbacks import WandbCallback
 
 
-dataset = MHD('/Users/agathe/dev/data/MHD')
+dataset = MHD('/home/asenella/scratch/data/MHD')
 
 model_config = GMCConfig(
     n_modalities=4,
@@ -17,7 +16,7 @@ model_config = GMCConfig(
 )
 
 model = GMC(
-    config=model_config,
+    model_config=model_config,
     processors = dict(image = MHDImageProcessor(model_config.common_dim),
                       audio = MHDSoundProcessor(model_config.common_dim),
                       trajectory= MHDTrajectoryProcessor(common_dim=model_config.common_dim),
@@ -27,31 +26,23 @@ model = GMC(
     shared_encoder=MHDCommonEncoder(model_config.common_dim,model_config.latent_dim)
 )
 
+training_config = BaseTrainerConfig(
+    '/home/asenella/experiments/reproduce_gmc',
+    per_device_train_batch_size=64,
+    num_epochs=100,
+    optimizer_cls='Adam',
+    learning_rate=1e-3,
+)
 
-from torch.utils.data import DataLoader
+wandb = WandbCallback()
+wandb.setup(training_config,model_config,project_name='reproduce_gmc')
 
-dl = DataLoader(dataset,64)
+trainer = BaseTrainer(
+    training_config=training_config,
+    model=model,
+    train_dataset=dataset,
+    callbacks=[wandb]
+    
+)
 
-optimizer = Adam(model.parameters(), lr=1e-3)
-
-for epoch in range(100):
-    epoch_loss = 0
-    for i, batch in enumerate(tqdm(dl)) :
-        optimizer.zero_grad()
-        loss = model(batch).loss
-        loss.backward()
-        optimizer.step()
-        epoch_loss += loss
-    print("loss : ", epoch_loss)
-
-# Save weights
-
-save_dir = '/home/asenella/scratch/'
-
-for m in model.networks:
-    torch.save(model.networks[m].state_dict(),save_dir + 'networks')
-
-
-
-
-
+trainer.train() 
