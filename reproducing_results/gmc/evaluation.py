@@ -46,6 +46,7 @@ optimizer = Adam(classifier.parameters(), lr=1e-3)
 loss = CrossEntropyLoss()
 for epoch in range(50) :
     epoch_loss = 0
+    epoch_accuracy = 0
     for i, batch in enumerate(tqdm(data_loader)) :
         batch.data = {m : batch.data[m].to(device) for m in batch.data}
         optimizer.zero_grad()
@@ -54,12 +55,17 @@ for epoch in range(50) :
         
         probs = classifier(embedding)
         
+        preds = torch.max(probs, dim=1)[1]
+    
+        epoch_accuracy += (preds == batch.labels).sum()
+        
         output = loss(probs,labels)
         output.backward()
         optimizer.step()
         
         epoch_loss +=  output
     print('epoch_loss : ',epoch_loss)
+    print('epoch_accuracy : ',epoch_accuracy/len(train_set))
 
 # Then compute accuracy on test_set
 
@@ -78,7 +84,6 @@ for i, batch in enumerate(tqdm(test_loader)):
     
     accuracy = accuracy+accurate
     
-    print('batch_accuracy', accurate/len(preds))
     
 accuracy = accuracy/len(test_set)
 
