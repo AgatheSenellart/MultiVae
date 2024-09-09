@@ -1,21 +1,17 @@
 from config2 import *
+import numpy as np
 
-from multivae.models import JNF, JNFConfig
-from multivae.trainers import TwoStepsTrainer, TwoStepsTrainerConfig
+from multivae.models import MMVAEPlus, MMVAEPlusConfig
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--param_file", type=str)
+parser.add_argument("--seed", type=int)
+parser.add_argument("--K", type=int, default=1)
 args = parser.parse_args()
 
-with open(args.param_file, "r") as fp:
-    info = json.load(fp)
-args = argparse.Namespace(**info)
 
 train_data = MMNISTDataset(
     data_path="~/scratch/data",
-    split="train",
-    missing_ratio=args.missing_ratio,
-    keep_incomplete=args.keep_incomplete,
+    split="train"
 )
 
 test_data = MMNISTDataset(data_path="~/scratch/data", split="test")
@@ -24,24 +20,46 @@ train_data, eval_data = random_split(
     train_data, [0.9, 0.1], generator=torch.Generator().manual_seed(args.seed)
 )
 
-model_config = JNFConfig(
+model_config = MMVAEPlusConfig(
     **base_config,
-    warmup=200,
-    latent_dim=128
+    K=args.K,
+    prior_and_posterior_dist='laplace_with_softmax',
+    learn_shared_prior=False,
+    learn_modality_prior=True,
+    beta=2.5,
+    modalities_specific_dim=32,
+    reconstruction_option="joint_prior",
 )
 
-encoders = {m : Enc(ndim_w=0,ndim_u=model_config.latent_dim) for m in modalities}
-decoders = {m : Dec(ndim=model_config.latent_dim) for m in modalities}
+
+model_config.latent_dim = 32
 
 
-model = JNF(model_config, encoders=encoders, decoders=decoders)
 
-trainer_config = TwoStepsTrainerConfig(
+encoders = {
+    m: Enc(ndim_w = model_config.modalities_specific_dim, ndim_u=model_config.latent_dim)
+    for m in modalities
+}
+decoders = {
+    m: Dec(ndim = model_config.latent_dim + model_config.modalities_specific_dim)
+    for m in modalities
+}
+
+model = MMVAEPlus(model_config, encoders=encoders, decoders=decoders)
+
+trainer_config = BaseTrainerConfig(
     **base_training_config,
     seed=args.seed,
-    output_dir=f"compare_on_mmnist/{config_name}/{model.model_name}/seed_{args.seed}/missing_ratio_{args.missing_ratio}/",
+    output_dir=f"{config_name}/{model.model_name}/K_{model.K}/seed_{args.seed}",
+    optimizer_params=dict(amsgrad=True),
+
 )
-trainer_config.num_epochs = 500
+trainer_config.per_device_train_batch_size = 32
+trainer_config.per_device_eval_batch_size = 32
+
+trainer_config.num_epochs = 150 if model.K==1 else 50 # enough for this model to reach convergence
+
+
 
 # Set up callbacks
 wandb_cb = WandbCallback()
@@ -50,7 +68,7 @@ wandb_cb.run.config.update(args.__dict__)
 
 callbacks = [TrainingCallback(), ProgressBarCallback(), wandb_cb]
 
-trainer = TwoStepsTrainer(
+trainer = BaseTrainer(
     model,
     train_dataset=train_data,
     eval_dataset=eval_data,
@@ -60,7 +78,10 @@ trainer = TwoStepsTrainer(
 trainer.train()
 
 model = trainer._best_model
-save_model(model, args)
+
+args_list = [model.model_name,f'K_{model.K}',f'seed_{args.seed}']
+
+save_to_hf(model, args_list)
 ##################################################################################################################################
 # validate the model #############################################################################################################
 ##################################################################################################################################

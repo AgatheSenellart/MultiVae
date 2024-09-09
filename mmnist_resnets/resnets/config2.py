@@ -51,12 +51,10 @@ base_training_config = dict(
     per_device_train_batch_size=128,
     num_epochs=500,
     optimizer_cls="Adam",
-    optimizer_params={},
     steps_predict=5,
     scheduler_cls="ReduceLROnPlateau",
     scheduler_params={"patience": 30},
 )
-
 
 
 def load_mmnist_classifiers(data_path="/home/asenella/scratch/data/clf", device="cuda"):
@@ -132,6 +130,6 @@ def eval_model(model, output_dir, train_data,test_data, wandb_path, seed):
         vis_module.eval()
         vis_module.finish()
         
-def save_to_hf(model, id):
+def save_to_hf(model, args):
     model.push_to_hf_hub(
-        f'asenella/{config_name}_{"_".join(id)}')
+        f'asenella/project_{config_name}_{"_".join(args)}')
