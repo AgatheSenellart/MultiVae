@@ -52,12 +52,18 @@ for epoch in range(50) :
         optimizer.zero_grad()
         labels = batch.labels.to(device)
         embedding = model.encode(batch, cond_mod=modality).embedding
-        
+        # print(embedding.shape)
         probs = classifier(embedding)
         
+        # print(probs.shape)
+        
         preds = torch.max(probs, dim=1)[1]
+        # print(preds.shape)
+        # print(preds)
+        # print(labels)
+        # 1/0
     
-        epoch_accuracy += (preds == batch.labels).sum()
+        epoch_accuracy += (preds == labels).sum()
         
         output = loss(probs,labels)
         output.backward()
@@ -79,7 +85,7 @@ for i, batch in enumerate(tqdm(test_loader)):
     probs = classifier(embedding)
     
     preds = torch.max(probs, dim=1)[1]
-    labels = labels.to(device)
+    labels = batch.labels.to(device)
     accurate = (preds == labels).sum()
     
     accuracy = accuracy+accurate
