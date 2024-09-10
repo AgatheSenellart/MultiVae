@@ -11,7 +11,6 @@ from multivae.trainers import BaseTrainer, BaseTrainerConfig
 
 
 class Test:
-
     
     @pytest.fixture(params=[2,3])
     def n_modalities(self, request):

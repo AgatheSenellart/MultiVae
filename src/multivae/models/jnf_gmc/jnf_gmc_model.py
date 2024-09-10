@@ -64,13 +64,17 @@ class JNFGMC(BaseJointModel):
         flows: Dict[str, BaseNF] = None,
         **kwargs,
     ):
+        
         self.gmc_config = gmc_model.model_config
-        self.gmc_model = gmc_model
-
+        
         model_config.custom_architectures.extend(gmc_model.model_config.custom_architectures)
 
         super().__init__(model_config, encoders, decoders, joint_encoder, **kwargs)
+        self.gmc_model = gmc_model
+        if joint_encoder is None:
+            self.set_joint_encoder(MultipleHeadJointEncoder(self.gmc_model.processors, model_config))
 
+        self.gmc_model = gmc_model
 
         self.beta = model_config.beta
 
@@ -89,12 +93,7 @@ class JNFGMC(BaseJointModel):
             self.nb_epochs_gmc,
             self.nb_epochs_gmc + self.warmup,
         ]
-        
-    
-    def default_joint_encoder(self, model_config):
-        return self.set_joint_encoder(
-                MultipleHeadJointEncoder(self.gmc_model.processors, model_config)
-            )
+
     
     def default_encoders(self, model_config):
         encoders_input_dims = {
