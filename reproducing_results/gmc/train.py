@@ -7,7 +7,7 @@ from torch.utils.data import random_split
 
 dataset = MHD('/home/asenella/scratch/data/MHD')
 
-train_data, val_data = random_split(dataset)
+train_data, val_data = random_split(dataset, [0.9,0.1])
 
 model_config = GMCConfig(
     n_modalities=4,

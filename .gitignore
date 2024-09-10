@@ -1,3 +1,7 @@
 *.pyc
 *.cpython-310.pyc
+*/lightning_logs
+*.yaml
+*csv
+*.ckpt
 
