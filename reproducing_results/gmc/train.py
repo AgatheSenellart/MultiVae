@@ -3,9 +3,11 @@ from multivae.data.datasets import MHD
 from architectures import *
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 from multivae.trainers.base.callbacks import WandbCallback
-
+from torch.utils.data import random_split
 
 dataset = MHD('/home/asenella/scratch/data/MHD')
+
+train_data, val_data = random_split(dataset)
 
 model_config = GMCConfig(
     n_modalities=4,
@@ -40,7 +42,8 @@ wandb.setup(training_config,model_config,project_name='reproduce_gmc')
 trainer = BaseTrainer(
     training_config=training_config,
     model=model,
-    train_dataset=dataset,
+    train_dataset=train_data,
+    eval_dataset=val_data,
     callbacks=[wandb]
     
 )
