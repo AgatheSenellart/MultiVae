@@ -67,7 +67,7 @@ class JNFGMC(BaseJointModel):
         
         self.gmc_config = gmc_model.model_config
         
-        model_config.custom_architectures.extend(gmc_model.model_config.custom_architectures)
+        model_config.custom_architectures.append("gmc_model")
 
         super().__init__(model_config, encoders, decoders, joint_encoder, **kwargs)
         self.gmc_model = gmc_model
@@ -141,7 +141,7 @@ class JNFGMC(BaseJointModel):
     def forward(self, inputs: MultimodalBaseDataset, **kwargs):
         epoch = kwargs.pop("epoch", 1)
 
-        if epoch <= self.nb_epochs_gmc:
+        if epoch < self.nb_epochs_gmc:
             return self.gmc_model(inputs)
         else:
             self._set_torch_no_grad_on_gmc_module()

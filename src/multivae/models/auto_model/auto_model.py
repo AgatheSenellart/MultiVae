@@ -91,6 +91,11 @@ class AutoModel(nn.Module):
             from ..gmc import GMC
 
             model = GMC.load_from_folder(dir_path)
+            
+        elif model_name == "JNFGMCConfig":
+            from ..jnf_gmc import JNFGMC
+
+            model = JNFGMC.load_from_folder(dir_path)
 
         else:
             raise NameError(
@@ -188,6 +193,12 @@ class AutoModel(nn.Module):
             from ..nexus import Nexus
 
             model = Nexus.load_from_hf_hub(hf_hub_path, allow_pickle)
+            
+        elif model_name == "JNFGMCConfig":
+            from ..jnf_gmc import JNFGMC
+
+            model = JNFGMC.load_from_hf_hub(hf_hub_path, allow_pickle)
+        
         
         else:
             raise NameError(
