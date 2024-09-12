@@ -185,7 +185,7 @@ class DecoderImg(BaseDecoder):
         #if len(z.size()) == 2:
         #out = out.view(*z.size()[:1], *out.size()[1:]).unsqueeze(0)
         #else:
-        print(u.size(),out.size())
+        # print(u.size(),out.size())
         out = out.view(*u.size()[:-1], *out.size()[1:])
         # consider also predicting the length scale
         # return out, torch.tensor(0.01).to(u.device)  # mean, length scale

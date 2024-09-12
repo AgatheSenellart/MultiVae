@@ -277,10 +277,30 @@ class CUB(MultimodalBaseDataset):
         # Draw the canvas and retrieve the image as a NumPy array
         fig.canvas.draw()
         image_np = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
-        image_np = image_np.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+        image_np = image_np.reshape(3,*fig.canvas.get_width_height()[::-1])
+        
+        image_tensor = torch.from_numpy(image_np)
 
-        return image_np
+        return image_tensor
     
     
+    def transform_for_plotting(self, tensor, modality):
+        ''' Transform the data for plotting purposes
+        
+        args :
+        
+            tensor (Tensor) : batch_data
+            modality (str) : the name of the modality'''
+            
+        if modality == 'text':
+            list_transformed = []
+            for x in tensor: 
+                list_transformed.append(self.plot_text(x))
+            return torch.stack(list_transformed)
+                
+        if modality == 'image' :
+            return tensor
+        
+        
         
     
