@@ -47,6 +47,9 @@ class MultimodalBaseDataset(Dataset):
             return DatasetOutput(data=X, labels=y)
         else :
             return DatasetOutput(data = X)
+        
+    def transform_for_plotting(self, tensor, modality):
+        return tensor
 
 
 class IncompleteDataset(MultimodalBaseDataset):
