@@ -785,8 +785,11 @@ class BaseTrainer:
             recon = model.predict(
                 inputs, mod, "all", N=8, flatten=True, ignore_incomplete=True
             )
-            recon = {mod_name : self.eval_dataset.transform_for_plotting(recon[mod_name], modality = mod_name) for mod_name in recon}
-            recon["true_data"] = self.eval_dataset.transform_for_plotting(inputs.data[mod], modality=mod)
+            if hasattr(self.eval_dataset, 'transform_for_plotting'):
+                recon = {mod_name : self.eval_dataset.transform_for_plotting(recon[mod_name], modality = mod_name) for mod_name in recon}
+                recon["true_data"] = self.eval_dataset.transform_for_plotting(inputs.data[mod], modality=mod)
+            else :
+                recon["true_data"] = inputs.data[mod]
             recon, shape = adapt_shape(recon)
             recon_image = [recon["true_data"]] + [
                 recon[m] for m in recon if m != "true_data"

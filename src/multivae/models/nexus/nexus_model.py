@@ -325,7 +325,7 @@ class Nexus(BaseMultiVAE):
 
             
             joint_elbo += -(
-                dist.Normal(recon, scale).log_prob(first_level_z[m]) * self.gammas[m]
+                dist.Normal(recon, scale).log_prob(first_level_z[m].detach()) * self.gammas[m]
             ).sum(-1)
 
         joint_KLD = -0.5 * torch.sum(
