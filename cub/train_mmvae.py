@@ -9,7 +9,7 @@ from architectures_text import *
 # dataset
 train_data = CUB('/home/asenella/scratch/data', split='train',max_lenght=32)
 
-train_data, eval_data = random_split(train_data, [0.9, 0.1])
+eval_data = CUB('/home/asenella/scratch/data', split='eval',max_lenght=32)
 
 # model
 
