@@ -11,6 +11,8 @@ import torch.nn as nn
 from nltk.tokenize import sent_tokenize, word_tokenize
 from torch.utils.data import Dataset
 import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+import PIL
 
 class OrderedCounter(Counter, OrderedDict):
     """Counter that remembers the order elements are first encountered."""
@@ -235,14 +237,31 @@ class CUB(MultimodalBaseDataset):
     
     def __init__(self, root_data_dir, split='train',max_lenght = 32):
         
-        
+        self.split = split
         transform_text = lambda data: torch.Tensor(data)
-        self.text_data = CUBSentences(root_data_dir,split,one_hot=True,transpose=False,transform=transform_text, max_sequence_length=max_lenght)
         tx = transforms.Compose([transforms.Resize([64, 64]), transforms.ToTensor()])
-        self.image_data = datasets.ImageFolder(os.path.join(root_data_dir, 'cub',split), transform=tx)
+
+        if split == 'eval':
+            self.text_data = CUBSentences(root_data_dir,'train',one_hot=True,transpose=False,transform=transform_text, max_sequence_length=max_lenght)
+            self.image_data = datasets.ImageFolder(os.path.join(root_data_dir, 'cub','train'), transform=tx)
+
+        else :
+            self.text_data = CUBSentences(root_data_dir,split,one_hot=True,transpose=False,transform=transform_text, max_sequence_length=max_lenght)
+            self.image_data = datasets.ImageFolder(os.path.join(root_data_dir, 'cub',split), transform=tx)
+
         
+        if self.split == 'train' or 'eval':
+            self.train_idx, self.val_idx = train_test_split(np.arange(len(self.text_data)),test_size=0.1, random_state = 0,shuffle=True)
+             
+            
+            
         
     def __getitem__(self, index):
+        
+        if self.split == 'train':
+            index = self.train_idx[index]
+        elif self.split == 'eval':
+            index = self.val_idx[index]
         
         image = self.image_data[index // 10][0]
         text = self.text_data[index][0]
@@ -253,10 +272,18 @@ class CUB(MultimodalBaseDataset):
         )
     
     def __len__(self):
-        return len(self.text_data)
+        
+        if self.split == 'train':
+            return len(self.train_idx)
+
+        if self.split == 'eval':
+            return len(self.val_idx)
+        
+        else :
+            return len(self.text_data)
 
 
-    def plot_text(self,input_tensor, fig_size=(40,40)):
+    def plot_text(self,input_tensor, fig_size=(2,1.5)):
         # input_tensor is of shape (max_sequence_lenght,vocab_size)
         array = input_tensor.detach().numpy()
         sentence = self.text_data._to_string(array)
@@ -266,22 +293,23 @@ class CUB(MultimodalBaseDataset):
             x=0.5,
             y=0.5,
             s='{}'.format(
-                ' '.join(i + '\n' if (n + 1) % 1 == 0
-                         else i for n, i in enumerate([word for word in sentence.split() if word != '<eos>']))),
+                ' '.join(i + '\n' if (n + 1) % 3 == 0
+                            else i for n, i in enumerate([word for word in sentence.split() if word != '<eos>']))),
             fontsize=7,
             verticalalignment='center_baseline',
-            horizontalalignment='right'
+            horizontalalignment='center'
         )
         plt.axis('off')
-
+        fig.tight_layout()
+        print(fig.canvas.get_width_height())
         # Draw the canvas and retrieve the image as a NumPy array
         fig.canvas.draw()
-        image_np = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
-        image_np = image_np.reshape(3,*fig.canvas.get_width_height()[::-1])
+        image = PIL.Image.frombytes('RGB', 
+                    fig.canvas.get_width_height(),fig.canvas.tostring_rgb())
         
-        image_tensor = torch.from_numpy(image_np)
-
-        return image_tensor
+        image= np.array(image).transpose(2,0,1)/255
+        
+        return torch.from_numpy(image).float()
     
     
     def transform_for_plotting(self, tensor, modality):
