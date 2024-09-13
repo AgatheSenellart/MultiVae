@@ -285,7 +285,7 @@ class CUB(MultimodalBaseDataset):
 
     def plot_text(self,input_tensor, fig_size=(2,1.5)):
         # input_tensor is of shape (max_sequence_lenght,vocab_size)
-        array = input_tensor.detach().numpy()
+        array = input_tensor.detach().cpu().numpy()
         sentence = self.text_data._to_string(array)
         
         fig = plt.figure(figsize=fig_size)
