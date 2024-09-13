@@ -109,6 +109,8 @@ class Dec(BaseDecoder):
     def __init__(self, latentDim_w, latentDim_z):
         
         super(Dec, self).__init__()
+        self.joint_decoder_input_dim = fBase*8 if latentDim_w is not 0 else fBase*4
+        
         self.latent_dim = latentDim_z
         self.dec_w = nn.Sequential(
             nn.ConvTranspose2d(latentDim_w, fBase * 16, 4, 1, 0, bias=True),
@@ -141,7 +143,7 @@ class Dec(BaseDecoder):
             nn.ReLU(True),
         )
         self.dec_h = nn.Sequential(
-            nn.ConvTranspose2d(fBase * 8, fBase * 4, 3, 1, 1, bias=True),
+            nn.ConvTranspose2d(self.joint_decoder_input_dim, fBase * 4, 3, 1, 1, bias=True),
             nn.BatchNorm2d(fBase * 4),
             nn.ReLU(True),
             # size: (fBase * 4) x 8 x 32
@@ -167,16 +169,23 @@ class Dec(BaseDecoder):
 
     def forward(self, u):
         # z = z.unsqueeze(-1).unsqueeze(-1)  # fit deconv layers
-        w, z = torch.split(u, [self.latent_dim_w, self.latent_dim_z], dim=-1)
-        z = z.unsqueeze(-1).unsqueeze(-1)
-        hz = self.dec_z(z.view(-1, *z.size()[-3:]))
-        w = w.unsqueeze(-1).unsqueeze(-1)
-        hw = self.dec_w(w.view(-1, *w.size()[-3:]))
-        h = torch.cat((hw, hz), dim=1)
-        out = self.dec_h(h)
+        
+        if self.latent_dim_w ==0 :
+            z = u
+            z = z.unsqueeze(-1).unsqueeze(-1)
+            hz = self.dec_z(z.view(-1, *z.size()[-3:]))
+            out = self.dec_h(hz)
+        else :
+            w, z = torch.split(u, [self.latent_dim_w, self.latent_dim_z], dim=-1)
+            z = z.unsqueeze(-1).unsqueeze(-1)
+            hz = self.dec_z(z.view(-1, *z.size()[-3:]))
+            w = w.unsqueeze(-1).unsqueeze(-1)
+            hw = self.dec_w(w.view(-1, *w.size()[-3:]))
+            h = torch.cat((hw, hz), dim=1)
+            out = self.dec_h(h)
         out = out.view(*z.size()[:-3], *out.size()[1:]).view(-1, embeddingDim)
         # The softmax is key for this to work
-        ret = self.softmax(self.toVocabSize(out).view(*z.size()[:-3], maxSentLen, vocabSize))
+        ret = self.toVocabSize(out).view(*z.size()[:-3], maxSentLen, vocabSize)
         return ModelOutput(reconstruction = ret)
     
     

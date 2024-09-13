@@ -7,7 +7,7 @@ from architectures_image import *
 from architectures_text import *
 
 # dataset
-train_data = CUB('/Users/agathe/dev/data', split='train',max_lenght=32)
+train_data = CUB('/home/asenella/scratch/data', split='train',max_lenght=32)
 
 train_data, eval_data = random_split(train_data, [0.9, 0.1])
 
@@ -19,12 +19,14 @@ model_config = MMVAEPlusConfig(
     modalities_specific_dim=16,
     prior_and_posterior_dist='normal',
     beta=1.0,
-    K=10
+    K=10,
+    decoders_dist=dict(image = 'laplace',
+                       text = 'categorical')
 
 )
 
 
-model=MMVAEPlus(model_config=model_config,
+model = MMVAEPlus(model_config=model_config,
                 encoders = dict(image = EncoderImg(model_config.modalities_specific_dim,model_config.latent_dim,dist='normal'),
                                 text = Enc(model_config.modalities_specific_dim,model_config.latent_dim,dist='normal')),
                 
@@ -47,7 +49,8 @@ training_config = BaseTrainerConfig(
     optimizer_cls="Adam",
     optimizer_params=dict(amsgrad = True),
     learning_rate=1e-3,
-    steps_predict=5
+    steps_predict=5,
+    steps_saving=25
     
 )
 
@@ -58,7 +61,8 @@ trainer = BaseTrainer(
     model=model,
     train_dataset=train_data,
     eval_dataset=eval_data,
-    callbacks=[wandb]
+    callbacks=[wandb],
+    training_config=training_config
     
 )
 
