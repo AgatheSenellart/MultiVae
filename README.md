@@ -41,6 +41,7 @@ It integrates model monitoring with [Wandb](https://wandb.ai) and a quick way to
 |MVTCAE | [Multi-View Representation Learning via Total Correlation Objective](https://proceedings.neurips.cc/paper/2021/hash/65a99bb7a3115fdede20da98b08a370f-Abstract.html)|[link](https://github.com/gr8joo/MVTCAE/)|
 |JNF,JNF-DCCA| [Improving Multimodal Joint Variational Autoencoders through Normalizing Flows and Correlation Analysis](https://arxiv.org/abs/2305.11832) | link|
 |MMVAE + |[MMVAE+: ENHANCING THE GENERATIVE QUALITY OF MULTIMODAL VAES WITHOUT COMPROMISES](https://openreview.net/forum?id=sdQGxouELX) | [link](https://openreview.net/forum?id=sdQGxouELX)|
+|Nexus | [Leveraging hierarchy in multimodal generative models for effective cross-modality inference](https://www.sciencedirect.com/science/article/abs/pii/S0893608021004470)|[link](https://github.com/miguelsvasco/nexus_pytorch)|
 
 # Quickstart
 
@@ -61,7 +62,7 @@ Cloning the repository gives you access to tutorial notebooks and scripts in the
 Load a dataset easily:
 ```python
 from multivae.data.datasets import MnistSvhn
-train_set = train_set = MnistSvhn(data_path='your_data_path', split="train", download=True)
+train_set = MnistSvhn(data_path='your_data_path', split="train", download=True)
 
 ```
 Instantiate your favorite model:
@@ -76,6 +77,7 @@ model = MVTCAE(model_config)
 Define a trainer and train the model !
 
 ```python
+from multivae.trainers import BaseTrainer, BaseTrainerConfig
 training_config = BaseTrainerConfig(
     learning_rate=1e-3,
     num_epochs=30
@@ -104,7 +106,6 @@ Several examples are provided in `examples/` - as well as tutorial notebooks on 
 - [Usage](#usage)
 - [Contribute](#contribute)
 - [Reproducibility statement](#reproducibility-statement)
-- [License](#license)
 
 # Installation
 [(Back to top)](#table-of-contents)
@@ -139,8 +140,6 @@ Most implemented models are validated by reproducing a key result of the paper.
 ![Alt text](./static/reproduction_results.png)
 
 
-
-# License
 [(Back to top)](#table-of-contents)
 
 
