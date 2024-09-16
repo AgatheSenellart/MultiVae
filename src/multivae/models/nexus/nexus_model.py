@@ -39,32 +39,21 @@ class Nexus(BaseMultiVAE):
         model_config (NexusConfig): An instance of NexusConfig in which any model's parameters is
             made available.
 
-        encoders (Dict[str, ~multivae.models.base.BaseEncoder]): A dictionary
+        encoders (Dict[str, ~pythae.models.nn.BaseEncoder]): A dictionary
             containing the modalities names and the encoders for each modality. Each encoder is
-            an instance of Multivae's BaseEncoder whose output is of the form:
-                ```ModelOutput(
-                    embedding = ...,
-                    log_covariance = ...,
-                )
+            an instance of ~pythae.models.nn.BaseEncoder 
 
-        decoders (Dict[str, ~multivae.models.base.BaseDecoder]): A dictionary
+        decoders (Dict[str, ~pythae.models.nn.BaseDecoder]): A dictionary
             containing the modalities names and the decoders for each modality. Each decoder is an
-            instance of Pythae's BaseDecoder.
+            instance of ~pythae.models.nn.BaseDecoder
 
-        top_encoders (Dict[str, ~multivae.models.base.BaseEncoder]) : An instance of
-            BaseEncoder that takes all the first level representations to generate the messages that will be aggregated.
-            Each encoder is
-            an instance of Multivae's BaseEncoder whose output is of the form:
-                ```ModelOutput(
-                    embedding = ...,
-                    log_covariance = ...,
-                )
-
-        joint_encoder (~multivae.models.base.BaseEncoder): The encoder that takes the aggregated message and
+        top_encoders (Dict[str, ~pythae.models.nn.BaseEncoder]) : A dictionary containing for each modality, 
+            the top encoder to use.
+            
+        joint_encoder (~multivae.models.nn.BaseJointEncoder): The encoder that takes the aggregated message and
             encode it to obtain the high level latent distribution.
 
-        top_decoders (Dict[str, ~multivae.models.base.BaseDecoder]) : Top level decoders from the joint representation
-            to the modalities specific representations.
+        top_decoders (Dict[str, ~pythae.models.nn.BaseDecoder]) : A dictionary containing for each modality, the top decoder to use.
 
     """
 

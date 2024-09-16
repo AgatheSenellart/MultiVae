@@ -15,6 +15,7 @@ from .nexus import Nexus, NexusConfig
 from .telbo import TELBO, TELBOConfig
 
 __all__ = [
+    "BaseModel",
     "BaseMultiVAEConfig",
     "BaseMultiVAE",
     "JMVAEConfig",
