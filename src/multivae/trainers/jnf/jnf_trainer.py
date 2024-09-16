@@ -2,7 +2,7 @@ import logging
 from typing import List, Optional
 
 from multivae.data.datasets.base import MultimodalBaseDataset
-from multivae.models.base.base_model import BaseMultiVAE
+from multivae.models.base.base_ae_model import BaseMultiVAE
 from multivae.trainers.base.callbacks import TrainingCallback
 
 from ..base import BaseTrainer
@@ -43,8 +43,11 @@ class TwoStepsTrainer(BaseTrainer):
         eval_dataset: Optional[MultimodalBaseDataset] = None,
         training_config: Optional[TwoStepsTrainerConfig] = None,
         callbacks: List[TrainingCallback] = None,
+        checkpoint: str = None,
     ):
-        super().__init__(model, train_dataset, eval_dataset, training_config, callbacks)
+        super().__init__(
+            model, train_dataset, eval_dataset, training_config, callbacks, checkpoint
+        )
 
     def prepare_train_step(self, epoch, best_train_loss, best_eval_loss):
         """

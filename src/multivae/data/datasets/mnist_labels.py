@@ -1,6 +1,7 @@
 """
 Multimodal dataset wrapper for the MNIST labels dataset.
 """
+
 from typing import Literal
 
 import torch

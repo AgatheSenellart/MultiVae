@@ -5,7 +5,6 @@ from ..base import BaseMultiVAEConfig
 
 @dataclass
 class MVAEConfig(BaseMultiVAEConfig):
-
     """
     Config class for the MVAE model from 'Multimodal Generative Models for Scalable Weakly-Supervised Learning'.
     https://proceedings.neurips.cc/paper/2018/hash/1102a326d5f7c9e04fc3c89d0ede88c9-Abstract.html
@@ -18,8 +17,8 @@ class MVAEConfig(BaseMultiVAEConfig):
             (see : https://proceedings.mlr.press/v162/javaloy22a.html).
             The inputs_dim must be provided to compute the likelihoods rescalings. Default to False.
         decoders_dist (Dict[str, Union[function, str]]). The decoder distributions to use per modality.
-            Per modality, you can provide a string in ['normal','bernoulli','laplace']. If None is provided,
-            a normal distribution is used for each modality.
+            Per modality, you can provide a string in ['normal','bernoulli','laplace']. For Bernoulli distribution,
+            the decoder is expected to output **logits**. If None is provided, a normal distribution is used for each modality.
         decoder_dist_params (Dict[str,dict]) : Parameters for the output decoder distributions, for
             computing the log-probability.
             For instance, with normal or laplace distribution, you can pass the scale in this dictionary.

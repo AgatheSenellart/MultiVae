@@ -26,9 +26,9 @@ def training_config(tmpdir):
     return BaseTrainerConfig(output_dir=dir_path)
 
 
-@pytest.fixture
-def model_sample():
-    model_config = JMVAEConfig(n_modalities=2, latent_dim=10)
+@pytest.fixture(params=[0, 20])
+def model_sample(request):
+    model_config = JMVAEConfig(n_modalities=2, latent_dim=10, warmup=request.param)
     config = BaseAEConfig(input_dim=(1, 28, 28), latent_dim=10)
     encoders = dict(mod1=Encoder_VAE_MLP(config), mod2=Encoder_Conv_VAE_MNIST(config))
     decoders = dict(mod1=Decoder_AE_MLP(config), mod2=Decoder_Conv_AE_MNIST(config))
@@ -315,10 +315,20 @@ class Test_Device_Checks:
         assert device == "cpu"
 
 
+class Test_set_start_keep_best_epoch:
+    def test(self, model_sample, train_dataset, training_config):
+        trainer = BaseTrainer(
+            model=model_sample,
+            train_dataset=train_dataset,
+            eval_dataset=train_dataset,
+            training_config=training_config,
+        )
+
+        assert trainer.start_keep_best_epoch >= model_sample.warmup + 1
+
+
 class TestPredict:
-    def test_default_optimizer_building(
-        self, model_sample, train_dataset, training_config
-    ):
+    def test_predict_samples(self, model_sample, train_dataset, training_config):
         trainer = BaseTrainer(
             model=model_sample,
             train_dataset=train_dataset,

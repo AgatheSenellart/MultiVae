@@ -1,6 +1,5 @@
 """Base sampler class, adapted from Pythae Base Sampler."""
 
-
 import logging
 import os
 

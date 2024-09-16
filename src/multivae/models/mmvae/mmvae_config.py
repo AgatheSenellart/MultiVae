@@ -7,7 +7,6 @@ from ..base import BaseMultiVAEConfig
 
 @dataclass
 class MMVAEConfig(BaseMultiVAEConfig):
-
     """
     This class is the configuration class for the MMVAE model, from
     (Variational Mixture-of-Experts Autoencoders
@@ -23,8 +22,8 @@ class MMVAEConfig(BaseMultiVAEConfig):
             (see : https://proceedings.mlr.press/v162/javaloy22a.html).
             The inputs_dim must be provided to compute the likelihoods rescalings. Default to True.
         decoders_dist (Dict[str, Union[function, str]]). The decoder distributions to use per modality.
-            Per modality, you can provide a string in ['normal','bernoulli','laplace']. If None is provided,
-            a normal distribution is used for each modality.
+            Per modality, you can provide a string in ['normal','bernoulli','laplace']. For Bernoulli distribution,
+            the decoder is expected to output **logits**. If None is provided, a normal distribution is used for each modality.
         decoder_dist_params (Dict[str,dict]) : Parameters for the output decoder distributions, for
             computing the log-probability.
             For instance, with normal or laplace distribution, you can pass the scale in this dictionary.
@@ -41,8 +40,8 @@ class MMVAEConfig(BaseMultiVAEConfig):
     """
 
     K: int = 10
-    prior_and_posterior_dist: Literal[
-        "laplace_with_softmax", "normal"
-    ] = "laplace_with_softmax"
+    prior_and_posterior_dist: Literal["laplace_with_softmax", "normal"] = (
+        "laplace_with_softmax"
+    )
     learn_prior: bool = True
     beta: float = 1.0

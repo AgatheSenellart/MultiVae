@@ -82,6 +82,12 @@ class AutoModel(nn.Module):
 
             model = MMVAEPlus.load_from_folder(dir_path)
 
+        elif model_name == "NexusConfig":
+            from ..nexus import Nexus
+
+            model = Nexus.load_from_folder(dir_path)
+
+
         else:
             raise NameError(
                 "Cannot reload automatically the model... "
@@ -173,6 +179,13 @@ class AutoModel(nn.Module):
             from ..mmvaePlus import MMVAEPlus
 
             model = MMVAEPlus.load_from_hf_hub(hf_hub_path, allow_pickle)
+
+        elif model_name == "NexusConfig":
+            from ..nexus import Nexus
+
+            model = Nexus.load_from_hf_hub(hf_hub_path, allow_pickle)
+
+
 
         else:
             raise NameError(

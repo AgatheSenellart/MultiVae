@@ -4,7 +4,8 @@ from typing import Union
 import numpy as np
 import torch
 import torch.distributions as dist
-from pythae.models.nn.base_architectures import BaseEncoder
+
+from multivae.models.nn.default_architectures import BaseJointEncoder
 
 from ...data import MultimodalBaseDataset
 from ..base import BaseMultiVAE
@@ -40,27 +41,30 @@ class BaseJointModel(BaseMultiVAE):
         model_config: BaseJointModelConfig,
         encoders: dict = None,
         decoders: dict = None,
-        joint_encoder: Union[BaseEncoder, None] = None,
+        joint_encoder: Union[BaseJointEncoder, None] = None,
         **kwargs,
     ):
         super().__init__(model_config, encoders, decoders)
 
         if joint_encoder is None:
             # Create a MultiHead Joint Encoder MLP
-            joint_encoder = MultipleHeadJointEncoder(self.encoders, model_config)
+            joint_encoder = self.default_joint_encoder(model_config)
         else:
             self.model_config.custom_architectures.append("joint_encoder")
 
         self.set_joint_encoder(joint_encoder)
 
+    def default_joint_encoder(self, model_config):
+        return MultipleHeadJointEncoder(self.encoders, model_config)
+
     def set_joint_encoder(self, joint_encoder):
         "Checks that the provided joint encoder is an instance of BaseEncoder."
 
-        if not issubclass(type(joint_encoder), BaseEncoder):
+        if not issubclass(type(joint_encoder), BaseJointEncoder):
             raise AttributeError(
                 (
                     f"The joint encoder must inherit from BaseEncoder class from "
-                    "pythae.models.base_architectures.BaseEncoder. Refer to documentation."
+                    "multivae.models.nn.default_architectures.BaseJointEncoder . Refer to documentation."
                 )
             )
         self.joint_encoder = joint_encoder

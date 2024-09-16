@@ -18,7 +18,6 @@ from .clustering_config import ClusteringConfig
 
 
 class Clustering(Evaluator):
-
     """
     Module to perform clustering in the latent space.
     As of now, it is only supported for the joint representation of the data.

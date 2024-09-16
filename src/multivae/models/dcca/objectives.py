@@ -97,7 +97,6 @@ class cca_loss:
 
 
 class mcca_loss:
-
     """
     Wraps-up several cca loss when training with more than two modalities.
     """

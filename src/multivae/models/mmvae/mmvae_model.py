@@ -21,7 +21,6 @@ logger.setLevel(logging.INFO)
 
 
 class MMVAE(BaseMultiVAE):
-
     """
     The Variational Mixture-of-Experts Autoencoder model.
 

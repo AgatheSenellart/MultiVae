@@ -9,6 +9,7 @@ from pythae.models.nn.base_architectures import BaseEncoder
 from pythae.models.nn.default_architectures import Encoder_VAE_MLP
 from torch import nn
 
+from multivae.models.nn.base_architectures import BaseJointEncoder
 from multivae.models.base.base_config import BaseAEConfig
 
 
@@ -79,6 +80,17 @@ class Encoder_VAE_MLP_Style(BaseEncoder):
 
 
 def BaseDictEncoders(input_dims: dict, latent_dim: int):
+    """Given inputs dimensions and latent dimensions for all modalities,
+        create a dictionary of basic MLP Encoders for each modality.
+
+    Args:
+        input_dims (dict): Containing the input dimension of each modality.
+        latent_dim (int): Containing the desired latent dimension shared accross modalities.
+
+    Returns:
+        ~torch.nn.ModuleDict(): A Module Dictionary of Basic MLP Encoders.
+    """
+
     encoders = nn.ModuleDict()
     for mod in input_dims:
         config = BaseAEConfig(input_dim=input_dims[mod], latent_dim=latent_dim)
@@ -89,6 +101,17 @@ def BaseDictEncoders(input_dims: dict, latent_dim: int):
 def BaseDictEncoders_MultiLatents(
     input_dims: dict, latent_dim: int, modality_dims: dict
 ):
+    """The equivalent of BaseDictEncoders but with encoders that returns two latent variables : a content variable and a style variable.
+
+    Args:
+        input_dims (dict): Input dimensions of each modality
+        latent_dim (int): Latent dimension for the shared latent space.
+        modality_dims (dict): Latent dimensions for each modality specific latent space.
+
+    Returns:
+        nn.ModuleDict(): A Dictionary of basic MLP encoders.
+    """
+
     encoders = nn.ModuleDict()
     for mod in input_dims:
         config = BaseAEConfig(
@@ -101,6 +124,16 @@ def BaseDictEncoders_MultiLatents(
 
 
 def BaseDictDecoders(input_dims: dict, latent_dim: int):
+    """Given inputs dimensions and latent dimensions for all modalities,
+        create a dictionary of basic MLP Decoders for each modality.
+
+    Args:
+        input_dims (dict): Containing the input dimension of each modality.
+        latent_dim (int): latent dimension shared accross modalities.
+
+    Returns:
+        ~torch.nn.ModuleDict(): A Module Dictionary of Basic MLP Decoders.
+    """
     decoders = nn.ModuleDict()
     for mod in input_dims:
         config = BaseAEConfig(input_dim=input_dims[mod], latent_dim=latent_dim)
@@ -111,6 +144,17 @@ def BaseDictDecoders(input_dims: dict, latent_dim: int):
 def BaseDictDecodersMultiLatents(
     input_dims: dict, latent_dim: int, modality_dims: dict
 ):
+    """The equivalent of BaseDictDecoders but for models with multiple latent spaces : a content variable and a style variable per modality.
+
+    Args:
+        input_dims (dict): Input dimensions of each modality
+        latent_dim (int): Latent dimension for the shared latent space.
+        modality_dims (dict): Latent dimensions for each modality specific latent space.
+
+    Returns:
+        nn.ModuleDict(): A Dictionary of basic MLP decoders.
+    """
+
     decoders = nn.ModuleDict()
     for mod in input_dims:
         config = BaseAEConfig(
@@ -153,14 +197,14 @@ class Decoder_AE_MLP(BaseDecoder):
         return output
 
 
-class MultipleHeadJointEncoder(BaseEncoder):
+class MultipleHeadJointEncoder(BaseJointEncoder):
     """
     A default instance of joint encoder created from copying the architectures for the unimodal encoders,
     concatenating their outputs and passing them through a unifying Multi-Layer-Perceptron.
 
         Args:
             dict_encoders (dict): Contains an instance of BaseEncoder for each modality (key).
-            args (dict): config dictionary. Contains the latent dim.
+            args (BaseAEConfig): config dictionary. Contains the latent dim.
             hidden_dim (int) : Default to 512.
             n_hidden_layers (int) : Default to 2.
     """
@@ -168,7 +212,7 @@ class MultipleHeadJointEncoder(BaseEncoder):
     def __init__(
         self,
         dict_encoders: dict,
-        args: dict,
+        args: BaseAEConfig,
         hidden_dim=512,
         n_hidden_layers=2,
         **kwargs,
