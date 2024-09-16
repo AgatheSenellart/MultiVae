@@ -106,6 +106,7 @@ Several examples are provided in `examples/` - as well as tutorial notebooks on 
 - [Usage](#usage)
 - [Contribute](#contribute)
 - [Reproducibility statement](#reproducibility-statement)
+- [Citation](#citation)
 
 # Installation
 [(Back to top)](#table-of-contents)
@@ -140,7 +141,22 @@ Most implemented models are validated by reproducing a key result of the paper.
 ![Alt text](./static/reproduction_results.png)
 
 
+
+# Citation
+
 [(Back to top)](#table-of-contents)
 
+If you have used our package in your research, please consider citing our paper presenting the package : 
 
+MultiVae : A Python library for Multimodal Generative Autoencoders (2023, Agathe Senellart, Clément Chadebec and Stéphanie Allassonnière)
 
+Bibtex entry :
+````
+@preprint{senellart:hal-04207151,
+  TITLE = {{MultiVae: A Python library for Multimodal Generative Autoencoders}},
+  AUTHOR = {Senellart, Agathe and Chadebec, Clement and Allassonniere, Stephanie},
+  URL = {https://hal.science/hal-04207151},
+  YEAR = {2023},
+}
+
+````
