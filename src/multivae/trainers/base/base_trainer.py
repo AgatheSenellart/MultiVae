@@ -502,7 +502,7 @@ class BaseTrainer:
                 # save the model, don't keep track of the best loss
                 best_model = deepcopy(self.model)
                 self._best_model = best_model
-                logger.info("New best model saved!")
+                logger.info("New model saved!")
 
             elif (
                 epoch_eval_loss < self.best_eval_loss
@@ -511,7 +511,7 @@ class BaseTrainer:
                 self.best_eval_loss = epoch_eval_loss
                 best_model = deepcopy(self.model)
                 self._best_model = best_model
-                logger.info("New best model saved!")
+                logger.info("New best model on eval saved!")
 
             elif (
                 epoch_train_loss < self.best_train_loss
@@ -520,6 +520,9 @@ class BaseTrainer:
                 self.best_train_loss = epoch_train_loss
                 best_model = deepcopy(self.model)
                 self._best_model = best_model
+                logger.info("New best model on train saved!")
+
+                
 
             # For BaseMultiVae models, compute reconstruction
             if (isinstance(self.model,BaseMultiVAE) and

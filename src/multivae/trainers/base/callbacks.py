@@ -397,10 +397,10 @@ class WandbCallback(TrainingCallback):  # pragma: no cover
                 "wandb callback on_save_checkpoint is called without"
                 "a checkpoint directory information. Please provide checkpoint_dir=.."
             )
-        with open(os.path.join(checkpoint_dir, "checkpoint_info.json"), "r") as fp:
+        with open(os.path.join(checkpoint_dir, "info_checkpoint.json"), "r") as fp:
             info_dict = json.load(fp)
             info_dict["wandb_run"] = self._wandb.run.id
-        with open(os.path.join(checkpoint_dir, "checkpoint_info.json"), "w") as fp:
+        with open(os.path.join(checkpoint_dir, "info_checkpoint.json"), "w") as fp:
             json.dump(info_dict, fp)
 
     def on_save(self, training_config: BaseTrainerConfig, **kwargs):
