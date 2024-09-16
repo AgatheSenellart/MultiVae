@@ -29,7 +29,6 @@ logger.setLevel(logging.INFO)
 
 
 class Nexus(BaseMultiVAE):
-
     """
     The Nexus model from
      "Leveraging hierarchy in multimodal generative models for effective cross-modality inference" (Vasco et al 2022)
@@ -110,14 +109,16 @@ class Nexus(BaseMultiVAE):
         self.aggregator_function = model_config.aggregator
         self.warmup = model_config.warmup
         self.adapt_top_decoder_variance = self.set_top_decoder_variance(model_config)
-    
+
     def set_top_decoder_variance(self, config):
         if config.adapt_top_decoder_variance is None:
             return []
-        else :
-            for m in config.adapt_top_decoder_variance :
+        else:
+            for m in config.adapt_top_decoder_variance:
                 if m not in self.modalities_name:
-                    raise AttributeError(f"A string provided in *adapt_top_decoder_variance* field doesn't match any of the modalities name : {m} is not in {self.modalities_name}")
+                    raise AttributeError(
+                        f"A string provided in *adapt_top_decoder_variance* field doesn't match any of the modalities name : {m} is not in {self.modalities_name}"
+                    )
             return config.adapt_top_decoder_variance
 
     def set_bottom_betas(self, bottom_betas):
@@ -256,10 +257,10 @@ class Nexus(BaseMultiVAE):
             self.joint_encoder = joint_encoder
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs):
-        
+
         epoch = kwargs.pop("epoch", 1)
-        annealing = min(epoch/self.warmup, 1.0)
-        
+        annealing = min(epoch / self.warmup, 1.0)
+
         # Compute the first level representations and ELBOs
         modalities_msg = dict()
         first_level_elbos = 0
@@ -318,14 +319,18 @@ class Nexus(BaseMultiVAE):
             recon = self.top_decoders[m](joint_z).reconstruction
 
             # Eventually adapt the scale of the top decoder
-            if m in self.adapt_top_decoder_variance :
-                scale = ((first_level_z[m].clone().detach() - recon) ** 2).mean([0, 1], keepdim=True).sqrt()
-            else :
+            if m in self.adapt_top_decoder_variance:
+                scale = (
+                    ((first_level_z[m].clone().detach() - recon) ** 2)
+                    .mean([0, 1], keepdim=True)
+                    .sqrt()
+                )
+            else:
                 scale = 1
 
-            
             joint_elbo += -(
-                dist.Normal(recon, scale).log_prob(first_level_z[m].detach()) * self.gammas[m]
+                dist.Normal(recon, scale).log_prob(first_level_z[m].detach())
+                * self.gammas[m]
             ).sum(-1)
 
         joint_KLD = -0.5 * torch.sum(
@@ -335,10 +340,14 @@ class Nexus(BaseMultiVAE):
 
         total_loss = joint_elbo + first_level_elbos
 
-        return ModelOutput(loss=total_loss.mean(0), 
-                           metrics={'annealing' : annealing,
-                                    'joint_elbo' : joint_elbo.mean(0),
-                                    'joint_KLD' : joint_KLD.mean(0)})
+        return ModelOutput(
+            loss=total_loss.mean(0),
+            metrics={
+                "annealing": annealing,
+                "joint_elbo": joint_elbo.mean(0),
+                "joint_KLD": joint_KLD.mean(0),
+            },
+        )
 
     def rsample(self, encoder_output: ModelOutput, N=1, flatten=False):
         mu = encoder_output.embedding
@@ -352,44 +361,49 @@ class Nexus(BaseMultiVAE):
         return z
 
     def aggregate_during_training(
-        self, inputs: MultimodalBaseDataset, modalities_msg: dict):
-        
-        " Aggregate the modalities during training. It applies the forced perceptual dropout if the dataset is not already incomplete."
-        
+        self, inputs: MultimodalBaseDataset, modalities_msg: dict
+    ):
+
+        "Aggregate the modalities during training. It applies the forced perceptual dropout if the dataset is not already incomplete."
+
         if self.aggregator_function == "mean":
-            
+
             # With an already incomplete dataset, we don't apply dropout
-            if hasattr(inputs, "masks") :
-                
+            if hasattr(inputs, "masks"):
+
                 normalization_per_sample = torch.stack(
                     [inputs.masks[m] for m in inputs.masks], dim=0
                 ).sum(0)
                 # We can sum as the masks have already been applied before aggregation
-                aggregated_msg = torch.stack(list(modalities_msg.values()), dim=0).sum(0)
+                aggregated_msg = torch.stack(list(modalities_msg.values()), dim=0).sum(
+                    0
+                )
                 aggregated_msg = (aggregated_msg.t() / normalization_per_sample).t()
 
             # With a complete dataset, we apply forced perceptual dropout during training
             else:
-                tensor_modalities_msg = torch.stack(list(modalities_msg.values()), dim=1)
-                
+                tensor_modalities_msg = torch.stack(
+                    list(modalities_msg.values()), dim=1
+                )
+
                 batch_msgs = []
-                
+
                 # we iter over the batch samples
                 for i in range(len(tensor_modalities_msg)):
-                    msgs = tensor_modalities_msg[i] # n_modalities, msg_dim
-                    
+                    msgs = tensor_modalities_msg[i]  # n_modalities, msg_dim
+
                     bernoulli_drop = dist.Bernoulli(self.dropout).sample().item()
                     if bernoulli_drop == 1:
-                        
-                        subset_size = np.random.randint(1,self.n_modalities)
-                        
+
+                        subset_size = np.random.randint(1, self.n_modalities)
+
                         msgs = msgs[torch.randperm(self.n_modalities)]
-                        
+
                         msgs = msgs[:subset_size]
-                        
+
                     batch_msgs.append(msgs.mean(0))
-                
-                aggregated_msg = torch.stack(batch_msgs,dim=0)
+
+                aggregated_msg = torch.stack(batch_msgs, dim=0)
 
             assert not aggregated_msg.isnan().any()
             assert not aggregated_msg.isinf().any()
@@ -437,16 +451,20 @@ class Nexus(BaseMultiVAE):
             modalities_msg[m] = self.top_encoders[m](self.rsample(output_m)).embedding
 
         # Compute high level representation
-        if self.aggregator_function == 'mean':
-            aggregated_msg = torch.stack(list(modalities_msg.values()),dim=0).mean(0)
-        else : 
-            raise AttributeError(f"aggregator_function {self.aggregator_function} is not available.")
+        if self.aggregator_function == "mean":
+            aggregated_msg = torch.stack(list(modalities_msg.values()), dim=0).mean(0)
+        else:
+            raise AttributeError(
+                f"aggregator_function {self.aggregator_function} is not available."
+            )
 
         z = self.rsample(self.joint_encoder(aggregated_msg), N=N, flatten=flatten)
 
         return ModelOutput(z=z, one_latent_space=True, modalities_z=modalities_z)
 
-    def decode(self, embedding: ModelOutput, modalities: Union[list,str] = "all", **kwargs):
+    def decode(
+        self, embedding: ModelOutput, modalities: Union[list, str] = "all", **kwargs
+    ):
         self.eval()
 
         if modalities == "all":

@@ -18,7 +18,7 @@ class JMVAEConfig(BaseJointModelConfig):
             which is why we include it here. Default to False.
         decoders_dist (Dict[str, Union[function, str]]). The decoder distributions to use per modality.
             Per modality, you can provide a string in ['normal','bernoulli','laplace']. For Bernoulli distribution,
-            the decoder is expected to output **logits**. If None is provided, a normal distribution is used for each modality. 
+            the decoder is expected to output **logits**. If None is provided, a normal distribution is used for each modality.
         alpha (float):  the parameter that controls the tradeoff between the ELBO and the
             regularization term. Default to 0.1.
         warmup (int): The number of warmup epochs during training. The JMVAE model uses annealing.

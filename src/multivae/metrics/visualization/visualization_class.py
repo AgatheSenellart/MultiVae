@@ -17,7 +17,6 @@ from .visualize_config import VisualizationConfig
 
 
 class Visualization(Evaluator):
-
     """
     Visualization Module for visualizing unconditional, conditional samples from models.
 

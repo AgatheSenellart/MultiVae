@@ -7,7 +7,6 @@ from ..base.evaluator_config import EvaluatorConfig
 
 @dataclass
 class ClusteringConfig(EvaluatorConfig):
-
     """
 
     Config class for the clustering module.

@@ -23,8 +23,8 @@ from ...data.datasets.base import MultimodalBaseDataset
 from ..auto_model import AutoConfig
 from ..nn.default_architectures import BaseDictDecoders, BaseDictEncoders
 from .base_config import BaseMultiVAEConfig, EnvironmentConfig
-from .base_utils import hf_hub_is_available, model_card_template
 from .base_model import BaseModel
+from .base_utils import hf_hub_is_available, model_card_template
 
 logger = logging.getLogger(__name__)
 console = logging.StreamHandler()

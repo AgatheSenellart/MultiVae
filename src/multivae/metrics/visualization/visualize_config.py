@@ -5,7 +5,6 @@ from ..base.evaluator_config import EvaluatorConfig
 
 @dataclass
 class VisualizationConfig(EvaluatorConfig):
-
     """
 
     Config class for the visualization module.

@@ -26,7 +26,6 @@ logger.setLevel(logging.INFO)
 
 
 class MMVAEPlus(BaseMultiVAE):
-
     """
     The MMVAE+ model.
 

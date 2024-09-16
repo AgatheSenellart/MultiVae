@@ -29,7 +29,6 @@ logger.setLevel(logging.INFO)
 
 
 class JNFDcca(BaseJointModel):
-
     """
     The JNFDcca model.
 

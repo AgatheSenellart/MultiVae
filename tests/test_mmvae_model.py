@@ -10,7 +10,7 @@ from pythae.models.nn.benchmarks.mnist.convnets import (
     Decoder_Conv_AE_MNIST,
     Encoder_Conv_AE_MNIST,
 )
-from pythae.models.nn.default_architectures import Encoder_VAE_MLP, Decoder_AE_MLP
+from pythae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
 from pythae.models.normalizing_flows import IAF, IAFConfig
 from torch import nn
 

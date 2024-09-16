@@ -8,6 +8,7 @@ from pythae.models.base.base_utils import ModelOutput
 from pythae.models.nn.base_architectures import BaseEncoder
 from pythae.models.nn.default_architectures import Encoder_VAE_MLP
 from torch import nn
+
 from multivae.models.base.base_architectures import BaseJointEncoder
 from multivae.models.base.base_config import BaseAEConfig
 
@@ -79,8 +80,8 @@ class Encoder_VAE_MLP_Style(BaseEncoder):
 
 
 def BaseDictEncoders(input_dims: dict, latent_dim: int):
-    """ Given inputs dimensions and latent dimensions for all modalities, 
-        create a dictionary of basic MLP Encoders for each modality. 
+    """Given inputs dimensions and latent dimensions for all modalities,
+        create a dictionary of basic MLP Encoders for each modality.
 
     Args:
         input_dims (dict): Containing the input dimension of each modality.
@@ -89,7 +90,7 @@ def BaseDictEncoders(input_dims: dict, latent_dim: int):
     Returns:
         ~torch.nn.ModuleDict(): A Module Dictionary of Basic MLP Encoders.
     """
-    
+
     encoders = nn.ModuleDict()
     for mod in input_dims:
         config = BaseAEConfig(input_dim=input_dims[mod], latent_dim=latent_dim)
@@ -105,12 +106,12 @@ def BaseDictEncoders_MultiLatents(
     Args:
         input_dims (dict): Input dimensions of each modality
         latent_dim (int): Latent dimension for the shared latent space.
-        modality_dims (dict): Latent dimensions for each modality specific latent space. 
+        modality_dims (dict): Latent dimensions for each modality specific latent space.
 
     Returns:
         nn.ModuleDict(): A Dictionary of basic MLP encoders.
     """
-    
+
     encoders = nn.ModuleDict()
     for mod in input_dims:
         config = BaseAEConfig(
@@ -123,8 +124,8 @@ def BaseDictEncoders_MultiLatents(
 
 
 def BaseDictDecoders(input_dims: dict, latent_dim: int):
-    """ Given inputs dimensions and latent dimensions for all modalities, 
-        create a dictionary of basic MLP Decoders for each modality. 
+    """Given inputs dimensions and latent dimensions for all modalities,
+        create a dictionary of basic MLP Decoders for each modality.
 
     Args:
         input_dims (dict): Containing the input dimension of each modality.
@@ -148,12 +149,12 @@ def BaseDictDecodersMultiLatents(
     Args:
         input_dims (dict): Input dimensions of each modality
         latent_dim (int): Latent dimension for the shared latent space.
-        modality_dims (dict): Latent dimensions for each modality specific latent space. 
+        modality_dims (dict): Latent dimensions for each modality specific latent space.
 
     Returns:
         nn.ModuleDict(): A Dictionary of basic MLP decoders.
     """
-    
+
     decoders = nn.ModuleDict()
     for mod in input_dims:
         config = BaseAEConfig(

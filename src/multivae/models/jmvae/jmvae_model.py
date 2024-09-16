@@ -18,7 +18,6 @@ logger.setLevel(logging.INFO)
 
 
 class JMVAE(BaseJointModel):
-
     """The Joint Multimodal Variational Autoencoder model.
 
     Args:

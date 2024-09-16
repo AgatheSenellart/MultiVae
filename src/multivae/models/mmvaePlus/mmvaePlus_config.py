@@ -7,7 +7,6 @@ from ..base import BaseMultiVAEConfig
 
 @dataclass
 class MMVAEPlusConfig(BaseMultiVAEConfig):
-
     """
     This class is the configuration class for the MMVAE+ model.
 
@@ -44,9 +43,9 @@ class MMVAEPlusConfig(BaseMultiVAEConfig):
     """
 
     K: int = 10
-    prior_and_posterior_dist: Literal[
-        "laplace_with_softmax", "normal"
-    ] = "laplace_with_softmax"
+    prior_and_posterior_dist: Literal["laplace_with_softmax", "normal"] = (
+        "laplace_with_softmax"
+    )
     learn_shared_prior: bool = False
     learn_modality_prior: bool = True
     beta: float = 1.0

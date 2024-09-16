@@ -4,6 +4,7 @@ from typing import Union
 import numpy as np
 import torch
 import torch.distributions as dist
+
 from multivae.models.nn.default_architectures import BaseJointEncoder
 
 from ...data import MultimodalBaseDataset
@@ -52,7 +53,7 @@ class BaseJointModel(BaseMultiVAE):
             self.model_config.custom_architectures.append("joint_encoder")
 
         self.set_joint_encoder(joint_encoder)
-        
+
     def default_joint_encoder(self, model_config):
         return MultipleHeadJointEncoder(self.encoders, model_config)
 

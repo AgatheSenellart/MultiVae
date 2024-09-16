@@ -292,7 +292,6 @@ class TestTraining:
             optimizer_cls="AdamW",
             optimizer_params={"betas": (0.91, 0.995)},
             output_dir=dir_path,
-
         )
 
     @pytest.fixture

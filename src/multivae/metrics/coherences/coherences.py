@@ -148,12 +148,20 @@ class CoherenceEvaluator(Evaluator):
 
             batch = set_inputs_to_device(batch, device=self.device)
 
-            output = self.model.predict(batch, list(subset), pred_mods, N=self.nb_samples_for_cross, flatten=True)
+            output = self.model.predict(
+                batch,
+                list(subset),
+                pred_mods,
+                N=self.nb_samples_for_cross,
+                flatten=True,
+            )
             for pred_m in pred_mods:
                 preds = self.clfs[pred_m](output[pred_m])
-                if self.nb_samples_for_cross > 1 :
-                    labels = torch.stack([batch.labels]*self.nb_samples_for_cross,dim=0).reshape(-1,*batch.labels.shape[1:])
-                else :
+                if self.nb_samples_for_cross > 1:
+                    labels = torch.stack(
+                        [batch.labels] * self.nb_samples_for_cross, dim=0
+                    ).reshape(-1, *batch.labels.shape[1:])
+                else:
                     labels = batch.labels
                 acc = accuracies_per_class[pred_m](preds, labels)
 

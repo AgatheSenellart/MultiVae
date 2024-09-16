@@ -54,7 +54,7 @@ class Decoder_VAE_SVHN(BaseDecoder):
             nn.ReLU(True),
             # size: (fBase) x 16 x 16
             nn.ConvTranspose2d(self.fBase, self.nb_channels, 4, 2, 1, bias=True),
-            nn.Sigmoid()
+            nn.Sigmoid(),
             # Output size: 3 x 32 x 32
         )
 
