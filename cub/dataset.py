@@ -309,7 +309,7 @@ class CUB(MultimodalBaseDataset):
                     fig.canvas.get_width_height(),fig.canvas.tostring_rgb())
         
         image= np.array(image).transpose(2,0,1)/255
-        
+        plt.close(fig=fig)
         return torch.from_numpy(image).float().to(device)
     
     

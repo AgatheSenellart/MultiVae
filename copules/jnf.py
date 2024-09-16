@@ -193,6 +193,6 @@ import matplotlib.pyplot as plt
 plt.figure()
 for i in range(500):
     
-    plt.scatter(generated_samples['mod0'][i].detach().numpy()[0],generated_samples['mod1'][i].detach().numpy()[0], color='blue')
+    plt.scatter(generated_samples['mod0'][i].detach().cpu().numpy()[0],generated_samples['mod1'][i].detach().cpu().numpy()[0], color='blue')
     
 plt.savefig(trainer.training_dir + '/samples.png')
