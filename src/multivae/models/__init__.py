@@ -13,6 +13,8 @@ from .mvae import MVAE, MVAEConfig
 from .mvtcae import MVTCAE, MVTCAEConfig
 from .nexus import Nexus, NexusConfig
 from .telbo import TELBO, TELBOConfig
+from .jnf_gmc import JNFGMC, JNFGMCConfig
+from .gmc import GMC, GMCConfig
 
 __all__ = [
     "BaseMultiVAEConfig",
@@ -39,4 +41,8 @@ __all__ = [
     "MMVAEPlus",
     "Nexus",
     "NexusConfig",
+    "JNFGMC",
+    "JNFGMCConfig",
+    "GMC",
+    "GMCConfig"
 ]

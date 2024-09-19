@@ -28,7 +28,7 @@ class MMVAEPlusConfig(BaseMultiVAEConfig):
             ex :  {'mod1' : {scale : 0.75}}
         K (int) : the number of samples to use in the DreG loss. Default to 1.
         prior_and_posterior_dist (str) : The type of distribution to use for posterior and prior.
-            Possible values ['laplace_with_softmax','normal'].
+            Possible values ['laplace_with_softmax','normal_with_softplus','normal'].
             Default to 'laplace_with_softmax' the posterior distribution that is used in
             the original paper.
         learn_shared_prior (bool) : If True, the mean and variance of the shared latent space prior are optimized during the
@@ -45,7 +45,7 @@ class MMVAEPlusConfig(BaseMultiVAEConfig):
 
     K: int = 10
     prior_and_posterior_dist: Literal[
-        "laplace_with_softmax", "normal"
+        "laplace_with_softmax", "normal_with_softplus","normal"
     ] = "laplace_with_softmax"
     learn_shared_prior: bool = False
     learn_modality_prior: bool = True

@@ -1,5 +1,6 @@
 import logging
 from typing import List, Optional
+from copy import deepcopy
 
 from multivae.data.datasets.base import MultimodalBaseDataset
 from multivae.models.base.base_ae_model import BaseMultiVAE
@@ -59,4 +60,7 @@ class TwoStepsTrainer(BaseTrainer):
             self.set_scheduler()
             best_train_loss = 1e12
             best_eval_loss = 1e12
+            logger.info(f"Keeping the best model obtained until here for the rest of training.")
+            self.model= deepcopy(self._best_model).train()
+            
         return best_train_loss, best_eval_loss

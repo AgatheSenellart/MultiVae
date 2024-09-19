@@ -64,10 +64,13 @@ class MMVAEPlus(BaseMultiVAE):
         elif model_config.prior_and_posterior_dist == "normal":
             self.post_dist = Normal
             self.prior_dist = Normal
+        elif model_config.prior_and_posterior_dist == "normal_with_softplus":
+            self.post_dist = Normal
+            self.prior_dist = Normal
         else:
             raise AttributeError(
                 " The posterior_dist parameter must be "
-                " either 'laplace_with_softmax' or 'normal'. "
+                " either 'laplace_with_softmax','normal' or 'normal_with_softplus'. "
                 f" {model_config.prior_and_posterior_dist} was provided."
             )
 
@@ -112,12 +115,14 @@ class MMVAEPlus(BaseMultiVAE):
     def log_var_to_std(self, log_var):
         """
         For latent distributions parameters, transform the log covariance to the
-        standard deviation of the distribution either applying softmax or not.
+        standard deviation of the distribution either applying softmax or softplus.
         This follows the original implementation.
         """
 
         if self.model_config.prior_and_posterior_dist == "laplace_with_softmax":
             return F.softmax(log_var, dim=-1) * log_var.size(-1) + 1e-6
+        elif self.model_config.prior_and_posterior_dist == "normal_with_softplus":
+            return F.softplus(log_var) + 1e-6
         else:
             return torch.exp(0.5 * log_var)
 

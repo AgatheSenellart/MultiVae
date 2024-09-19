@@ -156,10 +156,10 @@ class BaseTrainer:
     def set_start_keep_best_epoch(self, start_keep_best_epoch, model):
         " For models that use warmup, assert that the start_keep_best_epoch is a number larger than warmup"
         
-        if hasattr(model, "warmup"):
-            return max(start_keep_best_epoch, model.warmup + 1)
-        else :
-            return start_keep_best_epoch
+        # if hasattr(model, "warmup") and :
+        #     return max(start_keep_best_epoch, model.warmup + 1)
+        # else :
+        return start_keep_best_epoch
 
     @property
     def is_main_process(self):

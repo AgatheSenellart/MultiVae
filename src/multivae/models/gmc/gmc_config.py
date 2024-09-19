@@ -10,5 +10,5 @@ class GMCConfig(BaseConfig):
     input_dims : Dict[str,tuple] = None
     common_dim: int = 20
     latent_dim: int = 20
-    temperature: float = 1.0
+    temperature: float = 0.1
     custom_architectures: list = field(default_factory=lambda: [])
