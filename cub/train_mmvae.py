@@ -17,11 +17,21 @@ model_config = MMVAEPlusConfig(
     n_modalities = 2,
     latent_dim = 48,
     modalities_specific_dim=16,
-    prior_and_posterior_dist='normal',
+    prior_and_posterior_dist='normal_with_softplus',
     beta=1.0,
     K=10,
     decoders_dist=dict(image = 'laplace',
-                       text = 'categorical')
+                       text = 'categorical'),
+    
+    decoder_dist_params=dict(image = dict(scale=0.01)),
+    
+    uses_likelihood_rescaling=True,
+    rescale_factors=dict(image = maxSentLen/(3*64*64),
+                         text = 5.0),
+    
+    learn_shared_prior=False,
+    learn_modality_prior=True,
+    
 
 )
 
