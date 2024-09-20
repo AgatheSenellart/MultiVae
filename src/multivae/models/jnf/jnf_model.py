@@ -163,12 +163,12 @@ class JNF(BaseJointModel):
                 )
 
         else:
-            ljm = self.compute_ljm(inputs, z_joint) * self.alpha
-            beta = min(1, epoch / self.warmup)
+            ljm = self.compute_ljm(inputs, z_joint) * self.alpha/self.n_modalities
+            annealing =  min(1, epoch / (self.warmup+1))
             return ModelOutput(
-                loss=(recon_loss + beta * (KLD + ljm)) / len_batch,
+                loss=((1-self.alpha/self.n_modalities)*recon_loss + annealing * (KLD*(1-self.alpha) + ljm)) / len_batch,
                 metrics=dict(
-                    kld_prior=KLD, recon_loss=recon_loss / len_batch, ljm=ljm, beta=beta
+                    kld_prior=KLD, recon_loss=recon_loss / len_batch, ljm=ljm, annealing=annealing
                 ),
             )
 
