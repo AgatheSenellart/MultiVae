@@ -136,7 +136,7 @@ class BaseTrainer:
         self.train_loader = train_loader
         self.eval_loader = eval_loader
         self.callbacks = callbacks
-        self.start_keep_best_epoch = self.set_start_keep_best_epoch(training_config.start_keep_best_epoch, model)
+        self.start_keep_best_epoch = getattr(model, "start_keep_best_epoch", 0)
 
         # run sanity check on the model
         self._run_model_sanity_check(model, train_loader)
@@ -152,14 +152,6 @@ class BaseTrainer:
             self.resume_training(checkpoint)
             
         
-            
-    def set_start_keep_best_epoch(self, start_keep_best_epoch, model):
-        " For models that use warmup, assert that the start_keep_best_epoch is a number larger than warmup"
-        
-        # if hasattr(model, "warmup") and :
-        #     return max(start_keep_best_epoch, model.warmup + 1)
-        # else :
-        return start_keep_best_epoch
 
     @property
     def is_main_process(self):
@@ -496,9 +488,7 @@ class BaseTrainer:
             else:
                 epoch_eval_loss = self.best_eval_loss
                 self._schedulers_step(epoch_train_loss)
-            if epoch <= self.training_config.start_keep_best_epoch or (
-                hasattr(self.model, "warmup") and epoch <= self.model.warmup
-            ):
+            if epoch <= self.start_keep_best_epoch :
                 # save the model, don't keep track of the best loss
                 best_model = deepcopy(self.model)
                 self._best_model = best_model

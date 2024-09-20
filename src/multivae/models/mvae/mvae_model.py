@@ -41,6 +41,7 @@ class MVAE(BaseMultiVAE):
             self.k = 0
         self.set_subsets()
         self.warmup = model_config.warmup
+        self.start_keep_best_epoch = model_config.warmup + 1
         self.beta = model_config.beta
         self.model_name = "MVAE"
 

@@ -55,12 +55,14 @@ class TwoStepsTrainer(BaseTrainer):
         """
         if epoch in self.model.reset_optimizer_epochs:
             logger.info(f"Epoch {epoch} : reset the optimizer and losses.")
+            logger.info(f"Keeping the best model obtained until here for the rest of training.")
+            self.model= deepcopy(self._best_model).train()
             # Reset the optimizer
             self.set_optimizer()
             self.set_scheduler()
             best_train_loss = 1e12
             best_eval_loss = 1e12
-            logger.info(f"Keeping the best model obtained until here for the rest of training.")
-            self.model= deepcopy(self._best_model).train()
+            
+            
             
         return best_train_loss, best_eval_loss

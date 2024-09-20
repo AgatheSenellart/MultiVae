@@ -52,6 +52,7 @@ class JMVAE(BaseJointModel):
 
         self.alpha = model_config.alpha
         self.warmup = model_config.warmup
+        self.start_keep_best_epoch = model_config.warmup + 1
         self.beta = model_config.beta
 
     def encode(

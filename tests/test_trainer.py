@@ -326,7 +326,7 @@ class Test_set_start_keep_best_epoch:
         )
 
     
-        assert trainer.start_keep_best_epoch >= model_sample.warmup +1
+        assert trainer.start_keep_best_epoch == model_sample.start_keep_best_epoch
 
 
 

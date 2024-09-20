@@ -109,6 +109,7 @@ class Nexus(BaseMultiVAE):
         self.beta = model_config.top_beta
         self.aggregator_function = model_config.aggregator
         self.warmup = model_config.warmup
+        self.start_keep_best_epoch = model_config.warmup+1
         self.adapt_top_decoder_variance = self.set_top_decoder_variance(model_config)
     
     def set_top_decoder_variance(self, config):
