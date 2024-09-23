@@ -195,8 +195,8 @@ class JMVAE(BaseJointModel):
             annealing_factor = 1
         else:
             annealing_factor = epoch / self.warmup
-        recon_loss, reg_loss = recon_loss / len_batch, reg_loss / len_batch
         elbo = (recon_loss + KLD) / len_batch
+        recon_loss, reg_loss = recon_loss / len_batch, reg_loss / len_batch
         loss = recon_loss + annealing_factor * reg_loss
 
         metrics = dict(
