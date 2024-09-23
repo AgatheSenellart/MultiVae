@@ -1,9 +1,10 @@
 
 
-from config2 import *
+from global_config import *
 from multivae.models import AutoModel
 from multivae.data.datasets import MMNISTDataset
 import time
+from multivae.trainers.base.callbacks import load_wandb_path_from_folder
 
 train_data = MMNISTDataset(
     data_path="~/scratch/data",
@@ -11,16 +12,16 @@ train_data = MMNISTDataset(
 )
 
 test_data = MMNISTDataset(data_path="~/scratch/data", split="test")
-
-dir = '/home/asenella/dev/multivae_package/mmnist_resnet/JNF/seed_0/JNF_training_2024-09-03_15-02-21/final_model'
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+seed = 0
+dir = '/home/asenella/experiments/mmnist_resnets/MoPoE/seed_0/MoPoE_training_2024-09-20_17-33-05/final_model'
+wandb_path = load_wandb_path_from_folder(dir)
 
 model = AutoModel.load_from_folder(dir)
-wandb_path = 'multimodal_vaes/mmnist_resnet/fco6kczk'
-
-model = model.eval().cuda()
-
+model = model.eval().to(device)
+model.device = device
 
 t1 = time.time()
-eval_model(model, dir,train_data=train_data, test_data=test_data,wandb_path=wandb_path,seed=0)
+eval_model(model, dir,train_data=train_data, test_data=test_data,wandb_path=wandb_path,seed=seed)
 t2 = time.time()
 print(t2-t1)

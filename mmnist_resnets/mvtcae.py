@@ -31,7 +31,7 @@ model = MVTCAE(model_config, encoders=encoders, decoders=decoders)
 trainer_config = BaseTrainerConfig(
     **base_training_config,
     seed=args.seed,
-    output_dir=f"~home/experiments/mmnist_resnets/{model.model_name}/seed_{args.seed}/",
+    output_dir=f"{project_path}/{model.model_name}/seed_{args.seed}/",
 )
 trainer_config.num_epochs = 300  # enough for this model to reach convergence
 
@@ -57,6 +57,6 @@ model = trainer._best_model
 # validate the model #############################################################################################################
 ##################################################################################################################################
 
-eval_model(model, trainer.training_dir, test_data, wandb_cb.run.path)
+eval_model(model, trainer.training_dir, train_data, test_data, wandb_cb.run.path, args.seed)
 
 save_to_hf(model, args)
