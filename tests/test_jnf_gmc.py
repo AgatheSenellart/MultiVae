@@ -249,25 +249,34 @@ class Test_model:
             
             _ = trainer.prepare_train_step(epoch, None, None)
             
+            assert all(
+                [
+                    torch.equal(trainer.model.state_dict()[key], trainer._best_model.state_dict()[key])
+                    for key in trainer.model.state_dict().keys()
+                ]
+            )
+            
+            step_2_gmc_model_state_dict = deepcopy(trainer.model.gmc_model.state_dict())
+            step_2_model_state_dict = deepcopy(trainer.model.state_dict())
             
             _ = trainer.train_step(epoch=epoch)
 
-            step_2_gmc_model_state_dict = deepcopy(trainer.model.gmc_model.state_dict())
-            step_2_model_state_dict = deepcopy(trainer.model.state_dict())
+            step_3_gmc_model_state_dict = deepcopy(trainer.model.gmc_model.state_dict())
+            step_3_model_state_dict = deepcopy(trainer.model.state_dict())
             
             # check that weights were not updated for gmc
             assert all(
                 [
-                    torch.equal(step_1_gmc_model_state_dict[key], step_2_gmc_model_state_dict[key])
-                    for key in step_1_gmc_model_state_dict.keys()
+                    torch.equal(step_2_gmc_model_state_dict[key], step_3_gmc_model_state_dict[key])
+                    for key in step_2_gmc_model_state_dict.keys()
                 ]
             )
             assert trainer.optimizer != start_optimizer
             # check that weights were updated in the rest of the model
             assert not all(
                 [
-                    torch.equal(start_model_state_dict[key], step_2_model_state_dict[key])
-                    for key in start_model_state_dict.keys()
+                    torch.equal(step_2_model_state_dict[key], step_3_model_state_dict[key])
+                    for key in step_2_model_state_dict.keys()
                 ]
             )
             
