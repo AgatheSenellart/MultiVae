@@ -28,15 +28,10 @@ class copula_dataset(MultimodalBaseDataset):
         
         
     def __getitem__(self, index):
-        
-        # print(self.x1.shape)
-        # print(self.x1[index])
-        
+
         x1 = sp.stats.norm.cdf(self.x1[index], loc=3, scale=1)
         x2 = sp.stats.norm.cdf(self.x2[index], loc=3, scale=1)
-        
-        # print(x1, x2)
-        
+
         # x1 = self.x1[index]
         # x2 = self.x2[index]
         

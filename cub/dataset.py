@@ -302,7 +302,6 @@ class CUB(MultimodalBaseDataset):
         )
         plt.axis('off')
         fig.tight_layout()
-        print(fig.canvas.get_width_height())
         # Draw the canvas and retrieve the image as a NumPy array
         fig.canvas.draw()
         image = PIL.Image.frombytes('RGB', 

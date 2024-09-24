@@ -305,8 +305,8 @@ CoherenceEvaluator(
     eval_config=config,
 ).eval()
 
-config = FIDEvaluatorConfig(batch_size=512, wandb_path=wandb_cb.run.path)
+# config = FIDEvaluatorConfig(batch_size=512, wandb_path=wandb_cb.run.path)
 
-fid = FIDEvaluator(
-    model, test_data, output=trainer.training_dir, eval_config=config
-).eval()
+# fid = FIDEvaluator(
+#     model, test_data, output=trainer.training_dir, eval_config=config
+# ).eval()

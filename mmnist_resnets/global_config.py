@@ -77,18 +77,18 @@ def eval_model(model, output_dir, train_data,test_data, wandb_path, seed):
     In this function, define all the evaluation metrics
     you want to use
     """
-    
+    global fid_path
     # Coherence evaluator
-    config = CoherenceEvaluatorConfig(batch_size=128, wandb_path=wandb_path)
-    mod = CoherenceEvaluator(
-        model=model,
-        test_dataset=test_data,
-        classifiers=load_mmnist_classifiers(device=model.device),
-        output=output_dir,
-        eval_config=config,
-    )
-    mod.eval()
-    mod.finish()
+    # config = CoherenceEvaluatorConfig(batch_size=128, wandb_path=wandb_path)
+    # mod = CoherenceEvaluator(
+    #     model=model,
+    #     test_dataset=test_data,
+    #     classifiers=load_mmnist_classifiers(device=model.device),
+    #     output=output_dir,
+    #     eval_config=config,
+    # )
+    # mod.eval()
+    # mod.finish()
 
     # FID evaluator
     config = FIDEvaluatorConfig(batch_size=128, wandb_path=wandb_path, inception_weights_path=fid_path)

@@ -1,4 +1,4 @@
-from multivae.models.base import BaseEncoder, BaseDecoder, BaseJointEncoder, ModelOutput
+from multivae.models.nn.base_architectures import BaseEncoder, BaseDecoder, BaseJointEncoder, ModelOutput
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
