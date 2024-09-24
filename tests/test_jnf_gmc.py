@@ -105,14 +105,16 @@ class Test_model:
         )
         
     
-    @pytest.fixture
-    def joint_encoder(self, gmc_config):
+    @pytest.fixture(params = [True, False])
+    def joint_encoder(self, gmc_config, request):
         
         config = BaseAEConfig(latent_dim=gmc_config.common_dim)
-        
-        return MultipleHeadJointEncoder(
+        if request.param :
+            return MultipleHeadJointEncoder(
             BaseDictEncoders(input_dims=gmc_config.input_dims,latent_dim=100), args=config
         )
+        else :
+            return None
         
     @pytest.fixture
     def shared_encoder(self, gmc_config):
@@ -246,6 +248,8 @@ class Test_model:
         for epoch in trainer.model.reset_optimizer_epochs :
             
             _ = trainer.prepare_train_step(epoch, None, None)
+            
+            
             _ = trainer.train_step(epoch=epoch)
 
             step_2_gmc_model_state_dict = deepcopy(trainer.model.gmc_model.state_dict())

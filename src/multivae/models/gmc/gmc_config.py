@@ -1,6 +1,6 @@
 from pydantic.dataclasses import dataclass
 from dataclasses import field
-from typing import Dict
+from typing import Dict, Literal
 from pythae.config import BaseConfig
 
 @dataclass
@@ -12,3 +12,4 @@ class GMCConfig(BaseConfig):
     latent_dim: int = 20
     temperature: float = 0.1
     custom_architectures: list = field(default_factory=lambda: [])
+    loss: Literal["between_modality_pairs","between_modality_joint"] = "between_modality_joint"

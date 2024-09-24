@@ -11,7 +11,7 @@ from .gmc_config import GMCConfig
 from multivae.models.base import BaseModel
 
 class GMC(BaseModel):
-    def __init__(self, model_config: GMCConfig, processors: Dict[str, BaseEncoder], joint_encoder : BaseJointEncoder, shared_encoder : BaseEncoder) -> None:
+    def __init__(self, model_config: GMCConfig, processors: Dict[str, BaseEncoder], shared_encoder : BaseEncoder,joint_encoder : BaseJointEncoder=None, ) -> None:
         # """
         # Implements the Geometric Multimodal Contrastive Learning from :
         # https://arxiv.org/abs/2202.03390
@@ -35,14 +35,20 @@ class GMC(BaseModel):
         self.common_dim = model_config.common_dim
         self.temperature = model_config.temperature
         self.set_processors(processors)
-        self.set_joint_encoder(joint_encoder)
         self.set_shared_encoder(shared_encoder)
-        
         self.model_config.custom_architectures.extend([
             "processors", 
-            "joint_encoder",
             "shared_encoder"
         ])
+        
+        if model_config.loss == "between_modality_pairs" or joint_encoder is None:
+            self.loss = "pairs"
+
+        else :
+            self.set_joint_encoder(joint_encoder)
+            self.model_config.custom_architectures.append("joint_encoder")
+            self.loss = "joint"
+        
 
 
     def set_processors(self, processors):
@@ -92,16 +98,80 @@ class GMC(BaseModel):
             modalities_z[m] = z
         
         # Compute the joint representation
-        joint_h = self.joint_encoder(inputs.data).embedding
-        joint_z = self.shared_encoder(joint_h).embedding
+        if self.loss == 'joint':
+            joint_h = self.joint_encoder(inputs.data).embedding
+            joint_z = self.shared_encoder(joint_h).embedding
         
-        # Compute the loss
-        output = ModelOutput(loss = self.infonce(modalities_z, joint_z), metrics = {})
+            # Compute the loss
+            output = ModelOutput(loss = self.infonce(modalities_z, joint_z), metrics = {})
+        
+        elif self.loss == 'pairs':
+            output = ModelOutput(loss=self.infonce_pairs(modalities_z), metrics={})
+        
+        else :
+            raise NotImplementedError()
         
         return output
+    
+    def infonce_pairs(self, modalities_z):
+        """A variant of the GMC objective where no joint representation is computed and the 
+        positive pairs are pairs of different modalities for the same sample. 
+
+        Args:
+            modalities_z (Dict[str, Tensor]):contains the batch embeddings for each modality 
+        """
+        modalities_z = list(modalities_z.values())
+        batch_size = len(modalities_z[0])
+        joint_mod_loss_sum = 0
+        
+        for i in range(len(modalities_z)):
+            for j in range(i+1, len(modalities_z)):
+                
+                both_mod = torch.cat(
+                    [modalities_z[i], modalities_z[j]], dim=0
+                )
+                # [2*B, 2*B]
+                sim_matrix_both_mod = torch.exp(
+                    torch.mm(both_mod, both_mod.t().contiguous()) / self.temperature
+                )
+                # Mask for remove diagonal that give trivial similarity, [2*B, 2*B]
+                mask_both_mod = (
+                    torch.ones_like(sim_matrix_both_mod)
+                    - torch.eye(2 * batch_size, device=sim_matrix_both_mod.device)
+                ).bool()
+                # Remove 2*B diagonals and reshape to [2*B, 2*B-1]
+                sim_matrix_both_mod = sim_matrix_both_mod.masked_select(
+                    mask_both_mod
+                ).view(2 * batch_size, -1)
+
+                # Positive pairs: cosine loss joint-modality
+                pos_sim_both_mod = torch.exp(
+                    torch.sum(
+                        modalities_z[i] * modalities_z[j], dim=-1
+                    )
+                    / self.temperature
+                )
+                # [2*B]
+                pos_sim_both_mod = torch.cat([pos_sim_both_mod, pos_sim_both_mod], dim=0)
+                loss_both_mod = -torch.log(
+                    pos_sim_both_mod / sim_matrix_both_mod.sum(dim=-1)
+                )
+                joint_mod_loss_sum += loss_both_mod
+
+        loss = torch.mean(joint_mod_loss_sum)
+        
+        return loss
         
     
     def infonce(self, modalities_z, joint_z):
+        
+        """
+        The objective used in the paper of the GMC model, where positive pairs are the pairs with one modality and 
+        the joint representation.
+
+        Returns:
+            float: the loss for the batch
+        """
         
         batch_size = len(joint_z)
         joint_mod_loss_sum = 0
@@ -163,6 +233,12 @@ class GMC(BaseModel):
         
         # joint encoding
         if cond_mod == 'all':
+            if self.loss == 'pairs':
+                raise AttributeError("The encode function was called with cond_mod = 'all' but ",
+                                     "this model doesn't have a trained joint encoder since the loss ",
+                                     'in model_config is "between_modalities_pairs". ',
+                                     "Argument cond_mod must be a modality name : ",
+                                     f"for instance one of {self.processors.keys()}.")
             h = self.joint_encoder(inputs.data).embedding
             output = self.shared_encoder(h)
         # modality encoding

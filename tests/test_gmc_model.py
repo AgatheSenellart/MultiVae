@@ -32,14 +32,15 @@ class Test:
             
         return MultimodalBaseDataset(data=data)
     
-    @pytest.fixture
-    def model_config(self, n_modalities, input_dims):
+    @pytest.fixture(params=["between_modality_pairs","between_modality_joint"])
+    def model_config(self, n_modalities, input_dims,request):
         return GMCConfig(
             n_modalities=n_modalities,
             input_dims=input_dims,
             common_dim= 10,
             latent_dim = 5,
-            temperature=0.2
+            temperature=0.2,
+            loss=request.param
         )
     
     
@@ -53,14 +54,16 @@ class Test:
         )
         
     
-    @pytest.fixture
-    def joint_encoder(self, input_dims, model_config):
+    @pytest.fixture(params = [True, False])
+    def joint_encoder(self, input_dims, model_config, request):
         
         config = BaseAEConfig(latent_dim=model_config.common_dim)
-        
-        return MultipleHeadJointEncoder(
+        if request.param:
+            return MultipleHeadJointEncoder(
             BaseDictEncoders(input_dims=input_dims,latent_dim=100), args=config
         )
+        else :
+            return None
         
     @pytest.fixture
     def shared_encoder(self, model_config):
@@ -72,6 +75,19 @@ class Test:
     def model(self, model_config,encoders, joint_encoder, shared_encoder):
         
         return GMC(model_config=model_config, processors=encoders, joint_encoder=joint_encoder, shared_encoder=shared_encoder)
+    
+    
+    def test_model_setup(self, model, model_config,encoders, joint_encoder,shared_encoder):
+        
+        if model_config.loss == "between_modality_pairs" or joint_encoder is None:
+            assert model.loss == "pairs"
+            assert "joint_encoder" not in model.model_config.custom_architectures
+        else :
+            assert model.loss == "joint"
+            assert "joint_encoder" in model.model_config.custom_architectures
+            
+        assert "shared_encoder" in model.model_config.custom_architectures
+        assert "processors" in model.model_config.custom_architectures
     
     
     def test_forward(self, model, dataset):
@@ -86,13 +102,26 @@ class Test:
     
     def test_encode(self, model, dataset):
         
-        for cond_mod in ['all','m1']:
+        cond_mod = 'all'
+        
+        if model.loss == 'pairs':
+            with pytest.raises(AttributeError):
+                model.encode(dataset,cond_mod = cond_mod)
+        
+        else :
             output = model.encode(dataset,cond_mod = cond_mod)
             assert isinstance(output, ModelOutput)
             embedding = output.embedding
             assert isinstance(embedding, torch.Tensor)
             assert embedding.shape == (len(dataset),model.latent_dim)
             
+        cond_mod = 'm1'
+    
+        output = model.encode(dataset,cond_mod = cond_mod)
+        assert isinstance(output, ModelOutput)
+        embedding = output.embedding
+        assert isinstance(embedding, torch.Tensor)
+        assert embedding.shape == (len(dataset),model.latent_dim)
         
         
         
