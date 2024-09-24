@@ -60,7 +60,7 @@ class TwoStepsTrainer(BaseTrainer):
             self.set_scheduler()
             best_train_loss = 1e12
             best_eval_loss = 1e12
-            logger.info(f"Keeping the best model obtained until here for the rest of training.")
-            self.model= deepcopy(self._best_model).train()
+            logger.info(f"Keeping the best model for the next stages of training.")
+            self.model.load_state_dict(self._best_model.state_dict())
             
         return best_train_loss, best_eval_loss
