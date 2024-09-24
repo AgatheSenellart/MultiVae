@@ -7,7 +7,6 @@ from ..base import BaseMultiVAEConfig
 
 @dataclass
 class MMVAEPlusConfig(BaseMultiVAEConfig):
-
     """
     This class is the configuration class for the MMVAE+ model.
 

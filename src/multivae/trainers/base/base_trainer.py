@@ -18,7 +18,7 @@ from torchvision.utils import make_grid
 from ...data import MultimodalBaseDataset
 from ...data.datasets.utils import adapt_shape
 from ...data.utils import get_batch_size, set_inputs_to_device
-from ...models import BaseMultiVAE, BaseModel
+from ...models import BaseModel, BaseMultiVAE
 from .base_trainer_config import BaseTrainerConfig
 from .callbacks import (
     CallbackHandler,
@@ -515,8 +515,9 @@ class BaseTrainer:
                 
 
             # For BaseMultiVae models, compute reconstruction
-            if (isinstance(self.model,BaseMultiVAE) and
-                self.training_config.steps_predict is not None
+            if (
+                isinstance(self.model, BaseMultiVAE)
+                and self.training_config.steps_predict is not None
                 and (epoch % self.training_config.steps_predict == 0 or epoch == 1)
                 and self.is_main_process
             ):
@@ -761,9 +762,8 @@ class BaseTrainer:
         )
 
     def predict(self, model: BaseMultiVAE, epoch: int, n_data=8):
-        
-        '''For BaseMultiVaE models, compute self and cross reconstructions during training.'''
-        
+        """For BaseMultiVaE models, compute self and cross reconstructions during training."""
+
         model.eval()
 
         if self.eval_dataset is not None:
@@ -778,10 +778,17 @@ class BaseTrainer:
             recon = model.predict(
                 inputs, mod, "all", N=8, flatten=True, ignore_incomplete=True
             )
-            if hasattr(self.eval_dataset, 'transform_for_plotting'):
-                recon = {mod_name : self.eval_dataset.transform_for_plotting(recon[mod_name], modality = mod_name) for mod_name in recon}
-                recon["true_data"] = self.eval_dataset.transform_for_plotting(inputs.data[mod], modality=mod)
-            else :
+            if hasattr(self.eval_dataset, "transform_for_plotting"):
+                recon = {
+                    mod_name: self.eval_dataset.transform_for_plotting(
+                        recon[mod_name], modality=mod_name
+                    )
+                    for mod_name in recon
+                }
+                recon["true_data"] = self.eval_dataset.transform_for_plotting(
+                    inputs.data[mod], modality=mod
+                )
+            else:
                 recon["true_data"] = inputs.data[mod]
             recon, shape = adapt_shape(recon)
             recon_image = [recon["true_data"]] + [

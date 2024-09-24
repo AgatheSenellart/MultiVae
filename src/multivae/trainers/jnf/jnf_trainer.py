@@ -44,9 +44,11 @@ class TwoStepsTrainer(BaseTrainer):
         eval_dataset: Optional[MultimodalBaseDataset] = None,
         training_config: Optional[TwoStepsTrainerConfig] = None,
         callbacks: List[TrainingCallback] = None,
-        checkpoint: str = None
+        checkpoint: str = None,
     ):
-        super().__init__(model, train_dataset, eval_dataset, training_config, callbacks, checkpoint)
+        super().__init__(
+            model, train_dataset, eval_dataset, training_config, callbacks, checkpoint
+        )
 
     def prepare_train_step(self, epoch, best_train_loss, best_eval_loss):
         """

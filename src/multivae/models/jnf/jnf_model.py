@@ -21,7 +21,6 @@ logger.setLevel(logging.INFO)
 
 
 class JNF(BaseJointModel):
-
     """
     The JNF model.
 

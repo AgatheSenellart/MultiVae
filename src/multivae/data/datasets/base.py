@@ -41,13 +41,13 @@ class MultimodalBaseDataset(Dataset):
         """
         # Select sample
         X = {modality: self.data[modality][index] for modality in self.data}
-        
-        if self.labels is not None: 
-            y = self.labels[index] 
+
+        if self.labels is not None:
+            y = self.labels[index]
             return DatasetOutput(data=X, labels=y)
-        else :
-            return DatasetOutput(data = X)
-        
+        else:
+            return DatasetOutput(data=X)
+
     def transform_for_plotting(self, tensor, modality):
         return tensor
 
@@ -73,14 +73,27 @@ class IncompleteDataset(MultimodalBaseDataset):
         self.data = data
         self.masks = masks
         self.labels = labels
+        self.check_lenght()
 
-    def __len__(self):
+    def check_lenght(self):
         length = len(self.data[list(self.data)[0]])
+
+        # check that all modalities have the same number of samples
         for m in self.data:
             if len(self.data[m]) != length or len(self.masks[m]) != length:
                 raise AttributeError(
                     "The size of the provided datasets/masks doesn't correspond between modalities!"
                 )
+        # check that labels have the same number of samples
+        if self.labels is not None:
+            if len(self.labels) != length:
+                raise AttributeError(
+                    "The size of the provided datasets/masks doesn't correspond with the labels"
+                )
+        return
+
+    def __len__(self):
+        length = len(self.data[list(self.data)[0]])
 
         return length
 
