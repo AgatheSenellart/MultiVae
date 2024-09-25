@@ -122,17 +122,18 @@ class FIDEvaluator(Evaluator):
             for batch in tqdm(self.test_loader):
                 batch = set_inputs_to_device(batch, self.device)
                 # Compute activations for true data
-
+                true_data = batch.data[mod]
                 if self.inception_transform is not None:
-                    batch.data[mod] = self.inception_transform(batch.data[mod])
+                    true_data = self.inception_transform(true_data)
+                
 
-                data = batch.data[mod].to(self.device)
-                pred = self.model_fds[mod](data)
+                true_data = true_data.to(self.device)
+                pred = self.model_fds[mod](true_data)
 
                 if isinstance(pred, ModelOutput):
                     pred = pred.embedding
 
-                del data
+                del true_data
                 activations[0].append(pred)
 
                 # Compute activations for generated data
@@ -140,10 +141,10 @@ class FIDEvaluator(Evaluator):
                 latents.z = latents.z.to(self.device)
 
                 samples = self.model.decode(latents, modalities=mod)
-
-                if self.inception_transform is not None:
-                    samples[mod] = self.inception_transform(samples[mod])
                 data_gen = samples[mod]
+                if self.inception_transform is not None:
+                    data_gen = self.inception_transform(data_gen)
+                    
                 del samples
                 pred_gen = self.model_fds[mod](data_gen)
 
