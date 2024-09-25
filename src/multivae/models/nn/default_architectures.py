@@ -9,8 +9,8 @@ from pythae.models.nn.base_architectures import BaseEncoder
 from pythae.models.nn.default_architectures import Encoder_VAE_MLP
 from torch import nn
 
-from multivae.models.nn.base_architectures import BaseJointEncoder
 from multivae.models.base.base_config import BaseAEConfig
+from multivae.models.nn.base_architectures import BaseJointEncoder
 
 
 class Encoder_VAE_MLP_Style(BaseEncoder):

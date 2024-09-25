@@ -17,4 +17,4 @@ __all__ = [
     "BaseDecoder",
     "ModelOutput",
     "BaseModel",
-    ]
+]

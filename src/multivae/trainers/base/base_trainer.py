@@ -146,6 +146,14 @@ class BaseTrainer:
         if self.is_main_process:
             logger.info("Model passed sanity check !\n" "Ready for training.\n")
 
+        # Assert that the trainer is suited for the chosen model
+        if hasattr(model, "reset_optimizer_epochs"):
+            if len(model.reset_optimizer_epochs) != 0:
+                raise AttributeError(
+                    f"The model {self.model_name} has a 'reset_optimizer_epochs' attribute ",
+                    "that is not empty. That means that it requires multistage training and therefore you",
+                    "should use the ~multivae.trainers.MultistageTrainer instead of the BaseTrainer.",
+                )
         self.model = model
 
         if checkpoint is None:
@@ -592,12 +600,10 @@ class BaseTrainer:
         self.model.eval()
 
         epoch_loss = 0
-        n_samples_compute = 0
         epoch_metrics = {}
 
         for inputs in self.eval_loader:
             inputs = set_inputs_to_device(inputs, device=self.device)
-            batch_size = get_batch_size(inputs)
 
             try:
                 with torch.no_grad():
@@ -618,8 +624,7 @@ class BaseTrainer:
 
             loss = model_output.loss
 
-            epoch_loss += loss.item() * batch_size
-            n_samples_compute += batch_size
+            epoch_loss += loss.item()
             update_dict(epoch_metrics, model_output.metrics)
 
             if epoch_loss != epoch_loss:
@@ -627,7 +632,6 @@ class BaseTrainer:
 
             self.callback_handler.on_eval_step_end(training_config=self.training_config)
 
-        epoch_loss /= n_samples_compute
         epoch_metrics = {
             k: epoch_metrics[k] / len(self.eval_loader) for k in epoch_metrics
         }
@@ -653,12 +657,10 @@ class BaseTrainer:
         self.model.train()
 
         epoch_loss = 0
-        n_samples_compute = 0
         epoch_model_metrics = {}
         batch_idx = 0
         for inputs in self.train_loader:
             inputs = set_inputs_to_device(inputs, device=self.device)
-            batch_size = get_batch_size(inputs)
 
             model_output = self.model(
                 inputs,
@@ -671,8 +673,7 @@ class BaseTrainer:
             self._optimizers_step(model_output)
 
             loss = model_output.loss
-            epoch_loss += loss.item() * batch_size
-            n_samples_compute += batch_size
+            epoch_loss += loss.item()
             update_dict(epoch_model_metrics, model_output.metrics)
 
             if epoch_loss != epoch_loss:
@@ -688,7 +689,6 @@ class BaseTrainer:
         else:
             self.model.update()
 
-        epoch_loss /= n_samples_compute
         epoch_model_metrics = {
             k: epoch_model_metrics[k] / len(self.train_loader)
             for k in epoch_model_metrics

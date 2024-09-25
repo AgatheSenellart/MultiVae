@@ -10,7 +10,7 @@ Trainers
     :maxdepth: 1
 
     base
-    two_steps
+    multistage
     add_dcca
 
 .. automodule::
@@ -21,6 +21,6 @@ Available Trainers
 
 .. autosummary::
     ~multivae.trainers.BaseTrainer
-    ~multivae.trainers.TwoStepsTrainer
+    ~multivae.trainers.MultistageTrainer
     ~multivae.trainers.AddDccaTrainer
     :nosignatures:
