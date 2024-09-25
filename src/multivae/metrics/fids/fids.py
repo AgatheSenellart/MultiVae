@@ -125,7 +125,6 @@ class FIDEvaluator(Evaluator):
                 true_data = batch.data[mod]
                 if self.inception_transform is not None:
                     true_data = self.inception_transform(true_data)
-                
 
                 true_data = true_data.to(self.device)
                 pred = self.model_fds[mod](true_data)
@@ -144,7 +143,7 @@ class FIDEvaluator(Evaluator):
                 data_gen = samples[mod]
                 if self.inception_transform is not None:
                     data_gen = self.inception_transform(data_gen)
-                    
+
                 del samples
                 pred_gen = self.model_fds[mod](data_gen)
 

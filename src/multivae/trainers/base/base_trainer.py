@@ -149,9 +149,11 @@ class BaseTrainer:
         # Assert that the trainer is suited for the chosen model
         if hasattr(model, "reset_optimizer_epochs"):
             if len(model.reset_optimizer_epochs) != 0:
-                raise AttributeError(f"The model {self.model_name} has a 'reset_optimizer_epochs' attribute ",
-                                     "that is not empty. That means that it requires multistage training and therefore you",
-                                     "should use the ~multivae.trainers.MultistageTrainer instead of the BaseTrainer.")
+                raise AttributeError(
+                    f"The model {self.model_name} has a 'reset_optimizer_epochs' attribute ",
+                    "that is not empty. That means that it requires multistage training and therefore you",
+                    "should use the ~multivae.trainers.MultistageTrainer instead of the BaseTrainer.",
+                )
         self.model = model
 
         if checkpoint is None:
@@ -602,7 +604,6 @@ class BaseTrainer:
 
         for inputs in self.eval_loader:
             inputs = set_inputs_to_device(inputs, device=self.device)
-            
 
             try:
                 with torch.no_grad():
@@ -623,7 +624,7 @@ class BaseTrainer:
 
             loss = model_output.loss
 
-            epoch_loss += loss.item() 
+            epoch_loss += loss.item()
             update_dict(epoch_metrics, model_output.metrics)
 
             if epoch_loss != epoch_loss:
@@ -688,7 +689,6 @@ class BaseTrainer:
         else:
             self.model.update()
 
-        
         epoch_model_metrics = {
             k: epoch_model_metrics[k] / len(self.train_loader)
             for k in epoch_model_metrics

@@ -72,8 +72,6 @@ class AutoConfig(BaseConfig):
 
             model_config = NexusConfig.from_json_file(json_path)
 
- 
-
         else:
             raise NameError(
                 "Cannot reload automatically the model configuration... "

@@ -11,7 +11,7 @@ from pythae.models.nn.benchmarks.mnist.convnets import (
 from pythae.models.nn.default_architectures import Encoder_VAE_MLP
 
 from multivae.data import MultimodalBaseDataset
-from multivae.models import JMVAE, JMVAEConfig, TELBO, TELBOConfig
+from multivae.models import JMVAE, TELBO, JMVAEConfig, TELBOConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 from multivae.trainers.base.callbacks import rename_logs
@@ -24,7 +24,6 @@ def training_config(tmpdir):
     tmpdir.mkdir("dummy_folder")
     dir_path = os.path.join(tmpdir, "dummy_folder")
     return BaseTrainerConfig(output_dir=dir_path)
-
 
 
 @pytest.fixture(params=[0, 20])
@@ -45,26 +44,33 @@ def train_dataset():
         ),
         labels=torch.tensor([0, 1]),
     )
-    
+
+
 class Test_Set_Trainer:
     @pytest.fixture
     def model_two_stage(self):
-        model_config = TELBOConfig(n_modalities=2, latent_dim=10, uses_likelihood_rescaling=False)
+        model_config = TELBOConfig(
+            n_modalities=2, latent_dim=10, uses_likelihood_rescaling=False
+        )
         config = BaseAEConfig(input_dim=(1, 28, 28), latent_dim=10)
-        encoders = dict(mod1=Encoder_VAE_MLP(config), mod2=Encoder_Conv_VAE_MNIST(config))
+        encoders = dict(
+            mod1=Encoder_VAE_MLP(config), mod2=Encoder_Conv_VAE_MNIST(config)
+        )
         decoders = dict(mod1=Decoder_AE_MLP(config), mod2=Decoder_Conv_AE_MNIST(config))
         return TELBO(model_config=model_config, encoders=encoders, decoders=decoders)
 
-    def test_setup_with_two_stage_model(self, model_two_stage,training_config, train_dataset):
-        
+    def test_setup_with_two_stage_model(
+        self, model_two_stage, training_config, train_dataset
+    ):
+
         with pytest.raises(AttributeError) as excinfo:
             trainer = BaseTrainer(
                 model=model_two_stage,
                 train_dataset=train_dataset,
-                training_config=training_config
+                training_config=training_config,
             )
         assert "MultistageTrainer" in str(excinfo.value)
-        
+
 
 class Test_Set_Training_config:
     @pytest.fixture(
