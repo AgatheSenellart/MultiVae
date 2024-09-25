@@ -1,4 +1,5 @@
 import os
+import shutil
 
 import pytest
 import torch
@@ -109,7 +110,7 @@ class Test_Set_Training_config:
             assert trainer.training_config == BaseTrainerConfig(
                 output_dir="dummy_output_dir", keep_best_on_train=True
             )
-
+            shutil.rmtree('dummy_output_dir')
         else:
             assert trainer.training_config == training_configs
 
