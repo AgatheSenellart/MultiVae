@@ -2,6 +2,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from multivae.models.base import BaseEncoder, BaseDecoder, ModelOutput
+from torch.distributions import OneHotCategorical
 
 class Constants(object):
     eta = 1e-20

@@ -1,4 +1,4 @@
-from config2 import *
+from global_config import *
 import numpy as np
 
 from multivae.models import MMVAEPlus, MMVAEPlusConfig

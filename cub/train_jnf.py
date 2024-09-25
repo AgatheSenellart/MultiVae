@@ -8,7 +8,6 @@ from architectures_text import *
 
 # dataset
 train_data = CUB('/home/asenella/scratch/data', split='train',max_lenght=32)
-
 eval_data = CUB('/home/asenella/scratch/data', split='eval',max_lenght=32)
 
 
@@ -17,10 +16,16 @@ eval_data = CUB('/home/asenella/scratch/data', split='eval',max_lenght=32)
 model_config = JNFConfig(
     n_modalities=2,
     latent_dim=64,
-    uses_likelihood_rescaling=False,
+    uses_likelihood_rescaling=True,
+
+    rescale_factors=dict(image = maxSentLen/(3*64*64),
+                         text = 5.0),
+    
     decoders_dist=dict(image = 'laplace',
                        text ='categorical'),
-    warmup=50
+    
+    decoder_dist_params=dict(image = dict(scale=0.01)),
+    warmup=200,
     
 )
 
@@ -48,7 +53,7 @@ training_config = BaseTrainerConfig(
     output_dir='jnf_train',
     per_device_eval_batch_size=32,
     per_device_train_batch_size=32,
-    num_epochs=50+model_config.warmup,
+    num_epochs= model_config.warmup + 100,
     optimizer_cls="Adam",
     optimizer_params=dict(amsgrad = True),
     learning_rate=1e-3,

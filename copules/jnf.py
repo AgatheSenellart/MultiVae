@@ -28,15 +28,10 @@ class copula_dataset(MultimodalBaseDataset):
         
         
     def __getitem__(self, index):
-        
-        # print(self.x1.shape)
-        # print(self.x1[index])
-        
+
         x1 = sp.stats.norm.cdf(self.x1[index], loc=3, scale=1)
         x2 = sp.stats.norm.cdf(self.x2[index], loc=3, scale=1)
-        
-        # print(x1, x2)
-        
+
         # x1 = self.x1[index]
         # x2 = self.x2[index]
         
@@ -193,6 +188,6 @@ import matplotlib.pyplot as plt
 plt.figure()
 for i in range(500):
     
-    plt.scatter(generated_samples['mod0'][i].detach().numpy()[0],generated_samples['mod1'][i].detach().numpy()[0], color='blue')
+    plt.scatter(generated_samples['mod0'][i].detach().cpu().numpy()[0],generated_samples['mod1'][i].detach().cpu().numpy()[0], color='blue')
     
 plt.savefig(trainer.training_dir + '/samples.png')

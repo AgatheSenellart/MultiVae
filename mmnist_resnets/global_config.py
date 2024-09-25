@@ -33,7 +33,8 @@ import os
 modalities = ["m0", "m1", "m2", "m3", "m4"]
 
 
-project_path = '/home/asenella/scratch/mmnist_resnet'
+project_path = '~/experiments/mmnist_resnets'
+fid_path = '/home/asenella/scratch/fid/pt_inception-2015-12-05-6726825d.pth'
 wandb_project = "mmnist_resnet"
 config_name = "mmnist_resnet"
 
@@ -76,21 +77,21 @@ def eval_model(model, output_dir, train_data,test_data, wandb_path, seed):
     In this function, define all the evaluation metrics
     you want to use
     """
-    
+    global fid_path
     # Coherence evaluator
-    config = CoherenceEvaluatorConfig(batch_size=128, wandb_path=wandb_path)
-    mod = CoherenceEvaluator(
-        model=model,
-        test_dataset=test_data,
-        classifiers=load_mmnist_classifiers(device=model.device),
-        output=output_dir,
-        eval_config=config,
-    )
-    mod.eval()
-    mod.finish()
+    # config = CoherenceEvaluatorConfig(batch_size=128, wandb_path=wandb_path)
+    # mod = CoherenceEvaluator(
+    #     model=model,
+    #     test_dataset=test_data,
+    #     classifiers=load_mmnist_classifiers(device=model.device),
+    #     output=output_dir,
+    #     eval_config=config,
+    # )
+    # mod.eval()
+    # mod.finish()
 
     # FID evaluator
-    config = FIDEvaluatorConfig(batch_size=128, wandb_path=wandb_path)
+    config = FIDEvaluatorConfig(batch_size=128, wandb_path=wandb_path, inception_weights_path=fid_path)
 
     fid = FIDEvaluator(
         model, test_data, output=output_dir, eval_config=config

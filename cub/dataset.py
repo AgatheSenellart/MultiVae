@@ -285,6 +285,7 @@ class CUB(MultimodalBaseDataset):
 
     def plot_text(self,input_tensor, fig_size=(2,1.5)):
         # input_tensor is of shape (max_sequence_lenght,vocab_size)
+        device = input_tensor.device
         array = input_tensor.detach().cpu().numpy()
         sentence = self.text_data._to_string(array)
         
@@ -301,15 +302,14 @@ class CUB(MultimodalBaseDataset):
         )
         plt.axis('off')
         fig.tight_layout()
-        print(fig.canvas.get_width_height())
         # Draw the canvas and retrieve the image as a NumPy array
         fig.canvas.draw()
         image = PIL.Image.frombytes('RGB', 
                     fig.canvas.get_width_height(),fig.canvas.tostring_rgb())
         
         image= np.array(image).transpose(2,0,1)/255
-        
-        return torch.from_numpy(image).float()
+        plt.close(fig=fig)
+        return torch.from_numpy(image).float().to(device)
     
     
     def transform_for_plotting(self, tensor, modality):

@@ -7,7 +7,7 @@ import numpy as np
 
 class copula_dataset(MultimodalBaseDataset):
     
-    def __init__(self):
+    def __init__(self, split='train'):
         self.mean = np.array([3,3,3,3])
 
         self.cov1 = np.zeros((4,4))
@@ -22,9 +22,16 @@ class copula_dataset(MultimodalBaseDataset):
                 else :
                     self.cov1[i,j] = (-1)**(i+j)*0.9
                     self.cov2[i,j] = 1*0.9
+                    
+        self.lenght = 50000 if split == 'train' else 1000
         
-        self.x1 = np.random.multivariate_normal(self.mean, self.cov1,size=50000)
-        self.x2 = np.random.multivariate_normal(self.mean, self.cov2,size=50000)
+        seed = 0 if split =='train' else 1
+
+        np.random.seed(seed)        
+        self.x1 = np.random.multivariate_normal(self.mean, self.cov1,size=self.lenght)
+        self.x2 = np.random.multivariate_normal(self.mean, self.cov2,size=self.lenght)
+        
+    
         
         
     def __getitem__(self, index):
@@ -50,7 +57,8 @@ class copula_dataset(MultimodalBaseDataset):
     
     
 
-dataset = copula_dataset()
+train_dataset = copula_dataset()
+eval_dataset = copula_dataset(split='eval')
 
 # Architectures
 from pythae.models.nn.default_architectures import BaseEncoder, BaseDecoder, ModelOutput
@@ -159,7 +167,7 @@ model_config = MoPoEConfig(
         mod3 = (2,)
     ),
     latent_dim=3,
-    beta=2.5,
+    beta=1.0,
     
 )
 
@@ -178,7 +186,7 @@ trainer_config  = BaseTrainerConfig(
 )
 
 trainer = BaseTrainer(
-    model=model,train_dataset=dataset,training_config=trainer_config
+    model=model,train_dataset=train_dataset, eval_dataset=eval_dataset,training_config=trainer_config
 )
 
 trainer.train()
@@ -193,6 +201,6 @@ import matplotlib.pyplot as plt
 plt.figure()
 for i in range(500):
     
-    plt.scatter(generated_samples['mod0'][i].detach().numpy()[0],generated_samples['mod1'][i].detach().numpy()[0], color='blue')
+    plt.scatter(generated_samples['mod0'][i].detach().cpu().numpy()[0],generated_samples['mod1'][i].detach().cpu().numpy()[0], color='blue')
     
 plt.savefig(trainer.training_dir + '/samples.png')
