@@ -41,15 +41,15 @@ class Nexus(BaseMultiVAE):
 
         encoders (Dict[str, ~pythae.models.nn.BaseEncoder]): A dictionary
             containing the modalities names and the encoders for each modality. Each encoder is
-            an instance of ~pythae.models.nn.BaseEncoder 
+            an instance of ~pythae.models.nn.BaseEncoder
 
         decoders (Dict[str, ~pythae.models.nn.BaseDecoder]): A dictionary
             containing the modalities names and the decoders for each modality. Each decoder is an
             instance of ~pythae.models.nn.BaseDecoder
 
-        top_encoders (Dict[str, ~pythae.models.nn.BaseEncoder]) : A dictionary containing for each modality, 
+        top_encoders (Dict[str, ~pythae.models.nn.BaseEncoder]) : A dictionary containing for each modality,
             the top encoder to use.
-            
+
         joint_encoder (~multivae.models.nn.BaseJointEncoder): The encoder that takes the aggregated message and
             encode it to obtain the high level latent distribution.
 

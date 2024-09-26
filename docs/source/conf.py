@@ -5,8 +5,6 @@
 import os
 import sys
 
-
-
 # Configuration file for the Sphinx documentation builder.
 #
 # This file only contains a selection of the most common options. For a full
@@ -45,7 +43,6 @@ extensions = [
 
 
 suppress_warnings = ["autosectionlabel.*"]
-
 
 
 intersphinx_mapping = {

@@ -7,7 +7,7 @@ from multivae.models.base.base_ae_model import BaseMultiVAE
 from multivae.trainers.base.callbacks import TrainingCallback
 
 from ..base import BaseTrainer
-from .jnf_trainer_config import TwoStepsTrainerConfig
+from .multistage_trainer_config import MultistageTrainerConfig
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ logger.addHandler(console)
 logger.setLevel(logging.INFO)
 
 
-class TwoStepsTrainer(BaseTrainer):
+class MultistageTrainer(BaseTrainer):
     """A specific trainer that handles the training of the joint VAE models.
 
     Args:
@@ -42,7 +42,7 @@ class TwoStepsTrainer(BaseTrainer):
         model: BaseMultiVAE,
         train_dataset: MultimodalBaseDataset,
         eval_dataset: Optional[MultimodalBaseDataset] = None,
-        training_config: Optional[TwoStepsTrainerConfig] = None,
+        training_config: Optional[MultistageTrainerConfig] = None,
         callbacks: List[TrainingCallback] = None,
         checkpoint: str = None,
     ):

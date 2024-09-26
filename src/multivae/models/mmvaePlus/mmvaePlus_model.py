@@ -210,7 +210,7 @@ class MMVAEPlus(BaseMultiVAE):
             qw_xs_detach[cond_mod] = qw_x_detach
             embeddings[cond_mod] = dict(u=u_x, w=w_x)
 
-        # Compute DREG loss
+        # Compute DREG loss using detached posteriors as in MMVAE model
         if compute_loss:
             loss_output = self.dreg_looser(
                 qu_xs_detach, qw_xs_detach, embeddings, reconstructions, inputs
@@ -329,6 +329,7 @@ class MMVAEPlus(BaseMultiVAE):
 
         lws = (grad_wt * lws).sum(0) / n_mods_sample  # mean over modalities
 
+        # Sum over K and sum over batch
         return ModelOutput(loss=-lws.sum(), metrics=dict())
 
     def encode(
