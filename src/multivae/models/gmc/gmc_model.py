@@ -2,7 +2,7 @@ from typing import Dict, Union
 import torch
 from pythae.models.base.base_utils import ModelOutput
 from pythae.models.nn import BaseEncoder
-from multivae.models.base import BaseJointEncoder
+from multivae.models.nn import BaseJointEncoder
 from torch.nn import Module, ModuleDict
 
 from ...data.datasets import MultimodalBaseDataset

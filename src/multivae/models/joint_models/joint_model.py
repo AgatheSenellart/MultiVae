@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import torch.distributions as dist
 
-from multivae.models.nn.default_architectures import BaseJointEncoder
+from multivae.models.nn import BaseJointEncoder
 
 from ...data import MultimodalBaseDataset
 from ..base import BaseMultiVAE
