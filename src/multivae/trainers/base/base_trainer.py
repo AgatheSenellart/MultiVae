@@ -145,13 +145,7 @@ class BaseTrainer:
             logger.info("Model passed sanity check !\n" "Ready for training.\n")
 
         # Assert that the trainer is suited for the chosen model
-        if hasattr(model, "reset_optimizer_epochs"):
-            if len(model.reset_optimizer_epochs) != 0:
-                raise AttributeError(
-                    f"The model {self.model_name} has a 'reset_optimizer_epochs' attribute ",
-                    "that is not empty. That means that it requires multistage training and therefore you",
-                    "should use the ~multivae.trainers.MultistageTrainer instead of the BaseTrainer.",
-                )
+        self.checktrainer(model)
         self.model = model
 
         if checkpoint is None:
@@ -159,7 +153,15 @@ class BaseTrainer:
         else:
             self.resume_training(checkpoint)
             
-        
+    def checktrainer(self, model):
+        if hasattr(model, "reset_optimizer_epochs"):
+            if len(model.reset_optimizer_epochs) != 0:
+                raise AttributeError(
+                    f"The model {self.model_name} has a 'reset_optimizer_epochs' attribute ",
+                    "that is not empty. That means that it requires multistage training and therefore you",
+                    "should use the ~multivae.trainers.MultistageTrainer instead of the BaseTrainer.",
+                )
+
 
     @property
     def is_main_process(self):
