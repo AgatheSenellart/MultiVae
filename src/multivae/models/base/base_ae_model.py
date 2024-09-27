@@ -292,6 +292,14 @@ class BaseMultiVAE(BaseModel):
             N (int) : Number of samples to generate. Default to 1.
             flatten (int) : If N>1 and flatten is False, the returned samples have dimensions (N,len(inputs),...).
                 Otherwise, the returned samples have dimensions (len(inputs)*N, ...)
+        
+        Returns: 
+            ~pythae.models.base.base_utils.ModelOutput 
+            
+        ..codeblock :
+            >>> predictions = model.predict(test_set, cond_mod = ['modality1', 'modality2'], gen_mod='modality3')
+            >>> predictions.modality3
+            
 
         """
         self.eval()
@@ -307,7 +315,7 @@ class BaseMultiVAE(BaseModel):
         output = self.decode(z, gen_mod)
         n_data = len(z.z) // N
         if not flatten and N > 1:
-            for m in self.encoders:
+            for m in output.keys():
                 output[m] = output[m].reshape(N, n_data, *output[m].shape[1:])
         return output
 
