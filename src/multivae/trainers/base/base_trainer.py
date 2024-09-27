@@ -147,6 +147,15 @@ class BaseTrainer:
             logger.info("Model passed sanity check !\n" "Ready for training.\n")
 
         # Assert that the trainer is suited for the chosen model
+        self.checktrainer(model)
+        self.model = model
+
+        if checkpoint is None:
+            self.prepare_training()
+        else:
+            self.resume_training(checkpoint)
+            
+    def checktrainer(self, model):
         if hasattr(model, "reset_optimizer_epochs"):
             if len(model.reset_optimizer_epochs) != 0:
                 raise AttributeError(
@@ -154,12 +163,6 @@ class BaseTrainer:
                     "that is not empty. That means that it requires multistage training and therefore you",
                     "should use the ~multivae.trainers.MultistageTrainer instead of the BaseTrainer.",
                 )
-        self.model = model
-
-        if checkpoint is None:
-            self.prepare_training()
-        else:
-            self.resume_training(checkpoint)
 
     def set_start_keep_best_epoch(self, start_keep_best_epoch, model):
         "For models that use warmup, assert that the start_keep_best_epoch is a number larger than warmup"

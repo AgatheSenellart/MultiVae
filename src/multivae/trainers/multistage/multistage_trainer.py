@@ -4,6 +4,7 @@ from typing import List, Optional
 from multivae.data.datasets.base import MultimodalBaseDataset
 from multivae.models.base.base_ae_model import BaseMultiVAE
 from multivae.trainers.base.callbacks import TrainingCallback
+from multivae.models import JNFDcca
 
 from ..base import BaseTrainer
 from .multistage_trainer_config import MultistageTrainerConfig
@@ -62,3 +63,10 @@ class MultistageTrainer(BaseTrainer):
             best_train_loss = 1e12
             best_eval_loss = 1e12
         return best_train_loss, best_eval_loss
+    
+    def checktrainer(self, model):
+        
+        if isinstance(model,JNFDcca):
+            raise AttributeError("The JNFDCCA model requires using the specific trainer : ~multivae.trainers.AddDccaTrainer")
+        else :
+            return
