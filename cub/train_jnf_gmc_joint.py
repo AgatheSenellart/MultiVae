@@ -1,7 +1,7 @@
 from dataset import CUB
 from multivae.models import JNFGMC, JNFGMCConfig, GMC, GMCConfig
 from multivae.models.nn.default_architectures import MultipleHeadJointEncoder, Encoder_VAE_MLP, BaseAEConfig
-from multivae.trainers import MultistageTrainer, MultistageTrainerConfig
+from multivae.trainers import MultistageTrainerConfig, MultistageTrainer
 from multivae.trainers.base.callbacks import WandbCallback
 from torch.utils.data import random_split
 from architectures_image import *
@@ -18,8 +18,7 @@ gmc_config = GMCConfig(
     common_dim=64,
     latent_dim=64,
     temperature=0.1,
-    loss='between_modality_pairs'
-    
+    loss="between_modality_joint"    
 )
 
 class Swish(nn.Module):
@@ -47,15 +46,17 @@ class MHDCommonEncoder(BaseEncoder):
 gmc_model = GMC(gmc_config,
                 processors=dict(image = EncoderImg(0,gmc_config.common_dim,'normal'),
                                 text = Enc(0,gmc_config.common_dim,'normal')),
+                joint_encoder=MultipleHeadJointEncoder(dict(image = EncoderImg(0,gmc_config.common_dim,'normal'),
+                                text = Enc(0,gmc_config.common_dim,'normal')), BaseAEConfig(latent_dim=gmc_config.common_dim)),
                 shared_encoder= MHDCommonEncoder(gmc_config.common_dim, latent_dim=gmc_config.latent_dim))
                 
+            
 
 # model
 model_config = JNFGMCConfig(
     n_modalities=2,
     latent_dim=64,
     uses_likelihood_rescaling=True,
-
     rescale_factors=dict(image = maxSentLen/(3*64*64),
                          text = 5.0),
     
@@ -86,13 +87,17 @@ decoders = dict(
 model=JNFGMC(model_config=model_config,
                 encoders = encoders, 
                 joint_encoder=joint_encoder,
+                
                 decoders=decoders,
+                
                 gmc_model=gmc_model
+                
                 )
 
 
 
 # trainer and callbacks
+
 training_config = MultistageTrainerConfig(
     output_dir='/home/asenella/experiments/CUB',
     per_device_eval_batch_size=64,
