@@ -63,7 +63,7 @@ model_config = JNFGMCConfig(
                        text ='categorical'),
     
     decoder_dist_params=dict(image = dict(scale=0.01)),
-    nb_epochs_gmc=100,
+    nb_epochs_gmc=150,
     warmup=150,
     
 )
@@ -97,12 +97,12 @@ training_config = MultistageTrainerConfig(
     output_dir='/home/asenella/experiments/CUB',
     per_device_eval_batch_size=64,
     per_device_train_batch_size=64,
-    num_epochs= model_config.nb_epochs_gmc + model_config.warmup + 50,
+    num_epochs= model_config.nb_epochs_gmc + model_config.warmup + 150,
     optimizer_cls="Adam",
-    optimizer_params=dict(amsgrad = True),
+    scheduler_cls="ReduceLROnPlateau",
+    scheduler_params={"patience": 20},
     learning_rate=1e-3,
-    steps_predict=5,
-    steps_saving=100
+    steps_predict=10
     
 )
 
