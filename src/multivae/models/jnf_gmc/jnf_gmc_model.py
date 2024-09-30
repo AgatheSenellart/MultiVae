@@ -64,7 +64,6 @@ class JNFGMC(BaseJointModel):
         flows: Dict[str, BaseNF] = None,
         **kwargs,
     ):
-        
         self.gmc_config = gmc_model.model_config
         
         model_config.custom_architectures.append("gmc_model")
@@ -93,6 +92,8 @@ class JNFGMC(BaseJointModel):
             self.nb_epochs_gmc,
             self.nb_epochs_gmc + self.warmup,
         ]
+        self.model_config.gmc_config = gmc_model.model_config.to_dict()
+
 
     
     def default_encoders(self, model_config):

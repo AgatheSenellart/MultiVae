@@ -617,7 +617,7 @@ class BaseTrainer:
                     uses_ddp=self.distributed,
                 )
 
-            loss = model_output.loss
+            loss = model_output.loss_sum if hasattr(model_output, "loss_sum") else model_output.loss
 
             epoch_loss += loss.item()
             update_dict(epoch_metrics, model_output.metrics)
@@ -668,7 +668,6 @@ class BaseTrainer:
             self._optimizers_step(model_output)
             loss = model_output.loss_sum if hasattr(model_output,"loss_sum") else model_output.loss
             epoch_loss += loss.item() 
-            n_samples_compute += batch_size
             update_dict(epoch_model_metrics, model_output.metrics)
 
             if epoch_loss != epoch_loss:

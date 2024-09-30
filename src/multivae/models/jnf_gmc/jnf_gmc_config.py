@@ -1,7 +1,7 @@
 from pydantic.dataclasses import dataclass
 
 from ..joint_models import BaseJointModelConfig
-
+from typing import Dict
 
 @dataclass
 class JNFGMCConfig(BaseJointModelConfig):
@@ -33,3 +33,4 @@ class JNFGMCConfig(BaseJointModelConfig):
     warmup: int = 10
     nb_epochs_gmc: int = 30
     beta: float = 1.0
+    gmc_config : Dict = None

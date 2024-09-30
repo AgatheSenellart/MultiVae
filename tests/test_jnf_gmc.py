@@ -12,7 +12,7 @@ from multivae.models.auto_model.auto_model import AutoModel
 from multivae.models.jnf_gmc import JNFGMC, JNFGMCConfig
 from multivae.models.gmc import GMC,GMCConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP, BaseDictEncoders, BaseDictDecoders, MultipleHeadJointEncoder
-from multivae.trainers.jnf import TwoStepsTrainer, TwoStepsTrainerConfig
+from multivae.trainers.multistage import MultistageTrainer, MultistageTrainerConfig
 
 class Test_model:
     
@@ -135,9 +135,14 @@ class Test_model:
         else:
             model = JNFGMC(model_config,gmc_model=gmc_model)
         return model
+    
+    def test_config(self, model, dataset, model_config,gmc_config):
+        assert model.beta == model_config.beta
+        assert model.model_config.gmc_config == gmc_config.to_dict()
+
+        
 
     def test(self, model, dataset, model_config):
-        assert model.beta == model_config.beta
 
         output = model(dataset, epoch=1)
         loss = output.loss
@@ -192,7 +197,7 @@ class Test_model:
     def training_config(self, tmpdir):
         tmpdir.mkdir("dummy_folder")
         dir_path = os.path.join(tmpdir, "dummy_folder")
-        return TwoStepsTrainerConfig(
+        return MultistageTrainerConfig(
             num_epochs=3,
             steps_saving=2,
             learning_rate=1e-4,
@@ -205,7 +210,7 @@ class Test_model:
 
     @pytest.fixture
     def trainer(self, model, training_config, dataset):
-        trainer = TwoStepsTrainer(
+        trainer = MultistageTrainer(
             model=model,
             train_dataset=dataset,
             eval_dataset=dataset,
@@ -215,7 +220,7 @@ class Test_model:
         return trainer
 
     def new_trainer(self, model, training_config, dataset, checkpoint_dir):
-        trainer = TwoStepsTrainer(
+        trainer = MultistageTrainer(
             model=model,
             train_dataset=dataset,
             eval_dataset=dataset,
