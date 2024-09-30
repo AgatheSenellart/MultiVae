@@ -336,7 +336,7 @@ class Nexus(BaseMultiVAE):
 
         total_loss = joint_elbo + first_level_elbos
 
-        return ModelOutput(loss=total_loss.mean(0), 
+        return ModelOutput(loss=total_loss.mean(0), loss_sum = total_loss.sum(),
                            metrics={'annealing' : annealing,
                                     'joint_elbo' : joint_elbo.mean(0),
                                     'joint_KLD' : joint_KLD.mean(0)})

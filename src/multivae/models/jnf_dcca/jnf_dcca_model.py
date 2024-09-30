@@ -210,6 +210,7 @@ class JNFDcca(BaseJointModel):
                 recon_loss=recon_loss / len_batch,
                 KLD=KLD / len_batch,
                 loss=(recon_loss + KLD) / len_batch,
+                loss_sum=recon_loss+KLD,
                 metrics=dict(kld_prior=KLD, recon_loss=recon_loss / len_batch, ljm=0),
             )
 
@@ -240,6 +241,7 @@ class JNFDcca(BaseJointModel):
                 recon_loss=recon_loss / len_batch,
                 KLD=KLD / len_batch,
                 loss=ljm / len_batch,
+                loss_sum = ljm,
                 ljm=ljm / len_batch,
                 metrics=dict(
                     kld_prior=KLD,

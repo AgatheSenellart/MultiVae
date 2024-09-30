@@ -154,6 +154,7 @@ class MoPoE(BaseMultiVAE):
         shared_embeddings = self.reparameterize(
             latents["joint"][0], latents["joint"][1]
         )
+        len_batch = shared_embeddings.shape[0]
 
         div = self.calc_joint_divergence(
             latents["mus"], latents["logvars"], latents["weights"]
@@ -218,7 +219,7 @@ class MoPoE(BaseMultiVAE):
 
         loss = loss + self.beta * kld
 
-        return ModelOutput(loss=loss, metrics=results)
+        return ModelOutput(loss=loss, loss_sum=loss*len_batch, metrics=results)
 
     def modality_encode(
         self, inputs: Union[MultimodalBaseDataset, IncompleteDataset], **kwargs

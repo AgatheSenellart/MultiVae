@@ -91,11 +91,12 @@ class GMC(BaseModel):
         # Compute all the modalities specific representations
         
         modalities_z = dict()
-        
+        len_batch = 0
         for m in inputs.data:
             h = self.processors[m](inputs.data[m]).embedding
             z = self.shared_encoder(h).embedding
             modalities_z[m] = z
+        len_batch = z.shape[0]
         
         # Compute the joint representation
         if self.loss == 'joint':
@@ -103,10 +104,13 @@ class GMC(BaseModel):
             joint_z = self.shared_encoder(joint_h).embedding
         
             # Compute the loss
-            output = ModelOutput(loss = self.infonce(modalities_z, joint_z), metrics = {})
+            mean_loss = self.infonce(modalities_z, joint_z)
+            output = ModelOutput(loss = mean_loss,
+                                 loss_sum = mean_loss*len_batch, metrics = {})
         
         elif self.loss == 'pairs':
-            output = ModelOutput(loss=self.infonce_pairs(modalities_z), metrics={})
+            mean_loss = self.infonce_pairs(modalities_z)
+            output = ModelOutput(loss=mean_loss, loss_sum = mean_loss*len_batch, metrics={})
         
         else :
             raise NotImplementedError()
