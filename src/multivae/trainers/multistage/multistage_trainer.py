@@ -5,9 +5,10 @@ from copy import deepcopy
 from multivae.data.datasets.base import MultimodalBaseDataset
 from multivae.models.base.base_ae_model import BaseMultiVAE
 from multivae.trainers.base.callbacks import TrainingCallback
+from multivae.models import JNFDcca
 
 from ..base import BaseTrainer
-from .jnf_trainer_config import TwoStepsTrainerConfig
+from .multistage_trainer_config import MultistageTrainerConfig
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +18,7 @@ logger.addHandler(console)
 logger.setLevel(logging.INFO)
 
 
-class TwoStepsTrainer(BaseTrainer):
+class MultistageTrainer(BaseTrainer):
     """A specific trainer that handles the training of the joint VAE models.
 
     Args:
@@ -42,11 +43,13 @@ class TwoStepsTrainer(BaseTrainer):
         model: BaseMultiVAE,
         train_dataset: MultimodalBaseDataset,
         eval_dataset: Optional[MultimodalBaseDataset] = None,
-        training_config: Optional[TwoStepsTrainerConfig] = None,
+        training_config: Optional[MultistageTrainerConfig] = None,
         callbacks: List[TrainingCallback] = None,
-        checkpoint: str = None
+        checkpoint: str = None,
     ):
-        super().__init__(model, train_dataset, eval_dataset, training_config, callbacks, checkpoint)
+        super().__init__(
+            model, train_dataset, eval_dataset, training_config, callbacks, checkpoint
+        )
 
     def prepare_train_step(self, epoch, best_train_loss, best_eval_loss):
         """
@@ -66,3 +69,10 @@ class TwoStepsTrainer(BaseTrainer):
             
             
         return best_train_loss, best_eval_loss
+    
+    def checktrainer(self, model):
+        
+        if isinstance(model,JNFDcca):
+            raise AttributeError("The JNFDCCA model requires using the specific trainer : ~multivae.trainers.AddDccaTrainer")
+        else :
+            return

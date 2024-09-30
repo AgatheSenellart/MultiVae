@@ -49,16 +49,12 @@ class BaseModel(nn.Module):
 
     """
 
-    def __init__(
-        self,
-        model_config: BaseConfig
-    ):
+    def __init__(self, model_config: BaseConfig):
         nn.Module.__init__(self)
 
         self.model_name = "BaseModel"
         self.model_config = model_config
-        self.model_custom_architectures = [] 
-        
+        self.model_custom_architectures = []
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs):
         """
@@ -86,7 +82,6 @@ class BaseModel(nn.Module):
         By default, it does nothing.
         """
         pass
-
 
     def save(self, dir_path: str):
         """Method to save the model at a specific location. It saves, the model weights as a

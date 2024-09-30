@@ -17,7 +17,6 @@ from .visualize_config import VisualizationConfig
 
 
 class Visualization(Evaluator):
-
     """
     Visualization Module for visualizing unconditional, conditional samples from models.
 
@@ -30,6 +29,33 @@ class Visualization(Evaluator):
             Optional.
         sampler (BaseSampler) : The sampler to use for joint generation. Optional. If None is
             provided, the sampler is used.
+            
+    .. code-block::
+
+            >>> from multivae.metrics.visualization import Visualization, VisualizationConfig
+
+
+            >>> vis_config = VisualizationConfig(
+            ...                    wandb_path='your_wandb_path', # optional, if you have initialized a wandb run
+            ...                     n_samples=5, # number of generated samples
+            ...                     n_data_cond=8, # For conditional generation, the number of datapoints to use.
+            ...                     )
+
+            >>> vis_module = Visualization(
+            ...                    model, 
+            ...                    test_dataset=test_set,
+            ...                    output='./metrics',
+            ...                    eval_config=vis_config)
+            
+            # Compute conditional generations
+            >>> generations = vis_module.conditional_samples_subset(['name_of_conditioning_modality1'])
+
+            # Compute unconditional generations
+            >>> generations = vis_module.unconditional_samples()
+            
+            
+    
+    
     """
 
     def __init__(

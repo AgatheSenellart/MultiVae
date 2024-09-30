@@ -1,16 +1,14 @@
 from pythae.models.base.base_model import BaseEncoder
 
 
-
-
 class BaseJointEncoder(BaseEncoder):
     """This is a base class for Encoders neural networks."""
 
     def __init__(self):
         BaseEncoder.__init__(self)
-        self.latent_dim  = None # to be set in child classs
+        self.latent_dim = None  # to be set in child classs
 
-    def forward(self, x : dict):
+    def forward(self, x: dict):
         r"""This function must be implemented in a child class.
         It takes the input data and returns an instance of
         :class:`~pythae.models.base.base_utils.ModelOutput`.

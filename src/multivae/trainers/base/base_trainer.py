@@ -18,7 +18,7 @@ from torchvision.utils import make_grid
 from ...data import MultimodalBaseDataset
 from ...data.datasets.utils import adapt_shape
 from ...data.utils import get_batch_size, set_inputs_to_device
-from ...models import BaseMultiVAE, BaseModel
+from ...models import BaseModel, BaseMultiVAE
 from .base_trainer_config import BaseTrainerConfig
 from .callbacks import (
     CallbackHandler,
@@ -144,6 +144,8 @@ class BaseTrainer:
         if self.is_main_process:
             logger.info("Model passed sanity check !\n" "Ready for training.\n")
 
+        # Assert that the trainer is suited for the chosen model
+        self.checktrainer(model)
         self.model = model
 
         if checkpoint is None:
@@ -151,7 +153,15 @@ class BaseTrainer:
         else:
             self.resume_training(checkpoint)
             
-        
+    def checktrainer(self, model):
+        if hasattr(model, "reset_optimizer_epochs"):
+            if len(model.reset_optimizer_epochs) != 0:
+                raise AttributeError(
+                    f"The model {self.model_name} has a 'reset_optimizer_epochs' attribute ",
+                    "that is not empty. That means that it requires multistage training and therefore you",
+                    "should use the ~multivae.trainers.MultistageTrainer instead of the BaseTrainer.",
+                )
+
 
     @property
     def is_main_process(self):
@@ -515,8 +525,9 @@ class BaseTrainer:
                 
 
             # For BaseMultiVae models, compute reconstruction
-            if (isinstance(self.model,BaseMultiVAE) and
-                self.training_config.steps_predict is not None
+            if (
+                isinstance(self.model, BaseMultiVAE)
+                and self.training_config.steps_predict is not None
                 and (epoch % self.training_config.steps_predict == 0 or epoch == 1)
                 and self.is_main_process
             ):
@@ -584,12 +595,10 @@ class BaseTrainer:
         self.model.eval()
 
         epoch_loss = 0
-        n_samples_compute = 0
         epoch_metrics = {}
 
         for inputs in self.eval_loader:
             inputs = set_inputs_to_device(inputs, device=self.device)
-            batch_size = get_batch_size(inputs)
 
             try:
                 with torch.no_grad():
@@ -610,8 +619,7 @@ class BaseTrainer:
 
             loss = model_output.loss
 
-            epoch_loss += loss.item() * batch_size
-            n_samples_compute += batch_size
+            epoch_loss += loss.item()
             update_dict(epoch_metrics, model_output.metrics)
 
             if epoch_loss != epoch_loss:
@@ -619,7 +627,6 @@ class BaseTrainer:
 
             self.callback_handler.on_eval_step_end(training_config=self.training_config)
 
-        epoch_loss /= n_samples_compute
         epoch_metrics = {
             k: epoch_metrics[k] / len(self.eval_loader) for k in epoch_metrics
         }
@@ -645,12 +652,10 @@ class BaseTrainer:
         self.model.train()
 
         epoch_loss = 0
-        n_samples_compute = 0
         epoch_model_metrics = {}
         batch_idx = 0
         for inputs in self.train_loader:
             inputs = set_inputs_to_device(inputs, device=self.device)
-            batch_size = get_batch_size(inputs)
 
             model_output = self.model(
                 inputs,
@@ -679,7 +684,6 @@ class BaseTrainer:
         else:
             self.model.update()
 
-        epoch_loss /= n_samples_compute
         epoch_model_metrics = {
             k: epoch_model_metrics[k] / len(self.train_loader)
             for k in epoch_model_metrics
@@ -760,9 +764,8 @@ class BaseTrainer:
         )
 
     def predict(self, model: BaseMultiVAE, epoch: int, n_data=8):
-        
-        '''For BaseMultiVaE models, compute self and cross reconstructions during training.'''
-        
+        """For BaseMultiVaE models, compute self and cross reconstructions during training."""
+
         model.eval()
 
         if self.eval_dataset is not None:
@@ -777,10 +780,17 @@ class BaseTrainer:
             recon = model.predict(
                 inputs, mod, "all", N=8, flatten=True, ignore_incomplete=True
             )
-            if hasattr(self.eval_dataset, 'transform_for_plotting'):
-                recon = {mod_name : self.eval_dataset.transform_for_plotting(recon[mod_name], modality = mod_name) for mod_name in recon}
-                recon["true_data"] = self.eval_dataset.transform_for_plotting(inputs.data[mod], modality=mod)
-            else :
+            if hasattr(self.eval_dataset, "transform_for_plotting"):
+                recon = {
+                    mod_name: self.eval_dataset.transform_for_plotting(
+                        recon[mod_name], modality=mod_name
+                    )
+                    for mod_name in recon
+                }
+                recon["true_data"] = self.eval_dataset.transform_for_plotting(
+                    inputs.data[mod], modality=mod
+                )
+            else:
                 recon["true_data"] = inputs.data[mod]
             recon, shape = adapt_shape(recon)
             recon_image = [recon["true_data"]] + [

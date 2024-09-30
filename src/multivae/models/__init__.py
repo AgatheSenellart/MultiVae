@@ -2,7 +2,7 @@
 """
 
 from .auto_model import AutoConfig, AutoModel
-from .base import BaseMultiVAE, BaseMultiVAEConfig, BaseModel
+from .base import BaseModel, BaseMultiVAE, BaseMultiVAEConfig
 from .jmvae import JMVAE, JMVAEConfig
 from .jnf import JNF, JNFConfig
 from .jnf_dcca import JNFDcca, JNFDccaConfig
@@ -17,6 +17,7 @@ from .jnf_gmc import JNFGMC, JNFGMCConfig
 from .gmc import GMC, GMCConfig
 
 __all__ = [
+    "BaseModel",
     "BaseMultiVAEConfig",
     "BaseMultiVAE",
     "JMVAEConfig",

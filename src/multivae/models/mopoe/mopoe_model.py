@@ -17,7 +17,6 @@ from .mopoe_config import MoPoEConfig
 
 
 class MoPoE(BaseMultiVAE):
-
     """
 
     Implementation for the Mixture of Product of experts model from

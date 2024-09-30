@@ -1,23 +1,29 @@
 .. _multivae_models:
 
 **********************************
-Models
+Multimodal Variational Autoencoders Models
 **********************************
-
-In here you will find implementations of **Multimodal Generative Autoencoders models**, along with some useful **Neural Network** base architectures.
 
 
 .. toctree::
     :hidden:
     :maxdepth: 1
 
-    multimodal_vaes/models
-    nn/nn
+    base
+    auto_model
+    mvae
+    mmvae
+    telbo
+    mopoe
+    jmvae
+    jnf
+    jnf_dcca
+    nexus
 
 .. automodule::
     multivae.models
 
-Available Multimodal VAEs
+Available VAEs
 -------------------------------------------
 
 .. autosummary::

@@ -23,8 +23,8 @@ from ...data.datasets.base import MultimodalBaseDataset
 from ..auto_model import AutoConfig
 from ..nn.default_architectures import BaseDictDecoders, BaseDictEncoders
 from .base_config import BaseMultiVAEConfig, EnvironmentConfig
-from .base_utils import hf_hub_is_available, model_card_template
 from .base_model import BaseModel
+from .base_utils import hf_hub_is_available, model_card_template
 
 logger = logging.getLogger(__name__)
 console = logging.StreamHandler()
@@ -62,7 +62,6 @@ class BaseMultiVAE(BaseModel):
         self.model_config = model_config
         self.n_modalities = model_config.n_modalities
         self.input_dims = model_config.input_dims
-        self.reset_optimizer_epochs = []
         self.multiple_latent_spaces = False  # Default value, this field must be changes
         # in models using multiple latent spaces
 
@@ -293,6 +292,14 @@ class BaseMultiVAE(BaseModel):
             N (int) : Number of samples to generate. Default to 1.
             flatten (int) : If N>1 and flatten is False, the returned samples have dimensions (N,len(inputs),...).
                 Otherwise, the returned samples have dimensions (len(inputs)*N, ...)
+        
+        Returns: 
+            ~pythae.models.base.base_utils.ModelOutput 
+            
+        ..codeblock :
+            >>> predictions = model.predict(test_set, cond_mod = ['modality1', 'modality2'], gen_mod='modality3')
+            >>> predictions.modality3
+            
 
         """
         self.eval()
@@ -308,7 +315,7 @@ class BaseMultiVAE(BaseModel):
         output = self.decode(z, gen_mod)
         n_data = len(z.z) // N
         if not flatten and N > 1:
-            for m in self.encoders:
+            for m in output.keys():
                 output[m] = output[m].reshape(N, n_data, *output[m].shape[1:])
         return output
 

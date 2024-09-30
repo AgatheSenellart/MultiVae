@@ -1,7 +1,7 @@
-.. _multivae_trainers:
+.. _multivae_models:
 
 **********************************
-Trainers
+Neural Network Architectures
 **********************************
 
 
@@ -10,17 +10,13 @@ Trainers
     :maxdepth: 1
 
     base
-    multistage
-    add_dcca
 
 .. automodule::
-    multivae.trainers
+    multivae.models.nn
 
-Available Trainers
+Base Architectures
 -------------------------------------------
 
 .. autosummary::
-    ~multivae.trainers.BaseTrainer
-    ~multivae.trainers.MultistageTrainer
-    ~multivae.trainers.AddDccaTrainer
+    ~multivae.models.nn.BaseJointEncoder
     :nosignatures:

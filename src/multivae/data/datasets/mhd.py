@@ -6,9 +6,10 @@ import numpy as np
 import torch
 from numpy import ndarray
 from torch import Tensor
+from torch.nn.functional import one_hot
 
 from .base import DatasetOutput, IncompleteDataset
-from torch.nn.functional import one_hot
+
 
 def unstack_tensor(tensor, dim=0):
     tensor_lst = []
@@ -102,7 +103,7 @@ class MHD(IncompleteDataset):  # pragma: no cover
         if "image" in modalities:
             self.data["image"] = self._i_data
         if "label" in modalities:
-            self.data["label"] = one_hot(self._s_data, num_classes = 10).float()
+            self.data["label"] = one_hot(self._s_data, num_classes=10).float()
         if "trajectory" in modalities:
             self.data["trajectory"] = self._t_data
         if "audio" in modalities:

@@ -9,9 +9,9 @@ import warnings
 from typing import Literal
 
 import numpy as np
+from pythae.models.base.base_config import BaseConfig
 from tqdm.auto import tqdm
 
-from pythae.models.base.base_config import BaseConfig
 from .base_trainer_config import BaseTrainerConfig
 
 logger = logging.getLogger(__name__)

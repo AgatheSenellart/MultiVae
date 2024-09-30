@@ -51,7 +51,7 @@ class Test_forward_encode_and_predict:
                 n_modalities=4,
                 input_dims=dict(
                     mod1=(1, 12, 12),
-                    mod2=(3, 7 , 7),
+                    mod2=(3, 7, 7),
                     mod3=(3,),
                     mod4=(5,),
                 ),
@@ -66,7 +66,7 @@ class Test_forward_encode_and_predict:
                 n_modalities=4,
                 input_dims=dict(
                     mod1=(1, 12, 12),
-                    mod2=(3, 7 , 7),
+                    mod2=(3, 7, 7),
                     mod3=(3,),
                     mod4=(5,),
                 ),
@@ -82,7 +82,7 @@ class Test_forward_encode_and_predict:
                 n_modalities=4,
                 input_dims=dict(
                     mod1=(1, 12, 12),
-                    mod2=(3, 7 , 7),
+                    mod2=(3, 7, 7),
                     mod3=(3,),
                     mod4=(5,),
                 ),
@@ -96,7 +96,7 @@ class Test_forward_encode_and_predict:
                 n_modalities=4,
                 input_dims=dict(
                     mod1=(1, 12, 12),
-                    mod2=(3, 7 , 7),
+                    mod2=(3, 7, 7),
                     mod3=(3,),
                     mod4=(5,),
                 ),
@@ -110,7 +110,7 @@ class Test_forward_encode_and_predict:
                 n_modalities=4,
                 input_dims=dict(
                     mod1=(1, 12, 12),
-                    mod2=(3, 7 , 7),
+                    mod2=(3, 7, 7),
                     mod3=(3,),
                     mod4=(5,),
                 ),
@@ -124,7 +124,7 @@ class Test_forward_encode_and_predict:
                 n_modalities=4,
                 input_dims=dict(
                     mod1=(1, 12, 12),
-                    mod2=(3, 7 , 7),
+                    mod2=(3, 7, 7),
                     mod3=(3,),
                     mod4=(5,),
                 ),
@@ -139,7 +139,7 @@ class Test_forward_encode_and_predict:
                 n_modalities=4,
                 input_dims=dict(
                     mod1=(1, 12, 12),
-                    mod2=(3, 7 , 7),
+                    mod2=(3, 7, 7),
                     mod3=(3,),
                     mod4=(5,),
                 ),
@@ -154,7 +154,7 @@ class Test_forward_encode_and_predict:
                 n_modalities=4,
                 input_dims=dict(
                     mod1=(1, 12, 12),
-                    mod2=(3, 7 , 7),
+                    mod2=(3, 7, 7),
                     mod3=(3,),
                     mod4=(5,),
                 ),
@@ -169,7 +169,7 @@ class Test_forward_encode_and_predict:
                 n_modalities=4,
                 input_dims=dict(
                     mod1=(1, 12, 12),
-                    mod2=(3, 7 , 7),
+                    mod2=(3, 7, 7),
                     mod3=(3,),
                     mod4=(5,),
                 ),
@@ -179,8 +179,8 @@ class Test_forward_encode_and_predict:
                 msg_dim=11,
                 latent_dim=4,
                 top_beta=3,
-                adapt_top_decoder_variance = ['mod1']
-            )
+                adapt_top_decoder_variance=["mod1"],
+            ),
         ]
     )
     def custom_config_archi(self, request):
@@ -398,14 +398,14 @@ class Test_forward_encode_and_predict:
             for param in model.encoders["mod1"].parameters():
                 assert not torch.all(param.grad == 0)
 
-    
+
 class Test_training:
     @pytest.fixture(params=["complete", "incomplete"])
     def dataset(self, request):
         # Create simple small dataset
         data = dict(
             mod1=torch.Tensor(np.random.random((4, 1, 12, 12))),
-            mod2=torch.Tensor(np.random.random((4, 3, 7, 7)))
+            mod2=torch.Tensor(np.random.random((4, 3, 7, 7))),
         )
         labels = np.array([0, 1, 0, 1])
         if request.param == "complete":
@@ -414,7 +414,6 @@ class Test_training:
             masks = dict(
                 mod1=torch.Tensor([True, True, False, False]),
                 mod2=torch.Tensor([True, True, True, True]),
-                
             )
             dataset = IncompleteDataset(data=data, masks=masks, labels=labels)
 
@@ -427,7 +426,6 @@ class Test_training:
                 input_dims=dict(
                     mod1=(1, 12, 12),
                     mod2=(3, 7, 7),
-                   
                 ),
                 modalities_specific_dim=dict(mod1=3, mod2=4),
                 gammas=dict(mod1=1.2, mod2=1.3),
@@ -493,17 +491,13 @@ class Test_training:
             model_config=model_config,
         )
 
-    @pytest.fixture(params=[
-        "custom_architectures",
-        "default_architectures"
-        ])
+    @pytest.fixture(params=["custom_architectures", "default_architectures"])
     def model(self, custom_config_archi, request):
         if request.param == "custom_architectures":
             return Nexus(**custom_config_archi)
         else:
             return Nexus(model_config=custom_config_archi["model_config"])
 
-   
     @pytest.fixture
     def training_config(self, tmpdir):
         tmpdir.mkdir("dummy_folder")

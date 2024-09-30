@@ -13,7 +13,7 @@ from multivae.data.datasets.base import MultimodalBaseDataset
 from multivae.data.utils import set_inputs_to_device
 from multivae.models import JNF, AutoModel, JNFConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
-from multivae.trainers import BaseTrainerConfig, TwoStepsTrainer
+from multivae.trainers import BaseTrainerConfig, MultistageTrainer
 
 
 class Test:
@@ -233,7 +233,7 @@ class TestTraining:
 
     @pytest.fixture
     def trainer(self, model, training_config, input_dataset):
-        trainer = TwoStepsTrainer(
+        trainer = MultistageTrainer(
             model=model,
             train_dataset=input_dataset,
             eval_dataset=input_dataset,

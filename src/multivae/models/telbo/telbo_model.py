@@ -11,7 +11,6 @@ from .telbo_config import TELBOConfig
 
 
 class TELBO(BaseJointModel):
-
     """
     The Triple ELBO VAE model.
 
