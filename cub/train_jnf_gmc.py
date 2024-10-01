@@ -6,6 +6,16 @@ from multivae.trainers.base.callbacks import WandbCallback
 from torch.utils.data import random_split
 from architectures_image import *
 from architectures_text import *
+import argparse
+import json
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--param_file", type=str)
+args = parser.parse_args()
+
+with open(args.param_file, "r") as fp:
+    info = json.load(fp)
+args = argparse.Namespace(**info)
 
 # dataset
 train_data = CUB('/home/asenella/scratch/data', split='train',max_lenght=32)
@@ -18,7 +28,7 @@ gmc_config = GMCConfig(
     common_dim=64,
     latent_dim=64,
     temperature=0.1,
-    loss='between_modality_pairs'
+    loss= args.loss
     
 )
 
@@ -64,7 +74,10 @@ model_config = JNFGMCConfig(
     
     decoder_dist_params=dict(image = dict(scale=0.01)),
     nb_epochs_gmc=150,
-    warmup=150,
+    warmup=args.warmup,
+    annealing=args.annealing,
+    alpha=args.alpha,
+    beta=args.beta
     
 )
 
@@ -102,7 +115,8 @@ training_config = MultistageTrainerConfig(
     scheduler_cls="ReduceLROnPlateau",
     scheduler_params={"patience": 20},
     learning_rate=1e-3,
-    steps_predict=10
+    steps_predict=10,
+    seed=args.seed
     
 )
 
