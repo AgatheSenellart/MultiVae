@@ -13,6 +13,7 @@ from torch.utils.data import Dataset
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 import PIL
+from pythae.data.datasets import DatasetOutput
 
 class OrderedCounter(Counter, OrderedDict):
     """Counter that remembers the order elements are first encountered."""
@@ -65,7 +66,10 @@ class CUBSentences(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        sent = self.data[str(idx)]['idx']
+        sent = torch.IntTensor(self.data[str(idx)]['idx'])
+        length = self.data[str(idx)]['length']
+        
+        padding_mask=torch.FloatTensor([1.0]*length + [0.]*(self.max_sequence_length-length))
 
         if self.one_hot:
             sent = nn.functional.one_hot(torch.Tensor(sent).long(), self.vocab_size).float()
@@ -74,7 +78,9 @@ class CUBSentences(Dataset):
             sent = sent.transpose(-2, -1)
         if self.transform is not None:
             sent = self.transform(sent)
-        return sent, self.data[str(idx)]['length']
+            
+            
+        return dict(tokens = sent, padding_mask=padding_mask)
 
     @property
     def vocab_size(self):
@@ -138,6 +144,8 @@ class CUBSentences(Dataset):
             if self.max_sequence_length > length:
                 tok.extend(['<pad>'] * (self.max_sequence_length - length))
                 pad_count += 1
+            else :
+                length = self.max_sequence_length
             idx = [self.w2i.get(w, self.w2i['<exc>']) for w in tok]
 
             id = len(data)
@@ -235,14 +243,14 @@ from torchvision import transforms, datasets
 
 class CUB(MultimodalBaseDataset):
     
-    def __init__(self, root_data_dir, split='train',max_lenght = 32):
+    def __init__(self, root_data_dir, split='train',max_lenght = 32, one_hot=True):
         
         self.split = split
         transform_text = lambda data: torch.Tensor(data)
         tx = transforms.Compose([transforms.Resize([64, 64]), transforms.ToTensor()])
 
         if split == 'eval':
-            self.text_data = CUBSentences(root_data_dir,'train',one_hot=True,transpose=False,transform=transform_text, max_sequence_length=max_lenght)
+            self.text_data = CUBSentences(root_data_dir,'train',one_hot=one_hot,transpose=False,transform=transform_text, max_sequence_length=max_lenght)
             self.image_data = datasets.ImageFolder(os.path.join(root_data_dir, 'cub','train'), transform=tx)
 
         else :
@@ -264,7 +272,7 @@ class CUB(MultimodalBaseDataset):
             index = self.val_idx[index]
         
         image = self.image_data[index // 10][0]
-        text = self.text_data[index][0]
+        text = self.text_data[index]
         
         return DatasetOutput(data = dict(
             image = image,
