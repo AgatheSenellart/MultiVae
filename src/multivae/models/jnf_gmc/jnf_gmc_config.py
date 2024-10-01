@@ -24,6 +24,11 @@ class JNFGMCConfig(BaseJointModelConfig):
             ex :  {'mod1' : {scale : 0.75}}
         warmup (int): The number of warmup epochs during training. Default to 10.
 
+        annealing (bool) : Whether to train the unimodal encoders and joint in one step using annealing. 
+            In that case, the parameter alpha is used. 
+            
+        alpha (float) : the weight that ponders the unimodal encoders terms in the joint loss. Default to 0.1.
+        
         nb_epochs_gmc (int) : The number of epochs during which to train the DCCA embeddings. Default to 30.
         
         beta (float) :Weighing factor for the regularization of the joint VAE. Default to 1.
@@ -31,6 +36,8 @@ class JNFGMCConfig(BaseJointModelConfig):
     """
 
     warmup: int = 10
+    annealing: bool = False
+    alpha: float = 0.1
     nb_epochs_gmc: int = 30
     beta: float = 1.0
     gmc_config : Dict = None

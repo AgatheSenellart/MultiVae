@@ -170,7 +170,7 @@ class JNFGMC(BaseJointModel):
         # Compute the KLD to the prior
         KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp()) * self.beta
 
-        if epoch <= self.warmup + self.nb_epochs_gmc:
+        if epoch <= self.warmup + self.nb_epochs_gmc and not self.model_config.annealing :
             return ModelOutput(
                 recon_loss=recon_loss / len_batch,
                 KLD=KLD / len_batch,
@@ -180,7 +180,9 @@ class JNFGMC(BaseJointModel):
             )
 
         else:
-            self._set_torch_no_grad_on_joint_vae()
+            if not self.model_config.annealing:
+                self._set_torch_no_grad_on_joint_vae()
+                
             ljm = 0
             for mod in self.encoders:
                 gmc_embed = self.gmc_model.encode(inputs,cond_mod=mod).embedding
@@ -198,12 +200,19 @@ class JNFGMC(BaseJointModel):
                 ljm += -(
                     qz_x0.log_prob(z0).sum(dim=-1) + flow_output.log_abs_det_jac
                 ).sum()
+            
+            if self.model_config.annealing :
+                annealing = epoch/(self.warmup +1) if epoch <= self.warmup else 1
+                loss_sum = recon_loss + annealing*( KLD + self.model_config.alpha * ljm)
+                
+            else :
+                loss_sum = ljm
 
             return ModelOutput(
                 recon_loss=recon_loss / len_batch,
                 KLD=KLD / len_batch,
-                loss=ljm / len_batch,
-                loss_sum = ljm,# for monitoring
+                loss=loss_sum / len_batch,
+                loss_sum = loss_sum,# for monitoring
                 ljm=ljm / len_batch,
                 metrics=dict(
                     kld_prior=KLD,
