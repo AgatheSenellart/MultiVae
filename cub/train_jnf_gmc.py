@@ -133,3 +133,10 @@ trainer = MultistageTrainer(
 )
 
 trainer.train()
+
+# Validate and compute coherence
+from evaluate_coherence import evaluate_coherence
+test_data = CUB('/home/asenella/scratch/data', split='test',max_lenght=32).text_data
+model = trainer._best_model
+wandb_path = wandb.run._get_path()
+evaluate_coherence(model, wandb_path,test_data)

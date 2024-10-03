@@ -1,15 +1,25 @@
-from dataset import CUB
+
 from multivae.models import JNFGMC, JNFGMCConfig, GMC, GMCConfig
 from multivae.models.nn.default_architectures import MultipleHeadJointEncoder, Encoder_VAE_MLP, BaseAEConfig
-from multivae.trainers import MultistageTrainerConfig, MultistageTrainer
+from multivae.trainers import MultistageTrainer, MultistageTrainerConfig
 from multivae.trainers.base.callbacks import WandbCallback
 from torch.utils.data import random_split
 from architectures_image import *
-from architectures_text import *
+from multivae.models.nn.cub import CubTextEncoder, CubTextDecoderMLP
+from pythae.models.base import BaseAEConfig
+import argparse
+import json
+from utils import *
 
-# dataset
-train_data = CUB('/home/asenella/scratch/data', split='train',max_lenght=32)
-eval_data = CUB('/home/asenella/scratch/data', split='eval',max_lenght=32)
+parser = argparse.ArgumentParser()
+parser.add_argument("--param_file", type=str)
+args = parser.parse_args()
+
+with open(args.param_file, "r") as fp:
+    info = json.load(fp)
+args = argparse.Namespace(**info)
+
+
 
 # GMC model
 
@@ -18,46 +28,30 @@ gmc_config = GMCConfig(
     common_dim=64,
     latent_dim=64,
     temperature=0.1,
-    loss="between_modality_joint"    
+    loss= args.loss
+    
 )
 
-class Swish(nn.Module):
-    def forward(self, x):
-        return x * torch.sigmoid(x)
-
-class MHDCommonEncoder(BaseEncoder):
-
-    def __init__(self, common_dim, latent_dim):
-        super(MHDCommonEncoder, self).__init__()
-        self.common_dim = common_dim
-        self.latent_dim = latent_dim
-
-        self.feature_extractor = nn.Sequential(
-            nn.Linear(common_dim, 512),
-            Swish(),
-            nn.Linear(512, 512),
-            Swish(),
-            nn.Linear(512, latent_dim),
-        )
-
-    def forward(self, x):
-        return ModelOutput(embedding = F.normalize(self.feature_extractor(x), dim=-1))
 
 gmc_model = GMC(gmc_config,
-                processors=dict(image = EncoderImg(0,gmc_config.common_dim,'normal'),
-                                text = Enc(0,gmc_config.common_dim,'normal')),
-                joint_encoder=MultipleHeadJointEncoder(dict(image = EncoderImg(0,gmc_config.common_dim,'normal'),
-                                text = Enc(0,gmc_config.common_dim,'normal')), BaseAEConfig(latent_dim=gmc_config.common_dim)),
+                processors=dict(
+                    image = EncoderImg(0,gmc_config.common_dim,'normal'),
+                    text = CubTextEncoder(
+                        latent_dim=gmc_config.common_dim,
+                        max_sentence_length=max_length,
+                        ntokens=vocab_size,
+                        embed_size=512
+                        )),
                 shared_encoder= MHDCommonEncoder(gmc_config.common_dim, latent_dim=gmc_config.latent_dim))
                 
-            
 
 # model
 model_config = JNFGMCConfig(
     n_modalities=2,
     latent_dim=64,
     uses_likelihood_rescaling=True,
-    rescale_factors=dict(image = maxSentLen/(3*64*64),
+
+    rescale_factors=dict(image = max_length/(3*64*64),
                          text = 5.0),
     
     decoders_dist=dict(image = 'laplace',
@@ -65,7 +59,10 @@ model_config = JNFGMCConfig(
     
     decoder_dist_params=dict(image = dict(scale=0.01)),
     nb_epochs_gmc=150,
-    warmup=150,
+    warmup=args.warmup,
+    annealing=args.annealing,
+    alpha=args.alpha,
+    beta=args.beta
     
 )
 
@@ -74,32 +71,37 @@ encoders = dict(
     text = Encoder_VAE_MLP(BaseAEConfig(input_dim=(gmc_config.latent_dim,), latent_dim=model_config.latent_dim))
 )
 
-joint_encoder = MultipleHeadJointEncoder(dict(image = EncoderImg(0,model_config.latent_dim,'normal'),
-                                text = Enc(0,model_config.latent_dim,'normal')), BaseAEConfig(latent_dim=model_config.latent_dim)
+joint_encoder = MultipleHeadJointEncoder(
+    dict(image = EncoderImg(0,model_config.latent_dim,'normal'),
+         text = CubTextEncoder(
+             latent_dim=model_config.latent_dim,
+             max_sentence_length=max_length,
+             ntokens=vocab_size,
+             embed_size=512,
+         ))
+    , BaseAEConfig(latent_dim=model_config.latent_dim)
 )
 
 decoders = dict(
     image = DecoderImg(model_config.latent_dim),
-    text = Dec(0,model_config.latent_dim)
+    text = CubTextDecoderMLP(
+        BaseAEConfig(input_dim=(max_length,vocab_size),latent_dim=model_config.latent_dim)
+    )
 )
 
 
 model=JNFGMC(model_config=model_config,
                 encoders = encoders, 
                 joint_encoder=joint_encoder,
-                
                 decoders=decoders,
-                
                 gmc_model=gmc_model
-                
                 )
 
 
 
 # trainer and callbacks
-
 training_config = MultistageTrainerConfig(
-    output_dir='/home/asenella/experiments/CUB',
+    output_dir='/home/asenella/experiments/CUB/transformer',
     per_device_eval_batch_size=64,
     per_device_train_batch_size=64,
     num_epochs= model_config.nb_epochs_gmc + model_config.warmup + 150,
@@ -107,11 +109,13 @@ training_config = MultistageTrainerConfig(
     scheduler_cls="ReduceLROnPlateau",
     scheduler_params={"patience": 20},
     learning_rate=1e-3,
-    steps_predict=10    
+    steps_predict=10,
+    seed=args.seed
+    
 )
 
 wandb = WandbCallback()
-wandb.setup(training_config=training_config,model_config=model_config, project_name="mmvae_plus_CUB")
+wandb.setup(training_config=training_config,model_config=model_config, project_name="CUB_transformer")
 
 trainer = MultistageTrainer(
     model=model,
@@ -123,3 +127,10 @@ trainer = MultistageTrainer(
 )
 
 trainer.train()
+
+# Validate and compute coherence
+from evaluate_coherence import evaluate_coherence
+test_data = CUB('/home/asenella/scratch/data', split='test',max_lenght=32).text_data
+model = trainer._best_model
+wandb_path = wandb.run._get_path()
+evaluate_coherence(model, wandb_path,test_data)

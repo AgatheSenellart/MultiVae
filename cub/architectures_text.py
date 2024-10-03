@@ -74,6 +74,9 @@ class Enc(BaseEncoder):
         # self.ll_c2_w = nn.Sequential(*[nn.ReLU(), nn.Linear(128, latentDim_w)])
 
     def forward(self, x):
+        
+        x = x['one_hot']
+        
         x_emb = self.embedding(x).unsqueeze(1)
         e_w = self.enc_w(x_emb)
         e_w = e_w.view(-1, fBase * 16 * 16)
@@ -187,7 +190,7 @@ class Dec(BaseDecoder):
         out = out.view(*z.size()[:-3], *out.size()[1:]).view(-1, embeddingDim)
         # The softmax is key for this to work
         ret = self.toVocabSize(out).view(*z.size()[:-3], maxSentLen, vocabSize)
-        return ModelOutput(reconstruction = ret)
+        return ModelOutput(reconstruction = dict(one_hot = ret))
     
     
     

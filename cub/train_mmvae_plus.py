@@ -8,7 +8,6 @@ from architectures_text import *
 
 # dataset
 train_data = CUB('/home/asenella/scratch/data', split='train',max_lenght=32)
-
 eval_data = CUB('/home/asenella/scratch/data', split='eval',max_lenght=32)
 
 # model
@@ -52,15 +51,14 @@ model = MMVAEPlus(model_config=model_config,
 # trainer and callbacks
 
 training_config = BaseTrainerConfig(
-    output_dir='mmvae_train',
+    output_dir='/home/asenella/experiments/CUB',
     per_device_eval_batch_size=32,
     per_device_train_batch_size=32,
     num_epochs=50,
     optimizer_cls="Adam",
     optimizer_params=dict(amsgrad = True),
     learning_rate=1e-3,
-    steps_predict=5,
-    steps_saving=25
+    steps_predict=5
     
 )
 
@@ -77,3 +75,10 @@ trainer = BaseTrainer(
 )
 
 trainer.train()
+
+# Validate and compute coherence
+from evaluate_coherence import evaluate_coherence
+test_data = CUB('/home/asenella/scratch/data', split='test',max_lenght=32).text_data
+model = trainer._best_model
+wandb_path = wandb.run._get_path()
+evaluate_coherence(model, wandb_path,test_data)
