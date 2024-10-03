@@ -353,7 +353,7 @@ class CUB(MultimodalBaseDataset):
             return torch.stack(list_transformed)
                 
         if modality == 'image' :
-            return tensor
+            return input
         
         
         
