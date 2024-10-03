@@ -133,10 +133,12 @@ class JNFGMC(BaseJointModel):
 
     def _set_torch_no_grad_on_joint_vae(self):
         # After the warmup, we freeze the architecture of the joint encoder and decoders
+        self.joint_encoder = self.joint_encoder.eval()
         self.joint_encoder.requires_grad_(False)
         self.decoders.requires_grad_(False)
 
     def _set_torch_no_grad_on_gmc_module(self):
+        self.gmc_model = self.gmc_model.eval()
         self.gmc_model.requires_grad_(False)
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs):

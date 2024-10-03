@@ -35,7 +35,7 @@ class PositionalEncoding(nn.Module):
 class CubTextEncoder(BaseEncoder):
     def __init__(
         self,
-        args,
+        latent_dim,
         max_sentence_length: int,
         ntokens: int,
         embed_size: int = 512,
@@ -57,7 +57,7 @@ class CubTextEncoder(BaseEncoder):
         """
 
         BaseEncoder.__init__(self)
-        self.latent_dim = args.latent_dim
+        self.latent_dim = latent_dim
 
         self.embed_size = embed_size
 
@@ -80,6 +80,7 @@ class CubTextEncoder(BaseEncoder):
         nn.init.uniform_(self.token_embedding.weight, -initrange, initrange)
 
     def forward(self, inputs):
+
         src = inputs["tokens"]
         padding_mask = inputs["padding_mask"]
 
@@ -128,4 +129,4 @@ class CubTextDecoderMLP(BaseDecoder):
                 output_shape = (*z.shape[:-1],) + self.input_dim
                 output["reconstruction"] = out.reshape(output_shape)
 
-        return output
+        return dict(one_hot = output)

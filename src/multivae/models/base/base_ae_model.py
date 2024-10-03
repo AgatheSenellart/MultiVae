@@ -676,14 +676,36 @@ class BaseMultiVAE(BaseModel):
         return cnll
 
 
-def cross_entropy(input, target, eps=1e-6):
+
+def cross_entropy_(_input, _target, eps=1e-6):
     """k-Class Cross Entropy (Log Softmax + Log Loss)
 
-    @param input: torch.Tensor (size K x N x d)
-    @param target: torch.Tensor (size N x d) or (d,)
+    @param input: torch.Tensor (size K x bs x ...) The last dimension contains logit probabilities for each class.
+    @param target: torch.Tensor (size bs x ...) The last dimension true probabilities (0 or 1) for each class.
     @param eps: error to add (default: 1e-6)
-    @return loss: torch.Tensor (size N)
+    @return loss: torch.Tensor same shape as input
     """
+    
+    _log_input = F.log_softmax(_input + eps, dim=-1)
+    loss = _target * _log_input
+    return loss
+
+def cross_entropy(input, target, eps=1e-6):
+    """
+    
+    Wrapper for the cross_entropy loss handling different inputs / targets types.
+    
+    """
+    if isinstance(input, dict):
+        
+        if 'one_hot' in input:
+            _input = input['one_hot']
+        else :
+            raise NotImplementedError()
+        
+    else:
+        _input = input
+    
     if isinstance(target, dict):
         
         if 'one_hot' in target :
@@ -692,14 +714,8 @@ def cross_entropy(input, target, eps=1e-6):
         elif 'tokens' in target :
         
             # converts to tokens proba instead of class id for text
-            _target = torch.zeros(input.shape[0] * input.shape[1], input.shape[-1]).to(
-                input.device
-            )
-            _target = _target.scatter(1, target["tokens"].reshape(-1, 1), 1)
-            input = input.reshape(input.shape[0] * input.shape[1], -1)
+            _target = torch.nn.functional.one_hot(target['tokens'],_input.shape[-1])
     else:
         _target = target
-
-    log_input = F.log_softmax(input + eps, dim=-1)
-    loss = _target * log_input
-    return loss
+        
+    return cross_entropy_(_input, _target,eps)
