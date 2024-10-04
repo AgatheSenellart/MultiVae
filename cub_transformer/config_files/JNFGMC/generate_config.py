@@ -4,7 +4,7 @@ import itertools
 import json
 from pathlib import Path
 
-folder = f'/home/asenella/dev/multivae_package/expes/cub/config_files/JNFGMC'
+folder = f'/home/asenella/dev/multivae_package/expes/cub_transformer/config_files/JNFGMC'
 
 params_options = {
     "seed": [0],

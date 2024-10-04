@@ -1,14 +1,5 @@
 
 from multivae.models import JNFGMC, JNFGMCConfig, GMC, GMCConfig
-from multivae.models.nn.default_architectures import MultipleHeadJointEncoder, Encoder_VAE_MLP, BaseAEConfig
-from multivae.trainers import MultistageTrainer, MultistageTrainerConfig
-from multivae.trainers.base.callbacks import WandbCallback
-from torch.utils.data import random_split
-from architectures_image import *
-from multivae.models.nn.cub import CubTextEncoder, CubTextDecoderMLP
-from pythae.models.base import BaseAEConfig
-import argparse
-import json
 from utils import *
 
 parser = argparse.ArgumentParser()
@@ -20,17 +11,13 @@ with open(args.param_file, "r") as fp:
 args = argparse.Namespace(**info)
 
 
-
 # GMC model
-
 gmc_config = GMCConfig(
     n_modalities=2,
     common_dim=64,
     latent_dim=64,
     temperature=0.1,
-    loss= args.loss
-    
-)
+    loss= args.loss)
 
 
 gmc_model = GMC(gmc_config,
@@ -42,7 +29,7 @@ gmc_model = GMC(gmc_config,
                         ntokens=vocab_size,
                         embed_size=512
                         )),
-                shared_encoder= MHDCommonEncoder(gmc_config.common_dim, latent_dim=gmc_config.latent_dim))
+                shared_encoder= CUBCommonEncoder(gmc_config.common_dim, latent_dim=gmc_config.latent_dim))
                 
 
 # model
@@ -102,14 +89,14 @@ model=JNFGMC(model_config=model_config,
 
 # trainer and callbacks
 training_config = MultistageTrainerConfig(
-    output_dir='/home/asenella/experiments/CUB/transformer',
+    output_dir=save_path,
     per_device_eval_batch_size=64,
     per_device_train_batch_size=64,
     num_epochs= model_config.nb_epochs_gmc + model_config.warmup + 150,
     optimizer_cls="Adam",
     scheduler_cls="ReduceLROnPlateau",
     scheduler_params={"patience": 20},
-    learning_rate=1e-4,
+    learning_rate=1e-3,
     steps_predict=10,
     seed=args.seed
     
@@ -131,7 +118,7 @@ trainer.train()
 
 # Validate and compute coherence
 from evaluate_coherence import evaluate_coherence
-test_data = CUB('/home/asenella/scratch/data', split='test',max_lenght=32).text_data
+test_data = CUB(data_path, split='test',max_lenght=32).text_data
 model = trainer._best_model
 wandb_path = wandb.run._get_path()
 evaluate_coherence(model, wandb_path,test_data)
