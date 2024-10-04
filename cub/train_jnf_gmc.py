@@ -107,7 +107,7 @@ model=JNFGMC(model_config=model_config,
 
 # trainer and callbacks
 training_config = MultistageTrainerConfig(
-    output_dir='/home/asenella/experiments/CUB',
+    output_dir='/home/asenella/experiments/CUB_new',
     per_device_eval_batch_size=64,
     per_device_train_batch_size=64,
     num_epochs= model_config.nb_epochs_gmc + model_config.warmup + 150,
@@ -133,6 +133,11 @@ trainer = MultistageTrainer(
 )
 
 trainer.train()
+
+wandb.run._name
+
+trainer._best_model.push_to_hf_hub(
+        f'asenella/{CUB}_{model.model_name}_{wandb.run._name}')
 
 # Validate and compute coherence
 from evaluate_coherence import evaluate_coherence
