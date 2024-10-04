@@ -190,7 +190,7 @@ class Dec(BaseDecoder):
         out = out.view(*z.size()[:-3], *out.size()[1:]).view(-1, embeddingDim)
         # The softmax is key for this to work
         ret = self.toVocabSize(out).view(*z.size()[:-3], maxSentLen, vocabSize)
-        return ModelOutput(reconstruction = dict(one_hot = ret))
+        return ModelOutput(reconstruction  = ret)
     
     
     

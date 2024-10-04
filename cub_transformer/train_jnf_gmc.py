@@ -78,6 +78,7 @@ joint_encoder = MultipleHeadJointEncoder(
              max_sentence_length=max_length,
              ntokens=vocab_size,
              embed_size=512,
+             dropout=0.2
          ))
     , BaseAEConfig(latent_dim=model_config.latent_dim)
 )
@@ -108,7 +109,7 @@ training_config = MultistageTrainerConfig(
     optimizer_cls="Adam",
     scheduler_cls="ReduceLROnPlateau",
     scheduler_params={"patience": 20},
-    learning_rate=1e-3,
+    learning_rate=1e-4,
     steps_predict=10,
     seed=args.seed
     

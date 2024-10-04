@@ -68,7 +68,6 @@ class CUBSentences(Dataset):
     def __getitem__(self, idx):
         sent = torch.LongTensor(self.data[str(idx)]['idx'])
         length = self.data[str(idx)]['length']
-        
         padding_mask=torch.FloatTensor([1.0]*length + [0.]*(self.max_sequence_length-length))
 
         if self.one_hot:
@@ -335,22 +334,26 @@ class CUB(MultimodalBaseDataset):
             modality (str) : the name of the modality'''
             
         if modality == 'text':
-            if not isinstance(input,dict):
-                raise AttributeError('The input for modality = "text" should be a dictionary but it is of type :', type(input))
             list_transformed = []
-            # The input is a dict with either a field 'one_hot' or a field 'tokens'
-            if 'one_hot' in input:
-                tensor = input['one_hot']
-                for x in tensor: 
+            if isinstance(input,torch.Tensor):
+                 for x in input: 
                     list_transformed.append(self.plot_text(x))
-            elif 'tokens' in input:
-                tensor = input['tokens']
-                for x in tensor:
-                    x = nn.functional.one_hot(torch.Tensor(x).long(), self.text_data.vocab_size).float()
-                    list_transformed.append(self.plot_text(x))
-            else:
-                raise AttributeError('The text input should be a dictionary with either "one_hot" or "tokens" as a key but it has neither.')
-            return torch.stack(list_transformed)
+            elif isinstance(input, dict):
+                # The input is a dict with either a field 'one_hot' or a field 'tokens'
+                if 'one_hot' in input:
+                    tensor = input['one_hot']
+                    for x in tensor: 
+                        list_transformed.append(self.plot_text(x))
+                elif 'tokens' in input:
+                    tensor = input['tokens']
+                    for x in tensor:
+                        x = nn.functional.one_hot(torch.Tensor(x).long(), self.text_data.vocab_size).float()
+                        list_transformed.append(self.plot_text(x))
+                else:
+                    raise AttributeError('The text input should be a dictionary with either "one_hot" or "tokens" as a key but it has neither.')
+                return torch.stack(list_transformed)
+            else :
+                raise AttributeError("The input should be either a tensor or a dictionary but is neither")
                 
         if modality == 'image' :
             return input

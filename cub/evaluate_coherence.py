@@ -75,7 +75,7 @@ def evaluate_coherence(model, wandb_path, test_data):
         idx = [test_data.w2i.get(w, test_data.w2i['<exc>']) for w in tok]
 
         sent = torch.nn.functional.one_hot(torch.Tensor(idx).long(), test_data.vocab_size).float().unsqueeze(0)
-        
+        sent = dict(one_hot = sent)
         testing_set = MultimodalBaseDataset(data=dict(text = sent))
         
         # Visualize samples
