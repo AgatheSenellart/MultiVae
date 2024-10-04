@@ -608,8 +608,13 @@ class BaseTrainer:
                         dataset_size=len(self.eval_loader.dataset),
                         uses_ddp=self.distributed,
                     )
-
-            except RuntimeError:
+                    loss_ = model_output.loss.item()
+                    if loss_ != loss_:
+                        raise RuntimeError()
+            
+            except RuntimeError :
+                
+            
                 model_output = self.model(
                     inputs,
                     epoch=epoch,
@@ -618,7 +623,6 @@ class BaseTrainer:
                 )
 
             loss = model_output.loss_sum if hasattr(model_output, "loss_sum") else model_output.loss
-
             epoch_loss += loss.item()
             update_dict(epoch_metrics, model_output.metrics)
 
