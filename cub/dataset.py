@@ -14,6 +14,8 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 import PIL
 from pythae.data.datasets import DatasetOutput
+import nltk
+nltk.download('punkt_tab')
 
 class OrderedCounter(Counter, OrderedDict):
     """Counter that remembers the order elements are first encountered."""
@@ -336,8 +338,9 @@ class CUB(MultimodalBaseDataset):
         if modality == 'text':
             list_transformed = []
             if isinstance(input,torch.Tensor):
-                 for x in input: 
+                for x in input: 
                     list_transformed.append(self.plot_text(x))
+                return torch.stack(list_transformed)
             elif isinstance(input, dict):
                 # The input is a dict with either a field 'one_hot' or a field 'tokens'
                 if 'one_hot' in input:

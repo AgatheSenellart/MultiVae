@@ -5,10 +5,12 @@ from multivae.trainers.base.callbacks import WandbCallback
 from torch.utils.data import random_split
 from architectures_image import *
 from architectures_text import *
+from utils import *
+from torch.utils.data import random_split
 
 # dataset
-train_data = CUB('/home/asenella/scratch/data', split='train',max_lenght=32)
-eval_data = CUB('/home/asenella/scratch/data', split='eval',max_lenght=32)
+train_data = CUB(data_path, split='train',max_lenght=32)
+eval_data = CUB(data_path, split='eval',max_lenght=32)
 
 # model
 
@@ -51,7 +53,7 @@ model = MMVAEPlus(model_config=model_config,
 # trainer and callbacks
 
 training_config = BaseTrainerConfig(
-    output_dir='/home/asenella/experiments/CUB',
+    output_dir=save_path,
     per_device_eval_batch_size=32,
     per_device_train_batch_size=32,
     num_epochs=50,
@@ -78,7 +80,7 @@ trainer.train()
 
 # Validate and compute coherence
 from evaluate_coherence import evaluate_coherence
-test_data = CUB('/home/asenella/scratch/data', split='test',max_lenght=32).text_data
+test_data = CUB(data_path, split='test',max_lenght=32).text_data
 model = trainer._best_model
 wandb_path = wandb.run._get_path()
 evaluate_coherence(model, wandb_path,test_data)
