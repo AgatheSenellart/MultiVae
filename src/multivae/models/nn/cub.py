@@ -50,9 +50,9 @@ class CubTextEncoder(BaseEncoder):
         Parameters:
             ntokens (int): Vocabulary size.
             embed_size (int): Size of the token embedding vectors. Default: 512
-            nhead (int): Number of head in the MultiHeadAttention module. Default: 8
+            nhead (int): Number of head in the MultiHeadAttention module. Default: 4
             ff_size (int): Number of units in the feedforward layers. Default: 1024
-            n_layers (int): Number of Encoders layers in the TransformerEncoder. Default: 8
+            n_layers (int): Number of Encoders layers in the TransformerEncoder. Default: 4
             dropout (float): Dropout rate. Default: 0.5
         """
 
