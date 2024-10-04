@@ -129,4 +129,4 @@ class CubTextDecoderMLP(BaseDecoder):
                 output_shape = (*z.shape[:-1],) + self.input_dim
                 output["reconstruction"] = out.reshape(output_shape)
 
-        return ModelOutput(reconstruction = dict(one_hot = output))
+        return output
