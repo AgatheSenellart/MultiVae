@@ -78,6 +78,8 @@ trainer = BaseTrainer(
 
 trainer.train()
 
+trainer._best_model.push_to_hf_hub(f'asenella/{CUB}_{model.model_name}_{wandb.run._name}')
+
 # Validate and compute coherence
 from evaluate_coherence import evaluate_coherence
 test_data = CUB(data_path, split='test',max_lenght=32).text_data
