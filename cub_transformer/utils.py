@@ -13,13 +13,13 @@ import argparse
 import json
 from torch.utils.data import random_split
 
-max_length = 16
+max_length = 32
 
-# data_path = '/home/asenella/scratch/data'
-# save_path = '/home/asenella/experiments/CUB_transformer'
+data_path = '/home/asenella/scratch/data'
+save_path = '/home/asenella/experiments/CUB_transformer'
 
-data_path = '/home/agathe/data'
-save_path = '/home/agathe/experiments/CUB_transformer'
+# data_path = '/home/agathe/data'
+# save_path = '/home/agathe/experiments/CUB_transformer'
 
 
 # dataset
