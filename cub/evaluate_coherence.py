@@ -3,17 +3,20 @@ from dataset import CUB
 import nltk
 nltk.download('punkt')
 from nltk.tokenize import sent_tokenize, word_tokenize
+import matplotlib.pyplot as plt
+import PIL
 
 from PIL import Image
 import numpy as np
 
-from dataset import CUB, MultimodalBaseDataset
+from dataset import CUB, MultimodalBaseDataset, DatasetOutput
 import torch
 from multivae.models import AutoModel
 from multivae.metrics import Visualization, VisualizationConfig
 import os
 import wandb
 from multivae.trainers.base.callbacks import load_wandb_path_from_folder
+from torch.utils.data import DataLoader
 
 def in_range(hsv, lower, upper):
     mask_h = np.logical_and(hsv[:,:,0] >= lower[0], hsv[:,:,0] <= upper[0])
@@ -50,17 +53,15 @@ def count_pixels_per_color(hsv_image):
     return color_masks, color_count, most_present
 
 
-def evaluate_coherence(model, wandb_path, test_data):
+class simple_text_dataset(CUB):
     
-    entity, project, run_id = tuple(wandb_path.split("/"))
-    wandb_run = wandb.init(
-                project="mmvae_plus_CUB", id=run_id, resume="must", reinit=True
-        )
-    # Generate sentences and transform it 
-    nb_coherent = 0
-    nb_image = 0
-    for color in ['white', 'yellow', 'red','blue', 'green','grey', 'brown', 'black']:
+    def __init__(self, root_data_dir, split='train', max_lenght=32, one_hot=True,color='blue'):
+        super().__init__(root_data_dir, split, max_lenght, one_hot)
+        self.color = color
         
+    def __getitem__(self, index):
+        
+        color = self.color
         sentence = f'This bird is completely {color}'
         
         tokenized = word_tokenize(sentence)
@@ -74,9 +75,28 @@ def evaluate_coherence(model, wandb_path, test_data):
             pad_count += 1
         idx = [test_data.w2i.get(w, test_data.w2i['<exc>']) for w in tok]
 
-        sent = torch.nn.functional.one_hot(torch.Tensor(idx).long(), test_data.vocab_size).float().unsqueeze(0)
+        sent = torch.nn.functional.one_hot(torch.Tensor(idx).long(), test_data.vocab_size).float()
         sent = dict(one_hot = sent)
-        testing_set = MultimodalBaseDataset(data=dict(text = sent))
+        
+        return DatasetOutput(data = dict(text = sent))
+        
+    def __len__(self):
+        return 10
+    
+    
+
+def evaluate_coherence(model, wandb_path, test_data):
+    
+    entity, project, run_id = tuple(wandb_path.split("/"))
+    wandb_run = wandb.init(
+                project="mmvae_plus_CUB", id=run_id, resume="must", reinit=True
+        )
+    # Generate sentences and transform it 
+    nb_coherent = 0
+    nb_image = 0
+    for color in ['white', 'yellow', 'red','blue', 'green','grey', 'brown', 'black']:
+        
+        testing_set = simple_text_dataset('/home/asenella/scratch/data','test',32,True,color)
         
         # Visualize samples
         vis_config = VisualizationConfig(n_samples=10,n_data_cond=1)
@@ -91,7 +111,8 @@ def evaluate_coherence(model, wandb_path, test_data):
         
         # Compute coherence metric
         model.eval()
-        output = model.predict(inputs = MultimodalBaseDataset(data=dict(text = sent)),cond_mod='text',gen_mod='image', N=10) # 10 images ce n'est pas très significatif
+        inputs = next(iter(DataLoader(testing_set,batch_size=1)))
+        output = model.predict(inputs =inputs ,cond_mod='text',gen_mod='image', N=10) # 10 images ce n'est pas très significatif
         
         # print(output.image.shape) # 10,1, 3, 64, 64
         
@@ -128,9 +149,9 @@ def evaluate_coherence(model, wandb_path, test_data):
 if __name__ == '__main__':
     
     test_data = CUB('/home/asenella/scratch/data', split='test',max_lenght=32).text_data
-    for path in os.listdir('/home/asenella/experiments/CUB'):
+    for path in os.listdir('/home/asenella/experiments/CUB_new'):
         print( path)
-        path_model = os.path.join('/home/asenella/experiments/CUB',path,'final_model')
+        path_model = os.path.join('/home/asenella/experiments/CUB_new',path,'final_model')
         if os.path.exists(path_model):
             print('starting evaluation')  
             model = AutoModel.load_from_folder(path_model)
