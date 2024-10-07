@@ -124,7 +124,7 @@ class Visualization(Evaluator):
         
         if hasattr(self.test_dataset, "transform_for_plotting"):
             recon = {m : self.test_dataset.transform_for_plotting(recon[m], m) for m in recon}
-            recon.update({f"original_{m}": self.test_dataset.transform_for_plotting(data.data[m]) for m in subset})
+            recon.update({f"original_{m}": self.test_dataset.transform_for_plotting(data.data[m],m) for m in subset})
         else:
             recon.update({f"original_{m}": data.data[m] for m in subset})
 
