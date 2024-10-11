@@ -134,12 +134,12 @@ class JNFGMC(BaseJointModel):
     def _set_torch_no_grad_on_joint_vae(self):
         # After the warmup, we freeze the architecture of the joint encoder and decoders
         self.joint_encoder = self.joint_encoder.eval()
-        self.joint_encoder.requires_grad_(False)
+        # self.joint_encoder.requires_grad_(False)
         self.decoders.requires_grad_(False)
 
     def _set_torch_no_grad_on_gmc_module(self):
         self.gmc_model = self.gmc_model.eval()
-        self.gmc_model.requires_grad_(False)
+        # self.gmc_model.requires_grad_(False)
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs):
         epoch = kwargs.pop("epoch", 1)
@@ -184,10 +184,11 @@ class JNFGMC(BaseJointModel):
         else:
             if not self.model_config.annealing:
                 self._set_torch_no_grad_on_joint_vae()
+                z_joint = z_joint.clone().detach()
                 
             ljm = 0
             for mod in self.encoders:
-                gmc_embed = self.gmc_model.encode(inputs,cond_mod=mod).embedding
+                gmc_embed = self.gmc_model.encode(inputs,cond_mod=mod).embedding.detach()
 
                 mod_output = self.encoders[mod](gmc_embed)
                 mu0, log_var0 = mod_output.embedding, mod_output.log_covariance
