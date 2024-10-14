@@ -32,6 +32,7 @@ model_config = MMVAEPlusConfig(
     
     learn_shared_prior=False,
     learn_modality_prior=True,
+    loss = 'iwae_looser'
     
 
 )
@@ -58,9 +59,10 @@ training_config = BaseTrainerConfig(
     per_device_train_batch_size=32,
     num_epochs=50,
     optimizer_cls="Adam",
-    optimizer_params=dict(amsgrad = True),
     learning_rate=1e-3,
-    steps_predict=5
+    steps_predict=5,
+    drop_last=True,
+    seed=2
     
 )
 

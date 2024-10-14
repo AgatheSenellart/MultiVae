@@ -25,8 +25,8 @@ eval_data = CUB('/home/asenella/scratch/data', split='eval',max_lenght=32)
 
 gmc_config = GMCConfig(
     n_modalities=2,
-    common_dim=64,
-    latent_dim=64,
+    common_dim=16,
+    latent_dim=16,
     temperature=0.1,
     loss= args.loss
     
@@ -134,14 +134,13 @@ trainer = MultistageTrainer(
 
 trainer.train()
 
-wandb.run._name
-
-trainer._best_model.push_to_hf_hub(
-        f'asenella/{CUB}_{model.model_name}_{wandb.run._name}')
-
 # Validate and compute coherence
 from evaluate_coherence import evaluate_coherence
 test_data = CUB('/home/asenella/scratch/data', split='test',max_lenght=32).text_data
 model = trainer._best_model
 wandb_path = wandb.run._get_path()
 evaluate_coherence(model, wandb_path,test_data)
+
+wandb_name = wandb.run._name.replace('-','_')
+trainer._best_model.push_to_hf_hub(f'asenella/{CUB}_{model.model_name}_{wandb_name}')
+
