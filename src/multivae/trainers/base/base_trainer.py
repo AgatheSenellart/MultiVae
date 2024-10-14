@@ -691,6 +691,8 @@ class BaseTrainer:
             k: epoch_model_metrics[k] / len(self.train_loader)
             for k in epoch_model_metrics
         }
+        
+        epoch_loss = epoch_loss / len(self.train_dataset)
 
         return epoch_loss, epoch_model_metrics
 

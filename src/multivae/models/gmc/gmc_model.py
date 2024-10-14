@@ -247,8 +247,8 @@ class GMC(BaseModel):
             output = self.shared_encoder(h)
         # modality encoding
         elif cond_mod in self.processors:
-            # output = self.shared_encoder(self.processors[cond_mod](inputs.data[cond_mod]).embedding)
-            output = self.processors[cond_mod](inputs.data[cond_mod])
+            output = self.shared_encoder(self.processors[cond_mod](inputs.data[cond_mod]).embedding)
+            # output = self.processors[cond_mod](inputs.data[cond_mod])
 
         else :
             raise AttributeError("cond_mod must be : either a modality's name or equal to 'all' (for joint representation). ")

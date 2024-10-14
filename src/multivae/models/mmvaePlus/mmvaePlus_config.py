@@ -40,6 +40,7 @@ class MMVAEPlusConfig(BaseMultiVAEConfig):
             Must be provided.
         reconstruction_option (Literal['single_prior','joint_prior']) : Specifies how to sample the modality specific
             variable when reconstructing/ translating modalities. Default to 'joint_prior' used in the article.
+        loss (Literal['dreg_looser','iwae_looser']) : Default to 'dreg_looser'.
     """
 
     K: int = 10
@@ -51,3 +52,4 @@ class MMVAEPlusConfig(BaseMultiVAEConfig):
     beta: float = 1.0
     modalities_specific_dim: int = None
     reconstruction_option: Literal["single_prior", "joint_prior"] = "joint_prior"
+    loss : Literal['iwae_looser', 'dreg_looser'] = 'dreg_looser'
