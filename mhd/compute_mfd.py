@@ -91,29 +91,25 @@ def compute_mfd(model, wandb_path, path):
 
 
 
+if __name__ == '__main__':
+    for model_name in models_name:
+        for beta in betas:
+            for rescale in rescales:
 
-for model_name in models_name:
-    for beta in betas:
-        for rescale in rescales:
-
-            for seed in range(4):
-                try:
-                    model_path = f'asenella/{model_name}_{beta}_scale_{rescale}_seed_{seed}'
-                    model = AutoModel.load_from_hf_hub(model_path, allow_pickle=True)
-                
-                except:
-                    model_path = f'asenella/mhd_config_1_{model_name}_{beta}_scale_{rescale}_seed_{seed}'
-                    model = AutoModel.load_from_hf_hub(model_path, allow_pickle=True)
-                
-                # model_path = f'asenella/incomplete_mhd_{model_name}_{beta}_scale_{rescale}_seed_{seed}'
-                # model = AutoModel.load_from_hf_hub(model_path, allow_pickle=True)
-                
+                for seed in range(4):
+                    try:
+                        model_path = f'asenella/{model_name}_{beta}_scale_{rescale}_seed_{seed}'
+                        model = AutoModel.load_from_hf_hub(model_path, allow_pickle=True)
                     
-                run = wandb.init(entity='multimodal_vaes',
-                                        project='validate_mhd_mfd',
-                                        config=model.model_config.to_dict(),
-                                        reinit=True
-                                        )
-                # run.config.update(dict(incomplete = True))
+                    except:
+                        model_path = f'asenella/mhd_config_1_{model_name}_{beta}_scale_{rescale}_seed_{seed}'
+                        model = AutoModel.load_from_hf_hub(model_path, allow_pickle=True)
                 
-                compute_mfd(model, run.path, None)
+                        
+                    run = wandb.init(entity='multimodal_vaes',
+                                            project='validate_mhd_mfd',
+                                            config=model.model_config.to_dict(),
+                                            reinit=True
+                                            )
+                    
+                    compute_mfd(model, run.path, None)

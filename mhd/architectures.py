@@ -1,9 +1,19 @@
 
 from math import prod
 import torch
-# Image
 from pythae.models.nn.benchmarks.mnist import Encoder_Conv_VAE_MNIST, BaseDecoder
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from multivae.models.base import BaseEncoder, BaseDecoder, ModelOutput
 
+# Parameters for the Sound encoder
+FRAME_SIZE = 512
+CONTEXT_FRAMES = 32
+SPECTROGRAM_BINS = FRAME_SIZE//2 + 1
+
+
+######### IMAGE ENCODER/DECODER ############
 class Decoder_Conv_AE_MNIST(BaseDecoder):
     """
     A Convolutional decoder suited for MNIST and Autoencoder-based
@@ -147,18 +157,8 @@ class Decoder_Conv_AE_MNIST(BaseDecoder):
                     output["reconstruction"] = out
 
         return output
-# Sound
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from multivae.models.base import BaseEncoder, BaseDecoder, ModelOutput
-
-FRAME_SIZE = 512
-CONTEXT_FRAMES = 32
-SPECTROGRAM_BINS = FRAME_SIZE//2 + 1
-
-
+######### SOUND ENCODER/DECODER ###########
 class SoundEncoder(BaseEncoder):
     def __init__(self, output_dim):
         super(SoundEncoder, self).__init__()
@@ -197,7 +197,6 @@ class SoundEncoder(BaseEncoder):
         return ModelOutput(
             embedding = self.fc_mu(h),
             log_covariance = self.fc_logvar(h))
-
 
 class SoundDecoder(BaseDecoder):
     def __init__(self, input_dim):
@@ -243,21 +242,12 @@ class SoundDecoder(BaseDecoder):
         
         return ModelOutput(reconstruction = F.sigmoid(out))
 
-
-
 class Swish(nn.Module):
     def forward(self, x):
         return x * F.sigmoid(x)
-    
-    
-    
-# Trajectory Encoder
+      
+######### TRAJECTORY ENCODER/DECODER ###########
 
-import torch
-import torch.nn as nn
-
-
-# Symbol
 class TrajectoryEncoder(BaseEncoder):
     def __init__(self, input_dim, layer_sizes, output_dim):
         super(TrajectoryEncoder, self).__init__()
@@ -293,7 +283,6 @@ class TrajectoryEncoder(BaseEncoder):
         h = self.network(x)
         return ModelOutput(embedding = self.fc_mu(h),
                            log_covariance= self.fc_logvar(h))
-
 
 class TrajectoryDecoder(BaseDecoder):
     def __init__(self, input_dim, layer_sizes, output_dim):
@@ -344,11 +333,7 @@ class TrajectoryDecoder(BaseDecoder):
         
         return ModelOutput(reconstruction = self.out_process(out))
     
-
-
-
-
-##### Classifiers #####
+######### CLASSIFIERS ###########
 
 class Image_Classifier(nn.Module):
     def __init__(self):
@@ -417,7 +402,6 @@ class Sound_Classifier(nn.Module):
         h = h.view(h.size(0), -1)
         out = self.fc(h)
         return out
-
 
 
 class Trajectory_Classifier(nn.Module):

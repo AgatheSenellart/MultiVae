@@ -9,11 +9,21 @@ from multivae.trainers.base.callbacks import (
 )
 import json
 from compute_mfd import compute_mfd
+import os
 
 wandb_project = 'MHD'
 config_name = 'mhd_config_1'
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-project_path = '/home/asenella/scratch/mhd_experiments/'
+# project_path = '/home/asenella/scratch/mhd_experiments/'
+# data_path = '/home/asenella/scratch/data/MHD'
+
+project_path = '/Users/agathe/experiments/MHD/'
+data_path = '/Users/agathe/dev/data/MHD'
+
+
+classifiers_path = os.path.join(data_path, 'classifiers')
+
+
 
 base_config = dict(
     n_modalities=3,
@@ -21,9 +31,7 @@ base_config = dict(
     input_dims=dict(image = (3,28,28),
                     audio = (1,32,128),
                     trajectory = (200,))
-
-)
-
+    )
 
 base_trainer_config = dict(
     per_device_train_batch_size=64,
@@ -38,11 +46,10 @@ from multivae.data.datasets.mhd import MHD
 from torch.utils.data import random_split
 import os
 
-train_set = MHD('/home/asenella/scratch/data/MHD', split='train', modalities=['audio', 'trajectory', 'image'])
-test_set = MHD('/home/asenella/scratch/data/MHD', split='test', modalities=['audio', 'trajectory', 'image'])
+train_set = MHD(data_path, split='train', modalities=['audio', 'trajectory', 'image'])
+test_set = MHD(data_path, split='test', modalities=['audio', 'trajectory', 'image'])
 
 
-classifiers_path = '/home/asenella/scratch/data/MHD/classifiers'
 
 classifiers = dict(
     image = Image_Classifier(),
@@ -101,7 +108,3 @@ def eval(path,model, classifiers, wandb_path):
         
     compute_mfd(model, wandb_path,path)
     
-
-def save_to_hf(model, args):
-    model.push_to_hf_hub(
-        f'asenella/{config_name}_{model.model_name}_beta_{int(args.beta*10)}_scale_{args.use_rescaling}_seed_{args.seed}')
