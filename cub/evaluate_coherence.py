@@ -18,6 +18,9 @@ import wandb
 from multivae.trainers.base.callbacks import load_wandb_path_from_folder
 from torch.utils.data import DataLoader
 
+test_data = CUB('/home/asenella/scratch/data', split='test',max_lenght=32).text_data
+
+
 def in_range(hsv, lower, upper):
     mask_h = np.logical_and(hsv[:,:,0] >= lower[0], hsv[:,:,0] <= upper[0])
     mask_s = np.logical_and(hsv[:,:,1] >= lower[1] , hsv[:,:,1] <= upper[1])
@@ -85,7 +88,7 @@ class simple_text_dataset(CUB):
     
     
 
-def evaluate_coherence(model, wandb_path, test_data):
+def evaluate_coherence(model, wandb_path, test_data, path=f'./test'):
     
     entity, project, run_id = tuple(wandb_path.split("/"))
     wandb_run = wandb.init(
@@ -99,8 +102,8 @@ def evaluate_coherence(model, wandb_path, test_data):
         testing_set = simple_text_dataset('/home/asenella/scratch/data','test',32,True,color)
         
         # Visualize samples
-        vis_config = VisualizationConfig(n_samples=10,n_data_cond=1)
-        vis_module = Visualization(model,test_dataset=testing_set,output=f'./test/{color}', eval_config=vis_config)
+        vis_config = VisualizationConfig(n_samples=10,n_data_cond=1,wandb_path = wandb_path)
+        vis_module = Visualization(model,test_dataset=testing_set,output=os.path.join(path,f'{color}'), eval_config=vis_config)
         
         recon_image = vis_module.conditional_samples_subset(['text'],gen_mod='image')
         
@@ -149,15 +152,14 @@ def evaluate_coherence(model, wandb_path, test_data):
 if __name__ == '__main__':
     
     test_data = CUB('/home/asenella/scratch/data', split='test',max_lenght=32).text_data
-    for path in os.listdir('/home/asenella/experiments/CUB_new'):
-        print( path)
-        path_model = os.path.join('/home/asenella/experiments/CUB_new',path,'final_model')
+    for path_model in ['/home/asenella/experiments/CUB_new/JNFGMC_training_2024-10-15_17-45-38/final_model']:
+        
         if os.path.exists(path_model):
             print('starting evaluation')  
             model = AutoModel.load_from_folder(path_model)
             wandb_path = load_wandb_path_from_folder(path_model)
             
-            evaluate_coherence(model, wandb_path, test_data)
+            evaluate_coherence(model, wandb_path, test_data, path = path_model)
         
         
 

@@ -77,7 +77,9 @@ model_config = JNFGMCConfig(
     warmup=args.warmup,
     annealing=args.annealing,
     alpha=args.alpha,
-    beta=args.beta
+    beta=args.beta,
+    logits_to_std = 'softplus'
+    
     
 )
 
@@ -110,7 +112,7 @@ training_config = MultistageTrainerConfig(
     output_dir='/home/asenella/experiments/CUB_new',
     per_device_eval_batch_size=64,
     per_device_train_batch_size=64,
-    num_epochs= model_config.nb_epochs_gmc + model_config.warmup + 150,
+    num_epochs= model_config.nb_epochs_gmc + model_config.warmup + 300,
     optimizer_cls="Adam",
     scheduler_cls="ReduceLROnPlateau",
     scheduler_params={"patience": 20},
@@ -139,7 +141,7 @@ from evaluate_coherence import evaluate_coherence
 test_data = CUB('/home/asenella/scratch/data', split='test',max_lenght=32).text_data
 model = trainer._best_model
 wandb_path = wandb.run._get_path()
-evaluate_coherence(model, wandb_path,test_data)
+evaluate_coherence(model, wandb_path,test_data, path = trainer.training_dir)
 
 wandb_name = wandb.run._name.replace('-','_')
 trainer._best_model.push_to_hf_hub(f'asenella/{CUB}_{model.model_name}_{wandb_name}')
