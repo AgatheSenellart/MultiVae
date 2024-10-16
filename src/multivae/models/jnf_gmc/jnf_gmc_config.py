@@ -1,7 +1,7 @@
 from pydantic.dataclasses import dataclass
 
 from ..joint_models import BaseJointModelConfig
-from typing import Dict
+from typing import Dict, Literal
 
 @dataclass
 class JNFGMCConfig(BaseJointModelConfig):
@@ -32,6 +32,8 @@ class JNFGMCConfig(BaseJointModelConfig):
         nb_epochs_gmc (int) : The number of epochs during which to train the DCCA embeddings. Default to 30.
         
         beta (float) :Weighing factor for the regularization of the joint VAE. Default to 1.
+        
+        logits_to_std (Literal['standard', 'softplus']). Default to 'standard'. How to compute the std deviations from the logits outputs from the 
 
     """
 
@@ -41,3 +43,4 @@ class JNFGMCConfig(BaseJointModelConfig):
     nb_epochs_gmc: int = 30
     beta: float = 1.0
     gmc_config : Dict = None
+    logits_to_std : Literal['standard', 'softplus'] = 'standard'

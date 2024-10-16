@@ -168,8 +168,8 @@ class MMVAEPlus(BaseMultiVAE):
             w_x = qw_x.rsample([K])
 
             # The DREG loss uses detached parameters in the loss computation afterwards.
-            qu_x_detach = self.post_dist(mu.detach(), sigma.detach())
-            qw_x_detach = self.post_dist(mu_style.detach(), sigma_style.detach())
+            qu_x_detach = self.post_dist(mu.clone().detach(), sigma.clone().detach())
+            qw_x_detach = self.post_dist(mu_style.clone().detach(), sigma_style.clone().detach())
 
             # Then compute all the cross-modal reconstructions
             reconstructions[cond_mod] = {}
@@ -247,12 +247,8 @@ class MMVAEPlus(BaseMultiVAE):
             tuple: mean, std
         """
         mean = self.mean_priors["shared"]
-        if self.model_config.prior_and_posterior_dist == "laplace_with_softmax":
-            std = F.softmax(
-                self.logvars_priors["shared"], dim=-1
-            ) * self.logvars_priors["shared"].size(-1)
-        else:
-            std = torch.exp(0.5 * self.logvars_priors["shared"])
+        log_var = self.logvars_priors['shared']
+        std = self.log_var_to_std(log_var)
         return mean, std
 
     def dreg_looser(self, qu_xs, qw_xs, embeddings, reconstructions, inputs):

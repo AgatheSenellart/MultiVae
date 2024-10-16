@@ -634,6 +634,9 @@ class BaseTrainer:
         epoch_metrics = {
             k: epoch_metrics[k] / len(self.eval_loader) for k in epoch_metrics
         }
+        
+        epoch_loss = epoch_loss / len(self.eval_loader.dataset)
+        
         return epoch_loss, epoch_metrics
 
     def train_step(self, epoch: int):

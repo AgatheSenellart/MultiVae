@@ -9,6 +9,7 @@ from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
 from pythae.models.normalizing_flows.base import BaseNF
 from pythae.models.normalizing_flows.maf import MAF, MAFConfig
 from torch.nn import ModuleDict
+from torch.nn import functional as F
 
 from multivae.data.utils import MinMaxScaler, set_inputs_to_device
 from multivae.models.nn.default_architectures import (
@@ -102,6 +103,17 @@ class JNFGMC(BaseJointModel):
             }
         return BaseDictEncoders(encoders_input_dims, model_config.latent_dim)
     
+    def logits_to_std(self, logits):
+        
+        if self.model_config.logits_to_std == 'standard':
+            return torch.exp(0.5*logits)
+        elif self.model_config.logits_to_std == 'softplus':
+            return F.softplus(logits) + 1e-6
+        else:
+            raise NotImplemented()
+        
+        
+    
 
     def set_flows(self, flows: Dict[str, BaseNF]):
         # check that the keys corresponds with the encoders keys
@@ -151,9 +163,10 @@ class JNFGMC(BaseJointModel):
 
         # First compute the joint ELBO
         joint_output = self.joint_encoder(inputs.data)
-        mu, log_var = joint_output.embedding, joint_output.log_covariance
+        mu, logits = joint_output.embedding, joint_output.log_covariance
 
-        sigma = torch.exp(0.5 * log_var)
+        sigma = self.logits_to_std(logits)
+        log_var = 2*torch.log(sigma)
         qz_xy = dist.Normal(mu, sigma)
         z_joint = qz_xy.rsample()
 
@@ -191,9 +204,9 @@ class JNFGMC(BaseJointModel):
                 gmc_embed = self.gmc_model.encode(inputs,cond_mod=mod).embedding
 
                 mod_output = self.encoders[mod](gmc_embed)
-                mu0, log_var0 = mod_output.embedding, mod_output.log_covariance
+                mu0, logits0 = mod_output.embedding, mod_output.log_covariance
 
-                sigma0 = torch.exp(0.5 * log_var0)
+                sigma0 = self.logits_to_std(logits0)
                 qz_x0 = dist.Normal(mu0, sigma0)
 
                 # Compute -ln q_\phi_mod(z_joint|x_mod)
