@@ -4,8 +4,12 @@ from multivae.models import JNF, JNFConfig
 from multivae.trainers import TwoStepsTrainer, TwoStepsTrainerConfig
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--seed", type=int)
+parser.add_argument("--param_file", type=str)
 args = parser.parse_args()
+
+with open(args.param_file, "r") as fp:
+    info = json.load(fp)
+args = argparse.Namespace(**info)
 
 
 train_data = MMNISTDataset(

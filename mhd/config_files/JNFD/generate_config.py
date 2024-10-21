@@ -8,12 +8,12 @@ folder = f'/home/asenella/dev/multivae_package/expes/mhd/config_files/JNFD'
 
 
 params_options = {
-    "seed": [0],
-    "beta": [0.5, 1.0,2.5 ], 
+    "seed": [1,2,3],
+    "beta": [0.5], 
     "warmup" : [200],
     "alpha" : [0.1],
     "use_rescaling" : [True],
-    "apply_rescaling_dcca" : [True, False],
+    "apply_rescaling_dcca" : [False],
     "latent_dim" : [64],
     
     

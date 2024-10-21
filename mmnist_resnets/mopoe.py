@@ -54,6 +54,7 @@ trainer.train()
 
 model = trainer._best_model
 
+save_to_hf(model, wandb_cb)
 
 ##################################################################################################################################
 # validate the model #############################################################################################################
@@ -61,4 +62,3 @@ model = trainer._best_model
 
 eval_model(model, trainer.training_dir, train_data, test_data, wandb_cb.run.path, args.seed)
 
-save_to_hf(model, args)

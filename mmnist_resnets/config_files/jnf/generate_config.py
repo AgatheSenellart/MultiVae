@@ -4,12 +4,12 @@ import itertools
 import json
 from pathlib import Path
 
-folder = f'/home/asenella/dev/multivae_package/expes/mmnist_resnets/config_files/mmvae'
+folder = f'/home/asenella/dev/multivae_package/expes/mmnist_resnets/config_files/jnf'
 
 params_options = {
     "seed": [0, 1, 2, 3],
-    "beta": [2.5], # same choices as in MMVAE+ paper
-    "K":[10]
+    "two_steps_training": [True],
+    "beta": [ 2.5], # same choices as in MMVAE+ paper
     
 }
 

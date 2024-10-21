@@ -23,9 +23,9 @@ model_config = NexusConfig(
     uses_likelihood_rescaling=args.use_rescaling,
     modalities_specific_dim=dict(image = 64, audio = 128, trajectory = 16),
     msg_dim=512,
-    gammas= dict(image = 1.0, trajectory = 50.0, audio = 1.0),
+    # gammas= dict(image = 1.0, trajectory = 50.0, audio = 1.0),
     bottom_betas=dict(image = 1.0,trajectory = 1.0,audio = 1.0),
-    rescale_factors=dict(image = 1.0, trajectory=50.0, audio = 1.0),
+    # rescale_factors=dict(image = 1.0, trajectory=50.0, audio = 1.0),
     top_beta=args.top_beta,
     warmup = 20,
     dropout_rate=0.2

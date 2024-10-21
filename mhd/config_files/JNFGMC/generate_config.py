@@ -9,14 +9,14 @@ folder = f'/home/asenella/dev/multivae_package/expes/mhd/config_files/JNFGMC'
 
 
 params_options = {
-    "seed": [0],
-    "beta": [0.5, 1.0,2.5 ], 
+    "seed": [1,2,3],
+    "beta": [0.5], 
     "gmc_loss":['between_modality_pairs'],
     "annealing" : [False],
     "warmup" : [50,200],
     "alpha" : [0.1],
     "use_rescaling" : [True],
-    "temperature" : [0.07,0.1,0.2],
+    "temperature" : [0.1],
     "latent_dim" : [64]
     
     
