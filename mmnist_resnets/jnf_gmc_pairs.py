@@ -8,9 +8,12 @@ from multivae.models.base import BaseEncoder, ModelOutput
 import torch.nn.functional as F
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--seed", type=int, default=0)
+parser.add_argument("--param_file", type=str)
 args = parser.parse_args()
 
+with open(args.param_file, "r") as fp:
+    info = json.load(fp)
+args = argparse.Namespace(**info)
 
 train_data = MMNISTDataset(
     data_path="~/scratch/data",
@@ -30,7 +33,7 @@ gmc_config = GMCConfig(
     input_dims=base_config['input_dims'],
     common_dim=64,
     latent_dim=10,
-    temperature = 0.1,
+    temperature = args.temperature,
     loss= "between_modality_pairs"
 )
 
@@ -64,20 +67,16 @@ processors = { k: EncoderConvMMNIST_adapted(BaseAEConfig(latent_dim=gmc_config.c
 gmc_model = GMC(
     model_config=gmc_config,
     processors= processors,
-    joint_encoder=MultipleHeadJointEncoder(processors,BaseAEConfig(latent_dim=gmc_config.common_dim)),
     shared_encoder=MHDCommonEncoder(gmc_config.common_dim, gmc_config.latent_dim)
 )
 
 
-
-
 model_config = JNFGMCConfig(
     **base_config,
-    latent_dim=128,
-    warmup=100,
+    latent_dim=args.latent_dim,
+    warmup=200,
     nb_epochs_gmc=100,
-    apply_rescaling=False,
-    beta=1.,
+    beta=args.beta,
 )
 
 head_encoders = {
@@ -86,7 +85,6 @@ head_encoders = {
 }
 
 joint_encoder = MultipleHeadJointEncoder(head_encoders, model_config)
-
 
 
 decoders = {m : Dec(ndim=model_config.latent_dim) for m in modalities}
@@ -101,21 +99,19 @@ model = JNFGMC(
     joint_encoder=joint_encoder
 )
 
-id = [model.model_name,'pairs',f'seed_{args.seed}']
 
 trainer_config = MultistageTrainerConfig(
     **base_training_config,
     seed=args.seed,
-    output_dir= f'/home/asenella/experiments/mmnist_resnets/JNFGMC/pairs/seed__{args.seed}',
-    start_keep_best_epoch=0
+    output_dir= f"~/experiments/mmnist_resnets/{model.model_name}/seed_{args.seed}/",
 )
 trainer_config.per_device_train_batch_size = 64
 trainer_config.per_device_eval_batch_size = 64
-trainer_config.num_epochs = model_config.nb_epochs_gmc + model_config.warmup + 100
+trainer_config.num_epochs = model_config.nb_epochs_gmc + model_config.warmup + 200
 
 # Set up callbacks
 wandb_cb = WandbCallback()
-wandb_cb.setup(trainer_config, model_config, project_name=wandb_project)
+wandb_cb.setup(trainer_config, model_config, project_name='hyperparameter_search_for_jnfgmc_mmnist')
 wandb_cb.run.config.update(args)
 
 callbacks = [TrainingCallback(), ProgressBarCallback(), wandb_cb]
@@ -136,3 +132,5 @@ model = trainer._best_model
 ##################################################################################################################################
 
 eval_model(model, trainer.training_dir,train_data, test_data, wandb_cb.run.path,args.seed)
+
+save_to_hf(model, wandb_cb)

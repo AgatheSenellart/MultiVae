@@ -51,7 +51,7 @@ model = MMVAEPlus(model_config, encoders=encoders, decoders=decoders)
 trainer_config = BaseTrainerConfig(
     **base_training_config,
     seed=args.seed,
-    output_dir= os.path.join(project_path, 'MMVAEPlus'),
+    output_dir= f"~/experiments/mmnist_resnets/{model.model_name}/seed_{args.seed}/",
     optimizer_params=dict(amsgrad=True),
 
 )

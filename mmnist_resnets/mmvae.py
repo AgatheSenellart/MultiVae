@@ -39,7 +39,7 @@ model = MMVAE(model_config, encoders=encoders, decoders=decoders)
 trainer_config = BaseTrainerConfig(
     **base_training_config,
     seed=args.seed,
-    output_dir=f"~home/experiments/mmnist_resnets/{model.model_name}/seed_{args.seed}/",
+    output_dir=f"~/experiments/mmnist_resnets/{model.model_name}/seed_{args.seed}/",
 )
 trainer_config.num_epochs = 50 # enough for this model to reach convergence
 

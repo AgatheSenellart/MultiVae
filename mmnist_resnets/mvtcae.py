@@ -20,7 +20,10 @@ train_data, eval_data = random_split(
     train_data, [0.9, 0.1], generator=torch.Generator().manual_seed(args.seed)
 )
 
-model_config = MVTCAEConfig(beta=args.beta, alpha=args.alpha, **base_config)
+model_config = MVTCAEConfig(beta=args.beta, 
+                            alpha=args.alpha, 
+                            latent_dim=args.latent_dim,
+                            **base_config)
 
 encoders = {m : Enc(ndim_w=0,ndim_u=model_config.latent_dim) for m in modalities}
 decoders = {m : Dec(ndim=model_config.latent_dim) for m in modalities}
@@ -31,13 +34,13 @@ model = MVTCAE(model_config, encoders=encoders, decoders=decoders)
 trainer_config = BaseTrainerConfig(
     **base_training_config,
     seed=args.seed,
-    output_dir=f"{project_path}/{model.model_name}/seed_{args.seed}/",
+    output_dir=f"~/experiments/mmnist_resnets/{model.model_name}/seed_{args.seed}/",
 )
-trainer_config.num_epochs = 300  # enough for this model to reach convergence
+trainer_config.num_epochs = 500  # enough for this model to reach convergence
 
 # Set up callbacks
 wandb_cb = WandbCallback()
-wandb_cb.setup(trainer_config, model_config, project_name=wandb_project)
+wandb_cb.setup(trainer_config, model_config, project_name='hyperparameter_search_mvtcae_mmnist')
 wandb_cb.run.config.update(args.__dict__)
 
 callbacks = [TrainingCallback(), ProgressBarCallback(), wandb_cb]
@@ -59,4 +62,4 @@ model = trainer._best_model
 
 eval_model(model, trainer.training_dir, train_data, test_data, wandb_cb.run.path, args.seed)
 
-save_to_hf(model, args)
+save_to_hf(model, wandb_cb)
