@@ -31,13 +31,10 @@ model_config = MMVAEPlusConfig(
     learn_shared_prior=False,
     learn_modality_prior=True,
     beta=args.beta,
+    latent_dim=32,
     modalities_specific_dim=32,
     reconstruction_option="joint_prior",
 )
-
-
-model_config.latent_dim = 32
-
 
 
 encoders = {
