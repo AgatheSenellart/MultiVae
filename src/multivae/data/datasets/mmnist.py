@@ -73,11 +73,11 @@ class MMNISTDataset(MultimodalBaseDataset):
 
         self.__check_or_download_data__(data_path, unimodal_datapaths)
 
-        self.m0 = torch.load(unimodal_datapaths[0])
-        self.m1 = torch.load(unimodal_datapaths[1])
-        self.m2 = torch.load(unimodal_datapaths[2])
-        self.m3 = torch.load(unimodal_datapaths[3])
-        self.m4 = torch.load(unimodal_datapaths[4])
+        self.m0 = torch.load(unimodal_datapaths[0], weights_only=True)
+        self.m1 = torch.load(unimodal_datapaths[1], weights_only=True)
+        self.m2 = torch.load(unimodal_datapaths[2], weights_only=True)
+        self.m3 = torch.load(unimodal_datapaths[3], weights_only=True)
+        self.m4 = torch.load(unimodal_datapaths[4], weights_only=True)
 
         self.images_dict = {
             "m0": self.m0,
@@ -89,7 +89,7 @@ class MMNISTDataset(MultimodalBaseDataset):
 
         label_datapaths = os.path.join(data_path, "MMNIST", split, "labels.pt")
 
-        self.labels = torch.load(label_datapaths)
+        self.labels = torch.load(label_datapaths, weights_only=True)
 
         assert self.m0.shape[0] == self.labels.shape[0]
         self.num_files = self.labels.shape[0]
