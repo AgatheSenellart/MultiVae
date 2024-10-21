@@ -109,7 +109,7 @@ class JNFDcca(BaseJointModel):
 
         self.DCCA_module = DCCA(self.dcca_config, dcca_networks)
         self.dcca_networks = self.DCCA_module.networks
-        self.dcca_rescaler = MinMaxScaler() if model_config.apply_rescaling else None
+        self.dcca_rescaler = MinMaxScaler() if model_config.apply_rescaling_dcca else None
         self.beta = model_config.beta
 
         if flows is None:
