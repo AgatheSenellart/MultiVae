@@ -25,6 +25,7 @@ model_config = MMVAEConfig(
     **base_config, 
     K=args.K, 
     beta=args.beta,
+    latent_dim=args.latent_dim,
     prior_and_posterior_dist="laplace_with_softmax",
     learn_prior="False"
 )

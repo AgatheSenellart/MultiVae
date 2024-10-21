@@ -9,7 +9,8 @@ folder = f'/home/asenella/dev/multivae_package/expes/mmnist_resnets/config_files
 params_options = {
     "seed": [0, 1, 2, 3],
     "beta": [2.5], # same choices as in MMVAE+ paper
-    "K":[10]
+    "K":[10],
+    "latent_dim" : [64]
     
 }
 
