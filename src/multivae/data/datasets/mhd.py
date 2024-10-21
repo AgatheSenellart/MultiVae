@@ -97,7 +97,7 @@ class MHD(IncompleteDataset):  # pragma: no cover
             self._a_data,
             self._traj_normalization,
             self._audio_normalization,
-        ) = torch.load(self.data_file, weights_only=True)
+        ) = torch.load(self.data_file)
 
         self.data = dict()
         if "image" in modalities:
