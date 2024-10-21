@@ -4,19 +4,20 @@ import itertools
 import json
 from pathlib import Path
 
-# folder = f'/home/asenella/dev/multivae_package/expes/MHD/config_files/JNFGMC'
-folder = f'/Users/agathe/dev/multivae_package/expes/MHD/config_files/JNFGMC'
+folder = f'/home/asenella/dev/multivae_package/expes/mhd/config_files/JNFGMC'
+# folder = f'/Users/agathe/dev/multivae_package/expes/mhd/config_files/JNFGMC'
 
 
 params_options = {
     "seed": [0],
-    "beta": [ 0.5 ], 
+    "beta": [0.5, 1.0,2.5 ], 
     "gmc_loss":['between_modality_pairs'],
-    "annealing" : [False, True],
-    "warmup" : [50,100],
+    "annealing" : [False],
+    "warmup" : [50,200],
     "alpha" : [0.1],
     "use_rescaling" : [True],
-    "temperature" : [0.07,0.1,0.2]
+    "temperature" : [0.07,0.1,0.2],
+    "latent_dim" : [64]
     
     
 }
@@ -29,7 +30,7 @@ trial_hyperparameter_set = [
 file_nb = 1
 for i, config in enumerate(trial_hyperparameter_set):
     
-    if config['annealing'] == False and config['warmup'] != 100:
+    if config['annealing'] == False and config['warmup'] != 200:
         continue
     
     if config['annealing'] == False and config['alpha'] != 0.1:

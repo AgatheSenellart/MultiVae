@@ -14,11 +14,11 @@ import os
 wandb_project = 'MHD'
 config_name = 'mhd_config_1'
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-# project_path = '/home/asenella/scratch/mhd_experiments/'
-# data_path = '/home/asenella/scratch/data/MHD'
+project_path = '/home/asenella/scratch/mhd_experiments/'
+data_path = '/home/asenella/scratch/data/MHD'
 
-project_path = '/Users/agathe/experiments/MHD/'
-data_path = '/Users/agathe/dev/data/MHD'
+# project_path = '/Users/agathe/experiments/MHD/'
+# data_path = '/Users/agathe/dev/data/MHD'
 
 
 classifiers_path = os.path.join(data_path, 'classifiers')
@@ -27,7 +27,6 @@ classifiers_path = os.path.join(data_path, 'classifiers')
 
 base_config = dict(
     n_modalities=3,
-    latent_dim=64,
     input_dims=dict(image = (3,28,28),
                     audio = (1,32,128),
                     trajectory = (200,))

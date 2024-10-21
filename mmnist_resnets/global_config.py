@@ -131,6 +131,9 @@ def eval_model(model, output_dir, train_data,test_data, wandb_path, seed):
         vis_module.eval()
         vis_module.finish()
         
-def save_to_hf(model, args):
-    model.push_to_hf_hub(
-        f'asenella/project_{config_name}_{"_".join(args)}')
+def save_to_hf(model, wand_cb):
+    
+    wandb_id = wandb_cb.run._run_id.replace('-','_')
+
+    # Push to HuggingFaceHub
+    model.push_to_hf_hub(f'asenella/mmnist_resnets_{model.model_name}_{wandb_id}')

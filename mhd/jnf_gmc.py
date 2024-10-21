@@ -61,6 +61,7 @@ gmc_model = GMC(
 # Model configuration 
 model_config = JNFGMCConfig(
     **base_config,
+    latent_dim = args.latent_dim,
     warmup=args.warmup,
     annealing=args.annealing,
     nb_epochs_gmc=100,

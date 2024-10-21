@@ -102,13 +102,13 @@ def evaluate_coherence(model, wandb_path, test_data, path=f'./test'):
         testing_set = simple_text_dataset('/home/asenella/scratch/data','test',32,True,color)
         
         # Visualize samples
-        vis_config = VisualizationConfig(n_samples=10,n_data_cond=1,wandb_path = wandb_path)
+        vis_config = VisualizationConfig(n_samples=10,n_data_cond=1)
         vis_module = Visualization(model,test_dataset=testing_set,output=os.path.join(path,f'{color}'), eval_config=vis_config)
         
         recon_image = vis_module.conditional_samples_subset(['text'],gen_mod='image')
         
         wandb_run.log(
-            {f"conditional_from_text": wandb.Image(recon_image)}
+            {f"conditional_from_{color}": wandb.Image(recon_image)}
         )
 
         
@@ -152,7 +152,7 @@ def evaluate_coherence(model, wandb_path, test_data, path=f'./test'):
 if __name__ == '__main__':
     
     test_data = CUB('/home/asenella/scratch/data', split='test',max_lenght=32).text_data
-    for path_model in ['/home/asenella/experiments/CUB_new/JNFGMC_training_2024-10-15_17-45-38/final_model']:
+    for path_model in ['/home/asenella/experiments/CUB_new/JNFGMC_training_2024-10-17_05-48-47/final_model']:
         
         if os.path.exists(path_model):
             print('starting evaluation')  

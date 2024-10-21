@@ -4,9 +4,13 @@ import numpy as np
 from multivae.models import MMVAEPlus, MMVAEPlusConfig
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--seed", type=int)
-parser.add_argument("--K", type=int, default=1)
+parser.add_argument("--param_file", type=str)
 args = parser.parse_args()
+
+with open(args.param_file, "r") as fp:
+    info = json.load(fp)
+args = argparse.Namespace(**info)
+
 
 
 train_data = MMNISTDataset(
@@ -26,7 +30,7 @@ model_config = MMVAEPlusConfig(
     prior_and_posterior_dist='laplace_with_softmax',
     learn_shared_prior=False,
     learn_modality_prior=True,
-    beta=2.5,
+    beta=args.beta,
     modalities_specific_dim=32,
     reconstruction_option="joint_prior",
 )
@@ -50,7 +54,7 @@ model = MMVAEPlus(model_config, encoders=encoders, decoders=decoders)
 trainer_config = BaseTrainerConfig(
     **base_training_config,
     seed=args.seed,
-    output_dir=f"{config_name}/{model.model_name}/K_{model.K}/seed_{args.seed}",
+    output_dir= os.path.join(project_path, 'MMVAEPlus'),
     optimizer_params=dict(amsgrad=True),
 
 )
@@ -79,11 +83,11 @@ trainer.train()
 
 model = trainer._best_model
 
-args_list = [model.model_name,f'K_{model.K}',f'seed_{args.seed}']
 
-save_to_hf(model, args_list)
 ##################################################################################################################################
 # validate the model #############################################################################################################
 ##################################################################################################################################
 
 eval_model(model, trainer.training_dir,train_data, test_data, wandb_cb.run.path,args.seed)
+
+save_to_hf(model, wandb_cb)

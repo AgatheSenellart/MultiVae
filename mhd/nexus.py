@@ -19,6 +19,7 @@ args = argparse.Namespace(**info)
 # Model configuration 
 model_config = NexusConfig(
     **base_config,
+    latent_dim = args.latent_dim,
     uses_likelihood_rescaling=args.use_rescaling,
     modalities_specific_dim=dict(image = 64, audio = 128, trajectory = 16),
     msg_dim=512,

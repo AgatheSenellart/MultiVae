@@ -21,11 +21,13 @@ args = argparse.Namespace(**info)
 # Model configuration 
 model_config = JNFDccaConfig(
     **base_config,
-    warmup=200,
+    latent_dim = args.latent_dim,
+    warmup=args.warmup,
     nb_epochs_dcca=100,
-    embedding_dcca_dim=20,
+    embedding_dcca_dim=16,
     beta = args.beta,
-    uses_likelihood_rescaling=args.use_rescaling
+    uses_likelihood_rescaling=args.use_rescaling,
+    apply_rescaling_dcca = args.apply_rescaling_dcca
 )
 
 #Architectures
@@ -61,8 +63,8 @@ trainer_config = AddDccaTrainerConfig(
     **base_trainer_config,
     seed=args.seed,
     output_dir=os.path.join(project_path, model.model_name, f'beta_{int(args.beta*10)}', f'rescale_{args.use_rescaling}'),
-    per_device_dcca_train_batch_size=800,
-    per_device_dcca_eval_batch_size=800,
+    per_device_dcca_train_batch_size=500,
+    per_device_dcca_eval_batch_size=500,
     learning_rate_dcca=1e-4
     )
 
@@ -91,8 +93,10 @@ trainer = AddDccaTrainer(
 trainer.train()
 model = trainer._best_model
 
+wandb_id = wandb_cb.run._run_id.replace('-','_')
+
 # Push to HuggingFaceHub
-model.push_to_hf_hub(f'asenella/{model.model_name}_beta_{int(args.beta*10)}_scale_{args.use_rescaling}_seed_{args.seed}')
+model.push_to_hf_hub(f'asenella/MHD_{model.model_name}_{wandb_id}')
 
 # Validate
 eval(trainer_config.output_dir, model, classifiers, wandb_cb.run.path)
