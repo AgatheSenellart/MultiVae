@@ -4,6 +4,7 @@ import json
 from config import *
 from multivae.metrics.reconstruction import Reconstruction, ReconstructionConfig
 from multivae.metrics import FIDEvaluator, FIDEvaluatorConfig
+from multivae.trainers.base.callbacks import load_wandb_path_from_folder
 import wandb
 from multivae.data.datasets import MultimodalBaseDataset
 import torch
@@ -85,31 +86,15 @@ def compute_mfd(model, wandb_path, path):
                 if gen_mod != mod:
                     mfd += fid_module.compute_fid_from_conditional_generation([mod], gen_mod)
         
-        run.log({f'MFD_label_{label}' : mfd })
+        fid_module.metrics[f'MFD_label_{label}'] = mfd 
         fid_module.log_to_wandb()
         fid_module.finish()
 
 
 
 if __name__ == '__main__':
-    for model_name in models_name:
-        for beta in betas:
-            for rescale in rescales:
-
-                for seed in range(4):
-                    try:
-                        model_path = f'asenella/{model_name}_{beta}_scale_{rescale}_seed_{seed}'
-                        model = AutoModel.load_from_hf_hub(model_path, allow_pickle=True)
-                    
-                    except:
-                        model_path = f'asenella/mhd_config_1_{model_name}_{beta}_scale_{rescale}_seed_{seed}'
-                        model = AutoModel.load_from_hf_hub(model_path, allow_pickle=True)
-                
-                        
-                    run = wandb.init(entity='multimodal_vaes',
-                                            project='validate_mhd_mfd',
-                                            config=model.model_config.to_dict(),
-                                            reinit=True
-                                            )
-                    
-                    compute_mfd(model, run.path, None)
+    for model_path in ['/home/asenella/scratch/mhd_experiments/JNFDcca/beta_5/rescale_True/JNFDcca_training_2024-10-19_04-28-55/final_model',
+                       '/home/asenella/scratch/mhd_experiments/JNFGMC/beta_5/rescale_True/JNFGMC_training_2024-10-18_20-26-09/final-model']:
+        model = AutoModel.load_from_folder(model_path)
+        wandb_path = load_wandb_path_from_folder(model_path)
+        compute_mfd(model,wandb_path, None)
