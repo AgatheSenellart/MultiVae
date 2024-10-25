@@ -63,7 +63,7 @@ def load_mmnist_classifiers(data_path="/home/asenella/scratch/data/clf", device=
     for i in range(5):
         fp = data_path + "/pretrained_img_to_digit_clf_m" + str(i)
         model_clf = ClfImg()
-        model_clf.load_state_dict(torch.load(fp, map_location=torch.device(device)), weights_only=True)
+        model_clf.load_state_dict(torch.load(fp, map_location=torch.device(device)))
         model_clf = model_clf.to(device)
         clfs["m%d" % i] = model_clf
     for m, clf in clfs.items():
@@ -79,16 +79,16 @@ def eval_model(model, output_dir, train_data,test_data, wandb_path, seed):
     """
     global fid_path
     # Coherence evaluator
-    # config = CoherenceEvaluatorConfig(batch_size=128, wandb_path=wandb_path)
-    # mod = CoherenceEvaluator(
-    #     model=model,
-    #     test_dataset=test_data,
-    #     classifiers=load_mmnist_classifiers(device=model.device),
-    #     output=output_dir,
-    #     eval_config=config,
-    # )
-    # mod.eval()
-    # mod.finish()
+    config = CoherenceEvaluatorConfig(batch_size=128, wandb_path=wandb_path)
+    mod = CoherenceEvaluator(
+        model=model,
+        test_dataset=test_data,
+        classifiers=load_mmnist_classifiers(device=model.device),
+        output=output_dir,
+        eval_config=config,
+    )
+    mod.eval()
+    mod.finish()
 
     # FID evaluator
     config = FIDEvaluatorConfig(batch_size=128, wandb_path=wandb_path, inception_weights_path=fid_path)

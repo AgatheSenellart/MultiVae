@@ -42,6 +42,8 @@ trainer_config = BaseTrainerConfig(
     output_dir=f"~/experiments/mmnist_resnets/{model.model_name}/seed_{args.seed}/",
 )
 trainer_config.num_epochs = 50 # enough for this model to reach convergence
+trainer_config.per_device_train_batch_size = 32
+trainer_config.per_device_eval_batch_size = 32
 
 # Set up callbacks
 wandb_cb = WandbCallback()
