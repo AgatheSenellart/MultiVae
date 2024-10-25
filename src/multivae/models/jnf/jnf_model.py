@@ -326,40 +326,37 @@ class JNF(BaseJointModel):
         Returns:
             tuple : likelihood and gradients
         """
-
-        lnqzs = 0
-
-        z = z_.clone().detach().requires_grad_(grad)
-
-        if divide_prior:
-            # print('Dividing by the prior')
-            lnqzs += (0.5 * (torch.pow(z, 2) + np.log(2 * np.pi))).sum(dim=1)
-
-        for m in subset:
-            # Compute lnqz
-            flow_output = self.flows[m](z)
-            vae_output = self.encoders[m](data[m])
-            mu, log_var, z0 = (
-                vae_output.embedding,
-                vae_output.log_covariance,
-                flow_output.out,
-            )
-
-            log_q_z0 = (
-                -0.5
-                * (
-                    log_var
-                    + np.log(2 * np.pi)
-                    + torch.pow(z0 - mu, 2) / torch.exp(log_var)
+        with torch.set_grad_enabled(grad):
+            lnqzs = 0
+            
+            z = z_.detach().clone().requires_grad_(grad)
+            
+            if divide_prior:
+                lnqzs = lnqzs +  (0.5 * (torch.pow(z, 2) + np.log(2 * np.pi))).sum(dim=1)
+            for m in subset:
+                # Compute lnqz
+                flow_output = self.flows[m](z)
+                vae_output = self.encoders[m](data[m])
+                mu, log_var, z0 = (
+                    vae_output.embedding,
+                    vae_output.log_covariance,
+                    flow_output.out,
                 )
-            ).sum(dim=1)
-            lnqzs += log_q_z0 + flow_output.log_abs_det_jac  # n_data_points x 1
 
-        if grad:
-            g = torch.autograd.grad(lnqzs.sum(), z)[0]
-            return lnqzs, g
-        else:
-            return lnqzs
+                log_q_z0 = (
+                    -0.5
+                    * (
+                        log_var
+                        + np.log(2 * np.pi)
+                        + torch.pow(z0 - mu, 2) / torch.exp(log_var)
+                    )
+                ).sum(dim=1)
+                lnqzs = lnqzs + log_q_z0 + flow_output.log_abs_det_jac  # n_data_points x 1
+            if grad:
+                g = torch.autograd.grad(lnqzs.sum(), z)[0]
+                return lnqzs, g
+            else:
+                return lnqzs
 
     def sample_from_poe_subset(
         self,

@@ -193,8 +193,9 @@ def fid_inception_v3(PATH_STATE_DICT):
         inception.load_state_dict(torch.load(PATH_STATE_DICT))
     else:
         warnings.warn(
-            f"FID weights not found at provided path : {PATH_STATE_DICT}."
-            "Using an untrained Inception Network."
+            "\n-------------------------------------------------------------------------------------------------- \n"+
+            f"---------------------FID weights not found at provided path : \n{PATH_STATE_DICT} \n"+
+            "----------------------Using an untrained Inception Network--------------------------------------------\n"
         )
     return inception
 
