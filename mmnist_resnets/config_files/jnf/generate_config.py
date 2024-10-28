@@ -7,10 +7,10 @@ from pathlib import Path
 folder = f'/home/asenella/dev/multivae_package/expes/mmnist_resnets/config_files/jnf'
 
 params_options = {
-    "seed": [0],
+    "seed": [0,1,2,3],
     "two_steps_training": [True],
-    "beta": [1.0, 2.5,5.0], # same choices as in MMVAE+ paper
-    "latent_dim" : [64,190,512]
+    "beta": [2.5], # same choices as in MMVAE+ paper
+    "latent_dim" : [190]
     
 }
 

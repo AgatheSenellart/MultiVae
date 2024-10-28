@@ -33,7 +33,7 @@ import os
 modalities = ["m0", "m1", "m2", "m3", "m4"]
 
 
-project_path = '~/experiments/mmnist_resnets'
+project_path = '/home/asenella/scratch/experiments/mmnist_resnets'
 fid_path = '/home/asenella/scratch/fid/pt_inception-2015-12-05-6726825d.pth'
 wandb_project = "mmnist_resnet"
 config_name = "mmnist_resnet"
@@ -75,10 +75,12 @@ def load_mmnist_classifiers(data_path="/home/asenella/scratch/data/clf", device=
 def eval_model(model, output_dir, train_data,test_data, wandb_path, seed):
     """
     In this function, define all the evaluation metrics
-    you want to use
+    you want to use. 
+    
+    Here we evaluate : 1) coherence 2) Conditional FIDs 
     """
     global fid_path
-    # Coherence evaluator
+    # 1) Coherence evaluator
     config = CoherenceEvaluatorConfig(batch_size=128, wandb_path=wandb_path)
     mod = CoherenceEvaluator(
         model=model,
@@ -90,20 +92,21 @@ def eval_model(model, output_dir, train_data,test_data, wandb_path, seed):
     mod.eval()
     mod.finish()
 
-    # FID evaluator
+    # 2) FID evaluator
     config = FIDEvaluatorConfig(batch_size=128, wandb_path=wandb_path, inception_weights_path=fid_path)
 
     fid = FIDEvaluator(
         model, test_data, output=output_dir, eval_config=config
     )
     fid.compute_all_conditional_fids(gen_mod="m0")
+    fid.unconditional_fids()
+    fid.log_to_wandb()
     fid.finish()
     
-    # Visualization
+    # 3) Visualization
     if seed == 0:
     # visualize some unconditional sample from prior
         vis_config = VisualizationConfig(wandb_path = wandb_path,n_samples=8, n_data_cond=10)
-
         vis_module = Visualization(model, test_data,eval_config=vis_config,output = output_dir)
         vis_module.eval()
 
@@ -131,7 +134,7 @@ def eval_model(model, output_dir, train_data,test_data, wandb_path, seed):
         vis_module.eval()
         vis_module.finish()
         
-def save_to_hf(model, wand_cb):
+def save_to_hf(model, wandb_cb):
     
     wandb_id = wandb_cb.run._run_id.replace('-','_')
 

@@ -32,13 +32,13 @@ trainer_config = BaseTrainerConfig(
     **base_training_config,
     drop_last=True,
     seed=args.seed,
-    output_dir=f"~home/experiments/mmnist_resnets/{model.model_name}/seed_{args.seed}/",
+    output_dir=os.path.join(project_path,f"{model.model_name}/seed_{args.seed}/"),
 )
 trainer_config.num_epochs = 500
 
 # Set up callbacks
 wandb_cb = WandbCallback()
-wandb_cb.setup(trainer_config, model_config, project_name='hyperparameter_search_mopoe_mmnist')
+wandb_cb.setup(trainer_config, model_config, project_name=wandb_project)
 wandb_cb.run.config.update(args.__dict__)
 
 callbacks = [TrainingCallback(), ProgressBarCallback(), wandb_cb]
@@ -54,6 +54,7 @@ trainer.train()
 
 model = trainer._best_model
 
+save_to_hf(model, wandb_cb)
 
 ##################################################################################################################################
 # validate the model #############################################################################################################
@@ -61,4 +62,4 @@ model = trainer._best_model
 
 eval_model(model, trainer.training_dir, train_data, test_data, wandb_cb.run.path, args.seed)
 
-save_to_hf(model, wandb_cb)
+
