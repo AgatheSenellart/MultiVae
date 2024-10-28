@@ -282,6 +282,4 @@ class FIDEvaluator(Evaluator):
             fd = self.compute_fid_from_conditional_generation(s, gen_mod)
             fds.append(fd)
 
-        self.log_to_wandb()
-
         return ModelOutput(**self.metrics)
