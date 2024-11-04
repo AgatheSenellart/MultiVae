@@ -16,43 +16,36 @@ test_data = MMNISTDataset(data_path="~/scratch/data", split="test")
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 seed = 0
 
-def eval_model(model, output_dir, train_data,test_data, wandb_path, seed):
-    """
-    In this function, define all the evaluation metrics
-    you want to use
-    """
-    global fid_path
-    # config = CoherenceEvaluatorConfig(batch_size=128, wandb_path=wandb_path)
-    # mod = CoherenceEvaluator(
-    #     model=model,
-    #     test_dataset=test_data,
-    #     classifiers=load_mmnist_classifiers(device=model.device),
-    #     output=output_dir,
-    #     eval_config=config,
-    # )
-    # mod.eval()
-    # mod.finish()
-     # FID evaluator
-    config = FIDEvaluatorConfig(batch_size=128, wandb_path=wandb_path, inception_weights_path=fid_path)
 
-    fid = FIDEvaluator(
-        model, test_data, output=output_dir, eval_config=config
-    )
-    fid.compute_all_conditional_fids(gen_mod="m0")
-    fid.finish()
+liste_models = [
+    '/home/asenella/scratch/experiments/mmnist_resnets/JNF/seed_3/JNF_training_2024-10-25_23-32-10/final_model',
+    '/home/asenella/scratch/experiments/mmnist_resnets/JNF/seed_0/JNF_training_2024-10-25_17-14-46/final_model',
+    '/home/asenella/scratch/experiments/mmnist_resnets/JNF/seed_1/JNF_training_2024-10-25_17-22-43/final_model',
+    '/home/asenella/scratch/experiments/mmnist_resnets/JNF/seed_2/JNF_training_2024-10-25_17-31-07/final_model',
     
+    '/home/asenella/scratch/experiments/mmnist_resnets/JNFGMC/seed_3/JNFGMC_training_2024-10-26_06-21-41/final_model',
+    '/home/asenella/scratch/experiments/mmnist_resnets/JNFGMC/seed_0/JNFGMC_training_2024-10-25_23-40-18/final_model',
+    '/home/asenella/scratch/experiments/mmnist_resnets/JNFGMC/seed_1/JNFGMC_training_2024-10-25_23-48-48/final_model',
+    '/home/asenella/scratch/experiments/mmnist_resnets/JNFGMC/seed_2/JNFGMC_training_2024-10-26_05-47-47/final_model',
+    
+    '/home/asenella/scratch/experiments/mmnist_resnets/MoPoE/seed_3/MoPoE_training_2024-10-27_05-50-57/final_model',
+    '/home/asenella/scratch/experiments/mmnist_resnets/MoPoE/seed_0/MoPoE_training_2024-10-26_20-55-41/final_model',
+    '/home/asenella/scratch/experiments/mmnist_resnets/MoPoE/seed_1/MoPoE_training_2024-10-26_21-33-03/final_model',
+    '/home/asenella/scratch/experiments/mmnist_resnets/MoPoE/seed_2/MoPoE_training_2024-10-27_01-59-13/final_model',
+    
+    '/home/asenella/scratch/experiments/mmnist_resnets/MVTCAE/seed_3/MVTCAE_training_2024-10-26_15-01-48/final_model',
+    '/home/asenella/scratch/experiments/mmnist_resnets/MVTCAE/seed_0/MVTCAE_training_2024-10-26_06-32-27/final_model',
+    '/home/asenella/scratch/experiments/mmnist_resnets/MVTCAE/seed_1/MVTCAE_training_2024-10-26_12-28-46/final_model',
+    '/home/asenella/scratch/experiments/mmnist_resnets/MVTCAE/seed_2/MVTCAE_training_2024-10-26_13-03-51/final_model',
+    
+    '/home/asenella/scratch/experiments/mmnist_resnets/MMVAE/seed_0/MMVAE_training_2024-10-27_06-32-16/final_model',
+    '/home/asenella/scratch/experiments/mmnist_resnets/MMVAE/seed_1/MMVAE_training_2024-10-27_10-56-03/final_model',
+    '/home/asenella/scratch/experiments/mmnist_resnets/MMVAE/seed_2/MMVAE_training_2024-10-27_15-45-03/final_model'
+]
 
 
-
-main_path = '/home/asenella/scratch/experiments_/experiments/mmnist_resnets/JNF/seed_0/'
-# l = os.listdir(main_path)
-
-l = ['JNF_training_2024-10-23_14-09-32/'
-    #  'MVTCAE_training_2024-10-23_11-29-19'
-     ]
-
-for path in l :
-    dir_ = os.path.join(main_path,path,'final_model')
+for path in liste_models :
+    dir_ = path
     
     if os.path.exists(dir_):
             
