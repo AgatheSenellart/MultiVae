@@ -108,7 +108,7 @@ class JNFGMC(BaseJointModel):
         if self.model_config.logits_to_std == 'standard':
             return torch.exp(0.5*logits)
         elif self.model_config.logits_to_std == 'softplus':
-            return F.softplus(logits) + 1e-6
+            return F.softplus(logits) + 1e-5
         else:
             raise NotImplemented()
         
@@ -167,6 +167,19 @@ class JNFGMC(BaseJointModel):
 
         sigma = self.logits_to_std(logits)
         log_var = 2*torch.log(sigma)
+        
+        if torch.any(sigma == 0):
+            raise ArithmeticError("At least one element in sigma is 0.")
+        
+        if torch.any(sigma <0):
+            raise ArithmeticError("At least one element in sigma is <0.")
+        
+        if torch.any(torch.isinf(sigma)):
+            raise ArithmeticError("At least one element in sigma is inf.")
+        
+        if torch.any(torch.isnan(sigma)):
+            raise ArithmeticError("At least one element in sigma is Nan")
+        
         qz_xy = dist.Normal(mu, sigma)
         z_joint = qz_xy.rsample()
 
