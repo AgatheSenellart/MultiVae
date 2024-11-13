@@ -89,7 +89,7 @@ class Evaluator:
                 )
 
             self.wandb_run = wandb.init(
-                entity=entity, project=project, id=run_id, resume="must", reinit=True
+                entity=entity, project=project, id=run_id, resume="allow", reinit=True
             )
             return
 
