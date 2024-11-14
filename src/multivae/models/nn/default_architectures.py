@@ -10,6 +10,7 @@ from torch import nn
 
 from multivae.models.base.base_config import BaseAEConfig
 from multivae.models.nn.base_architectures import BaseJointEncoder
+from pythae.models.nn.default_architectures import Encoder_VAE_MLP
 
 class Encoder_VAE_MLP(BaseEncoder):
     def __init__(self, args: dict, n_hidden=1):
@@ -29,6 +30,43 @@ class Encoder_VAE_MLP(BaseEncoder):
 
         self.embedding = nn.Linear(512, self.latent_dim)
         self.log_var = nn.Linear(512, self.latent_dim)
+    
+    def forward(self, x, output_layer_levels: List[int] = None):
+        output = ModelOutput()
+
+        max_depth = self.depth
+
+        if output_layer_levels is not None:
+
+            assert all(
+                self.depth >= levels > 0 or levels == -1
+                for levels in output_layer_levels
+            ), (
+                f"Cannot output layer deeper than depth ({self.depth}). "
+                f"Got ({output_layer_levels})."
+            )
+
+            if -1 in output_layer_levels:
+                max_depth = self.depth
+            else:
+                max_depth = max(output_layer_levels)
+
+        out = x.reshape(-1, np.prod(self.input_dim))
+
+        for i in range(max_depth):
+            out = self.layers[i](out)
+
+            if output_layer_levels is not None:
+                if i + 1 in output_layer_levels:
+                    output[f"embedding_layer_{i+1}"] = out
+            if i + 1 == self.depth:
+                output["embedding"] = self.embedding(out)
+                output["log_covariance"] = self.log_var(out)
+
+        return output
+
+
+        
 
 
 class Encoder_VAE_MLP_Style(BaseEncoder):

@@ -1,4 +1,5 @@
 from pydantic.dataclasses import dataclass
+from typing import Literal
 
 from ..joint_models import BaseJointModelConfig
 
@@ -27,6 +28,8 @@ class JNFConfig(BaseJointModelConfig):
         two_steps_training (bool): Whether to use a two-steps training or a one step training with annealing. Default to True.
         alpha (float): If using a one step training, the alpha parameter for the LJM term. Default to 0.1.
         beta (float): Weighing factor for the regularization of the joint VAE. Default to 1.
+        add_reconstruction_terms (bool) : whether to use reconstruction terms in addition to the KL terms for
+            training the unimodal posteriors.
 
     """
 
@@ -34,3 +37,5 @@ class JNFConfig(BaseJointModelConfig):
     two_steps_training: bool = True
     alpha: float = 0.1
     beta: float = 1
+    add_reconstruction_terms = False
+    logits_to_std : Literal['standard', 'softplus'] = 'standard'

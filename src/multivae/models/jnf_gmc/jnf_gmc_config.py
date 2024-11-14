@@ -35,6 +35,7 @@ class JNFGMCConfig(BaseJointModelConfig):
         
         logits_to_std (Literal['standard', 'softplus']). Default to 'standard'. How to compute the std deviations from the logits outputs from the 
 
+        add_reconstruction_terms (bool) : Default to False. 
     """
 
     warmup: int = 10
@@ -44,3 +45,4 @@ class JNFGMCConfig(BaseJointModelConfig):
     beta: float = 1.0
     gmc_config : Dict = None
     logits_to_std : Literal['standard', 'softplus'] = 'standard'
+    add_reconstruction_terms : bool = False

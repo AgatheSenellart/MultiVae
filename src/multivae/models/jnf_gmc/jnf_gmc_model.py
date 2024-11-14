@@ -94,7 +94,7 @@ class JNFGMC(BaseJointModel):
             self.nb_epochs_gmc + self.warmup,
         ]
         self.model_config.gmc_config = gmc_model.model_config.to_dict()
-
+        self.add_recon = model_config.add_reconstruction_terms
 
     
     def default_encoders(self, model_config):
@@ -213,6 +213,7 @@ class JNFGMC(BaseJointModel):
                 
                 
             ljm = 0
+            recon_term = 0
             for mod in self.encoders:
                 gmc_embed = self.gmc_model.encode(inputs,cond_mod=mod).embedding
 
@@ -229,13 +230,21 @@ class JNFGMC(BaseJointModel):
                 ljm += -(
                     qz_x0.log_prob(z0).sum(dim=-1) + flow_output.log_abs_det_jac
                 ).sum()
+                
+                if self.add_recon:
+                    z = qz_x0.rsample()
+                    z = self.flows[mod].inverse(z).out
+                    recon = self.decoders[mod](z).reconstruction
+                    gmc_recon =  self.gmc_model.encode(MultimodalBaseDataset(data={f'{mod}' : recon}),cond_mod=mod).embedding
+                    recon_term += torch.nn.functional.mse_loss(gmc_recon,gmc_embed).sum()
+            
             
             if self.model_config.annealing :
                 annealing = epoch/(self.warmup +1) if epoch <= self.warmup else 1
                 loss_sum = recon_loss + annealing*( KLD + self.model_config.alpha * ljm)
                 
             else :
-                loss_sum = ljm
+                loss_sum = ljm + recon_term
 
             return ModelOutput(
                 recon_loss=recon_loss / len_batch,
@@ -247,6 +256,7 @@ class JNFGMC(BaseJointModel):
                     kld_prior=KLD,
                     recon_loss=recon_loss / len_batch,
                     ljm=ljm / len_batch,
+                    recon_term = recon_term/len_batch
                 ),
             )
 

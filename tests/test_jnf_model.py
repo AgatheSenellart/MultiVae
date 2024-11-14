@@ -70,9 +70,13 @@ class Test:
     @pytest.fixture(params=[0.1, 1.2])
     def alpha(self, request):
         return request.param
+    
+    @pytest.fixture(params=[True, False])
+    def add_recon(self, request):
+        return request.param
 
     @pytest.fixture
-    def model_config(self, use_likelihood_rescaling, two_steps_training, alpha):
+    def model_config(self, use_likelihood_rescaling, two_steps_training, alpha, add_recon):
         model_config = JNFConfig(
             n_modalities=3,
             latent_dim=5,
@@ -80,6 +84,7 @@ class Test:
             use_likelihood_rescaling=use_likelihood_rescaling,
             two_steps_training=two_steps_training,
             alpha=alpha,
+            add_reconstruction_terms = add_recon
         )
 
         return model_config
