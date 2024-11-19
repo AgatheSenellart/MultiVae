@@ -455,6 +455,8 @@ class Nexus(BaseMultiVAE):
 
         if modalities == "all":
             modalities = list(self.encoders.keys())
+        elif type(modalities) == str:
+            modalities = [modalities]
 
         use_bottom_z_for_reconstruction = kwargs.pop("use_bottom_z_for_recon", False)
 
