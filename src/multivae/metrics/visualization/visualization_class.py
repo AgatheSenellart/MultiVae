@@ -79,8 +79,12 @@ class Visualization(Evaluator):
         from multivae.data.utils import set_inputs_to_device
 
         samples = set_inputs_to_device(samples, device=device)
-        images = self.model.decode(samples)
-        recon, shape = adapt_shape(images)
+        recon = self.model.decode(samples)
+        
+        if hasattr(self.test_dataset, "transform_for_plotting"):
+            recon = {m : self.test_dataset.transform_for_plotting(recon[m], m) for m in recon}
+        
+        recon, shape = adapt_shape(recon)
 
         recon_image = torch.cat(list(recon.values()))
 
@@ -108,10 +112,10 @@ class Visualization(Evaluator):
         return recon_image
 
     def conditional_samples_subset(self, subset, gen_mod="all"):
-        dataloader = DataLoader(self.test_dataset, batch_size=self.n_data_cond)
+        dataloader = DataLoader(self.test_dataset, batch_size=self.n_data_cond, shuffle=True)
         data = next(iter(dataloader))
         # set inputs to device
-        data = set_inputs_to_device(data, self.device)
+        # data = set_inputs_to_device(data, self.device)
 
         recon = self.model.predict(
             data,

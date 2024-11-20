@@ -307,7 +307,7 @@ class JNFGMC(BaseJointModel):
                 z = torch.stack([output.embedding] * N) if N > 1 else output.embedding
             else:
                 z = dist.Normal(
-                    output.embedding, torch.exp(0.5 * output.log_covariance)
+                    output.embedding, self.logits_to_std(output.log_covariance)
                 ).rsample(sample_shape)
             if N > 1 and kwargs.pop("flatten", False):
                 N, l, d = z.shape
@@ -337,7 +337,7 @@ class JNFGMC(BaseJointModel):
             sample_shape = [] if N == 1 else [N]
 
             z0 = dist.Normal(
-                output.embedding, torch.exp(0.5 * output.log_covariance)
+                output.embedding, self.logits_to_std(output.log_covariance)
             ).rsample(sample_shape)
             flow_output = self.flows[cond_mod].inverse(
                 z0.reshape(-1, self.latent_dim)
@@ -380,7 +380,7 @@ class JNFGMC(BaseJointModel):
                     ).embedding
                 )
                 mu, log_var = encoder_output.embedding, encoder_output.log_covariance
-                zs[indices == m] = dist.Normal(mu, torch.exp(0.5 * log_var)).rsample()
+                zs[indices == m] = dist.Normal(mu, self.logits_to_std(log_var)).rsample()
         return zs
 
     def compute_poe_posterior(
@@ -419,6 +419,9 @@ class JNFGMC(BaseJointModel):
                     vae_output.log_covariance,
                     flow_output.out,
                 )
+                
+                sigma = self.logits_to_std(log_var)
+                log_var = 2*torch.log(sigma)
 
                 log_q_z0 = (
                     -0.5
