@@ -277,7 +277,7 @@ class FIDEvaluator(Evaluator):
 
         modalities = [k for k in self.model.encoders if k != gen_mod]
         
-        for n in range(1, len(modalities)):
+        for n in range(1, len(modalities)+1):
             subsets_of_size_n = combinations(
                 modalities,
                 n,
