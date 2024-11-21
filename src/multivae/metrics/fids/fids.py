@@ -62,7 +62,7 @@ class adapt_shape_for_fid(torch.nn.Module):
 
 class FIDEvaluator(Evaluator):
     """
-    Class for computing likelihood metrics.
+    Class for computing Fréchet inception distance (FID) metrics.
 
     Args:
         model (BaseMultiVAE) : The model to evaluate.
