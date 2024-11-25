@@ -11,6 +11,7 @@ from ...data import MultimodalBaseDataset
 from ..base import BaseMultiVAE
 from ..nn.default_architectures import MultipleHeadJointEncoder
 from .joint_model_config import BaseJointModelConfig
+from pythae.models.nn.base_architectures import BaseEncoder
 
 logger = logging.getLogger(__name__)
 console = logging.StreamHandler()
@@ -60,7 +61,7 @@ class BaseJointModel(BaseMultiVAE):
     def set_joint_encoder(self, joint_encoder):
         "Checks that the provided joint encoder is an instance of BaseEncoder."
 
-        if not issubclass(type(joint_encoder), BaseJointEncoder):
+        if not issubclass(type(joint_encoder), BaseEncoder):
             raise AttributeError(
                 (
                     f"The joint encoder must inherit from BaseEncoder class from "
