@@ -21,7 +21,7 @@ class Encoder_VAE_MLP(BaseEncoder):
         layers = nn.ModuleList()
         
         layers.append(nn.Sequential(nn.Linear(np.prod(args.input_dim), 512), nn.ReLU()))
-        for _ in range(n_hidden):
+        for _ in range(n_hidden-1):
             layers.append(nn.Sequential(nn.Linear(512, 512), nn.ReLU()))
 
 
