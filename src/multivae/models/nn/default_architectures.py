@@ -13,7 +13,7 @@ from multivae.models.nn.base_architectures import BaseJointEncoder
 from pythae.models.nn.default_architectures import Encoder_VAE_MLP
 
 class Encoder_VAE_MLP(BaseEncoder):
-    def __init__(self, args: dict, n_hidden=1):
+    def __init__(self, args: dict, n_hidden=2):
         BaseEncoder.__init__(self)
         self.input_dim = args.input_dim
         self.latent_dim = args.latent_dim
@@ -316,5 +316,57 @@ class MultipleHeadJointEncoder(BaseJointEncoder):
         embedding = self.fc1(h)
         log_covariance = self.fc2(h)
         output = ModelOutput(embedding=embedding, log_covariance=log_covariance)
+
+        return output
+    
+    
+    
+class ConcatenateJointEncoder(BaseJointEncoder):
+    """
+    A default instance of joint encoder created from copying the architectures for the unimodal encoders,
+    concatenating their outputs and returning the result.
+
+        Args:
+            dict_encoders (dict): Contains an instance of BaseEncoder for each modality (key).
+            args (BaseAEConfig): config dictionary. Contains the latent dim.
+            hidden_dim (int) : Default to 512.
+            n_hidden_layers (int) : Default to 2.
+    """
+
+    def __init__(
+        self,
+        dict_encoders: dict,
+        **kwargs,
+    ):
+        super().__init__()
+
+        # Duplicate all the unimodal encoders with identical instances.
+        self.encoders = nn.ModuleDict()
+        self.latent_dim = 0
+        for modality in dict_encoders:
+            self.encoders[modality] = deepcopy(dict_encoders[modality])
+            self.latent_dim += self.encoders[modality].latent_dim
+
+
+    def forward(self, x: dict):
+        """
+        Implements the encoding of the data contained in x.
+
+        Args:
+            x (dict): Contains a tensor for each modality (key).
+        """
+
+        assert np.all(x.keys() == self.encoders.keys())
+
+        modalities_outputs = dict(embedding = [], log_var = []) 
+        for mod in self.encoders:
+            output = self.encoders[mod](x[mod])
+            modalities_outputs['embedding'].append(output["embedding"])
+            modalities_outputs['log_var'].append(output['log_covariance'])
+
+        # Stack the modalities outputs
+        concatened_outputs = {k : torch.cat(modalities_outputs[k], dim=1) for k in modalities_outputs}
+        
+        output = ModelOutput(embedding=concatened_outputs['embedding'], log_covariance=concatened_outputs['log_var'])
 
         return output

@@ -62,8 +62,9 @@ class MnistSvhn(MultimodalBaseDataset):  # pragma: no cover
         i_svhn = torch.load(f"{self.path_to_idx}/svhn_idx.pt", weights_only=True)  ## !!!!WARNING!!!
 
         order = np.arange(len(i_mnist))
+        np.random.seed(42)
         np.random.shuffle(
-            order
+            order,
         )  # shuffle the samples so that they are not ordered by labels.
         labels = mnist.targets[i_mnist][order]
 

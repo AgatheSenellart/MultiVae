@@ -111,8 +111,8 @@ class Visualization(Evaluator):
 
         return recon_image
 
-    def conditional_samples_subset(self, subset, gen_mod="all"):
-        dataloader = DataLoader(self.test_dataset, batch_size=self.n_data_cond, shuffle=True)
+    def conditional_samples_subset(self, subset, gen_mod="all", shuffle=True):
+        dataloader = DataLoader(self.test_dataset, batch_size=self.n_data_cond, shuffle=shuffle)
         data = next(iter(dataloader))
         # set inputs to device
         # data = set_inputs_to_device(data, self.device)
@@ -153,14 +153,14 @@ class Visualization(Evaluator):
 
         if self.output is not None:
             recon_image.save(
-                os.path.join(self.output, f"conditional_from_subset_{subset}.png")
+                os.path.join(self.output, f"conditional_from_subset_{subset}_to_{gen_mod}.png")
             )
 
         if self.wandb_run is not None:
             import wandb
 
             self.wandb_run.log(
-                {f"conditional_from_subset_{subset}": wandb.Image(recon_image)}
+                {f"conditional_from_subset_{subset}_to_{gen_mod}": wandb.Image(recon_image)}
             )
 
         return recon_image
