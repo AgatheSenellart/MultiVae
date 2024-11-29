@@ -328,14 +328,13 @@ class ConcatenateJointEncoder(BaseJointEncoder):
 
         Args:
             dict_encoders (dict): Contains an instance of BaseEncoder for each modality (key).
-            args (BaseAEConfig): config dictionary. Contains the latent dim.
-            hidden_dim (int) : Default to 512.
-            n_hidden_layers (int) : Default to 2.
+            order (list): The order to use to concatenate modalities
     """
 
     def __init__(
         self,
         dict_encoders: dict,
+        order : list,
         **kwargs,
     ):
         super().__init__()
@@ -346,7 +345,7 @@ class ConcatenateJointEncoder(BaseJointEncoder):
         for modality in dict_encoders:
             self.encoders[modality] = deepcopy(dict_encoders[modality])
             self.latent_dim += self.encoders[modality].latent_dim
-
+        self.order = order
 
     def forward(self, x: dict):
         """
@@ -359,7 +358,7 @@ class ConcatenateJointEncoder(BaseJointEncoder):
         assert np.all(x.keys() == self.encoders.keys())
 
         modalities_outputs = dict(embedding = [], log_var = []) 
-        for mod in self.encoders:
+        for mod in self.order:
             output = self.encoders[mod](x[mod])
             modalities_outputs['embedding'].append(output["embedding"])
             modalities_outputs['log_var'].append(output['log_covariance'])
