@@ -40,7 +40,6 @@ class Test_model:
         return dataset
 
 
-
     @pytest.fixture(params=[(1.0, 'standard', True), (1.5,'softplus', False), (2.0, 'softplus', True)])
     def model_config(self, request):
         model_config = JNFGMCConfig(
@@ -51,8 +50,7 @@ class Test_model:
             nb_epochs_gmc=10,
             warmup=15,
             logits_to_std = request.param[1],
-            add_reconstruction_terms=request.param[2]
-        )
+            add_reconstruction_terms=request.param[2]        )
 
         return model_config
     

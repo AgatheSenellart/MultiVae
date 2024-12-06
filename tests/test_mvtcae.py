@@ -64,14 +64,20 @@ class Test_model:
             encoders=encoders,
             decoders=decoders,
         )
+        
+    @pytest.fixture(params=['standard', 'standard'])
+    def logits_to_std(self, request):
+        return request.param
+        
 
     @pytest.fixture(params=[1.0, 1.5, 2.0])
-    def model_config(self, request):
+    def model_config(self,logits_to_std, request):
         model_config = MVTCAEConfig(
             n_modalities=4,
             latent_dim=5,
             input_dims=dict(mod1=(2,), mod2=(3,), mod3=(4,), mod4=(4,)),
             beta=request.param,
+            logits_to_std=logits_to_std
         )
 
         return model_config

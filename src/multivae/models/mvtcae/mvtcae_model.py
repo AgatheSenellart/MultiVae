@@ -46,7 +46,7 @@ class MVTCAE(BaseMultiVAE):
         joint_mu, joint_logvar, joint_var = latents["joint"]
         
         
-        shared_embeddings = self.reparameterize(joint_mu, joint_logvar)
+        shared_embeddings = self.reparameterize(joint_mu, joint_var)
         ndata = len(shared_embeddings)
         joint_kld = -0.5 * torch.sum(
             1 - joint_var - joint_mu.pow(2) + joint_logvar

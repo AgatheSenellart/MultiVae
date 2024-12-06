@@ -74,9 +74,13 @@ class Test:
     @pytest.fixture(params=[True, False])
     def add_recon(self, request):
         return request.param
+    
+    @pytest.fixture(params=['standard', 'softplus'])
+    def logits_to_std(self, request):
+        return request.param
 
     @pytest.fixture
-    def model_config(self, use_likelihood_rescaling, two_steps_training, alpha, add_recon):
+    def model_config(self, use_likelihood_rescaling, two_steps_training, alpha, add_recon, logits_to_std):
         model_config = JNFConfig(
             n_modalities=3,
             latent_dim=5,
@@ -84,7 +88,8 @@ class Test:
             use_likelihood_rescaling=use_likelihood_rescaling,
             two_steps_training=two_steps_training,
             alpha=alpha,
-            add_reconstruction_terms = add_recon
+            add_reconstruction_terms = add_recon, 
+            logits_to_std=logits_to_std
         )
 
         return model_config

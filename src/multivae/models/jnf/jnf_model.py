@@ -294,10 +294,11 @@ class JNF(BaseJointModel):
         elif len(cond_mod) == 1:
             cond_mod = cond_mod[0]
             output = self.encoders[cond_mod](inputs.data[cond_mod])
+            std, log_var = self.logits_to_std(output.log_covariance)
             sample_shape = [] if N == 1 else [N]
 
             z0 = dist.Normal(
-                output.embedding, self.logits_to_std(output.log_covariance)
+                output.embedding, std
             ).rsample(sample_shape)
             flow_output = self.flows[cond_mod].inverse(
                 z0.reshape(-1, self.latent_dim)

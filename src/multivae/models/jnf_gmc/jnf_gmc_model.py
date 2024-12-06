@@ -312,10 +312,11 @@ class JNFGMC(BaseJointModel):
             cond_mod = cond_mod[0]
             gmc_embed = self.gmc_model.encode(inputs,cond_mod=cond_mod).embedding
             output = self.encoders[cond_mod](gmc_embed)
+            std, log_var = self.logits_to_std(output.log_covariance)
             sample_shape = [] if N == 1 else [N]
 
             z0 = dist.Normal(
-                output.embedding, self.logits_to_std(output.log_covariance)
+                output.embedding, std
             ).rsample(sample_shape)
             flow_output = self.flows[cond_mod].inverse(
                 z0.reshape(-1, self.latent_dim)

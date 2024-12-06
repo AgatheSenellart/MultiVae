@@ -104,8 +104,7 @@ class BaseTrainer:
                 if torch.cuda.is_available() and not self.training_config.no_cuda
                 else "cpu"
             )
-            logger.info("Device is ", device)
-
+            
         self.device = device
 
         if checkpoint is not None:
