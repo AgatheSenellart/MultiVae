@@ -674,6 +674,23 @@ class BaseMultiVAE(BaseModel):
 
         cnll = {m: torch.logsumexp(torch.stack(cnll[mod]), dim=0) for m in cnll}
         return cnll
+    
+    def logits_to_std(self, logits):
+        """Generate std deviation from the logits outputted by the encoders. 
+        
+        Returns :
+            - std
+            - log_covariance
+            
+        """
+        
+        if self.model_config.logits_to_std == 'standard':
+            return torch.exp(0.5*logits), logits
+        elif self.model_config.logits_to_std == 'softplus':
+            std = F.softplus(logits) + 1e-5
+            return std,2*torch.log(std) 
+        else:
+            raise NotImplemented()
 
 
 

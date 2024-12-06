@@ -103,17 +103,6 @@ class JNFGMC(BaseJointModel):
             }
         return BaseDictEncoders(encoders_input_dims, model_config.latent_dim)
     
-    def logits_to_std(self, logits):
-        
-        if self.model_config.logits_to_std == 'standard':
-            return torch.exp(0.5*logits)
-        elif self.model_config.logits_to_std == 'softplus':
-            return F.softplus(logits) + 1e-5
-        else:
-            raise NotImplemented()
-        
-        
-    
 
     def set_flows(self, flows: Dict[str, BaseNF]):
         # check that the keys corresponds with the encoders keys
@@ -165,20 +154,8 @@ class JNFGMC(BaseJointModel):
         joint_output = self.joint_encoder(inputs.data)
         mu, logits = joint_output.embedding, joint_output.log_covariance
 
-        sigma = self.logits_to_std(logits)
-        log_var = 2*torch.log(sigma)
-        
-        if torch.any(sigma == 0):
-            raise ArithmeticError("At least one element in sigma is 0.")
-        
-        if torch.any(sigma <0):
-            raise ArithmeticError("At least one element in sigma is <0.")
-        
-        if torch.any(torch.isinf(sigma)):
-            raise ArithmeticError("At least one element in sigma is inf.")
-        
-        if torch.any(torch.isnan(sigma)):
-            raise ArithmeticError("At least one element in sigma is Nan")
+        sigma, log_var = self.logits_to_std(logits)
+
         
         qz_xy = dist.Normal(mu, sigma)
         z_joint = qz_xy.rsample()
@@ -196,7 +173,7 @@ class JNFGMC(BaseJointModel):
             ).sum()
 
         # Compute the KLD to the prior
-        KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp()) * self.beta
+        KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - sigma.pow(2)) * self.beta
 
         if epoch <= self.warmup + self.nb_epochs_gmc and not self.model_config.annealing :
             return ModelOutput(
@@ -220,7 +197,7 @@ class JNFGMC(BaseJointModel):
                 mod_output = self.encoders[mod](gmc_embed)
                 mu0, logits0 = mod_output.embedding, mod_output.log_covariance
 
-                sigma0 = self.logits_to_std(logits0)
+                sigma0, log_var0 = self.logits_to_std(logits0)
                 qz_x0 = dist.Normal(mu0, sigma0)
 
                 # Compute -ln q_\phi_mod(z_joint|x_mod)
@@ -302,12 +279,13 @@ class JNFGMC(BaseJointModel):
         
         if len(cond_mod) == self.n_modalities:
             output = self.joint_encoder(inputs.data)
+            std, log_var = self.logits_to_std(output.log_covariance)
             sample_shape = [] if N == 1 else [N]
             if return_mean:
                 z = torch.stack([output.embedding] * N) if N > 1 else output.embedding
             else:
                 z = dist.Normal(
-                    output.embedding, self.logits_to_std(output.log_covariance)
+                    output.embedding, std
                 ).rsample(sample_shape)
             if N > 1 and kwargs.pop("flatten", False):
                 N, l, d = z.shape
@@ -380,7 +358,8 @@ class JNFGMC(BaseJointModel):
                     ).embedding
                 )
                 mu, log_var = encoder_output.embedding, encoder_output.log_covariance
-                zs[indices == m] = dist.Normal(mu, self.logits_to_std(log_var)).rsample()
+                std, log_var = self.logits_to_std(log_var)
+                zs[indices == m] = dist.Normal(mu, std).rsample()
         return zs
 
     def compute_poe_posterior(
@@ -420,15 +399,15 @@ class JNFGMC(BaseJointModel):
                     flow_output.out,
                 )
                 
-                sigma = self.logits_to_std(log_var)
-                log_var = 2*torch.log(sigma)
+                std, log_var = self.logits_to_std(log_var)
+                
 
                 log_q_z0 = (
                     -0.5
                     * (
                         log_var
                         + np.log(2 * np.pi)
-                        + torch.pow(z0 - mu, 2) / torch.exp(log_var)
+                        + torch.pow(z0 - mu, 2) / std.pow(2)
                     )
                 ).sum(dim=1)
                 lnqzs += log_q_z0 + flow_output.log_abs_det_jac  # n_data_points x 1

@@ -74,6 +74,7 @@ class BaseModel(nn.Module):
         """
         raise NotImplementedError()
 
+
     def update(self):
         """Method that allows model update during the training (at the end of a training epoch)
 
@@ -210,8 +211,9 @@ class BaseModel(nn.Module):
 
         model = cls(model_config, **custom_architectures)
         model.load_state_dict(model_weights)
-
+        
         return model
+    
 
     @classmethod
     def _check_python_version_from_folder(cls, dir_path: str):

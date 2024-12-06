@@ -32,8 +32,8 @@ class MVTCAE(BaseMultiVAE):
         self.beta = model_config.beta
         self.model_name = "MVTCAE"
 
-    def reparameterize(self, mu, logvar):
-        std = logvar.mul(0.5).exp_()
+    def reparameterize(self, mu, var):
+        std = var.sqrt()
         z = dist.Normal(mu, std).rsample()
         return z
 
@@ -43,11 +43,13 @@ class MVTCAE(BaseMultiVAE):
         results = dict()
 
         # Sample from the joint posterior
-        joint_mu, joint_logvar = latents["joint"][0], latents["joint"][1]
+        joint_mu, joint_logvar, joint_var = latents["joint"]
+        
+        
         shared_embeddings = self.reparameterize(joint_mu, joint_logvar)
         ndata = len(shared_embeddings)
         joint_kld = -0.5 * torch.sum(
-            1 - joint_logvar.exp() - joint_mu.pow(2) + joint_logvar
+            1 - joint_var - joint_mu.pow(2) + joint_logvar
         )
         assert not torch.isnan(joint_kld)
         results["joint_divergence"] = joint_kld
@@ -71,15 +73,17 @@ class MVTCAE(BaseMultiVAE):
             loss_rec += m_rec.sum()
         assert not torch.isnan(loss_rec)
 
+        # Compute the Conditional VIB
         latent_modalities = latents["modalities"]
         kld_losses = 0.0
         for m_key in latent_modalities.keys():
             o = latent_modalities[m_key]
             mu, logvar = o.embedding, o.log_covariance
+            std,logvar = self.logits_to_std(logvar)
             results["kld_" + m_key] = -0.5 * (
                 1
-                - joint_logvar.exp() / logvar.exp()
-                - (joint_mu - mu).pow(2) / logvar.exp()
+                - joint_var / std.pow(2)
+                - (joint_mu - mu).pow(2) / std.pow(2)
                 + joint_logvar
                 - logvar
             ).reshape(mu.size(0), -1).sum(-1)
@@ -128,18 +132,18 @@ class MVTCAE(BaseMultiVAE):
 
         return encoders_outputs
 
-    def poe(self, mu, logvar, eps=1e-8):
-        var = torch.exp(logvar) + eps
+    def poe(self, mu, var, eps=1e-8):
+
         # precision of i-th Gaussian expert at point x
         T = 1.0 / var
         pd_mu = torch.sum(mu * T, dim=0) / torch.sum(T, dim=0)
         pd_var = 1.0 / torch.sum(T, dim=0)
         pd_logvar = torch.log(pd_var)
-        return pd_mu, pd_logvar
+        return pd_mu, pd_logvar, pd_var
 
-    def ivw_fusion(self, mus: torch.Tensor, logvars: torch.Tensor, weights=None):
-        mu_poe, logvar_poe = self.poe(mus, logvars)
-        return [mu_poe, logvar_poe]
+    def ivw_fusion(self, mus: torch.Tensor, vars: torch.Tensor, weights=None):
+        mu_poe, logvar_poe, var_poe = self.poe(mus, vars)
+        return [mu_poe, logvar_poe, var_poe]
 
     def _filter_inputs_with_masks(
         self, inputs: IncompleteDataset, subset: Union[list, tuple]
@@ -179,25 +183,27 @@ class MVTCAE(BaseMultiVAE):
 
         device = inputs.data[list(inputs.data.keys())[0]].device
         mus = torch.Tensor().to(device)
-        logvars = torch.Tensor().to(device)
+        vars = torch.Tensor().to(device)
         mods = list(inputs.data.keys())
 
         for m, mod in enumerate(mods):
             mus_mod = enc_mods[mod].embedding
             log_vars_mod = enc_mods[mod].log_covariance
-
+            
+            std_mod, log_vars_mod = self.logits_to_std(log_vars_mod)
+            
             mus = torch.cat((mus, mus_mod.unsqueeze(0)), dim=0)
 
-            logvars = torch.cat((logvars, log_vars_mod.unsqueeze(0)), dim=0)
+            vars = torch.cat((vars, std_mod.pow(2).unsqueeze(0)), dim=0)
 
         # Case with only one sample : adapt the shape
         if len(mus.shape) == 2:
             mus = mus.unsqueeze(1)
-            logvars = logvars.unsqueeze(1)
+            vars = vars.unsqueeze(1)
 
-        joint_mu, joint_logvar = self.ivw_fusion(mus, logvars)
+        joint_mu, joint_logvar, joint_var = self.ivw_fusion(mus, vars)
 
-        latents["joint"] = [joint_mu, joint_logvar]
+        latents["joint"] = [joint_mu, joint_logvar, joint_var]
         return latents
 
     def encode(
@@ -233,14 +239,15 @@ class MVTCAE(BaseMultiVAE):
         )
 
         latents_subsets = self.inference(cond_inputs)
-        mu, log_var = latents_subsets["joint"]
+        mu, log_var,var = latents_subsets["joint"]
         sample_shape = [N] if N > 1 else []
+        
 
         return_mean = kwargs.pop("return_mean", False)
         if return_mean:
             z = torch.stack([mu] * N) if N > 1 else mu
         else:
-            z = dist.Normal(mu, torch.exp(0.5 * log_var)).rsample(sample_shape)
+            z = dist.Normal(mu, var.sqrt()).rsample(sample_shape)
         flatten = kwargs.pop("flatten", False)
         if flatten:
             z = z.reshape(-1, self.latent_dim)
@@ -256,9 +263,9 @@ class MVTCAE(BaseMultiVAE):
         self.eval()
 
         # Compute the parameters of the joint posterior
-        mu, log_var = self.inference(inputs)["joint"]
+        mu, log_var, var = self.inference(inputs)["joint"]
 
-        sigma = torch.exp(0.5 * log_var)
+        sigma = var.sqrt()
         qz_xy = dist.Normal(mu, sigma)
         # And sample from the posterior
         z_joint = qz_xy.rsample([K])  # shape K x n_data x latent_dim
