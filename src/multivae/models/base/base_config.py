@@ -27,7 +27,7 @@ class BaseMultiVAEConfig(BaseConfig):
             computing the log-probability.
             For instance, with normal or laplace distribution, you can pass the scale in this dictionary.
             ex :  {'mod1' : {scale : 0.75}}
-        logits_to_std (Literal['normal','softplus']) : How to compute the standard deviation from the logits outputted by the encoders.
+        logits_to_std (Literal['standard','softplus']) : How to compute the standard deviation from the logits outputted by the encoders.
     """
 
     n_modalities: Union[int, None] = None
@@ -39,7 +39,7 @@ class BaseMultiVAEConfig(BaseConfig):
         Dict[str, Literal["normal", "bernoulli", "laplace", "categorical"]], None
     ] = None
     decoder_dist_params: Union[dict, None] = None
-    logits_to_std : Literal['normal','sofplus'] = 'normal'
+    logits_to_std : Literal['standard','softplus'] = 'standard'
     custom_architectures: list = field(default_factory=lambda: [])
 
 
