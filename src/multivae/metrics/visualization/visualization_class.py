@@ -111,8 +111,9 @@ class Visualization(Evaluator):
 
         return recon_image
 
-    def conditional_samples_subset(self, subset, gen_mod="all", shuffle=True):
-        dataloader = DataLoader(self.test_dataset, batch_size=self.n_data_cond, shuffle=shuffle)
+    def conditional_samples_subset(self, subset, gen_mod="all", shuffle=True,seed=0):
+        torch.manual_seed(seed=seed)
+        dataloader = DataLoader(self.test_dataset, batch_size=self.n_data_cond, shuffle=shuffle,)
         data = next(iter(dataloader))
         # set inputs to device
         # data = set_inputs_to_device(data, self.device)
