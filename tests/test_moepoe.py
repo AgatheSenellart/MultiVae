@@ -27,9 +27,8 @@ class Test_model:
             mod3=torch.Tensor([[37, 2, 4, 1], [8, 9, 7, 0]]),
             mod4=torch.Tensor([[37, 2, 4, 1], [8, 9, 7, 0]]),
         )
-        labels = np.array([0, 1])
         if request.param == "complete":
-            dataset = MultimodalBaseDataset(data, labels)
+            dataset = MultimodalBaseDataset(data)
         else:
             masks = dict(
                 mod1=torch.Tensor([True, False]),
@@ -37,7 +36,7 @@ class Test_model:
                 mod3=torch.Tensor([True, True]),
                 mod4=torch.Tensor([True, True]),
             )
-            dataset = IncompleteDataset(data=data, masks=masks, labels=labels)
+            dataset = IncompleteDataset(data=data, masks=masks)
 
         return dataset
 
@@ -194,9 +193,8 @@ class Test_backward_with_missing_inputs:
             mod3=torch.randn((6, 4)),
             mod4=torch.randn((6, 4)),
         )
-        labels = np.array([0] * 5 + [1])
         if request.param == "complete":
-            dataset = MultimodalBaseDataset(data, labels)
+            dataset = MultimodalBaseDataset(data)
         else:
             masks = dict(
                 mod1=torch.Tensor([False] * 3 + [True] * 3),
@@ -204,7 +202,7 @@ class Test_backward_with_missing_inputs:
                 mod3=torch.Tensor([True] * 6),
                 mod4=torch.Tensor([True] * 6),
             )
-            dataset = IncompleteDataset(data=data, masks=masks, labels=labels)
+            dataset = IncompleteDataset(data=data, masks=masks)
 
         return dataset
 
@@ -234,7 +232,7 @@ class Test_backward_with_missing_inputs:
             decoders=decoders,
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def model_config(self, request):
         model_config = MoPoEConfig(
             n_modalities=4,
@@ -285,9 +283,8 @@ class TestTraining:
             mod3=torch.Tensor([[37, 2, 4, 1], [8, 9, 7, 0]]),
             mod4=torch.Tensor([[37, 2, 4, 1], [8, 9, 7, 0]]),
         )
-        labels = np.array([0, 1])
         if request.param == "complete":
-            dataset = MultimodalBaseDataset(data, labels)
+            dataset = MultimodalBaseDataset(data)
         else:
             masks = dict(
                 mod1=torch.Tensor([True, False]),
@@ -295,7 +292,7 @@ class TestTraining:
                 mod3=torch.Tensor([True, True]),
                 mod4=torch.Tensor([True, True]),
             )
-            dataset = IncompleteDataset(data=data, masks=masks, labels=labels)
+            dataset = IncompleteDataset(data=data, masks=masks)
 
         return dataset
 

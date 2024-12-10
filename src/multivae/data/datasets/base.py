@@ -45,8 +45,7 @@ class MultimodalBaseDataset(Dataset):
         if self.labels is not None:
             y = self.labels[index]
             return DatasetOutput(data=X, labels=y)
-        else:
-            return DatasetOutput(data=X)
+        return DatasetOutput(data=X)
 
     def transform_for_plotting(self, tensor, modality):
         return tensor
@@ -109,7 +108,9 @@ class IncompleteDataset(MultimodalBaseDataset):
         """
         # Select sample
         X = {modality: self.data[modality][index] for modality in self.data}
-        y = self.labels[index] if self.labels is not None else None
         m = {modality: self.masks[modality][index] for modality in self.masks}
 
-        return DatasetOutput(data=X, labels=y, masks=m)
+        if self.labels is not None:
+            y = self.labels[index]
+            return DatasetOutput(data=X, labels=y, masks=m)
+        return DatasetOutput(data=X, masks=m)
