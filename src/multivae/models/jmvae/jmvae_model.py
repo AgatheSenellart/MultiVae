@@ -92,8 +92,9 @@ class JMVAE(BaseJointModel):
             if return_mean:
                 z = torch.stack([output.embedding] * N) if N > 1 else output.embedding
             else:
+                std, logvar=self.logits_to_std(output.log_covariance)
                 z = dist.Normal(
-                    output.embedding, torch.exp(0.5 * output.log_covariance)
+                    output.embedding,std
                 ).rsample(sample_shape)
             if N > 1 and kwargs.pop("flatten", False):
                 N, l, d = z.shape
@@ -114,9 +115,10 @@ class JMVAE(BaseJointModel):
             cond_mod = cond_mod[0]
             output = self.encoders[cond_mod](inputs.data[cond_mod])
             sample_shape = [] if N == 1 else [N]
-
+            mu, logits = output.embedding, output.log_covariance
+            std, logvar= self.logits_to_std(logits)
             z = dist.Normal(
-                output.embedding, torch.exp(0.5 * output.log_covariance)
+                mu, std
             ).rsample(
                 sample_shape
             )  # shape N x len_data x latent_dim
@@ -150,7 +152,7 @@ class JMVAE(BaseJointModel):
         joint_output = self.joint_encoder(inputs.data)
         mu, log_var = joint_output.embedding, joint_output.log_covariance
 
-        sigma = torch.exp(0.5 * log_var)
+        sigma, log_var = self.logits_to_std(log_var)
         qz_xy = dist.Normal(mu, sigma)
         z_joint = qz_xy.rsample()
 
@@ -174,13 +176,14 @@ class JMVAE(BaseJointModel):
         for mod in self.encoders:
             output = self.encoders[mod](inputs.data[mod])
             uni_mu, uni_log_var = output.embedding, output.log_covariance
+            uni_std, uni_log_var = self.logits_to_std(uni_log_var)
             LJM += (
                 1
                 / 2
                 * (
                     uni_log_var
                     - log_var
-                    + (torch.exp(log_var) + (mu - uni_mu) ** 2) / torch.exp(uni_log_var)
+                    + (uni_std.pow(2) + (mu - uni_mu) ** 2) / uni_std.pow(2)
                     - 1
                 )
             )
@@ -233,8 +236,9 @@ class JMVAE(BaseJointModel):
         for mod in subset:
             vae_output = self.encoders[mod](data[mod])
             mu, log_var = vae_output.embedding, vae_output.log_covariance
-            mus.append(vae_output.embedding)
-            logvars.append(vae_output.log_covariance)
+            std, log_var = self.logits_to_std(vae_output.log_covariance)
+            mus.append(mu)
+            logvars.append(log_var)
 
         joint_mu, joint_logvar = self.poe(mus, logvars)
         z = dist.Normal(joint_mu, torch.exp(0.5 * joint_logvar)).rsample(sample_shape)

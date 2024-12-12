@@ -1,7 +1,7 @@
 from pydantic.dataclasses import dataclass
 
 from ..joint_models import BaseJointModelConfig
-
+from typing import Literal
 
 @dataclass
 class JMVAEConfig(BaseJointModelConfig):
@@ -33,3 +33,4 @@ class JMVAEConfig(BaseJointModelConfig):
     alpha: float = 0.1
     warmup: int = 10
     beta: float = 1.0
+    logits_to_std : Literal['standard', 'softplus'] = 'standard'
