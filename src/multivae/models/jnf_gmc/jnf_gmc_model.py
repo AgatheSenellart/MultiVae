@@ -301,7 +301,7 @@ class JNFGMC(BaseJointModel):
                 n_lf=n_lf,
                 eps_lf=eps_lf,
                 K=N,
-                divide_prior=True,
+                divide_prior=self.model_config.divide_by_prior,
             )
             if N > 1 and kwargs.pop("flatten", False):
                 N, l, d = z.shape
@@ -381,10 +381,12 @@ class JNFGMC(BaseJointModel):
             lnqzs = 0
 
             z = z_.detach().clone().requires_grad_(grad)
+            
+            num_modalities = len(subset) 
 
             if divide_prior:
                 # print('Dividing by the prior')
-                lnqzs += (0.5 * (torch.pow(z, 2) + np.log(2 * np.pi))).sum(dim=1)
+                lnqzs += (num_modalities - 1)*(0.5 * (torch.pow(z, 2) + np.log(2 * np.pi))).sum(dim=1)
 
             for m in subset:
                 # Compute lnqz

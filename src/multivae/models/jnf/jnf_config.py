@@ -30,6 +30,8 @@ class JNFConfig(BaseJointModelConfig):
         beta (float): Weighing factor for the regularization of the joint VAE. Default to 1.
         add_reconstruction_terms (bool) : whether to use reconstruction terms in addition to the KL terms for
             training the unimodal posteriors.
+        divide_by_prior (True) : Whether to divide by the prior when computing the Product of Experts for subset posteriors.
+            Default to True. 
 
     """
 
@@ -39,3 +41,4 @@ class JNFConfig(BaseJointModelConfig):
     beta: float = 1
     add_reconstruction_terms = False
     logits_to_std : Literal['standard', 'softplus'] = 'standard'
+    divide_by_prior : bool = True

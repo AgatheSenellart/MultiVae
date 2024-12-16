@@ -31,7 +31,8 @@ class JNFDccaConfig(BaseJointModelConfig):
         apply_rescaling_dcca (bool) : If True, a MinMaxScaling is applied to the DCCA embeddings before training the rest of the model.
             Default to False.
         beta (float) :Weighing factor for the regularization of the joint VAE. Default to 1.
-
+        divide_by_prior (True) : Whether to divide by the prior when computing the Product of Experts for subset posteriors.
+            Default to True. 
     """
 
     warmup: int = 10
@@ -42,3 +43,4 @@ class JNFDccaConfig(BaseJointModelConfig):
     )
     apply_rescaling_dcca: bool = False
     beta: float = 1.0
+    divide_by_prior : bool = True

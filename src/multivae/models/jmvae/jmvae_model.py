@@ -215,8 +215,9 @@ class JMVAE(BaseJointModel):
         log_vars = log_vars_list.copy()
 
         # Add the prior to the product of experts
-        mus.append(torch.zeros_like(mus[0]))
-        log_vars.append(torch.zeros_like(log_vars[0]))
+        if self.model_config.add_prior:
+            mus.append(torch.zeros_like(mus[0]))
+            log_vars.append(torch.zeros_like(log_vars[0]))
 
         # Compute the joint posterior
         lnT = torch.stack([-l for l in log_vars])  # Compute the inverse of variances

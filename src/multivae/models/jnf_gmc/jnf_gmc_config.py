@@ -36,6 +36,8 @@ class JNFGMCConfig(BaseJointModelConfig):
         logits_to_std (Literal['standard', 'softplus']). Default to 'standard'. How to compute the std deviations from the logits outputs from the 
 
         add_reconstruction_terms (bool) : Default to False. 
+        divide_by_prior (True) : Whether to divide by the prior when computing the Product of Experts for subset posteriors.
+            Default to True. 
     """
 
     warmup: int = 10
@@ -46,3 +48,4 @@ class JNFGMCConfig(BaseJointModelConfig):
     gmc_config : Dict = None
     logits_to_std : Literal['standard', 'softplus'] = 'standard'
     add_reconstruction_terms : bool = False
+    divide_by_prior : bool = True

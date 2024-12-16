@@ -284,7 +284,7 @@ class JNF(BaseJointModel):
                 n_lf=n_lf,
                 eps_lf=eps_lf,
                 K=N,
-                divide_prior=True,
+                divide_prior=self.model_config.divide_by_prior,
             )
             if N > 1 and kwargs.pop("flatten", False):
                 N, l, d = z.shape
@@ -360,8 +360,10 @@ class JNF(BaseJointModel):
             
             z = z_.detach().clone().requires_grad_(grad)
             
+            num_modalities = len(subset)
+            
             if divide_prior:
-                lnqzs = lnqzs +  (0.5 * (torch.pow(z, 2) + np.log(2 * np.pi))).sum(dim=1)
+                lnqzs = lnqzs + (num_modalities - 1)*(0.5 * (torch.pow(z, 2) + np.log(2 * np.pi))).sum(dim=1)
             for m in subset:
                 # Compute lnqz
                 flow_output = self.flows[m](z)
