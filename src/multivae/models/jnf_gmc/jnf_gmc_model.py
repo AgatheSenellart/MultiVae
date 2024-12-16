@@ -440,9 +440,7 @@ class JNFGMC(BaseJointModel):
             data (dict or MultimodalDataset):
             K (int, optional): . Defaults to 100.
         """
-        logger.info(
-            f"starting to sample from poe_subset, divide prior = {divide_prior}"
-        )
+        
 
         # Multiply the data to have multiple samples per datapoints
         n_data = len(data[list(data.keys())[0]])
@@ -533,8 +531,10 @@ class JNFGMC(BaseJointModel):
         if ax is not None:
             ax.plot(pos[:, 0], pos[:, 1])
             ax.quiver(pos[:, 0], pos[:, 1], grad[:, 0], grad[:, 1])
-
-        print(acc_nbr[:10] / mcmc_steps)
+        logger.info(
+            f"Sampled from poe_subset, divide prior = {divide_prior}, proportion of moves : {acc_nbr[:3]/ mcmc_steps}"
+        )
+        
         sh = (n_data, self.latent_dim) if K == 1 else (K, n_data, self.latent_dim)
         z = z.detach().resize(*sh)
         return z.detach()

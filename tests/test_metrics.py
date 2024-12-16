@@ -127,6 +127,7 @@ class TestCoherences:
             subset_dict,
             mean_acc,
             mean_acc_per_class,
+            eval_time
         ) = evaluator.all_accuracies_from_subset(["mnist"])
 
         assert 0 <= mean_acc <= 1

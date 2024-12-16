@@ -116,7 +116,7 @@ class Visualization(Evaluator):
         dataloader = DataLoader(self.test_dataset, batch_size=self.n_data_cond, shuffle=shuffle,)
         data = next(iter(dataloader))
         # set inputs to device
-        # data = set_inputs_to_device(data, self.device)
+        data = set_inputs_to_device(data, self.device)
 
         recon = self.model.predict(
             data,

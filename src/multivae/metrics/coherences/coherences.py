@@ -12,6 +12,7 @@ from multivae.samplers.base import BaseSampler
 
 from ..base.evaluator_class import Evaluator
 from .coherences_config import CoherenceEvaluatorConfig
+import time
 
 
 class CoherenceEvaluator(Evaluator):
@@ -60,12 +61,14 @@ class CoherenceEvaluator(Evaluator):
         modalities = list(self.model.encoders.keys())
         accs = []
         accs_per_class = []
+        eval_times = []
         for n in range(1, self.model.n_modalities):
             subsets_of_size_n = combinations(
                 modalities,
                 n,
             )
             accs.append([])
+            eval_times.append([])
             accs_per_class.append([])
             for s in subsets_of_size_n:
                 s = list(s)
@@ -73,12 +76,15 @@ class CoherenceEvaluator(Evaluator):
                     subset_dict,
                     mean_acc,
                     mean_acc_per_class,
+                    eval_time
                 ) = self.all_accuracies_from_subset(s)
                 self.metrics.update(subset_dict)
                 accs[-1].append(mean_acc)
+                eval_times[-1].append(eval_time)
                 accs_per_class[-1].append(mean_acc_per_class)
 
         mean_accs = [np.mean(l) for l in accs]
+        mean_times = [np.mean(l) for l in eval_times]
         std_accs = [np.std(l) for l in accs]
         mean_accs_per_class = [np.mean(np.stack(l), axis=0) for l in accs_per_class]
 
@@ -86,10 +92,14 @@ class CoherenceEvaluator(Evaluator):
             self.logger.info(
                 f"Conditional accuracies for {i+1} modalities : {mean_accs[i]} +- {std_accs[i]}"
             )
+            self.logger.info(
+                f"Mean time for computing accuracy for {i+1} modalities : {mean_times[i]}"
+            )
             self.metrics.update(
                 {
                     f"mean_coherence_{i+1}": mean_accs[i],
                     f"std_coherence_{i+1}": std_accs[i],
+                    f"time_eval_{i+1}": mean_times[i]
                 }
             )
 
@@ -119,7 +129,7 @@ class CoherenceEvaluator(Evaluator):
         Returns:
             dict, float : The dictionary of all coherences from subset, and the mean coherence
         """
-
+        time_at_start = time.time()
         pred_mods = [
             m for m in self.model.encoders if (m not in subset) or self.include_recon
         ]
@@ -177,7 +187,9 @@ class CoherenceEvaluator(Evaluator):
         self.logger.info(f"Mean subset {subset} accuracies : " + str(mean_pair_acc))
         mean_acc_per_class = np.mean(np.stack(list(acc_per_class.values())), axis=0)
 
-        return acc, mean_pair_acc, mean_acc_per_class
+        eval_time = time.time() - time_at_start
+        
+        return acc, mean_pair_acc, mean_acc_per_class, eval_time
 
     def joint_coherence(self):
         """
