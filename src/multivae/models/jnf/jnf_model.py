@@ -394,7 +394,7 @@ class JNF(BaseJointModel):
         subset,
         data,
         ax=None,
-        mcmc_steps=200,
+        mcmc_steps=300,
         n_lf=10,
         eps_lf=0.01,
         K=1,
