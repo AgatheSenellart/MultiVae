@@ -78,9 +78,13 @@ class Test:
     @pytest.fixture(params=['standard', 'softplus'])
     def logits_to_std(self, request):
         return request.param
+    
+    @pytest.fixture(params=[True, False])
+    def divide_by_prior(self, request):
+        return request.param
 
     @pytest.fixture
-    def model_config(self, use_likelihood_rescaling, two_steps_training, alpha, add_recon, logits_to_std):
+    def model_config(self, use_likelihood_rescaling, two_steps_training, alpha, add_recon, logits_to_std, divide_by_prior):
         model_config = JNFConfig(
             n_modalities=3,
             latent_dim=5,
@@ -89,7 +93,8 @@ class Test:
             two_steps_training=two_steps_training,
             alpha=alpha,
             add_reconstruction_terms = add_recon, 
-            logits_to_std=logits_to_std
+            logits_to_std=logits_to_std,
+            divide_by_prior=divide_by_prior
         )
 
         return model_config

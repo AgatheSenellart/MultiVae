@@ -483,7 +483,7 @@ class JNF(BaseJointModel):
         
         if info:
             logger.info(
-            f"Sampled from poe_subset, divide prior = {divide_prior}, with proportion of moves : {acc_nbr[:3]/mcmc_steps}"
+            f"Sampled from poe_subset, divide prior = {divide_prior}, with proportion of moves : {acc_nbr[:3]/mcmc_steps} mcmc_steps : {mcmc_steps}"
         )
 
         sh = (n_data, self.latent_dim) if K == 1 else (K, n_data, self.latent_dim)
