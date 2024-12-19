@@ -1,5 +1,6 @@
 import logging
 from typing import List, Optional
+from copy import deepcopy
 
 import torch
 from torch.utils.data import DataLoader
@@ -129,8 +130,10 @@ class AddDccaTrainer(BaseTrainer):
             self.training_config.learning_rate = self.training_config.learning_rate_vae
             self.set_optimizer()
             self.set_scheduler()
-            best_train_loss = 1e10
-            best_eval_loss = 1e10
+            best_train_loss = 1e12
+            best_eval_loss = 1e12
+            self.model= deepcopy(self._best_model).train()
+
 
         elif epoch == self.model.nb_epochs_dcca + self.model.warmup + 1:
             # Just reset the optimizer
@@ -141,8 +144,10 @@ class AddDccaTrainer(BaseTrainer):
 
             self.set_optimizer()
             self.set_scheduler()
-            best_train_loss = 1e10
-            best_eval_loss = 1e10
+            best_train_loss = 1e12
+            best_eval_loss = 1e12
+            self.model= deepcopy(self._best_model).train()
+
 
         return best_train_loss, best_eval_loss
     
