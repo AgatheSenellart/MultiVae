@@ -128,11 +128,11 @@ class AddDccaTrainer(BaseTrainer):
                 + f"Using eval_loader with batch_size {len(self.eval_dataset)// len(self.eval_loader)} \n"
             )
             self.training_config.learning_rate = self.training_config.learning_rate_vae
+            self.model= deepcopy(self._best_model).train()
             self.set_optimizer()
             self.set_scheduler()
             best_train_loss = 1e12
             best_eval_loss = 1e12
-            self.model= deepcopy(self._best_model).train()
 
 
         elif epoch == self.model.nb_epochs_dcca + self.model.warmup + 1:
@@ -141,12 +141,11 @@ class AddDccaTrainer(BaseTrainer):
                 "End the training of the joint VAE and move on to learning the unimodal "
                 " posteriors."
             )
-
+            self.model= deepcopy(self._best_model).train()
             self.set_optimizer()
             self.set_scheduler()
             best_train_loss = 1e12
             best_eval_loss = 1e12
-            self.model= deepcopy(self._best_model).train()
 
 
         return best_train_loss, best_eval_loss

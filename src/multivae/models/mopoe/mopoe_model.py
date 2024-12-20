@@ -207,6 +207,9 @@ class MoPoE(BaseMultiVAE):
             if self.multiple_latent_spaces:
                 style_mu = latents["modalities"][m_key].style_embedding
                 style_log_var = latents["modalities"][m_key].style_log_covariance
+                
+                style_std, style_log_var = self.logits_to_std(style_log_var)
+                
                 style_kld = -0.5 * (
                     1 - style_log_var.exp() - style_mu.pow(2) + style_log_var
                 ).view(style_mu.size(0), -1).sum(-1)
@@ -313,6 +316,8 @@ class MoPoE(BaseMultiVAE):
                 for m, mod in enumerate(mods):
                     mus_mod = enc_mods[mod].embedding
                     log_vars_mod = enc_mods[mod].log_covariance
+                    
+                    std_mod, log_vars_mod = self.logits_to_std(log_vars_mod)
 
                     mus_subset = torch.cat((mus_subset, mus_mod.unsqueeze(0)), dim=0)
 
@@ -424,13 +429,17 @@ class MoPoE(BaseMultiVAE):
                     log_var_style = latents_subsets["modalities"][
                         m
                     ].style_log_covariance
+                    std, log_var_style = self.logits_to_std(log_var_style)
                 else:
                     mu_style = torch.zeros((len(mu), self.style_dims[m])).to(mu.device)
                     log_var_style = torch.zeros((len(mu), self.style_dims[m])).to(
                         mu.device
                     )
+                    std = torch.ones((len(mu), self.style_dims[m])).to(
+                        mu.device
+                    )
                 modalities_z[m] = dist.Normal(
-                    mu_style, torch.exp(0.5 * log_var_style)
+                    mu_style, std
                 ).rsample(sample_shape)
                 if flatten:
                     modalities_z[m] = modalities_z[m].reshape(-1, self.style_dims[m])
