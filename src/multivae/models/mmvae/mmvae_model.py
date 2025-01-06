@@ -49,6 +49,9 @@ class MMVAE(BaseMultiVAE):
         elif model_config.prior_and_posterior_dist == "normal":
             self.post_dist = Normal
             self.prior_dist = Normal
+        elif model_config.prior_and_posterior_dist == "normal_with_softplus":
+            self.post_dist = Normal
+            self.prior_dist = Normal
         else:
             raise AttributeError(
                 " The posterior_dist parameter must be "
@@ -74,8 +77,12 @@ class MMVAE(BaseMultiVAE):
 
         if self.model_config.prior_and_posterior_dist == "laplace_with_softmax":
             return F.softmax(log_var, dim=-1) * log_var.size(-1) + 1e-6
+        elif self.model_config.prior_and_posterior_dist == "normal_with_softplus":
+            return F.softplus(log_var) + 1e-6
         else:
             return torch.exp(0.5 * log_var)
+        
+        
 
     @property
     def pz_params(self):
