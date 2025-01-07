@@ -185,7 +185,7 @@ class JNFDcca(BaseJointModel):
         joint_output = self.joint_encoder(inputs.data)
         mu, log_var = joint_output.embedding, joint_output.log_covariance
 
-        sigma = torch.exp(0.5 * log_var)
+        sigma, log_var = self.logits_to_std(log_var)
         qz_xy = dist.Normal(mu, sigma)
         z_joint = qz_xy.rsample()
 
@@ -225,7 +225,7 @@ class JNFDcca(BaseJointModel):
                 mod_output = self.encoders[mod](dcca_embed)
                 mu0, log_var0 = mod_output.embedding, mod_output.log_covariance
 
-                sigma0 = torch.exp(0.5 * log_var0)
+                sigma0, log_var0 = self.logits_to_std(log_var0)
                 qz_x0 = dist.Normal(mu0, sigma0)
 
                 # Compute -ln q_\phi_mod(z_joint|x_mod)
@@ -294,8 +294,10 @@ class JNFDcca(BaseJointModel):
             if return_mean:
                 z = torch.stack([output.embedding] * N) if N > 1 else output.embedding
             else:
+                mu, log_var = output.embedding, output.log_covariance
+                sigma, log_var = self.logits_to_std(log_var)
                 z = dist.Normal(
-                    output.embedding, torch.exp(0.5 * output.log_covariance)
+                    mu, sigma
                 ).rsample(sample_shape)
             if N > 1 and kwargs.pop("flatten", False):
                 N, l, d = z.shape
@@ -325,9 +327,10 @@ class JNFDcca(BaseJointModel):
             ).embedding
             output = self.encoders[cond_mod](dcca_embed)
             sample_shape = [] if N == 1 else [N]
-
+            mu, log_var = output.embedding, output.log_covariance
+            sigma, log_var=self.logits_to_std(log_var)
             z0 = dist.Normal(
-                output.embedding, torch.exp(0.5 * output.log_covariance)
+                mu, sigma
             ).rsample(sample_shape)
             flow_output = self.flows[cond_mod].inverse(
                 z0.reshape(-1, self.latent_dim)
@@ -368,7 +371,8 @@ class JNFDcca(BaseJointModel):
                     self.DCCA_module.networks[m](data[m][indices == m]).embedding
                 )
                 mu, log_var = encoder_output.embedding, encoder_output.log_covariance
-                zs[indices == m] = dist.Normal(mu, torch.exp(0.5 * log_var)).rsample()
+                sigma, log_var = self.logits_to_std(log_var)
+                zs[indices == m] = dist.Normal(mu,sigma).rsample()
         return zs
 
     def compute_poe_posterior(
@@ -407,13 +411,14 @@ class JNFDcca(BaseJointModel):
                     vae_output.log_covariance,
                     flow_output.out,
                 )
+                sigma, log_var = self.logits_to_std(log_var)
 
                 log_q_z0 = (
                     -0.5
                     * (
                         log_var
                         + np.log(2 * np.pi)
-                        + torch.pow(z0 - mu, 2) / torch.exp(log_var)
+                        + torch.pow(z0 - mu, 2) / torch.pow(sigma,2)
                     )
                 ).sum(dim=1)
                 lnqzs += log_q_z0 + flow_output.log_abs_det_jac  # n_data_points x 1
