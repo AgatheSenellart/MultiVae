@@ -50,7 +50,7 @@ encoders = {
         BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3, 28, 28))
     ).to(device),
     "text": CubTextEncoder(
-        model_config,
+        latent_dim=model_config.latent_dim,
         max_sentence_length=train_data.max_words_in_caption,
         ntokens=train_data.vocab_size,
         embed_size=512,

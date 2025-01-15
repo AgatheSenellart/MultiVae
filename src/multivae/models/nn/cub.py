@@ -48,6 +48,8 @@ class CubTextEncoder(BaseEncoder):
         A transformer-based encoder for text.
 
         Parameters:
+            latent_dim (int): Dimension of the latent space.
+            max_sentence_length (int): Maximum length of the input sentences.
             ntokens (int): Vocabulary size.
             embed_size (int): Size of the token embedding vectors. Default: 512
             nhead (int): Number of head in the MultiHeadAttention module. Default: 4
