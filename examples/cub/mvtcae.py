@@ -24,14 +24,14 @@ from multivae.trainers.base.callbacks import (
 ######################################################
 ### Encoders & Decoders
 
+data_path = '/scratch/asenella/data'
+
 train_data = CUB(
-    "/Users/agathe/dev/data", "train", captions_per_image=10, im_size=(28, 28), output_type='tokens'
+    data_path, "train", captions_per_image=10, im_size=(28, 28), output_type='tokens'
 )
-eval_data = CUB("/Users/agathe/dev/data", "eval", captions_per_image=10, im_size=(28, 28), output_type='tokens')
+eval_data = CUB(data_path, "eval", captions_per_image=10, im_size=(28, 28), output_type='tokens')
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-print(len(train_data))
 
 model_config = MVTCAEConfig(
     n_modalities=2,
@@ -76,7 +76,7 @@ decoders = {
 model = MVTCAE(model_config, encoders=encoders, decoders=decoders).to(device)
 
 trainer_config = BaseTrainerConfig(
-    num_epochs=1000,
+    num_epochs=200,
     learning_rate=1e-3,
     steps_predict=5,
     per_device_train_batch_size=128,

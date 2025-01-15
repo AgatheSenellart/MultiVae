@@ -784,6 +784,8 @@ class BaseTrainer:
             inputs = set_inputs_to_device(inputs, self.device)
 
         all_recons = dict()
+        
+        # Cross modal reconstructions
         for mod in inputs.data:
             recon = model.predict(
                 inputs, mod, "all", N=8, flatten=True, ignore_incomplete=True
@@ -820,4 +822,52 @@ class BaseTrainer:
             recon_image = Image.fromarray(ndarr)
 
             all_recons[mod] = recon_image
+            
+         # joint reconstruction
+        recon = model.predict(
+                inputs, "all", "all", N=8, flatten=True, ignore_incomplete=True
+            )
+        if hasattr(self.eval_dataset, "transform_for_plotting"):
+            recon = {
+                    mod_name: self.eval_dataset.transform_for_plotting(
+                        recon[mod_name], modality=mod_name
+                    )
+                    for mod_name in recon
+                }
+            recon.update({
+                    f"true_data_{mod_name}": self.eval_dataset.transform_for_plotting(
+                        inputs.data[mod_name], modality=mod_name
+                    )
+                    for mod_name in inputs.data
+                })
+
+        else:
+            recon.update({
+                f"true_data_{mod_name}": 
+                    inputs.data[mod_name]
+                for mod_name in recon
+            })
+
+        recon, shape = adapt_shape(recon)
+        recon_image = [recon[f"true_data_{m}"] for m in inputs.data] + [
+            recon[m] for m in inputs.data
+        ]
+        recon_image = torch.cat(recon_image)
+
+        # Transform to PIL format
+        recon_image = make_grid(recon_image, nrow=n_data)
+        # Add 0.5 after unnormalizing to [0, 255] to round to nearest integer
+        ndarr = (
+            recon_image.mul(255)
+            .add_(0.5)
+            .clamp_(0, 255)
+            .permute(1, 2, 0)
+            .to("cpu", torch.uint8)
+            .numpy()
+        )
+        recon_image = Image.fromarray(ndarr)
+
+        all_recons["all"] = recon_image
+
+
         return all_recons
