@@ -87,7 +87,7 @@ class CubTextEncoder(BaseEncoder):
         src = self.token_embedding(src) * math.sqrt(self.embed_size)
         src = self.pos_encoder(src)
         transformer_output = self.transformer_encoder(
-            src, src_key_padding_mask=padding_mask
+            src, src_key_padding_mask=~padding_mask.bool()
         )
         output = ModelOutput(
             embedding=self.mu(transformer_output.reshape(src.shape[0], -1)),
