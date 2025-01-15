@@ -2,7 +2,7 @@ import torch
 from pythae.models.base.base_config import BaseAEConfig
 from torch.utils.data import random_split
 
-from multivae.data.datasets.cub_bis import CUB
+from multivae.data.datasets.cub import CUB
 from multivae.models import MVTCAE, MVTCAEConfig
 from multivae.models.nn.cub import CubTextDecoderMLP, CubTextEncoder
 from multivae.models.nn.default_architectures import (
@@ -27,6 +27,7 @@ from multivae.trainers.base.callbacks import (
 train_data = CUB(
     "/Users/agathe/dev/data", "train", captions_per_image=10, im_size=(28, 28), output_type='tokens'
 )
+eval_data = CUB("/Users/agathe/dev/data", "eval", captions_per_image=10, im_size=(28, 28), output_type='tokens')
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -84,15 +85,15 @@ trainer_config = BaseTrainerConfig(
 )
 
 ## Set up callbacks
-# wandb_cb = WandbCallback()
-# wandb_cb.setup(trainer_config, model_config, project_name="mmnist")
+wandb_cb = WandbCallback()
+wandb_cb.setup(trainer_config, model_config, project_name="test_cub")
 
-callbacks = [TrainingCallback()]  # , wandb_cb]
+callbacks = [TrainingCallback() , wandb_cb]
 
 trainer = BaseTrainer(
     model,
     train_dataset=train_data,
-    # eval_dataset=eval_data,
+    eval_dataset=eval_data,
     training_config=trainer_config,
     callbacks=callbacks
 )
