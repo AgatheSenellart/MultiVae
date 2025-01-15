@@ -78,7 +78,7 @@ model = MVTCAE(model_config, encoders=encoders, decoders=decoders).to(device)
 trainer_config = BaseTrainerConfig(
     num_epochs=1000,
     learning_rate=1e-3,
-    steps_predict=None,
+    steps_predict=5,
     per_device_train_batch_size=128,
     per_device_eval_batch_size=128,
     device=device,

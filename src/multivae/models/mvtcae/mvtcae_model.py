@@ -177,7 +177,7 @@ class MVTCAE(BaseMultiVAE):
         enc_mods = self.modality_encode(inputs)
         latents["modalities"] = enc_mods
 
-        device = inputs.data[list(inputs.data.keys())[0]].device
+        device = enc_mods[list(inputs.data.keys())[0]].embedding.device
         mus = torch.Tensor().to(device)
         logvars = torch.Tensor().to(device)
         mods = list(inputs.data.keys())

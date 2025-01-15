@@ -248,9 +248,6 @@ class CUBSentences(Dataset):
     def _to_string(self, matrix):
         words = []
 
-        if self.transpose:
-            matrix = matrix.T
-
         for i in range(matrix.shape[0]):
             idx = np.argmax(matrix[i, :])
             words.append(self.i2w[str(idx)])
@@ -263,7 +260,7 @@ class CUB(MultimodalBaseDataset):
     
     """
 
-    A paired text img CUB dataset.
+    A paired text image CUB dataset.
 
     Args:
         path (str) : The path where the data is saved.
