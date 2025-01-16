@@ -71,13 +71,8 @@ class JNF(BaseJointModel):
 
         self.model_name = "JNF"
         self.warmup = model_config.warmup
-        self.two_steps_training = model_config.two_steps_training
-        if self.two_steps_training:
-            self.reset_optimizer_epochs = [self.warmup + 1]
-        else:
-            self.alpha = model_config.alpha
-        self.beta = model_config.beta
         self.reset_optimizer_epochs = [self.warmup + 1]
+        self.beta = model_config.beta
 
     def set_flows(self, flows: Dict[str, BaseNF]):
         # check that the keys corresponds with the encoders keys
@@ -135,40 +130,29 @@ class JNF(BaseJointModel):
         # Compute the KLD to the prior
         KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp()) * self.beta
 
-        if self.two_steps_training:
-            if epoch <= self.warmup:
-                return ModelOutput(
-                    # recon_loss=recon_loss / len_batch,
-                    # KLD=KLD / len_batch,
-                    loss=(recon_loss + KLD) / len_batch,
-                    loss_sum=recon_loss+KLD,
-                    metrics=dict(
-                        kld_prior=KLD, recon_loss=recon_loss / len_batch, ljm=0
-                    ),
-                )
-
-            else:
-                self._set_torch_no_grad_on_joint_vae()
-                ljm = self.compute_ljm(inputs, z_joint)
-
-                return ModelOutput(
-
-                    loss=ljm  / len_batch,
-                    loss_sum = ljm,
-                    metrics=dict(
-                        kld_prior=KLD,
-                        recon_loss=recon_loss / len_batch,
-                        ljm=ljm / len_batch
-                    ),
-                )
+        if epoch <= self.warmup:
+            return ModelOutput(
+                # recon_loss=recon_loss / len_batch,
+                # KLD=KLD / len_batch,
+                loss=(recon_loss + KLD) / len_batch,
+                loss_sum=recon_loss+KLD,
+                metrics=dict(
+                    kld_prior=KLD, recon_loss=recon_loss / len_batch, ljm=0
+                ),
+            )
 
         else:
-            ljm = self.compute_ljm(inputs, z_joint) * self.alpha
-            annealing =  min(1, epoch / (self.warmup+1))
+            self._set_torch_no_grad_on_joint_vae()
+            ljm = self.compute_ljm(inputs, z_joint)
+
             return ModelOutput(
-                loss=(recon_loss + annealing * (KLD + ljm)) / len_batch,
+
+                loss=ljm  / len_batch,
+                loss_sum = ljm,
                 metrics=dict(
-                    kld_prior=KLD, recon_loss=recon_loss / len_batch, ljm=ljm, annealing=annealing
+                    kld_prior=KLD,
+                    recon_loss=recon_loss / len_batch,
+                    ljm=ljm / len_batch
                 ),
             )
 

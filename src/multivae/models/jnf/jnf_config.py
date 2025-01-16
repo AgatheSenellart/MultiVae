@@ -25,13 +25,9 @@ class JNFConfig(BaseJointModelConfig):
             For instance, with normal or laplace distribution, you can pass the scale in this dictionary.
             >>> decoder_dist_params =  {'mod1' : {"scale" : 0.75}} >>>
         warmup (int): The number of warmup epochs during training. Default to 10.
-        two_steps_training (bool): Whether to use a two-steps training or a one step training with annealing. Default to True.
-        alpha (float): If using a one step training, the alpha parameter for the LJM term. Default to 0.1.
         beta (float): Weighing factor for the regularization of the joint VAE. Default to 1.
 
     """
 
     warmup: int = 10
-    two_steps_training: bool = True
-    alpha: float = 0.1
     beta: float = 1

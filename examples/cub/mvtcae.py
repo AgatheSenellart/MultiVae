@@ -36,13 +36,10 @@ model_config = MVTCAEConfig(
         "image": (3, 64, 64),
         "text": (train_data.max_words_in_caption, train_data.vocab_size),
     },
-    latent_dim=16,
+    latent_dim=64,
     decoders_dist={"image": "laplace", "text": "categorical"},
-    beta=2.5,
-    alpha=0.9,
-    uses_likelihood_rescaling=True,
-    rescale_factors=dict(image = 32/(3*64*64), # Number of words in caption / number of pixels in the image
-                         text = 1.0), 
+    beta=5.0,
+    alpha=0.9
 )
 
 encoders = {
