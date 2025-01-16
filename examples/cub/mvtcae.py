@@ -4,15 +4,11 @@ from torch.utils.data import random_split
 
 from multivae.data.datasets.cub import CUB
 from multivae.models import MVTCAE, MVTCAEConfig
-from multivae.models.nn.cub import CubTextDecoderMLP, CubTextEncoder
-from multivae.models.nn.default_architectures import (
-    BaseDecoder,
-    BaseEncoder,
-    ModelOutput,
-)
-from multivae.models.nn.mmnist import (
-    Decoder_ResNet_AE_MMNIST,
-    Encoder_ResNet_VAE_MMNIST,
+from multivae.models.nn.cub import (
+    CUB_Resnet_Decoder,
+    CUB_Resnet_Encoder,
+    CubTextDecoderMLP,
+    CubTextEncoder,
 )
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 from multivae.trainers.base.callbacks import (
@@ -24,74 +20,74 @@ from multivae.trainers.base.callbacks import (
 ######################################################
 ### Encoders & Decoders
 
-cub = CUB(
-    "../../data/CUB/CUB_200_2011/", "test", captions_per_image=10, im_size=(28, 28)
+data_path = "/scratch/asenella/data"
+
+train_data = CUB(
+    data_path, "train", captions_per_image=10, im_size=(64, 64), output_type="tokens"
 )
-train_data, eval_data = random_split(
-    cub, [0.8, 0.2], generator=torch.Generator().manual_seed(42)
+eval_data = CUB(
+    data_path, "eval", captions_per_image=10, im_size=(64, 64), output_type="tokens"
 )
-print(len(train_data), len(eval_data))
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 model_config = MVTCAEConfig(
     n_modalities=2,
     input_dims={
-        "img": (3, 28, 28),
-        "text": (cub.max_words_in_captions, cub.vocab_size),
+        "image": (3, 64, 64),
+        "text": (train_data.max_words_in_caption, train_data.vocab_size),
     },
-    latent_dim=16,
-    decoders_dist={"img": "laplace", "text": "categorical"},
-    beta=2.5,
-    alpha=5.0 / 6.0,
+    latent_dim=64,
+    decoders_dist={"image": "laplace", "text": "categorical"},
+    beta=5.0,
+    alpha=0.9,
 )
 
 encoders = {
-    "img": Encoder_ResNet_VAE_MMNIST(
-        BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3, 28, 28))
-    ).cuda(),
+    "image": CUB_Resnet_Encoder(latent_dim=model_config.latent_dim).to(device),
     "text": CubTextEncoder(
-        model_config,
-        max_sentence_length=cub.max_words_in_captions,
-        ntokens=cub.vocab_size,
+        latent_dim=model_config.latent_dim,
+        max_sentence_length=train_data.max_words_in_caption,
+        ntokens=train_data.vocab_size,
         embed_size=512,
         ff_size=128,
         n_layers=2,
         nhead=2,
         dropout=0.1,
-    ).cuda(),
+    ).to(device),
 }
 
 decoders = {
-    "img": Decoder_ResNet_AE_MMNIST(
-        BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3, 28, 28))
-    ).cuda(),
+    "image": CUB_Resnet_Decoder(latent_dim=model_config.latent_dim).to(device),
     "text": CubTextDecoderMLP(
         BaseAEConfig(
             latent_dim=model_config.latent_dim,
-            input_dim=(cub.max_words_in_captions, cub.vocab_size),
+            input_dim=(train_data.max_words_in_caption, train_data.vocab_size),
         )
-    ).cuda(),
+    ).to(device),
 }
 
-model = MVTCAE(model_config, encoders=encoders, decoders=decoders).cuda()
+model = MVTCAE(model_config, encoders=encoders, decoders=decoders).to(device)
 
 trainer_config = BaseTrainerConfig(
-    num_epochs=1000,
+    num_epochs=200,
     learning_rate=1e-3,
-    steps_predict=None,
+    steps_predict=5,
     per_device_train_batch_size=128,
     per_device_eval_batch_size=128,
+    device=device,
 )
 
 ## Set up callbacks
-# wandb_cb = WandbCallback()
-# wandb_cb.setup(trainer_config, model_config, project_name="mmnist")
+wandb_cb = WandbCallback()
+wandb_cb.setup(trainer_config, model_config, project_name="test_cub")
 
-callbacks = [TrainingCallback()]  # , wandb_cb]
+callbacks = [TrainingCallback(), wandb_cb]
 
 trainer = BaseTrainer(
     model,
     train_dataset=train_data,
-    # eval_dataset=eval_data,
+    eval_dataset=eval_data,
     training_config=trainer_config,
     callbacks=callbacks,
 )

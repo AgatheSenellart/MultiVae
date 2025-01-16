@@ -1,4 +1,5 @@
 import logging
+import math
 from typing import Union
 
 import numpy as np
@@ -63,10 +64,13 @@ class MMVAEPlus(BaseMultiVAE):
         elif model_config.prior_and_posterior_dist == "normal":
             self.post_dist = Normal
             self.prior_dist = Normal
+        elif model_config.prior_and_posterior_dist == "normal_with_softplus":
+            self.post_dist = Normal
+            self.prior_dist = Normal
         else:
             raise AttributeError(
                 " The posterior_dist parameter must be "
-                " either 'laplace_with_softmax' or 'normal'. "
+                " either 'laplace_with_softmax','normal' or 'normal_with_softplus'. "
                 f" {model_config.prior_and_posterior_dist} was provided."
             )
 
@@ -107,16 +111,19 @@ class MMVAEPlus(BaseMultiVAE):
         )
 
         self.model_name = "MMVAEPlus"
+        self.objective = model_config.loss
 
     def log_var_to_std(self, log_var):
         """
         For latent distributions parameters, transform the log covariance to the
-        standard deviation of the distribution either applying softmax or not.
+        standard deviation of the distribution either applying softmax or softplus.
         This follows the original implementation.
         """
 
         if self.model_config.prior_and_posterior_dist == "laplace_with_softmax":
             return F.softmax(log_var, dim=-1) * log_var.size(-1) + 1e-6
+        elif self.model_config.prior_and_posterior_dist == "normal_with_softplus":
+            return F.softplus(log_var) + 1e-6
         else:
             return torch.exp(0.5 * log_var)
 
@@ -160,8 +167,10 @@ class MMVAEPlus(BaseMultiVAE):
             w_x = qw_x.rsample([K])
 
             # The DREG loss uses detached parameters in the loss computation afterwards.
-            qu_x_detach = self.post_dist(mu.detach(), sigma.detach())
-            qw_x_detach = self.post_dist(mu_style.detach(), sigma_style.detach())
+            qu_x_detach = self.post_dist(mu.clone().detach(), sigma.clone().detach())
+            qw_x_detach = self.post_dist(
+                mu_style.clone().detach(), sigma_style.clone().detach()
+            )
 
             # Then compute all the cross-modal reconstructions
             reconstructions[cond_mod] = {}
@@ -207,13 +216,19 @@ class MMVAEPlus(BaseMultiVAE):
 
         # Compute DREG loss using detached posteriors as in MMVAE model
         if compute_loss:
-            loss_output = self.dreg_looser(
-                qu_xs_detach, qw_xs_detach, embeddings, reconstructions, inputs
-            )
-            # loss_output = self.dreg_looser(
-            #     qu_xs, qw_xs, embeddings, reconstructions, inputs
-            # )
-
+            if self.objective == "dreg_looser":
+                loss_output = self.dreg_looser(
+                    qu_xs_detach, qw_xs_detach, embeddings, reconstructions, inputs
+                )
+                # loss_output = self.dreg_looser(
+                #     qu_xs, qw_xs, embeddings, reconstructions, inputs
+                # )
+            elif self.objective == "iwae_looser":
+                loss_output = self.iwae_looser(
+                    qu_xs, qw_xs, embeddings, reconstructions, inputs
+                )
+            else:
+                raise NotImplemented()
         else:
             loss_output = ModelOutput()
         if detailed_output:
@@ -232,12 +247,8 @@ class MMVAEPlus(BaseMultiVAE):
             tuple: mean, std
         """
         mean = self.mean_priors["shared"]
-        if self.model_config.prior_and_posterior_dist == "laplace_with_softmax":
-            std = F.softmax(
-                self.logvars_priors["shared"], dim=-1
-            ) * self.logvars_priors["shared"].size(-1)
-        else:
-            std = torch.exp(0.5 * self.logvars_priors["shared"])
+        log_var = self.logvars_priors["shared"]
+        std = self.log_var_to_std(log_var)
         return mean, std
 
     def dreg_looser(self, qu_xs, qw_xs, embeddings, reconstructions, inputs):
@@ -324,8 +335,90 @@ class MMVAEPlus(BaseMultiVAE):
 
         lws = (grad_wt * lws).sum(0) / n_mods_sample  # mean over modalities
 
-        # Sum over K and sum over batch
-        return ModelOutput(loss=-lws.sum(), metrics=dict())
+        # Note that in the original implementation, loss is summed over the batch (and not averaged)
+        # so the learning_rate might need to be adapted
+        return ModelOutput(loss=-lws.mean(0).sum(), loss_sum=-lws.sum(), metrics=dict())
+
+    def iwae_looser(self, qu_xs, qw_xs, embeddings, reconstructions, inputs):
+        """
+        The IWAE loss but with the sum outside of the loss for increased stability.
+        (following Shi et al 2019)
+
+        """
+
+        if hasattr(inputs, "masks"):
+            # Compute the number of available modalities per sample
+            n_mods_sample = torch.sum(
+                torch.stack(tuple(inputs.masks.values())).int(), dim=0
+            )
+        else:
+            n_mods_sample = torch.tensor([self.n_modalities])
+
+        lws = []
+        zss = []
+        for mod in embeddings:
+            # Log-probabilities to the prior are the same as in MMVAE
+            u = embeddings[mod]["u"]  # (K, n_batch, latent_dim)
+            w = embeddings[mod]["w"]  # (K, n_batch, latent_dim)
+            n_mods_sample = n_mods_sample.to(u.device)
+            prior = self.prior_dist(*self.pz_params)
+            z = torch.cat([u, w], dim=-1)
+            lpz = prior.log_prob(z).sum(-1)
+
+            # For the shared latent variable it is the same
+            if hasattr(inputs, "masks"):
+                qu_x = []
+                for m in qu_xs:
+                    qu = qu_xs[m].log_prob(u).sum(-1)
+                    # for unavailable modalities, set the log prob to -infinity so that it accounts for 0
+                    # in the log_sum_exp.
+                    qu[torch.stack([inputs.masks[m] == False] * len(u))] = -torch.inf
+                    qu_x.append(qu)
+                lqu_x = torch.stack(qu_x)  # n_modalities,K,nbatch
+            else:
+                lqu_x = torch.stack(
+                    [qu_xs[m].log_prob(u).sum(-1) for m in qu_xs]
+                )  # n_modalities,K,nbatch
+
+            lqu_x = torch.logsumexp(lqu_x, dim=0) - torch.log(
+                n_mods_sample
+            )  # log_mean_exp
+
+            # Then we have to add the modality specific posterior
+            lqw_x = qw_xs[mod].log_prob(w).sum(-1)
+
+            # The reconstructions are the same as in the MMVAE
+            lpx_z = 0
+            for recon_mod in reconstructions[mod]:
+                x_recon = reconstructions[mod][recon_mod]
+                K, n_batch = x_recon.shape[0], x_recon.shape[1]
+                lpx_z_mod = (
+                    self.recon_log_probs[recon_mod](x_recon, inputs.data[recon_mod])
+                    .view(K, n_batch, -1)
+                    .mul(self.rescale_factors[recon_mod])
+                    .sum(-1)
+                )
+
+                if hasattr(inputs, "masks"):
+                    # cancel unavailable modalities
+                    lpx_z_mod *= inputs.masks[recon_mod].float()
+
+                lpx_z += lpx_z_mod
+
+            lw = lpx_z + self.beta * (lpz - lqu_x - lqw_x)
+
+            if hasattr(inputs, "masks"):
+                # cancel unavailable modalities
+                lw *= inputs.masks[mod].float()
+
+            lws.append(lw)
+            zss.append(z)
+
+        lws = torch.stack(lws)  # (n_modalities, K, n_batch)
+
+        lws = torch.logsumexp(lws, dim=1) - math.log(lws.size(1))
+
+        return ModelOutput(loss=-lws.mean(0).sum(), loss_sum=-lws.sum(), metrics=dict())
 
     def encode(
         self,

@@ -62,7 +62,7 @@ class adapt_shape_for_fid(torch.nn.Module):
 
 class FIDEvaluator(Evaluator):
     """
-    Class for computing likelihood metrics.
+    Class for computing Fréchet inception distance (FID) metrics.
 
     Args:
         model (BaseMultiVAE) : The model to evaluate.
@@ -276,12 +276,17 @@ class FIDEvaluator(Evaluator):
         """
 
         modalities = [k for k in self.model.encoders if k != gen_mod]
-        fds = []
-        for n in range(1, len(modalities) + 1):
-            s = modalities[:n]
-            fd = self.compute_fid_from_conditional_generation(s, gen_mod)
-            fds.append(fd)
 
-        self.log_to_wandb()
+        for n in range(1, len(modalities) + 1):
+            subsets_of_size_n = combinations(
+                modalities,
+                n,
+            )
+            fdn = []
+            for s in subsets_of_size_n:
+                s = list(s)
+                fd = self.compute_fid_from_conditional_generation(s, gen_mod)
+                fdn.append(fd)
+                self.metrics[f"Mean FD from {n} modalities to {gen_mod}"] = np.mean(fdn)
 
         return ModelOutput(**self.metrics)

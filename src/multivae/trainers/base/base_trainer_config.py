@@ -47,8 +47,6 @@ class BaseTrainerConfig(BaseConfig):
         dist_backend (str): The distributed backend to use. Default: 'nccl'
         master_addr (str): The master address for distributed training. Default: 'localhost'
         master_port (str): The master port for distributed training. Default: '12345'
-        start_keep_best (int): The epoch to start keeping track of the best loss. Before that the model
-            is automatically saved.
     """
 
     output_dir: str = None
@@ -73,7 +71,6 @@ class BaseTrainerConfig(BaseConfig):
     dist_backend: str = field(default="nccl")
     master_addr: str = field(default="localhost")
     master_port: str = field(default="12345")
-    start_keep_best_epoch: int = 0
     drop_last: bool = False
 
     def __post_init__(self):

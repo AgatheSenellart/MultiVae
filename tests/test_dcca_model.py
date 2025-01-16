@@ -151,7 +151,7 @@ class TestJNFDcca:
             embedding_dcca_dim=2,
             nb_epochs_dcca=2,
             warmup=2,
-            apply_rescaling=rescale,
+            apply_rescaling_dcca=rescale,
         )
 
         return model_config
@@ -198,7 +198,7 @@ class TestJNFDcca:
         assert model.warmup == model_config.warmup
         assert model.nb_epochs_dcca == model_config.nb_epochs_dcca
 
-        if model_config.apply_rescaling:
+        if model_config.apply_rescaling_dcca:
             assert model.dcca_rescaler is not None
         else:
             assert model.dcca_rescaler is None

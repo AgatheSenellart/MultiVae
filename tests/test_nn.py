@@ -133,7 +133,7 @@ class TestSVHNNets:
 class TestCUBNets:
     def test_forward(self, ae_cub_config, cub_like_data):
         encoder = CubTextEncoder(
-            ae_cub_config,
+            ae_cub_config.latent_dim,
             max_sentence_length=ae_cub_config.input_dim[0],
             ntokens=ae_cub_config.input_dim[1],
             embed_size=512,

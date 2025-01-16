@@ -27,7 +27,7 @@ class MMVAEPlusConfig(BaseMultiVAEConfig):
             ex :  {'mod1' : {scale : 0.75}}
         K (int) : the number of samples to use in the DreG loss. Default to 1.
         prior_and_posterior_dist (str) : The type of distribution to use for posterior and prior.
-            Possible values ['laplace_with_softmax','normal'].
+            Possible values ['laplace_with_softmax','normal_with_softplus','normal'].
             Default to 'laplace_with_softmax' the posterior distribution that is used in
             the original paper.
         learn_shared_prior (bool) : If True, the mean and variance of the shared latent space prior are optimized during the
@@ -40,14 +40,16 @@ class MMVAEPlusConfig(BaseMultiVAEConfig):
             Must be provided.
         reconstruction_option (Literal['single_prior','joint_prior']) : Specifies how to sample the modality specific
             variable when reconstructing/ translating modalities. Default to 'joint_prior' used in the article.
+        loss (Literal['dreg_looser','iwae_looser']) : Default to 'dreg_looser'.
     """
 
     K: int = 10
-    prior_and_posterior_dist: Literal["laplace_with_softmax", "normal"] = (
-        "laplace_with_softmax"
-    )
+    prior_and_posterior_dist: Literal[
+        "laplace_with_softmax", "normal_with_softplus", "normal"
+    ] = "laplace_with_softmax"
     learn_shared_prior: bool = False
     learn_modality_prior: bool = True
     beta: float = 1.0
     modalities_specific_dim: int = None
     reconstruction_option: Literal["single_prior", "joint_prior"] = "joint_prior"
+    loss: Literal["iwae_looser", "dreg_looser"] = "dreg_looser"
