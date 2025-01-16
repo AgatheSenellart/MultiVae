@@ -208,7 +208,7 @@ class BaseTrainer:
             dataset=train_dataset,
             batch_size=self.training_config.per_device_train_batch_size,
             num_workers=self.training_config.train_dataloader_num_workers,
-            shuffle=True,
+            shuffle=(train_sampler is None),
             sampler=train_sampler,
             drop_last=self.training_config.drop_last,
         )

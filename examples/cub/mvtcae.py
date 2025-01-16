@@ -4,15 +4,12 @@ from torch.utils.data import random_split
 
 from multivae.data.datasets.cub import CUB
 from multivae.models import MVTCAE, MVTCAEConfig
-from multivae.models.nn.cub import CubTextDecoderMLP, CubTextEncoder
-from multivae.models.nn.default_architectures import (
-    BaseDecoder,
-    BaseEncoder,
-    ModelOutput,
-)
-from multivae.models.nn.mmnist import (
-    Decoder_ResNet_AE_MMNIST,
-    Encoder_ResNet_VAE_MMNIST,
+
+from multivae.models.nn.cub import (
+   CUB_Resnet_Encoder,
+   CUB_Resnet_Decoder,
+   CubTextDecoderMLP, 
+   CubTextEncoder
 )
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 from multivae.trainers.base.callbacks import (
@@ -27,7 +24,7 @@ from multivae.trainers.base.callbacks import (
 data_path = '/scratch/asenella/data'
 
 train_data = CUB(
-    data_path, "train", captions_per_image=10, im_size=(28, 28), output_type='tokens'
+    data_path, "train", captions_per_image=10, im_size=(64, 64), output_type='tokens'
 )
 eval_data = CUB(data_path, "eval", captions_per_image=10, im_size=(28, 28), output_type='tokens')
 
@@ -36,18 +33,20 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model_config = MVTCAEConfig(
     n_modalities=2,
     input_dims={
-        "image": (3, 28, 28),
+        "image": (3, 64, 64),
         "text": (train_data.max_words_in_caption, train_data.vocab_size),
     },
     latent_dim=16,
     decoders_dist={"image": "laplace", "text": "categorical"},
     beta=2.5,
-    alpha=5.0 / 6.0,
+    alpha=0.9,
+    uses_likelihood_rescaling=True,
+    rescale_factors=dict(image = 32/(3*64*64), # Number of words in caption / number of pixels in the image
+                         text = 1.0), 
 )
 
 encoders = {
-    "image": Encoder_ResNet_VAE_MMNIST(
-        BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3, 28, 28))
+    "image": CUB_Resnet_Encoder(latent_dim=model_config.latent_dim
     ).to(device),
     "text": CubTextEncoder(
         latent_dim=model_config.latent_dim,
@@ -62,9 +61,9 @@ encoders = {
 }
 
 decoders = {
-    "image": Decoder_ResNet_AE_MMNIST(
-        BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3, 28, 28))
+    "image": CUB_Resnet_Decoder(latent_dim=model_config.latent_dim
     ).to(device),
+    
     "text": CubTextDecoderMLP(
         BaseAEConfig(
             latent_dim=model_config.latent_dim,
