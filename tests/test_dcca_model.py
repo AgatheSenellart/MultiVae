@@ -151,7 +151,7 @@ class TestJNFDcca:
             embedding_dcca_dim=2,
             nb_epochs_dcca=2,
             warmup=2,
-            apply_rescaling_dcca = rescale,
+            apply_rescaling_dcca=rescale,
         )
 
         return model_config

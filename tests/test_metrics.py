@@ -34,14 +34,17 @@ def dataset():
         {"mnist": torch.randn(30, 1, 28, 28), "svhn": torch.randn(30, 3, 32, 32)},
         labels=torch.ones(30),
     )
-    
+
+
 class test_dataset_2(MultimodalBaseDataset):
-    """ Dataset to test the transform for plotting function"""
-    def __init__(self, data, labels = None):
+    """Dataset to test the transform for plotting function"""
+
+    def __init__(self, data, labels=None):
         super().__init__(data, labels)
-    
+
     def transform_for_plotting(self, tensor, modality):
         return tensor.flatten()
+
 
 @pytest.fixture
 def dataset2():
@@ -332,7 +335,6 @@ from multivae.models.base import ModelOutput
 
 class Test_Visualization:
     def test_saving_samples(self, jmvae_model, dataset, dataset2):
-        
         # Test that the generation are sampled and saved in the right place
         tmpdir = tempfile.mkdtemp()
         module = Visualization(model=jmvae_model, output=tmpdir, test_dataset=dataset)
@@ -344,23 +346,25 @@ class Test_Visualization:
 
         output_cond = module.conditional_samples_subset(["mnist"])
         assert isinstance(output_cond, Image.Image)
-        
+
         # Test that the transform_for_plotting function is used
         tmpdir = tempfile.mkdtemp()
         module2 = Visualization(model=jmvae_model, output=tmpdir, test_dataset=dataset2)
 
         output2 = module2.eval()
-        assert output2.unconditional_generation.size != output.unconditional_generation.size
-        
+        assert (
+            output2.unconditional_generation.size
+            != output.unconditional_generation.size
+        )
+
         # Test that splitting the dataset with random_split doesn't cause an issue
         from torch.utils.data import random_split
-        data1, data2 = random_split(dataset2, [0.5,0.5])
+
+        data1, data2 = random_split(dataset2, [0.5, 0.5])
         module3 = Visualization(model=jmvae_model, output=tmpdir, test_dataset=data1)
 
         output3 = module3.eval()
         assert isinstance(output3, ModelOutput)
-
-        
 
 
 from multivae.metrics import Clustering, ClusteringConfig

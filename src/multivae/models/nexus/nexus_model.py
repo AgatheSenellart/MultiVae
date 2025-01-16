@@ -97,7 +97,7 @@ class Nexus(BaseMultiVAE):
         self.beta = model_config.top_beta
         self.aggregator_function = model_config.aggregator
         self.warmup = model_config.warmup
-        self.start_keep_best_epoch = model_config.warmup+1
+        self.start_keep_best_epoch = model_config.warmup + 1
         self.adapt_top_decoder_variance = self.set_top_decoder_variance(model_config)
 
     def set_top_decoder_variance(self, config):
@@ -247,7 +247,6 @@ class Nexus(BaseMultiVAE):
             self.joint_encoder = joint_encoder
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs):
-
         epoch = kwargs.pop("epoch", 1)
         annealing = min(epoch / self.warmup, 1.0)
 
@@ -330,10 +329,15 @@ class Nexus(BaseMultiVAE):
 
         total_loss = joint_elbo + first_level_elbos
 
-        return ModelOutput(loss=total_loss.mean(0), loss_sum = total_loss.sum(),
-                           metrics={'annealing' : annealing,
-                                    'joint_elbo' : joint_elbo.mean(0),
-                                    'joint_KLD' : joint_KLD.mean(0)})
+        return ModelOutput(
+            loss=total_loss.mean(0),
+            loss_sum=total_loss.sum(),
+            metrics={
+                "annealing": annealing,
+                "joint_elbo": joint_elbo.mean(0),
+                "joint_KLD": joint_KLD.mean(0),
+            },
+        )
 
     def rsample(self, encoder_output: ModelOutput, N=1, flatten=False):
         mu = encoder_output.embedding
@@ -349,14 +353,11 @@ class Nexus(BaseMultiVAE):
     def aggregate_during_training(
         self, inputs: MultimodalBaseDataset, modalities_msg: dict
     ):
-
         "Aggregate the modalities during training. It applies the forced perceptual dropout if the dataset is not already incomplete."
 
         if self.aggregator_function == "mean":
-
             # With an already incomplete dataset, we don't apply dropout
             if hasattr(inputs, "masks"):
-
                 normalization_per_sample = torch.stack(
                     [inputs.masks[m] for m in inputs.masks], dim=0
                 ).sum(0)
@@ -380,7 +381,6 @@ class Nexus(BaseMultiVAE):
 
                     bernoulli_drop = dist.Bernoulli(self.dropout).sample().item()
                     if bernoulli_drop == 1:
-
                         subset_size = np.random.randint(1, self.n_modalities)
 
                         msgs = msgs[torch.randperm(self.n_modalities)]

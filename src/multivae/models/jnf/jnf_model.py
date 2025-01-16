@@ -4,12 +4,12 @@ from typing import Dict, Union
 import numpy as np
 import torch
 import torch.distributions as dist
+import torch.nn.functional as F
 from pythae.models.base.base_utils import ModelOutput
 from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
 from pythae.models.normalizing_flows.base import BaseNF
 from pythae.models.normalizing_flows.maf import MAF, MAFConfig
 from torch.nn import ModuleDict
-import torch.nn.functional as F
 
 from ...data.datasets.base import MultimodalBaseDataset
 from ..joint_models import BaseJointModel
@@ -135,10 +135,8 @@ class JNF(BaseJointModel):
                 # recon_loss=recon_loss / len_batch,
                 # KLD=KLD / len_batch,
                 loss=(recon_loss + KLD) / len_batch,
-                loss_sum=recon_loss+KLD,
-                metrics=dict(
-                    kld_prior=KLD, recon_loss=recon_loss / len_batch, ljm=0
-                ),
+                loss_sum=recon_loss + KLD,
+                metrics=dict(kld_prior=KLD, recon_loss=recon_loss / len_batch, ljm=0),
             )
 
         else:
@@ -146,13 +144,12 @@ class JNF(BaseJointModel):
             ljm = self.compute_ljm(inputs, z_joint)
 
             return ModelOutput(
-
-                loss=ljm  / len_batch,
-                loss_sum = ljm,
+                loss=ljm / len_batch,
+                loss_sum=ljm,
                 metrics=dict(
                     kld_prior=KLD,
                     recon_loss=recon_loss / len_batch,
-                    ljm=ljm / len_batch
+                    ljm=ljm / len_batch,
                 ),
             )
 
@@ -313,11 +310,11 @@ class JNF(BaseJointModel):
         """
         with torch.set_grad_enabled(grad):
             lnqzs = 0
-            
+
             z = z_.detach().clone().requires_grad_(grad)
-            
+
             if divide_prior:
-                lnqzs = lnqzs +  (0.5 * (torch.pow(z, 2) + np.log(2 * np.pi))).sum(dim=1)
+                lnqzs = lnqzs + (0.5 * (torch.pow(z, 2) + np.log(2 * np.pi))).sum(dim=1)
             for m in subset:
                 # Compute lnqz
                 flow_output = self.flows[m](z)
@@ -336,7 +333,9 @@ class JNF(BaseJointModel):
                         + torch.pow(z0 - mu, 2) / torch.exp(log_var)
                     )
                 ).sum(dim=1)
-                lnqzs = lnqzs + log_q_z0 + flow_output.log_abs_det_jac  # n_data_points x 1
+                lnqzs = (
+                    lnqzs + log_q_z0 + flow_output.log_abs_det_jac
+                )  # n_data_points x 1
             if grad:
                 g = torch.autograd.grad(lnqzs.sum(), z)[0]
                 return lnqzs, g

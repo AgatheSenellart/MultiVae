@@ -29,7 +29,7 @@ class Visualization(Evaluator):
             Optional.
         sampler (BaseSampler) : The sampler to use for joint generation. Optional. If None is
             provided, the sampler is used.
-            
+
     .. code-block::
 
             >>> from multivae.metrics.visualization import Visualization, VisualizationConfig
@@ -42,20 +42,20 @@ class Visualization(Evaluator):
             ...                     )
 
             >>> vis_module = Visualization(
-            ...                    model, 
+            ...                    model,
             ...                    test_dataset=test_set,
             ...                    output='./metrics',
             ...                    eval_config=vis_config)
-            
+
             # Compute conditional generations
             >>> generations = vis_module.conditional_samples_subset(['name_of_conditioning_modality1'])
 
             # Compute unconditional generations
             >>> generations = vis_module.unconditional_samples()
-            
-            
-    
-    
+
+
+
+
     """
 
     def __init__(
@@ -80,10 +80,12 @@ class Visualization(Evaluator):
 
         samples = set_inputs_to_device(samples, device=device)
         recon = self.model.decode(samples)
-        
+
         if hasattr(self.test_dataset, "transform_for_plotting"):
-            recon = {m : self.test_dataset.transform_for_plotting(recon[m], m) for m in recon}
-        
+            recon = {
+                m: self.test_dataset.transform_for_plotting(recon[m], m) for m in recon
+            }
+
         recon, shape = adapt_shape(recon)
 
         recon_image = torch.cat(list(recon.values()))
@@ -112,7 +114,9 @@ class Visualization(Evaluator):
         return recon_image
 
     def conditional_samples_subset(self, subset, gen_mod="all"):
-        dataloader = DataLoader(self.test_dataset, batch_size=self.n_data_cond, shuffle=True)
+        dataloader = DataLoader(
+            self.test_dataset, batch_size=self.n_data_cond, shuffle=True
+        )
         data = next(iter(dataloader))
         # set inputs to device
         # data = set_inputs_to_device(data, self.device)
@@ -125,10 +129,19 @@ class Visualization(Evaluator):
             flatten=True,
             ignore_incomplete=True,
         )
-        
+
         if hasattr(self.test_dataset, "transform_for_plotting"):
-            recon = {m : self.test_dataset.transform_for_plotting(recon[m], m) for m in recon}
-            recon.update({f"original_{m}": self.test_dataset.transform_for_plotting(data.data[m],m) for m in subset})
+            recon = {
+                m: self.test_dataset.transform_for_plotting(recon[m], m) for m in recon
+            }
+            recon.update(
+                {
+                    f"original_{m}": self.test_dataset.transform_for_plotting(
+                        data.data[m], m
+                    )
+                    for m in subset
+                }
+            )
         else:
             recon.update({f"original_{m}": data.data[m] for m in subset})
 
@@ -166,7 +179,6 @@ class Visualization(Evaluator):
         return recon_image
 
     def eval(self):
-        
         image = self.unconditional_samples()
 
         return ModelOutput(unconditional_generation=image)

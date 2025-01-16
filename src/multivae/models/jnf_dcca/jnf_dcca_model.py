@@ -109,7 +109,9 @@ class JNFDcca(BaseJointModel):
 
         self.DCCA_module = DCCA(self.dcca_config, dcca_networks)
         self.dcca_networks = self.DCCA_module.networks
-        self.dcca_rescaler = MinMaxScaler() if model_config.apply_rescaling_dcca else None
+        self.dcca_rescaler = (
+            MinMaxScaler() if model_config.apply_rescaling_dcca else None
+        )
         self.beta = model_config.beta
 
         if flows is None:
@@ -209,7 +211,7 @@ class JNFDcca(BaseJointModel):
                 recon_loss=recon_loss / len_batch,
                 KLD=KLD / len_batch,
                 loss=(recon_loss + KLD) / len_batch,
-                loss_sum=recon_loss+KLD,
+                loss_sum=recon_loss + KLD,
                 metrics=dict(kld_prior=KLD, recon_loss=recon_loss / len_batch, ljm=0),
             )
 
@@ -240,7 +242,7 @@ class JNFDcca(BaseJointModel):
                 recon_loss=recon_loss / len_batch,
                 KLD=KLD / len_batch,
                 loss=ljm / len_batch,
-                loss_sum = ljm,
+                loss_sum=ljm,
                 ljm=ljm / len_batch,
                 metrics=dict(
                     kld_prior=KLD,

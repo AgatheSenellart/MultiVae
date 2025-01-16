@@ -39,5 +39,5 @@ __all__ = [
     "MMVAEPlusConfig",
     "MMVAEPlus",
     "Nexus",
-    "NexusConfig"
+    "NexusConfig",
 ]

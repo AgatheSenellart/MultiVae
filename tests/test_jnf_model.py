@@ -69,7 +69,7 @@ class Test:
             n_modalities=3,
             latent_dim=5,
             input_dims=dict(mod1=(2,), mod2=(3,), mod3=(4,)),
-            use_likelihood_rescaling=use_likelihood_rescaling
+            use_likelihood_rescaling=use_likelihood_rescaling,
         )
 
         return model_config
@@ -97,7 +97,7 @@ class Test:
         assert loss.requires_grad
 
         assert output.metrics["ljm"] == 0
-        
+
         # test model forward after warmup
         output = model(dataset, epoch=model_config.warmup + 2)
         loss = output.loss
@@ -106,7 +106,6 @@ class Test:
         assert loss.requires_grad
 
         assert output.metrics["ljm"] != 0
-        
 
         # Try encoding and prediction
 

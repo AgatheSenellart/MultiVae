@@ -292,14 +292,14 @@ class BaseMultiVAE(BaseModel):
             N (int) : Number of samples to generate. Default to 1.
             flatten (int) : If N>1 and flatten is False, the returned samples have dimensions (N,len(inputs),...).
                 Otherwise, the returned samples have dimensions (len(inputs)*N, ...)
-        
-        Returns: 
-            ~pythae.models.base.base_utils.ModelOutput 
-            
+
+        Returns:
+            ~pythae.models.base.base_utils.ModelOutput
+
         ..codeblock :
             >>> predictions = model.predict(test_set, cond_mod = ['modality1', 'modality2'], gen_mod='modality3')
             >>> predictions.modality3
-            
+
 
         """
         self.eval()
@@ -676,7 +676,6 @@ class BaseMultiVAE(BaseModel):
         return cnll
 
 
-
 def cross_entropy_(_input, _target, eps=1e-6):
     """k-Class Cross Entropy (Log Softmax + Log Loss)
 
@@ -685,37 +684,35 @@ def cross_entropy_(_input, _target, eps=1e-6):
     @param eps: error to add (default: 1e-6)
     @return loss: torch.Tensor same shape as input
     """
-    
+
     _log_input = F.log_softmax(_input + eps, dim=-1)
     loss = _target * _log_input
     return loss
 
+
 def cross_entropy(input, target, eps=1e-6):
     """
-    
+
     Wrapper for the cross_entropy loss handling different inputs / targets types.
-    
+
     """
     if isinstance(input, dict):
-        
-        if 'one_hot' in input:
-            _input = input['one_hot']
-        else :
+        if "one_hot" in input:
+            _input = input["one_hot"]
+        else:
             raise NotImplementedError()
-        
+
     else:
         _input = input
-    
+
     if isinstance(target, dict):
-        
-        if 'one_hot' in target :
-            _target = target['one_hot']
-        
-        elif 'tokens' in target :
-        
+        if "one_hot" in target:
+            _target = target["one_hot"]
+
+        elif "tokens" in target:
             # converts to tokens proba instead of class id for text
-            _target = torch.nn.functional.one_hot(target['tokens'],_input.shape[-1])
+            _target = torch.nn.functional.one_hot(target["tokens"], _input.shape[-1])
     else:
         _target = target
-        
-    return cross_entropy_(_input, _target,eps)
+
+    return cross_entropy_(_input, _target, eps)

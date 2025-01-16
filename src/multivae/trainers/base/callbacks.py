@@ -20,8 +20,6 @@ logger = logging.getLogger(__name__)
 def wandb_is_available():
     return importlib.util.find_spec("wandb") is not None
 
-    
-
 
 def mlflow_is_available():
     return importlib.util.find_spec("mlflow") is not None
@@ -30,12 +28,12 @@ def mlflow_is_available():
 def comet_is_available():
     return importlib.util.find_spec("comet_ml") is not None
 
+
 def load_wandb_path_from_folder(path):
-    
-    with open(os.path.join(path,"wandb_info.json")) as fp :
+    with open(os.path.join(path, "wandb_info.json")) as fp:
         wandb_info = json.load(fp)
-        
-        return wandb_info['path']
+
+        return wandb_info["path"]
 
 
 def rename_logs(logs):

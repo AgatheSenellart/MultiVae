@@ -1,4 +1,5 @@
 import logging
+import math
 from typing import Union
 
 import numpy as np
@@ -18,8 +19,6 @@ from multivae.models.nn.default_architectures import (
 
 from ..base import BaseMultiVAE
 from .mmvaePlus_config import MMVAEPlusConfig
-
-import math
 
 logger = logging.getLogger(__name__)
 console = logging.StreamHandler()
@@ -113,7 +112,7 @@ class MMVAEPlus(BaseMultiVAE):
 
         self.model_name = "MMVAEPlus"
         self.objective = model_config.loss
-        
+
     def log_var_to_std(self, log_var):
         """
         For latent distributions parameters, transform the log covariance to the
@@ -169,7 +168,9 @@ class MMVAEPlus(BaseMultiVAE):
 
             # The DREG loss uses detached parameters in the loss computation afterwards.
             qu_x_detach = self.post_dist(mu.clone().detach(), sigma.clone().detach())
-            qw_x_detach = self.post_dist(mu_style.clone().detach(), sigma_style.clone().detach())
+            qw_x_detach = self.post_dist(
+                mu_style.clone().detach(), sigma_style.clone().detach()
+            )
 
             # Then compute all the cross-modal reconstructions
             reconstructions[cond_mod] = {}
@@ -215,19 +216,18 @@ class MMVAEPlus(BaseMultiVAE):
 
         # Compute DREG loss using detached posteriors as in MMVAE model
         if compute_loss:
-            
-            if self.objective == 'dreg_looser':
+            if self.objective == "dreg_looser":
                 loss_output = self.dreg_looser(
                     qu_xs_detach, qw_xs_detach, embeddings, reconstructions, inputs
                 )
                 # loss_output = self.dreg_looser(
                 #     qu_xs, qw_xs, embeddings, reconstructions, inputs
                 # )
-            elif self.objective == 'iwae_looser':
+            elif self.objective == "iwae_looser":
                 loss_output = self.iwae_looser(
                     qu_xs, qw_xs, embeddings, reconstructions, inputs
                 )
-            else :
+            else:
                 raise NotImplemented()
         else:
             loss_output = ModelOutput()
@@ -247,7 +247,7 @@ class MMVAEPlus(BaseMultiVAE):
             tuple: mean, std
         """
         mean = self.mean_priors["shared"]
-        log_var = self.logvars_priors['shared']
+        log_var = self.logvars_priors["shared"]
         std = self.log_var_to_std(log_var)
         return mean, std
 
@@ -337,13 +337,13 @@ class MMVAEPlus(BaseMultiVAE):
 
         # Note that in the original implementation, loss is summed over the batch (and not averaged)
         # so the learning_rate might need to be adapted
-        return ModelOutput(loss=-lws.mean(0).sum(), loss_sum = -lws.sum(), metrics=dict())
-    
+        return ModelOutput(loss=-lws.mean(0).sum(), loss_sum=-lws.sum(), metrics=dict())
+
     def iwae_looser(self, qu_xs, qw_xs, embeddings, reconstructions, inputs):
         """
-        The IWAE loss but with the sum outside of the loss for increased stability. 
+        The IWAE loss but with the sum outside of the loss for increased stability.
         (following Shi et al 2019)
-        
+
         """
 
         if hasattr(inputs, "masks"):
@@ -414,11 +414,11 @@ class MMVAEPlus(BaseMultiVAE):
             lws.append(lw)
             zss.append(z)
 
-        lws = torch.stack(lws)  # (n_modalities, K, n_batch)    
-        
-        lws = torch.logsumexp(lws, dim=1) - math.log(lws.size(1))    
+        lws = torch.stack(lws)  # (n_modalities, K, n_batch)
 
-        return ModelOutput(loss=-lws.mean(0).sum(), loss_sum = -lws.sum(), metrics=dict())
+        lws = torch.logsumexp(lws, dim=1) - math.log(lws.size(1))
+
+        return ModelOutput(loss=-lws.mean(0).sum(), loss_sum=-lws.sum(), metrics=dict())
 
     def encode(
         self,

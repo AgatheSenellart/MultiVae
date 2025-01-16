@@ -152,7 +152,7 @@ class BaseTrainer:
             self.prepare_training()
         else:
             self.resume_training(checkpoint)
-            
+
     def checktrainer(self, model):
         if hasattr(model, "reset_optimizer_epochs"):
             if len(model.reset_optimizer_epochs) != 0:
@@ -161,7 +161,6 @@ class BaseTrainer:
                     "that is not empty. That means that it requires multistage training and therefore you",
                     "should use the ~multivae.trainers.MultistageTrainer instead of the BaseTrainer.",
                 )
-
 
     @property
     def is_main_process(self):
@@ -498,7 +497,7 @@ class BaseTrainer:
             else:
                 epoch_eval_loss = self.best_eval_loss
                 self._schedulers_step(epoch_train_loss)
-            if epoch <= self.start_keep_best_epoch :
+            if epoch <= self.start_keep_best_epoch:
                 # save the model, don't keep track of the best loss
                 best_model = deepcopy(self.model)
                 self._best_model = best_model
@@ -521,8 +520,6 @@ class BaseTrainer:
                 best_model = deepcopy(self.model)
                 self._best_model = best_model
                 logger.info("New best model on train saved!")
-
-                
 
             # For BaseMultiVae models, compute reconstruction
             if (
@@ -617,7 +614,11 @@ class BaseTrainer:
                     uses_ddp=self.distributed,
                 )
 
-            loss = model_output.loss_sum if hasattr(model_output, "loss_sum") else model_output.loss
+            loss = (
+                model_output.loss_sum
+                if hasattr(model_output, "loss_sum")
+                else model_output.loss
+            )
             epoch_loss += loss.item()
             update_dict(epoch_metrics, model_output.metrics)
 
@@ -629,9 +630,9 @@ class BaseTrainer:
         epoch_metrics = {
             k: epoch_metrics[k] / len(self.eval_loader) for k in epoch_metrics
         }
-        
+
         epoch_loss = epoch_loss / len(self.eval_loader.dataset)
-        
+
         return epoch_loss, epoch_metrics
 
     def train_step(self, epoch: int):
@@ -668,8 +669,12 @@ class BaseTrainer:
             )
 
             self._optimizers_step(model_output)
-            loss = model_output.loss_sum if hasattr(model_output,"loss_sum") else model_output.loss
-            epoch_loss += loss.item() 
+            loss = (
+                model_output.loss_sum
+                if hasattr(model_output, "loss_sum")
+                else model_output.loss
+            )
+            epoch_loss += loss.item()
             update_dict(epoch_model_metrics, model_output.metrics)
 
             if epoch_loss != epoch_loss:
@@ -689,7 +694,7 @@ class BaseTrainer:
             k: epoch_model_metrics[k] / len(self.train_loader)
             for k in epoch_model_metrics
         }
-        
+
         epoch_loss = epoch_loss / len(self.train_dataset)
 
         return epoch_loss, epoch_model_metrics
@@ -779,7 +784,7 @@ class BaseTrainer:
             inputs = set_inputs_to_device(inputs, self.device)
 
         all_recons = dict()
-        
+
         # Cross modal reconstructions
         for mod in inputs.data:
             recon = model.predict(
@@ -817,31 +822,31 @@ class BaseTrainer:
             recon_image = Image.fromarray(ndarr)
 
             all_recons[mod] = recon_image
-            
-         # joint reconstruction
+
+        # joint reconstruction
         recon = model.predict(
-                inputs, "all", "all", N=8, flatten=True, ignore_incomplete=True
-            )
+            inputs, "all", "all", N=8, flatten=True, ignore_incomplete=True
+        )
         if hasattr(self.eval_dataset, "transform_for_plotting"):
             recon = {
-                    mod_name: self.eval_dataset.transform_for_plotting(
-                        recon[mod_name], modality=mod_name
-                    )
-                    for mod_name in recon
-                }
-            recon.update({
+                mod_name: self.eval_dataset.transform_for_plotting(
+                    recon[mod_name], modality=mod_name
+                )
+                for mod_name in recon
+            }
+            recon.update(
+                {
                     f"true_data_{mod_name}": self.eval_dataset.transform_for_plotting(
                         inputs.data[mod_name], modality=mod_name
                     )
                     for mod_name in inputs.data
-                })
+                }
+            )
 
         else:
-            recon.update({
-                f"true_data_{mod_name}": 
-                    inputs.data[mod_name]
-                for mod_name in recon
-            })
+            recon.update(
+                {f"true_data_{mod_name}": inputs.data[mod_name] for mod_name in recon}
+            )
 
         recon, shape = adapt_shape(recon)
         recon_image = [recon[f"true_data_{m}"] for m in inputs.data] + [
@@ -863,6 +868,5 @@ class BaseTrainer:
         recon_image = Image.fromarray(ndarr)
 
         all_recons["all"] = recon_image
-
 
         return all_recons

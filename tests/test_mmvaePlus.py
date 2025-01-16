@@ -41,7 +41,7 @@ class Test_model:
 
         return dataset
 
-    @pytest.fixture(params = ['dreg_looser', 'iwae_looser'])
+    @pytest.fixture(params=["dreg_looser", "iwae_looser"])
     def archi_and_config(self, beta, request):
         config1 = BaseAEConfig(input_dim=(2,), latent_dim=5, style_dim=1)
         config2 = BaseAEConfig(input_dim=(3,), latent_dim=5, style_dim=1)
@@ -59,8 +59,7 @@ class Test_model:
             input_dims=dict(mod1=(2,), mod2=(3,), mod3=(4,), mod4=(4,)),
             beta=beta,
             modalities_specific_dim=1,
-            loss = request.param
-            
+            loss=request.param,
         )
         decoders = dict(
             mod1=Decoder_AE_MLP(BaseAEConfig(input_dim=(2,), latent_dim=6)),

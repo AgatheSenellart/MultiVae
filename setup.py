@@ -39,7 +39,7 @@ setup(
         "pandas",
         "nltk",
         "torchmetrics",
-        "matplotlib"
+        "matplotlib",
     ],
     python_requires=">=3.8",
 )

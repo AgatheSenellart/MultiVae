@@ -8,7 +8,6 @@ from pythae.models.nn.benchmarks.mnist.convnets import (
     Decoder_Conv_AE_MNIST,
     Encoder_Conv_AE_MNIST,
 )
-from multivae.models.nn.default_architectures import Encoder_VAE_MLP
 from pythae.models.nn.default_architectures import Encoder_AE_MLP
 from torch import nn
 
@@ -16,6 +15,7 @@ from multivae.models.base import BaseMultiVAE, BaseMultiVAEConfig
 from multivae.models.joint_models import BaseJointModel
 from multivae.models.nn.default_architectures import (
     Decoder_AE_MLP,
+    Encoder_VAE_MLP,
     MultipleHeadJointEncoder,
 )
 

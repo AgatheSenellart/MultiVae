@@ -1,5 +1,6 @@
-from pydantic.dataclasses import dataclass
 from typing import Literal
+
+from pydantic.dataclasses import dataclass
 
 from ..joint_models import BaseJointModelConfig
 

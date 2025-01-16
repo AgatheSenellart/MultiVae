@@ -276,8 +276,8 @@ class FIDEvaluator(Evaluator):
         """
 
         modalities = [k for k in self.model.encoders if k != gen_mod]
-        
-        for n in range(1, len(modalities)+1):
+
+        for n in range(1, len(modalities) + 1):
             subsets_of_size_n = combinations(
                 modalities,
                 n,
@@ -287,6 +287,6 @@ class FIDEvaluator(Evaluator):
                 s = list(s)
                 fd = self.compute_fid_from_conditional_generation(s, gen_mod)
                 fdn.append(fd)
-                self.metrics[f'Mean FD from {n} modalities to {gen_mod}'] = np.mean(fdn)
+                self.metrics[f"Mean FD from {n} modalities to {gen_mod}"] = np.mean(fdn)
 
         return ModelOutput(**self.metrics)

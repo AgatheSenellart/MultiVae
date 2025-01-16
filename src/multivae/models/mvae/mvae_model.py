@@ -66,7 +66,6 @@ class MVAE(BaseMultiVAE):
 
         return joint_mu, lnV
 
-
     def compute_mu_log_var_subset(self, inputs: MultimodalBaseDataset, subset: list):
         """Computes the parameters of the posterior when conditioning on
         the modalities contained in subset."""
@@ -77,9 +76,9 @@ class MVAE(BaseMultiVAE):
                 output_mod = self.encoders[mod](inputs.data[mod])
                 mu_mod, log_var_mod = output_mod.embedding, output_mod.log_covariance
                 if hasattr(inputs, "masks"):
-                    log_var_mod[(1 - inputs.masks[mod].int()).bool().flatten()] = (
-                        torch.inf
-                    )
+                    log_var_mod[
+                        (1 - inputs.masks[mod].int()).bool().flatten()
+                    ] = torch.inf
 
                 mus_sub.append(mu_mod)
                 log_vars_sub.append(log_var_mod)
@@ -113,7 +112,12 @@ class MVAE(BaseMultiVAE):
         KLD = -0.5 * torch.sum(1 + sub_logvar - sub_mu.pow(2) - sub_logvar.exp())
         elbo_sub += KLD * beta
 
-        return elbo_sub / len(sub_mu), KLD / len(sub_mu), recon / len(sub_mu), len(sub_mu)
+        return (
+            elbo_sub / len(sub_mu),
+            KLD / len(sub_mu),
+            recon / len(sub_mu),
+            len(sub_mu),
+        )
 
     def _filter_inputs_with_masks(
         self, inputs: IncompleteDataset, subset: Union[list, tuple]
@@ -183,9 +187,12 @@ class MVAE(BaseMultiVAE):
                 not_all_samples_missing = True
 
             if not_all_samples_missing:
-                subset_elbo, subset_kld, subset_recon, len_batch = self._compute_elbo_subset(
-                    filtered_inputs, s, beta
-                )
+                (
+                    subset_elbo,
+                    subset_kld,
+                    subset_recon,
+                    len_batch,
+                ) = self._compute_elbo_subset(filtered_inputs, s, beta)
             else:
                 subset_elbo = 0
             total_loss += subset_elbo
@@ -194,7 +201,9 @@ class MVAE(BaseMultiVAE):
             metrics["kld" + "_".join(sorted(s))] = subset_kld
             metrics["recon" + "_".join(sorted(s))] = subset_recon
 
-        return ModelOutput(loss=total_loss, loss_sum = total_loss*len_batch, metrics=metrics)
+        return ModelOutput(
+            loss=total_loss, loss_sum=total_loss * len_batch, metrics=metrics
+        )
 
     def encode(
         self,

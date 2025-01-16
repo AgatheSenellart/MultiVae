@@ -46,7 +46,7 @@ class BaseTrainerConfig(BaseConfig):
         rank (int): The rank of the process for distributed training. Default: -1
         dist_backend (str): The distributed backend to use. Default: 'nccl'
         master_addr (str): The master address for distributed training. Default: 'localhost'
-        master_port (str): The master port for distributed training. Default: '12345'  
+        master_port (str): The master port for distributed training. Default: '12345'
     """
 
     output_dir: str = None

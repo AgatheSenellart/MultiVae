@@ -45,11 +45,11 @@ class MMVAEPlusConfig(BaseMultiVAEConfig):
 
     K: int = 10
     prior_and_posterior_dist: Literal[
-        "laplace_with_softmax", "normal_with_softplus","normal"
+        "laplace_with_softmax", "normal_with_softplus", "normal"
     ] = "laplace_with_softmax"
     learn_shared_prior: bool = False
     learn_modality_prior: bool = True
     beta: float = 1.0
     modalities_specific_dim: int = None
     reconstruction_option: Literal["single_prior", "joint_prior"] = "joint_prior"
-    loss : Literal['iwae_looser', 'dreg_looser'] = 'dreg_looser'
+    loss: Literal["iwae_looser", "dreg_looser"] = "dreg_looser"

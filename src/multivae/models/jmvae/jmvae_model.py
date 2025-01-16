@@ -196,13 +196,13 @@ class JMVAE(BaseJointModel):
             annealing_factor = epoch / self.warmup
         elbo = (recon_loss + KLD) / len_batch
         loss_sum = recon_loss + annealing_factor * reg_loss
-        loss = loss_sum/len_batch
+        loss = loss_sum / len_batch
 
         metrics = dict(
             loss_no_ponderation=reg_loss + recon_loss, beta=annealing_factor, elbo=elbo
         )
 
-        output = ModelOutput(loss=loss, loss_sum = loss_sum, metrics=metrics)
+        output = ModelOutput(loss=loss, loss_sum=loss_sum, metrics=metrics)
 
         return output
 

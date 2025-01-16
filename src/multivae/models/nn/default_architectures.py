@@ -6,11 +6,12 @@ import torch
 from pythae.models.base.base_model import BaseDecoder
 from pythae.models.base.base_utils import ModelOutput
 from pythae.models.nn.base_architectures import BaseEncoder
+from pythae.models.nn.default_architectures import Encoder_VAE_MLP
 from torch import nn
 
 from multivae.models.base.base_config import BaseAEConfig
 from multivae.models.nn.base_architectures import BaseJointEncoder
-from pythae.models.nn.default_architectures import Encoder_VAE_MLP
+
 
 class Encoder_VAE_MLP(BaseEncoder):
     def __init__(self, args: dict, n_hidden=1):
@@ -19,25 +20,23 @@ class Encoder_VAE_MLP(BaseEncoder):
         self.latent_dim = args.latent_dim
 
         layers = nn.ModuleList()
-        
+
         layers.append(nn.Sequential(nn.Linear(np.prod(args.input_dim), 512), nn.ReLU()))
         for _ in range(n_hidden):
             layers.append(nn.Sequential(nn.Linear(512, 512), nn.ReLU()))
-
 
         self.layers = layers
         self.depth = len(layers)
 
         self.embedding = nn.Linear(512, self.latent_dim)
         self.log_var = nn.Linear(512, self.latent_dim)
-    
+
     def forward(self, x, output_layer_levels: List[int] = None):
         output = ModelOutput()
 
         max_depth = self.depth
 
         if output_layer_levels is not None:
-
             assert all(
                 self.depth >= levels > 0 or levels == -1
                 for levels in output_layer_levels
@@ -64,9 +63,6 @@ class Encoder_VAE_MLP(BaseEncoder):
                 output["log_covariance"] = self.log_var(out)
 
         return output
-
-
-        
 
 
 class Encoder_VAE_MLP_Style(BaseEncoder):

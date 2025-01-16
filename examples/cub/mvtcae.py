@@ -4,12 +4,11 @@ from torch.utils.data import random_split
 
 from multivae.data.datasets.cub import CUB
 from multivae.models import MVTCAE, MVTCAEConfig
-
 from multivae.models.nn.cub import (
-   CUB_Resnet_Encoder,
-   CUB_Resnet_Decoder,
-   CubTextDecoderMLP, 
-   CubTextEncoder
+    CUB_Resnet_Decoder,
+    CUB_Resnet_Encoder,
+    CubTextDecoderMLP,
+    CubTextEncoder,
 )
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 from multivae.trainers.base.callbacks import (
@@ -21,12 +20,14 @@ from multivae.trainers.base.callbacks import (
 ######################################################
 ### Encoders & Decoders
 
-data_path = '/scratch/asenella/data'
+data_path = "/scratch/asenella/data"
 
 train_data = CUB(
-    data_path, "train", captions_per_image=10, im_size=(64, 64), output_type='tokens'
+    data_path, "train", captions_per_image=10, im_size=(64, 64), output_type="tokens"
 )
-eval_data = CUB(data_path, "eval", captions_per_image=10, im_size=(64, 64), output_type='tokens')
+eval_data = CUB(
+    data_path, "eval", captions_per_image=10, im_size=(64, 64), output_type="tokens"
+)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -39,12 +40,11 @@ model_config = MVTCAEConfig(
     latent_dim=64,
     decoders_dist={"image": "laplace", "text": "categorical"},
     beta=5.0,
-    alpha=0.9
+    alpha=0.9,
 )
 
 encoders = {
-    "image": CUB_Resnet_Encoder(latent_dim=model_config.latent_dim
-    ).to(device),
+    "image": CUB_Resnet_Encoder(latent_dim=model_config.latent_dim).to(device),
     "text": CubTextEncoder(
         latent_dim=model_config.latent_dim,
         max_sentence_length=train_data.max_words_in_caption,
@@ -58,9 +58,7 @@ encoders = {
 }
 
 decoders = {
-    "image": CUB_Resnet_Decoder(latent_dim=model_config.latent_dim
-    ).to(device),
-    
+    "image": CUB_Resnet_Decoder(latent_dim=model_config.latent_dim).to(device),
     "text": CubTextDecoderMLP(
         BaseAEConfig(
             latent_dim=model_config.latent_dim,
@@ -84,13 +82,13 @@ trainer_config = BaseTrainerConfig(
 wandb_cb = WandbCallback()
 wandb_cb.setup(trainer_config, model_config, project_name="test_cub")
 
-callbacks = [TrainingCallback() , wandb_cb]
+callbacks = [TrainingCallback(), wandb_cb]
 
 trainer = BaseTrainer(
     model,
     train_dataset=train_data,
     eval_dataset=eval_data,
     training_config=trainer_config,
-    callbacks=callbacks
+    callbacks=callbacks,
 )
 trainer.train()

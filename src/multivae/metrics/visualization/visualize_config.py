@@ -17,7 +17,7 @@ class VisualizationConfig(EvaluatorConfig):
             (in wandb_info.json)
             at the end of training (if wandb was used) or on the hugging_face webpage of the run.
             Otherwise the user can create a new wandb run and get the path with :
-            .. code-block::  
+            .. code-block::
                 >>> import wandb
                 >>> run = wandb.init(entity = your_entity, project=your_project)
                 >>> wandb_path = run.path
@@ -28,6 +28,7 @@ class VisualizationConfig(EvaluatorConfig):
             conditional generation. Default to 5.
         n_data_cond (int) : The number of datapoints to use for conditional generation. Default to 5
     """
+
     batch_size: int = 20
     n_samples: int = 5
     n_data_cond: int = 5

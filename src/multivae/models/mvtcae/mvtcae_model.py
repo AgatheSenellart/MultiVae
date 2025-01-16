@@ -100,7 +100,9 @@ class MVTCAE(BaseMultiVAE):
         kld_weighted = cvib_weight * kld_losses + vib_weight * joint_kld
         total_loss = rec_weight * loss_rec + self.beta * kld_weighted
 
-        return ModelOutput(loss=total_loss / ndata, loss_sum = total_loss, metrics=results)
+        return ModelOutput(
+            loss=total_loss / ndata, loss_sum=total_loss, metrics=results
+        )
 
     def modality_encode(
         self, inputs: Union[MultimodalBaseDataset, IncompleteDataset], **kwargs
@@ -121,9 +123,9 @@ class MVTCAE(BaseMultiVAE):
             # For unavailable samples, set the log-variance to infty so that they don't contribute to the
             # product of experts
             if hasattr(inputs, "masks"):
-                output.log_covariance[(1 - inputs.masks[m_key].int()).bool()] = (
-                    torch.inf
-                )
+                output.log_covariance[
+                    (1 - inputs.masks[m_key].int()).bool()
+                ] = torch.inf
             encoders_outputs[m_key] = output
 
         return encoders_outputs
