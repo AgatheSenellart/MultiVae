@@ -335,7 +335,9 @@ class MMVAEPlus(BaseMultiVAE):
 
         lws = (grad_wt * lws).sum(0) / n_mods_sample  # mean over modalities
 
-        return ModelOutput(loss=-lws.sum(), loss_sum = -lws.sum(), metrics=dict())
+        # Note that in the original implementation, loss is summed over the batch (and not averaged)
+        # so the learning_rate might need to be adapted
+        return ModelOutput(loss=-lws.mean(0).sum(), loss_sum = -lws.sum(), metrics=dict())
     
     def iwae_looser(self, qu_xs, qw_xs, embeddings, reconstructions, inputs):
         """

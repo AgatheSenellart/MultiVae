@@ -78,7 +78,6 @@ class JNF(BaseJointModel):
             self.alpha = model_config.alpha
         self.beta = model_config.beta
         self.reset_optimizer_epochs = [self.warmup + 1]
-        self.add_recon = model_config.add_reconstruction_terms
 
     def set_flows(self, flows: Dict[str, BaseNF]):
         # check that the keys corresponds with the encoders keys
@@ -117,7 +116,7 @@ class JNF(BaseJointModel):
         joint_output = self.joint_encoder(inputs.data)
         mu, log_var = joint_output.embedding, joint_output.log_covariance
 
-        sigma = self.logits_to_std(log_var)
+        sigma = torch.exp(0.5 * log_var)
         qz_xy = dist.Normal(mu, sigma)
         z_joint = qz_xy.rsample()
 
@@ -151,20 +150,15 @@ class JNF(BaseJointModel):
             else:
                 self._set_torch_no_grad_on_joint_vae()
                 ljm = self.compute_ljm(inputs, z_joint)
-                if self.add_recon:
-                    recon_term = self.compute_unimodal_recon_terms(inputs)
-                else :
-                    recon_term = 0
 
                 return ModelOutput(
 
-                    loss=(ljm + recon_term) / len_batch,
-                    loss_sum = ljm + recon_term,
+                    loss=ljm  / len_batch,
+                    loss_sum = ljm,
                     metrics=dict(
                         kld_prior=KLD,
                         recon_loss=recon_loss / len_batch,
-                        ljm=ljm / len_batch,
-                        recon_term = recon_term/len_batch
+                        ljm=ljm / len_batch
                     ),
                 )
 
@@ -190,7 +184,7 @@ class JNF(BaseJointModel):
             mod_output = self.encoders[mod](inputs.data[mod])
             mu0, log_var0 = mod_output.embedding, mod_output.log_covariance
 
-            sigma0 = self.logits_to_std(log_var0)
+            sigma0 = torch.exp(0.5 * log_var0)
             qz_x0 = dist.Normal(mu0, sigma0)
 
             # Compute -ln q_\phi_mod(z_joint|x_mod)
@@ -199,34 +193,6 @@ class JNF(BaseJointModel):
 
             ljm += -(qz_x0.log_prob(z0).sum(dim=-1) + flow_output.log_abs_det_jac).sum()
         return ljm
-    
-    def compute_unimodal_recon_terms(self, inputs):
-        recon_loss = 0
-        for mod in self.encoders:
-            mod_output = self.encoders[mod](inputs.data[mod])
-            mu0, log_var0 = mod_output.embedding, mod_output.log_covariance
-
-            sigma0 = self.logits_to_std(log_var0)
-            qz_x0 = dist.Normal(mu0, sigma0)
-            z_0 = qz_x0.rsample()
-            flow_output = self.flows[mod].inverse(z_0)
-            z = flow_output.out
-            
-            recon = self.decoders[mod](z).reconstruction
-            recon_loss += (
-                -self.recon_log_probs[mod](recon, inputs.data[mod]) * self.rescale_factors[mod]
-            ).sum()
-        return recon_loss
-    
-    def logits_to_std(self, logits):
-        
-        if self.model_config.logits_to_std == 'standard':
-            return torch.exp(0.5*logits)
-        elif self.model_config.logits_to_std == 'softplus':
-            return F.softplus(logits) + 1e-5
-        else:
-            raise NotImplemented()
-        
 
     def encode(
         self,
@@ -276,7 +242,7 @@ class JNF(BaseJointModel):
                 z = torch.stack([output.embedding] * N) if N > 1 else output.embedding
             else:
                 z = dist.Normal(
-                    output.embedding, self.logits_to_std(output.log_covariance)
+                    output.embedding, torch.exp(0.5 * output.log_covariance)
                 ).rsample(sample_shape)
             if N > 1 and kwargs.pop("flatten", False):
                 N, l, d = z.shape
@@ -305,7 +271,7 @@ class JNF(BaseJointModel):
             sample_shape = [] if N == 1 else [N]
 
             z0 = dist.Normal(
-                output.embedding, self.logits_to_std(output.log_covariance)
+                output.embedding, torch.exp(0.5 * output.log_covariance)
             ).rsample(sample_shape)
             flow_output = self.flows[cond_mod].inverse(
                 z0.reshape(-1, self.latent_dim)
@@ -344,7 +310,7 @@ class JNF(BaseJointModel):
             with torch.no_grad():
                 encoder_output = self.encoders[m](data[m][indices == m])
                 mu, log_var = encoder_output.embedding, encoder_output.log_covariance
-                zs[indices == m] = dist.Normal(mu, self.logits_to_std(log_var)).rsample()
+                zs[indices == m] = dist.Normal(mu, torch.exp(0.5 * log_var)).rsample()
         return zs
 
     def compute_poe_posterior(
@@ -377,8 +343,6 @@ class JNF(BaseJointModel):
                     vae_output.log_covariance,
                     flow_output.out,
                 )
-                sigma = self.logits_to_std(log_var)
-                log_var = 2*torch.log(sigma)
 
                 log_q_z0 = (
                     -0.5

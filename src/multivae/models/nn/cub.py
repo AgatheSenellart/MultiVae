@@ -158,7 +158,7 @@ class CUB_Resnet_Encoder(BaseEncoder):
         self.latent_dim = latent_dim
         
         size = 64
-        s0 = self.s0 = s0
+        self.s0 = s0
         nf = self.nf = nfilter
         nf_max = self.nf_max = nfilter_max
 

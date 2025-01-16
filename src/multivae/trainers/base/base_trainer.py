@@ -608,13 +608,8 @@ class BaseTrainer:
                         dataset_size=len(self.eval_loader.dataset),
                         uses_ddp=self.distributed,
                     )
-                    loss_ = model_output.loss.item()
-                    if loss_ != loss_:
-                        raise RuntimeError()
-            
-            except RuntimeError :
-                
-            
+
+            except RuntimeError:
                 model_output = self.model(
                     inputs,
                     epoch=epoch,

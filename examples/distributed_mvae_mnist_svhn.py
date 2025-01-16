@@ -22,8 +22,9 @@ console = logging.StreamHandler()
 logger.addHandler(console)
 logger.setLevel(logging.INFO)
 
+data_path = '~/scratch/data' # adapt to your data_path
 
-train_data = MnistSvhn(data_path='../data',split="test",download=False)
+train_data = MnistSvhn(data_path=data_path,split="test",download=False) # set download to True to get the dataset
 train_data, eval_data = random_split(
     train_data, [0.8, 0.2], generator=torch.Generator().manual_seed(42)
 )

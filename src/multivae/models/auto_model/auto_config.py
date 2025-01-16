@@ -71,7 +71,6 @@ class AutoConfig(BaseConfig):
             from ..nexus import NexusConfig
 
             model_config = NexusConfig.from_json_file(json_path)
-            
 
         else:
             raise NameError(

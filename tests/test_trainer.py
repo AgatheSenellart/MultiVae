@@ -16,6 +16,8 @@ from multivae.models import JMVAE, TELBO, JMVAEConfig, TELBOConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 from multivae.trainers.base.callbacks import rename_logs
+from PIL import Image
+from torch.utils.data import random_split
 
 PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -45,6 +47,25 @@ def train_dataset():
         ),
         labels=torch.tensor([0, 1]),
     )
+    
+class test_dataset_2(MultimodalBaseDataset):
+    """ Dataset to test the transform for plotting function"""
+    def __init__(self, data, labels = None):
+        super().__init__(data, labels)
+    
+    def transform_for_plotting(self, tensor, modality):
+        return tensor.flatten()
+
+@pytest.fixture
+def dataset2():
+    return test_dataset_2(
+        data=dict(
+            mod1=torch.randn((2, 1, 28, 28)),
+            mod2=torch.randn((2, 1, 28, 28)),
+        ),
+        labels=torch.tensor([0, 1]),
+    )
+
 
 
 class Test_Set_Trainer:
@@ -357,7 +378,9 @@ class Test_set_start_keep_best_epoch:
 
 
 class TestPredict:
-    def test_predict_samples(self, model_sample, train_dataset, training_config):
+    def test_predict_samples(self, model_sample, train_dataset,dataset2, training_config):
+        """ Test that samples are generated and that the output contains all modalities"""
+        
         trainer = BaseTrainer(
             model=model_sample,
             train_dataset=train_dataset,
@@ -367,7 +390,37 @@ class TestPredict:
 
         all_recons = trainer.predict(model_sample, epoch=1, n_data=3)
 
-        assert list(all_recons.keys()) == model_sample.modalities_name
+        assert list(all_recons.keys()) == model_sample.modalities_name + ['all']
+        for mod in all_recons:
+            recon_mod = all_recons[mod]
+            assert isinstance(recon_mod,Image.Image)
+        output_without_transform = all_recons['mod1']
+            
+        # Test predict on a dataset with transform_for_plotting option
+        trainer = BaseTrainer(
+            model=model_sample,
+            train_dataset=dataset2,
+            eval_dataset=dataset2,
+            training_config=training_config,
+        )
+        all_recons = trainer.predict(model_sample, epoch=1, n_data=3)
+        output_with_transform = all_recons['mod1']
+        
+        assert output_with_transform.size != output_without_transform.size
+        
+        # Test that random_split on a dataset with a transform_for_plotting doesn't raise an issue
+        data1, data2 = random_split(dataset2,[0.5,0.5])
+        trainer = BaseTrainer(
+            model=model_sample,
+            train_dataset=data1,
+            eval_dataset=data2,
+            training_config=training_config,
+        )
+        all_recons = trainer.predict(model_sample, epoch=1, n_data=3)
+        assert list(all_recons.keys()) == model_sample.modalities_name + ['all']
+
+        
+        
 
 
 class TestSaving:

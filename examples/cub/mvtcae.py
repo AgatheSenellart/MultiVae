@@ -26,7 +26,7 @@ data_path = '/scratch/asenella/data'
 train_data = CUB(
     data_path, "train", captions_per_image=10, im_size=(64, 64), output_type='tokens'
 )
-eval_data = CUB(data_path, "eval", captions_per_image=10, im_size=(28, 28), output_type='tokens')
+eval_data = CUB(data_path, "eval", captions_per_image=10, im_size=(64, 64), output_type='tokens')
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

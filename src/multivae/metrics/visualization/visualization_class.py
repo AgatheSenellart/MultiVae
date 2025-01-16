@@ -166,6 +166,7 @@ class Visualization(Evaluator):
         return recon_image
 
     def eval(self):
+        
         image = self.unconditional_samples()
 
         return ModelOutput(unconditional_generation=image)
