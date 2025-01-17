@@ -16,7 +16,7 @@ class JNFDccaConfig(BaseJointModelConfig):
             (see : https://proceedings.mlr.press/v162/javaloy22a.html).
             The inputs_dim must be provided to compute the likelihoods rescalings. Default to False.
         decoders_dist (Dict[str, Union[function, str]]). The decoder distributions to use per modality.
-            Per modality, you can provide a string in ['normal','bernoulli','laplace']. For Bernoulli distribution,
+            Per modality, you can provide a string in ['normal','bernoulli','laplace','categorical']. For Bernoulli distribution,
             the decoder is expected to output **logits**. If None is provided, a normal distribution is used for each modality.
         decoder_dist_params (Dict[str,dict]) : Parameters for the output decoder distributions, for
             computing the log-probability.
