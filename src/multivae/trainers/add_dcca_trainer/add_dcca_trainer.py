@@ -145,6 +145,6 @@ class AddDccaTrainer(BaseTrainer):
             best_eval_loss = 1e10
 
         return best_train_loss, best_eval_loss
-    
+
     def checktrainer(self, model):
-        return 
+        return

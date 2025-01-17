@@ -51,6 +51,7 @@ class JMVAE(BaseJointModel):
 
         self.alpha = model_config.alpha
         self.warmup = model_config.warmup
+        self.start_keep_best_epoch = model_config.warmup + 1
         self.beta = model_config.beta
 
     def encode(
@@ -193,15 +194,15 @@ class JMVAE(BaseJointModel):
             annealing_factor = 1
         else:
             annealing_factor = epoch / self.warmup
-        recon_loss, reg_loss = recon_loss / len_batch, reg_loss / len_batch
         elbo = (recon_loss + KLD) / len_batch
-        loss = recon_loss + annealing_factor * reg_loss
+        loss_sum = recon_loss + annealing_factor * reg_loss
+        loss = loss_sum / len_batch
 
         metrics = dict(
             loss_no_ponderation=reg_loss + recon_loss, beta=annealing_factor, elbo=elbo
         )
 
-        output = ModelOutput(loss=loss, metrics=metrics)
+        output = ModelOutput(loss=loss, loss_sum=loss_sum, metrics=metrics)
 
         return output
 

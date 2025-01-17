@@ -4,6 +4,7 @@ from typing import Dict, Union
 import numpy as np
 import torch
 import torch.distributions as dist
+import torch.nn.functional as F
 from pythae.models.base.base_utils import ModelOutput
 from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
 from pythae.models.normalizing_flows.base import BaseNF
@@ -70,13 +71,8 @@ class JNF(BaseJointModel):
 
         self.model_name = "JNF"
         self.warmup = model_config.warmup
-        self.two_steps_training = model_config.two_steps_training
-        if self.two_steps_training:
-            self.reset_optimizer_epochs = [self.warmup + 1]
-        else:
-            self.alpha = model_config.alpha
-        self.beta = model_config.beta
         self.reset_optimizer_epochs = [self.warmup + 1]
+        self.beta = model_config.beta
 
     def set_flows(self, flows: Dict[str, BaseNF]):
         # check that the keys corresponds with the encoders keys
@@ -134,40 +130,26 @@ class JNF(BaseJointModel):
         # Compute the KLD to the prior
         KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp()) * self.beta
 
-        if self.two_steps_training:
-            if epoch <= self.warmup:
-                return ModelOutput(
-                    # recon_loss=recon_loss / len_batch,
-                    # KLD=KLD / len_batch,
-                    loss=(recon_loss + KLD) / len_batch,
-                    metrics=dict(
-                        kld_prior=KLD, recon_loss=recon_loss / len_batch, ljm=0
-                    ),
-                )
-
-            else:
-                self._set_torch_no_grad_on_joint_vae()
-                ljm = self.compute_ljm(inputs, z_joint)
-
-                return ModelOutput(
-                    # recon_loss=recon_loss / len_batch,
-                    # KLD=KLD / len_batch,
-                    loss=ljm / len_batch,
-                    # ljm=ljm / len_batch,
-                    metrics=dict(
-                        kld_prior=KLD,
-                        recon_loss=recon_loss / len_batch,
-                        ljm=ljm / len_batch,
-                    ),
-                )
+        if epoch <= self.warmup:
+            return ModelOutput(
+                # recon_loss=recon_loss / len_batch,
+                # KLD=KLD / len_batch,
+                loss=(recon_loss + KLD) / len_batch,
+                loss_sum=recon_loss + KLD,
+                metrics=dict(kld_prior=KLD, recon_loss=recon_loss / len_batch, ljm=0),
+            )
 
         else:
-            ljm = self.compute_ljm(inputs, z_joint) * self.alpha
-            beta = min(1, epoch / self.warmup)
+            self._set_torch_no_grad_on_joint_vae()
+            ljm = self.compute_ljm(inputs, z_joint)
+
             return ModelOutput(
-                loss=(recon_loss + beta * (KLD + ljm)) / len_batch,
+                loss=ljm / len_batch,
+                loss_sum=ljm,
                 metrics=dict(
-                    kld_prior=KLD, recon_loss=recon_loss / len_batch, ljm=ljm, beta=beta
+                    kld_prior=KLD,
+                    recon_loss=recon_loss / len_batch,
+                    ljm=ljm / len_batch,
                 ),
             )
 
@@ -326,40 +308,39 @@ class JNF(BaseJointModel):
         Returns:
             tuple : likelihood and gradients
         """
+        with torch.set_grad_enabled(grad):
+            lnqzs = 0
 
-        lnqzs = 0
+            z = z_.detach().clone().requires_grad_(grad)
 
-        z = z_.clone().detach().requires_grad_(grad)
-
-        if divide_prior:
-            # print('Dividing by the prior')
-            lnqzs += (0.5 * (torch.pow(z, 2) + np.log(2 * np.pi))).sum(dim=1)
-
-        for m in subset:
-            # Compute lnqz
-            flow_output = self.flows[m](z)
-            vae_output = self.encoders[m](data[m])
-            mu, log_var, z0 = (
-                vae_output.embedding,
-                vae_output.log_covariance,
-                flow_output.out,
-            )
-
-            log_q_z0 = (
-                -0.5
-                * (
-                    log_var
-                    + np.log(2 * np.pi)
-                    + torch.pow(z0 - mu, 2) / torch.exp(log_var)
+            if divide_prior:
+                lnqzs = lnqzs + (0.5 * (torch.pow(z, 2) + np.log(2 * np.pi))).sum(dim=1)
+            for m in subset:
+                # Compute lnqz
+                flow_output = self.flows[m](z)
+                vae_output = self.encoders[m](data[m])
+                mu, log_var, z0 = (
+                    vae_output.embedding,
+                    vae_output.log_covariance,
+                    flow_output.out,
                 )
-            ).sum(dim=1)
-            lnqzs += log_q_z0 + flow_output.log_abs_det_jac  # n_data_points x 1
 
-        if grad:
-            g = torch.autograd.grad(lnqzs.sum(), z)[0]
-            return lnqzs, g
-        else:
-            return lnqzs
+                log_q_z0 = (
+                    -0.5
+                    * (
+                        log_var
+                        + np.log(2 * np.pi)
+                        + torch.pow(z0 - mu, 2) / torch.exp(log_var)
+                    )
+                ).sum(dim=1)
+                lnqzs = (
+                    lnqzs + log_q_z0 + flow_output.log_abs_det_jac
+                )  # n_data_points x 1
+            if grad:
+                g = torch.autograd.grad(lnqzs.sum(), z)[0]
+                return lnqzs, g
+            else:
+                return lnqzs
 
     def sample_from_poe_subset(
         self,

@@ -136,9 +136,7 @@ class BaseTrainer:
         self.train_loader = train_loader
         self.eval_loader = eval_loader
         self.callbacks = callbacks
-        self.start_keep_best_epoch = self.set_start_keep_best_epoch(
-            training_config.start_keep_best_epoch, model
-        )
+        self.start_keep_best_epoch = getattr(model, "start_keep_best_epoch", 0)
 
         # run sanity check on the model
         self._run_model_sanity_check(model, train_loader)
@@ -154,7 +152,7 @@ class BaseTrainer:
             self.prepare_training()
         else:
             self.resume_training(checkpoint)
-            
+
     def checktrainer(self, model):
         if hasattr(model, "reset_optimizer_epochs"):
             if len(model.reset_optimizer_epochs) != 0:
@@ -163,14 +161,6 @@ class BaseTrainer:
                     "that is not empty. That means that it requires multistage training and therefore you",
                     "should use the ~multivae.trainers.MultistageTrainer instead of the BaseTrainer.",
                 )
-
-    def set_start_keep_best_epoch(self, start_keep_best_epoch, model):
-        "For models that use warmup, assert that the start_keep_best_epoch is a number larger than warmup"
-
-        if hasattr(model, "warmup"):
-            return max(start_keep_best_epoch, model.warmup + 1)
-        else:
-            return start_keep_best_epoch
 
     @property
     def is_main_process(self):
@@ -217,7 +207,7 @@ class BaseTrainer:
             dataset=train_dataset,
             batch_size=self.training_config.per_device_train_batch_size,
             num_workers=self.training_config.train_dataloader_num_workers,
-            shuffle=True,
+            shuffle=(train_sampler is None),
             sampler=train_sampler,
             drop_last=self.training_config.drop_last,
         )
@@ -507,13 +497,11 @@ class BaseTrainer:
             else:
                 epoch_eval_loss = self.best_eval_loss
                 self._schedulers_step(epoch_train_loss)
-            if epoch <= self.training_config.start_keep_best_epoch or (
-                hasattr(self.model, "warmup") and epoch <= self.model.warmup
-            ):
+            if epoch <= self.start_keep_best_epoch:
                 # save the model, don't keep track of the best loss
                 best_model = deepcopy(self.model)
                 self._best_model = best_model
-                logger.info("New best model saved!")
+                logger.info("New model saved!")
 
             elif (
                 epoch_eval_loss < self.best_eval_loss
@@ -522,7 +510,7 @@ class BaseTrainer:
                 self.best_eval_loss = epoch_eval_loss
                 best_model = deepcopy(self.model)
                 self._best_model = best_model
-                logger.info("New best model saved!")
+                logger.info("New best model on eval saved!")
 
             elif (
                 epoch_train_loss < self.best_train_loss
@@ -531,6 +519,7 @@ class BaseTrainer:
                 self.best_train_loss = epoch_train_loss
                 best_model = deepcopy(self.model)
                 self._best_model = best_model
+                logger.info("New best model on train saved!")
 
             # For BaseMultiVae models, compute reconstruction
             if (
@@ -625,8 +614,11 @@ class BaseTrainer:
                     uses_ddp=self.distributed,
                 )
 
-            loss = model_output.loss
-
+            loss = (
+                model_output.loss_sum
+                if hasattr(model_output, "loss_sum")
+                else model_output.loss
+            )
             epoch_loss += loss.item()
             update_dict(epoch_metrics, model_output.metrics)
 
@@ -638,6 +630,9 @@ class BaseTrainer:
         epoch_metrics = {
             k: epoch_metrics[k] / len(self.eval_loader) for k in epoch_metrics
         }
+
+        epoch_loss = epoch_loss / len(self.eval_loader.dataset)
+
         return epoch_loss, epoch_metrics
 
     def train_step(self, epoch: int):
@@ -674,8 +669,11 @@ class BaseTrainer:
             )
 
             self._optimizers_step(model_output)
-
-            loss = model_output.loss
+            loss = (
+                model_output.loss_sum
+                if hasattr(model_output, "loss_sum")
+                else model_output.loss
+            )
             epoch_loss += loss.item()
             update_dict(epoch_model_metrics, model_output.metrics)
 
@@ -696,6 +694,8 @@ class BaseTrainer:
             k: epoch_model_metrics[k] / len(self.train_loader)
             for k in epoch_model_metrics
         }
+
+        epoch_loss = epoch_loss / len(self.train_dataset)
 
         return epoch_loss, epoch_model_metrics
 
@@ -784,6 +784,8 @@ class BaseTrainer:
             inputs = set_inputs_to_device(inputs, self.device)
 
         all_recons = dict()
+
+        # Cross modal reconstructions
         for mod in inputs.data:
             recon = model.predict(
                 inputs, mod, "all", N=8, flatten=True, ignore_incomplete=True
@@ -820,4 +822,51 @@ class BaseTrainer:
             recon_image = Image.fromarray(ndarr)
 
             all_recons[mod] = recon_image
+
+        # joint reconstruction
+        recon = model.predict(
+            inputs, "all", "all", N=8, flatten=True, ignore_incomplete=True
+        )
+        if hasattr(self.eval_dataset, "transform_for_plotting"):
+            recon = {
+                mod_name: self.eval_dataset.transform_for_plotting(
+                    recon[mod_name], modality=mod_name
+                )
+                for mod_name in recon
+            }
+            recon.update(
+                {
+                    f"true_data_{mod_name}": self.eval_dataset.transform_for_plotting(
+                        inputs.data[mod_name], modality=mod_name
+                    )
+                    for mod_name in inputs.data
+                }
+            )
+
+        else:
+            recon.update(
+                {f"true_data_{mod_name}": inputs.data[mod_name] for mod_name in recon}
+            )
+
+        recon, shape = adapt_shape(recon)
+        recon_image = [recon[f"true_data_{m}"] for m in inputs.data] + [
+            recon[m] for m in inputs.data
+        ]
+        recon_image = torch.cat(recon_image)
+
+        # Transform to PIL format
+        recon_image = make_grid(recon_image, nrow=n_data)
+        # Add 0.5 after unnormalizing to [0, 255] to round to nearest integer
+        ndarr = (
+            recon_image.mul(255)
+            .add_(0.5)
+            .clamp_(0, 255)
+            .permute(1, 2, 0)
+            .to("cpu", torch.uint8)
+            .numpy()
+        )
+        recon_image = Image.fromarray(ndarr)
+
+        all_recons["all"] = recon_image
+
         return all_recons

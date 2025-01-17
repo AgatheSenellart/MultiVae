@@ -50,6 +50,7 @@ class MoPoE(BaseMultiVAE):
                     "Please provide dimensions for the modalities"
                     "specific latent spaces"
                 )
+            # Set default architectures if not provided
             if encoders is None:
                 encoders = BaseDictEncoders_MultiLatents(
                     input_dims=model_config.input_dims,
@@ -149,11 +150,13 @@ class MoPoE(BaseMultiVAE):
         latents = self.inference(inputs)
         results = dict()
 
-        # Compute the divergence to the prior
+        # Get the embeddings for shared latent space
         shared_embeddings = self.reparameterize(
             latents["joint"][0], latents["joint"][1]
         )
+        len_batch = shared_embeddings.shape[0]
 
+        # Compute the divergence to the prior
         div = self.calc_joint_divergence(
             latents["mus"], latents["logvars"], latents["weights"]
         )
@@ -168,7 +171,10 @@ class MoPoE(BaseMultiVAE):
 
             if self.multiple_latent_spaces:
                 try:
-                    style_embeddings = latents["modalities"][m_key].style_embedding
+                    # sample from the modality specific latent space
+                    style_mu = latents["modalities"][m_key].style_embedding
+                    style_log_var = latents["modalities"][m_key].style_log_covariance
+                    style_embeddings = self.reparameterize(style_mu, style_log_var)
                     full_embedding = torch.cat(
                         [shared_embeddings, style_embeddings], dim=-1
                     )
@@ -197,6 +203,8 @@ class MoPoE(BaseMultiVAE):
             # reconstruction loss
             if hasattr(inputs, "masks"):
                 results["recon_" + m_key] = (m_rec * inputs.masks[m_key].float()).mean()
+                # We still take the mean over the all batch even if some samples are missing
+                # in order to give the same weights to all samples between batches
             else:
                 results["recon_" + m_key] = m_rec.mean()
 
@@ -217,7 +225,7 @@ class MoPoE(BaseMultiVAE):
 
         loss = loss + self.beta * kld
 
-        return ModelOutput(loss=loss, metrics=results)
+        return ModelOutput(loss=loss, loss_sum=loss * len_batch, metrics=results)
 
     def modality_encode(
         self, inputs: Union[MultimodalBaseDataset, IncompleteDataset], **kwargs
@@ -268,7 +276,7 @@ class MoPoE(BaseMultiVAE):
 
     def subset_mask(self, inputs: IncompleteDataset, subset: Union[list, tuple]):
         """
-        Returns a filter of the samples available in all the modalities contained in subset.
+        Returns a filter of the samples available in ALL the modalities contained in subset.
         """
 
         filter = torch.tensor(

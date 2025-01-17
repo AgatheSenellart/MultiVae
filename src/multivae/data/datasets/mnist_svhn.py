@@ -58,8 +58,12 @@ class MnistSvhn(MultimodalBaseDataset):  # pragma: no cover
         if not self._check_pairing_exists():
             self.create_pairing(mnist, svhn)
 
-        i_mnist = torch.load(f"{self.path_to_idx}/mnist_idx.pt")  ## !!!!WARNING!!!
-        i_svhn = torch.load(f"{self.path_to_idx}/svhn_idx.pt")  ## !!!!WARNING!!!
+        i_mnist = torch.load(
+            f"{self.path_to_idx}/mnist_idx.pt", weights_only=True
+        )  ## !!!!WARNING!!!
+        i_svhn = torch.load(
+            f"{self.path_to_idx}/svhn_idx.pt", weights_only=True
+        )  ## !!!!WARNING!!!
 
         order = np.arange(len(i_mnist))
         np.random.shuffle(

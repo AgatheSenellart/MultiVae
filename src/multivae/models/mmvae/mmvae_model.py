@@ -224,7 +224,9 @@ class MMVAE(BaseMultiVAE):
 
         lws = (grad_wt * lws).sum(0) / n_mods_sample  # mean over modalities
 
-        return ModelOutput(loss=-lws.mean(-1).sum(), metrics=dict())
+        return ModelOutput(
+            loss=-lws.mean(-1).sum(), loss_sum=-lws.sum(), metrics=dict()
+        )
 
     def iwae(self, qz_xs, zss, reconstructions, inputs):
         lw_mod = []

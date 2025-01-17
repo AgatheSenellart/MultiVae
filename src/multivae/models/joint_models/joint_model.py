@@ -4,8 +4,9 @@ from typing import Union
 import numpy as np
 import torch
 import torch.distributions as dist
+from pythae.models.nn.base_architectures import BaseEncoder
 
-from multivae.models.nn.default_architectures import BaseJointEncoder
+from multivae.models.nn import BaseJointEncoder
 
 from ...data import MultimodalBaseDataset
 from ..base import BaseMultiVAE
@@ -60,7 +61,7 @@ class BaseJointModel(BaseMultiVAE):
     def set_joint_encoder(self, joint_encoder):
         "Checks that the provided joint encoder is an instance of BaseEncoder."
 
-        if not issubclass(type(joint_encoder), BaseJointEncoder):
+        if not issubclass(type(joint_encoder), BaseEncoder):
             raise AttributeError(
                 (
                     f"The joint encoder must inherit from BaseEncoder class from "
