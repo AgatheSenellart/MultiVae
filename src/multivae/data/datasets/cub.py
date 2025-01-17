@@ -41,7 +41,7 @@ class OrderedCounter(Counter, OrderedDict):
         return self.__class__, (OrderedDict(self),)
 
 
-class CUBSentences(Dataset):
+class CUBSentences(Dataset): # pragma : no cover
 
     """
 
@@ -278,7 +278,7 @@ class CUBSentences(Dataset):
         return ret_str
 
 
-class CUB(MultimodalBaseDataset):
+class CUB(MultimodalBaseDataset): # pragma : no cover
 
     """
 
