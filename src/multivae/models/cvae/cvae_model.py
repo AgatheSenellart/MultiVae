@@ -21,10 +21,12 @@ from multivae.models.nn.default_architectures import (
 
 from .cvae_config import CVAEConfig
 
-# TODO: Define default architectures and a sanity check function
-
 
 class CVAE(BaseModel):
+    """Conditional Variational Autoencoder model. 
+    
+    See https://arxiv.org/abs/1906.02691 for more information. 
+    """
 
     def __init__(self, model_config, encoder=None, decoder=None, prior_network=None):
         super().__init__(model_config)

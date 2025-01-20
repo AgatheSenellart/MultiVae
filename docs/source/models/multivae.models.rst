@@ -21,13 +21,14 @@ Available Multimodal VAEs
 -------------------------------------------
 
 .. autosummary::
-    ~multivae.models.BaseMultiVAE
-    ~multivae.models.AutoModel
-    ~multivae.models.MVAE
-    ~multivae.models.MMVAE
-    ~multivae.models.TELBO
-    ~multivae.models.JMVAE
-    ~multivae.models.JNF
-    ~multivae.models.JNFDcca
-    ~multivae.models.Nexus
+    CVAE
+    BaseMultiVAE
+    AutoModel
+    MVAE
+    MMVAE
+    TELBO
+    JMVAE
+    JNF
+    JNFDcca
+    Nexus
     :nosignatures:
