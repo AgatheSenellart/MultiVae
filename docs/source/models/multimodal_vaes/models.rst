@@ -11,6 +11,7 @@ Multimodal Variational Autoencoders Models
 
     base
     auto_model
+    cvae
     mvae
     mmvae
     telbo
@@ -27,6 +28,7 @@ Available VAEs
 -------------------------------------------
 
 .. autosummary::
+    ~multivae.models.CVAE
     ~multivae.models.BaseMultiVAE
     ~multivae.models.AutoModel
     ~multivae.models.MVAE

@@ -261,16 +261,27 @@ class BaseMultiVAE(BaseModel):
         if embedding.one_latent_space:
             z = embedding.z
             outputs = ModelOutput()
-            for m in modalities:
-                outputs[m] = self.decoders[m](z).reconstruction
+            if len(z.shape) == 3:
+                N, bs, ldim = z.shape
+                z = z.view(N*bs, ldim)
+                for m in modalities:
+                    recon = self.decoders[m](z).reconstruction
+                    outputs[m] = recon.reshape(N,bs,*recon.shape[1:])
+            else:
+                for m in modalities:
+                    outputs[m] = self.decoders[m](z).reconstruction
             return outputs
         else:
             z_content = embedding.z
             outputs = ModelOutput()
-
             for m in modalities:
                 z = torch.cat([z_content, embedding.modalities_z[m]], dim=-1)
-                outputs[m] = self.decoders[m](z).reconstruction
+                if len(z.shape)==3:
+                    N,bs,ldim = z.shape
+                    recon = self.decoders[m](z.view(N*bs,ldim)).reconstruction
+                    outputs[m] = recon.reshape(N,bs,*recon.shape[1:])
+                else:
+                    outputs[m] = self.decoders[m](z).reconstruction
             return outputs
 
     def predict(
@@ -308,15 +319,15 @@ class BaseMultiVAE(BaseModel):
             inputs,
             cond_mod,
             N=N,
-            flatten=True,
+            flatten=flatten,
             ignore_incomplete=ignore_incomplete,
             **kwargs,
         )
         output = self.decode(z, gen_mod)
-        n_data = len(z.z) // N
-        if not flatten and N > 1:
-            for m in output.keys():
-                output[m] = output[m].reshape(N, n_data, *output[m].shape[1:])
+        # n_data = len(z.z) // N
+        # if not flatten and N > 1:
+        #     for m in output.keys():
+        #         output[m] = output[m].reshape(N, n_data, *output[m].shape[1:])
         return output
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
