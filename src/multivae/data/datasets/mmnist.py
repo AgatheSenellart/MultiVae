@@ -23,7 +23,7 @@ logger.setLevel(logging.INFO)
 
 class MMNISTDataset(MultimodalBaseDataset):
     """
-    Multimodal MMNIST Dataset to load the Polymnist Dataset from
+    Multimodal PolyMNIST Dataset from
     'Generalized Multimodal Elbo' Sutter et al 2021.
 
     """
@@ -43,7 +43,7 @@ class MMNISTDataset(MultimodalBaseDataset):
             data_path (str) : The path where to find the MMNIST folder containing the folders 'train' or 'test'.
                 The data used is the one that can be downloaded from https://zenodo.org/record/4899160#.YLn0rKgzaHu
                 If data_path doesn't contain the dataset and download is set to True, then the data can be downloaded
-                for you using gdown.
+                automatically using gdown. For that, set download to True.
             transform: tranforms on colored MNIST digits.
             target_transform: transforms on labels.
             split (Literal['train', 'test']). Which part of the data to use.

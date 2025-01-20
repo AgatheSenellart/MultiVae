@@ -1,4 +1,5 @@
 import os
+from typing import Union
 
 import torch
 from PIL import Image
@@ -10,6 +11,7 @@ from multivae.data.datasets.utils import adapt_shape
 from multivae.data.utils import set_inputs_to_device
 from multivae.metrics.base.evaluator_config import EvaluatorConfig
 from multivae.models.base import BaseMultiVAE, ModelOutput
+from multivae.models.cvae import CVAE
 from multivae.samplers.base import BaseSampler
 
 from ..base.evaluator_class import Evaluator
@@ -60,7 +62,7 @@ class Visualization(Evaluator):
 
     def __init__(
         self,
-        model: BaseMultiVAE,
+        model: Union[BaseMultiVAE, CVAE],
         test_dataset: MultimodalBaseDataset,
         output: str = None,
         eval_config=VisualizationConfig(),
@@ -71,6 +73,13 @@ class Visualization(Evaluator):
         self.n_data_cond = eval_config.n_data_cond
 
     def unconditional_samples(self, **kwargs):
+        """Generate an image of unconditional samples.
+
+
+        Returns:
+            PIL.Image: An image containing a grid of the generated samples.
+        """
+
         device = kwargs.pop("device", "cuda" if torch.cuda.is_available() else "cpu")
         if self.sampler is None:
             samples = self.model.generate_from_prior(self.n_samples)
@@ -113,7 +122,19 @@ class Visualization(Evaluator):
 
         return recon_image
 
-    def conditional_samples_subset(self, subset, gen_mod="all"):
+    def conditional_samples_subset(
+        self, subset: list, gen_mod: Union[list, str] = "all"
+    ):
+        """Generate samples conditioning on the modalities in a subset.
+
+        Args:
+            subset (list): The subset of modalities to condition on.
+            gen_mod (Union[list, str], optional): The modalities to generate. Defaults to "all".
+
+        Returns:
+            PIL.Image : a PIL image containing a grid of the generated samples.
+        """
+
         dataloader = DataLoader(
             self.test_dataset, batch_size=self.n_data_cond, shuffle=True
         )
@@ -123,8 +144,8 @@ class Visualization(Evaluator):
 
         recon = self.model.predict(
             data,
-            subset,
-            gen_mod,
+            cond_mod=subset,
+            gen_mod=gen_mod,
             N=self.n_samples,
             flatten=True,
             ignore_incomplete=True,
@@ -177,6 +198,10 @@ class Visualization(Evaluator):
             )
 
         return recon_image
+
+    def reconstruction(self, modality: str, **kwargs):
+
+        return self.conditional_samples_subset([modality], gen_mod=modality)
 
     def eval(self):
         image = self.unconditional_samples()

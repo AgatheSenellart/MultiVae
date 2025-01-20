@@ -41,8 +41,7 @@ class OrderedCounter(Counter, OrderedDict):
         return self.__class__, (OrderedDict(self),)
 
 
-class CUBSentences(Dataset):
-
+class CUBSentences(Dataset):  # pragma : no cover
     """
 
     Dataset for the CUB captions only.
@@ -278,20 +277,19 @@ class CUBSentences(Dataset):
         return ret_str
 
 
-class CUB(MultimodalBaseDataset):
-
+class CUB(MultimodalBaseDataset):  # pragma : no cover
     """
 
     A paired text image CUB dataset.
 
     Args:
         path (str) : The path where the data is saved.
-        split (str) : Either 'train', 'eval' or 'test'. Default: 'train'
-        captions_per_image (int): The number of captions text per image. Default: 10
-        max_words_in_caption (int): The number of words in the captions. Default: 18
+        split (str) : Either 'train', 'eval' or 'test'. Default: 'train'.
+        max_words_in_caption (int): The number of words in the captions. Default: 32.
         im_size (Tuple[int]): The desired size of the images. Default: (64, 64)
         img_transform (Transforms): The transformations to be applied to the images. If
             None, nothing is done. Default: None.
+        output_type (Literal['one_hot','tokens']) : Default to 'one_hot'.
         download (bool): Whether to download the data if it is not found in the path. Default: False.
     """
 
@@ -299,7 +297,6 @@ class CUB(MultimodalBaseDataset):
         self,
         path: str,
         split="train",
-        captions_per_image=10,
         max_words_in_caption=32,
         im_size=(64, 64),
         img_transform=None,

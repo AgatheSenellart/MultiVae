@@ -1,3 +1,4 @@
+import math
 from copy import deepcopy
 from typing import List
 
@@ -10,7 +11,10 @@ from pythae.models.nn.default_architectures import Encoder_VAE_MLP
 from torch import nn
 
 from multivae.models.base.base_config import BaseAEConfig
-from multivae.models.nn.base_architectures import BaseJointEncoder
+from multivae.models.nn.base_architectures import (
+    BaseConditionalDecoder,
+    BaseJointEncoder,
+)
 
 
 class Encoder_VAE_MLP(BaseEncoder):
@@ -218,7 +222,7 @@ def BaseDictDecodersMultiLatents(
 
 class Decoder_AE_MLP(BaseDecoder):
     # The same as in Pythae but allows for any input shape (*, latent_dim) with * containing any number of dimensions.
-    def __init__(self, args: dict):
+    def __init__(self, args: BaseAEConfig):
         BaseDecoder.__init__(self)
 
         self.input_dim = args.input_dim
@@ -314,3 +318,24 @@ class MultipleHeadJointEncoder(BaseJointEncoder):
         output = ModelOutput(embedding=embedding, log_covariance=log_covariance)
 
         return output
+
+
+class ConditionalDecoder_MLP(BaseConditionalDecoder):
+
+    def __init__(
+        self, latent_dim: int, conditioning_data_dim: tuple, data_dim: tuple
+    ) -> ModelOutput:
+        super().__init__()
+        self.latent_dim = latent_dim
+
+        self.all_dim = latent_dim + math.prod(conditioning_data_dim)
+
+        self.network = Decoder_AE_MLP(
+            BaseAEConfig(input_dim=data_dim, latent_dim=self.all_dim)
+        )
+
+    def forward(self, z, conditioning_modality):
+
+        cond_data = conditioning_modality.view(z.shape[0], -1)
+        concatenated = torch.cat([z, cond_data], dim=1)
+        return self.network(concatenated)

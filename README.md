@@ -34,6 +34,7 @@ It integrates model monitoring with [Wandb](https://wandb.ai) and a quick way to
 
 |Model|Paper|Official Implementation|
 |:---:|:----:|:---------------------:|
+|CVAE|[An introduction to Variational Autoencoders](https://arxiv.org/abs/1906.02691) |  |
 |JMVAE|[Joint Multimodal Learning with Deep Generative Models](https://arxiv.org/abs/1611.01891)|[link](https://github.com/masa-su/jmvae)|
 |MVAE| [Multimodal Generative Models for Scalable Weakly-Supervised Learning](https://proceedings.neurips.cc/paper/2018/hash/1102a326d5f7c9e04fc3c89d0ede88c9-Abstract.html)|[link](https://github.com/mhw32/multimodal-vae-public)|
 |MMVAE|[Variational Mixture-of-Experts Autoencoders for Multi-Modal Deep Generative Models](https://proceedings.neurips.cc/paper/2019/hash/0ae775a8cb3b499ad1fca944e6f5c836-Abstract.html)|[link](https://github.com/iffsid/mmvae)|

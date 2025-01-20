@@ -14,6 +14,8 @@ Datasets
     mnist_svhn
     cub
     mhd
+    mmnist
+    celeba
 
 .. automodule::
     multivae.data.datasets
@@ -22,9 +24,11 @@ Available Datasets
 -------------------------------------------
 
 .. autosummary::
-    ~multivae.data.datasets.MultimodalBaseDataset
-    ~multivae.data.datasets.IncompleteDataset
-    ~multivae.data.datasets.MnistSvhn
-    ~multivae.data.datasets.CUB
-    ~multivae.data.datasets.MHD
+    MultimodalBaseDataset
+    IncompleteDataset
+    MnistSvhn
+    CUB
+    MHD
+    MMNISTDataset
+    CelebAttr
     :nosignatures:
