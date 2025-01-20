@@ -29,8 +29,8 @@ class Test_CVAE:
         )
     
     @fixture(params=[
-        [10,'normal',{}],
-        [14,'laplace',dict(scale=0.5)]
+        [10,'normal',{}, 1.0],
+        [14,'laplace',dict(scale=0.5),2.5]
     ])
     def model_config(self, request):
         
@@ -39,6 +39,7 @@ class Test_CVAE:
             latent_dim=request.param[0],
             conditioning_modality = 'label',
             main_modality='mnist',
+            beta=request.param[3],
             decoder_dist =request.param[1],
             decoder_dist_params=request.param[2]
         )
@@ -72,6 +73,7 @@ class Test_CVAE:
                      **architectures)
         
         assert model.latent_dim == model_config.latent_dim
+        assert model.beta == model_config.beta
         assert model.conditioning_modality == model_config.conditioning_modality
         assert model.main_modality == model_config.main_modality
         

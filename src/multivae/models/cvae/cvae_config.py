@@ -13,6 +13,7 @@ class CVAEConfig(BaseConfig):
         latent_dim (int): The dimension of the latent space. Default: 10.
         conditioning_modality (str): The modality to condition the model on.
         main_modality (str): The main modality to reconstruct.
+        beta (float): The parameter that weighs the KL divergence in the ELBO. Default to 1.0.
         decoder_dist (str): The decoder distribution to use. Possible values ['normal', 'bernoulli', 'laplace', 'categorical'].
             For Bernoulli distribution, the decoder is expected to output **logits**.
         decoder_dist_params (dict) : To eventually specify parameters for the output decoder distribution. 
@@ -25,6 +26,7 @@ class CVAEConfig(BaseConfig):
     main_modality:str
     input_dims:dict = None
     latent_dim:int = 10
+    beta:float = 1.0
     decoder_dist:Literal['normal', 'laplace','bernoulli','categorical']='normal'
     decoder_dist_params:dict=field(default_factory=lambda: {})
     custom_architectures:list = field(default_factory=lambda: [])

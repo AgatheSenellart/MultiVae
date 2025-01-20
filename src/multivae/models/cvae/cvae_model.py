@@ -18,6 +18,7 @@ class CVAE(BaseModel):
         
         
         self.latent_dim = model_config.latent_dim
+        self.beta = model_config.beta
         self.model_name = 'CVAE'
         
         if model_config.decoder_dist_params is None:
@@ -143,7 +144,7 @@ class CVAE(BaseModel):
         
         # Compute the total loss
         
-        loss = recon_loss + kl_div
+        loss = recon_loss + kl_div*self.beta
         
         metrics = dict(
             kl=kl_div, 
