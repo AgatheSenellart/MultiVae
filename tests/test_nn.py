@@ -3,7 +3,13 @@ import pytest
 import torch
 from pythae.models.base import BaseAEConfig
 
-from multivae.models.nn.cub import CubTextDecoderMLP, CubTextEncoder,CUB_Resnet_Decoder, CUB_Resnet_Encoder, ModelOutput
+from multivae.models.nn.cub import (
+    CUB_Resnet_Decoder,
+    CUB_Resnet_Encoder,
+    CubTextDecoderMLP,
+    CubTextEncoder,
+    ModelOutput,
+)
 from multivae.models.nn.mmnist import (
     Decoder_ResNet_AE_MMNIST,
     DecoderConvMMNIST,
@@ -69,17 +75,21 @@ def cubtext_like_data(ae_cub_config):
         .type(torch.float),
     )
 
-@pytest.fixture(params=[
-    BaseAEConfig(input_dim=(3,64,64), latent_dim=10),
-    BaseAEConfig(input_dim=(3,64,64), latent_dim=4)
-])
+
+@pytest.fixture(
+    params=[
+        BaseAEConfig(input_dim=(3, 64, 64), latent_dim=10),
+        BaseAEConfig(input_dim=(3, 64, 64), latent_dim=4),
+    ]
+)
 def ae_cubimage_config(request):
     return request.param
 
 
 @pytest.fixture()
 def cubimage_like_data():
-    return torch.randn((20,3,64,64)).to(device)
+    return torch.randn((20, 3, 64, 64)).to(device)
+
 
 class TestMMNISTNets:
     def test_forward(self, ae_mmnist_config, mmnist_like_data):
@@ -142,7 +152,7 @@ class TestSVHNNets:
 
 
 class TestCUBNets:
-    def test_text_forward(self, ae_cub_config, cubtext_like_data ):
+    def test_text_forward(self, ae_cub_config, cubtext_like_data):
         encoder = CubTextEncoder(
             ae_cub_config.latent_dim,
             max_sentence_length=ae_cub_config.input_dim[0],
@@ -169,18 +179,28 @@ class TestCUBNets:
             ae_cub_config.input_dim[1],
         )
 
-    def test_image_forward(self,ae_cubimage_config, cubimage_like_data):
-        
-        encoder = CUB_Resnet_Encoder(latent_dim=ae_cubimage_config.latent_dim).to(device)
-        decoder = CUB_Resnet_Decoder(latent_dim=ae_cubimage_config.latent_dim).to(device)
-        
+    def test_image_forward(self, ae_cubimage_config, cubimage_like_data):
+
+        encoder = CUB_Resnet_Encoder(latent_dim=ae_cubimage_config.latent_dim).to(
+            device
+        )
+        decoder = CUB_Resnet_Decoder(latent_dim=ae_cubimage_config.latent_dim).to(
+            device
+        )
+
         output = encoder(cubimage_like_data)
-        
+
         assert isinstance(output, ModelOutput)
-        assert output.embedding.shape == (cubimage_like_data.shape[0],ae_cubimage_config.latent_dim)
-        
-        assert output.log_covariance.shape == (cubimage_like_data.shape[0],ae_cubimage_config.latent_dim)
-        
+        assert output.embedding.shape == (
+            cubimage_like_data.shape[0],
+            ae_cubimage_config.latent_dim,
+        )
+
+        assert output.log_covariance.shape == (
+            cubimage_like_data.shape[0],
+            ae_cubimage_config.latent_dim,
+        )
+
         dec_out = decoder(output.embedding)
-        
+
         assert dec_out.reconstruction.shape == cubimage_like_data.shape

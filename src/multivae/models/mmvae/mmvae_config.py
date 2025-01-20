@@ -40,8 +40,8 @@ class MMVAEConfig(BaseMultiVAEConfig):
     """
 
     K: int = 10
-    prior_and_posterior_dist: Literal[
-        "laplace_with_softmax", "normal"
-    ] = "laplace_with_softmax"
+    prior_and_posterior_dist: Literal["laplace_with_softmax", "normal"] = (
+        "laplace_with_softmax"
+    )
     learn_prior: bool = True
     beta: float = 1.0

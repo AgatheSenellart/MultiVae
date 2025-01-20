@@ -212,9 +212,8 @@ class BaseModel(nn.Module):
         model.load_state_dict(model_weights)
 
         return model
-    
-    def push_to_hf_hub(self, hf_hub_path: str):  # pragma: no cover
 
+    def push_to_hf_hub(self, hf_hub_path: str):  # pragma: no cover
         """Method allowing to save your model directly on the huggung face hub.
         You will need to have the `huggingface_hub` package installed and a valid Hugging Face
         account. You can install the package using

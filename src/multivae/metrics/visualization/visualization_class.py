@@ -62,7 +62,7 @@ class Visualization(Evaluator):
 
     def __init__(
         self,
-        model: Union[BaseMultiVAE,CVAE],
+        model: Union[BaseMultiVAE, CVAE],
         test_dataset: MultimodalBaseDataset,
         output: str = None,
         eval_config=VisualizationConfig(),
@@ -74,13 +74,12 @@ class Visualization(Evaluator):
 
     def unconditional_samples(self, **kwargs):
         """Generate an image of unconditional samples.
-        
+
 
         Returns:
             PIL.Image: An image containing a grid of the generated samples.
         """
-        
-        
+
         device = kwargs.pop("device", "cuda" if torch.cuda.is_available() else "cpu")
         if self.sampler is None:
             samples = self.model.generate_from_prior(self.n_samples)
@@ -123,10 +122,11 @@ class Visualization(Evaluator):
 
         return recon_image
 
-    def conditional_samples_subset(self,subset:list,gen_mod:Union[list, str] = "all"):
-        
+    def conditional_samples_subset(
+        self, subset: list, gen_mod: Union[list, str] = "all"
+    ):
         """Generate samples conditioning on the modalities in a subset.
-        
+
         Args:
             subset (list): The subset of modalities to condition on.
             gen_mod (Union[list, str], optional): The modalities to generate. Defaults to "all".
@@ -134,8 +134,10 @@ class Visualization(Evaluator):
         Returns:
             PIL.Image : a PIL image containing a grid of the generated samples.
         """
-        
-        dataloader = DataLoader(self.test_dataset, batch_size=self.n_data_cond, shuffle=True)
+
+        dataloader = DataLoader(
+            self.test_dataset, batch_size=self.n_data_cond, shuffle=True
+        )
         data = next(iter(dataloader))
         # set inputs to device
         # data = set_inputs_to_device(data, self.device)
@@ -196,11 +198,10 @@ class Visualization(Evaluator):
             )
 
         return recon_image
-    
-    def reconstruction(self,modality:str,**kwargs):
-        
-        return self.conditional_samples_subset([modality],gen_mod=modality)
-        
+
+    def reconstruction(self, modality: str, **kwargs):
+
+        return self.conditional_samples_subset([modality], gen_mod=modality)
 
     def eval(self):
         image = self.unconditional_samples()

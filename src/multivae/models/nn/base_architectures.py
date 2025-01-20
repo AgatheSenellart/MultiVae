@@ -1,5 +1,6 @@
-from pythae.models.base.base_model import BaseEncoder, BaseDecoder, ModelOutput
 import torch
+from pythae.models.base.base_model import BaseDecoder, BaseEncoder, ModelOutput
+
 
 class BaseJointEncoder(BaseEncoder):
     """This is a base class for Joint Encoders neural networks."""
@@ -43,20 +44,16 @@ class BaseJointEncoder(BaseEncoder):
             output (~pythae.models.base.base_utils.ModelOutput): The output of the encoder
         """
         raise NotImplementedError()
-    
-    
+
+
 class BaseConditionalDecoder(BaseDecoder):
-    
-    """This is a base class for Conditional Decoders architectures.
-    """
-    
+    """This is a base class for Conditional Decoders architectures."""
+
     def __init__(self):
         BaseDecoder.__init__(self)
-        self.latent_dim = None # to be set in child class
-        
-    
+        self.latent_dim = None  # to be set in child class
+
     def forward(self, z: torch.Tensor, conditioning_modality: torch.Tensor):
-        
         r"""This function must be implemented in a child class.
         It takes the latent variable z and conditioning modality and returns an instance of
         :class:`~pythae.models.base.base_utils.ModelOutput` with the reconstruction.

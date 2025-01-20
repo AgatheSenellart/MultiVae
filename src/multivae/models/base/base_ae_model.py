@@ -263,10 +263,10 @@ class BaseMultiVAE(BaseModel):
             outputs = ModelOutput()
             if len(z.shape) == 3:
                 N, bs, ldim = z.shape
-                z = z.view(N*bs, ldim)
+                z = z.view(N * bs, ldim)
                 for m in modalities:
                     recon = self.decoders[m](z).reconstruction
-                    outputs[m] = recon.reshape(N,bs,*recon.shape[1:])
+                    outputs[m] = recon.reshape(N, bs, *recon.shape[1:])
             else:
                 for m in modalities:
                     outputs[m] = self.decoders[m](z).reconstruction
@@ -276,10 +276,10 @@ class BaseMultiVAE(BaseModel):
             outputs = ModelOutput()
             for m in modalities:
                 z = torch.cat([z_content, embedding.modalities_z[m]], dim=-1)
-                if len(z.shape)==3:
-                    N,bs,ldim = z.shape
-                    recon = self.decoders[m](z.view(N*bs,ldim)).reconstruction
-                    outputs[m] = recon.reshape(N,bs,*recon.shape[1:])
+                if len(z.shape) == 3:
+                    N, bs, ldim = z.shape
+                    recon = self.decoders[m](z.view(N * bs, ldim)).reconstruction
+                    outputs[m] = recon.reshape(N, bs, *recon.shape[1:])
                 else:
                     outputs[m] = self.decoders[m](z).reconstruction
             return outputs
@@ -462,8 +462,6 @@ class BaseMultiVAE(BaseModel):
             )
 
         return ModelOutput(**results)
-
-    
 
     def generate_from_prior(self, n_samples, **kwargs):
         """

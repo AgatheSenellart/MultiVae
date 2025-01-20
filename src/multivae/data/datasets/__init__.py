@@ -3,11 +3,11 @@ In this section, you will find all the `built-in` datasets that are currently im
 """
 
 from .base import DatasetOutput, IncompleteDataset, MultimodalBaseDataset
+from .celeba import CelebAttr
 from .cub import CUB
 from .mhd import MHD
 from .mmnist import MMNISTDataset
 from .mnist_svhn import MnistSvhn
-from .celeba import CelebAttr
 
 __all__ = [
     "MultimodalBaseDataset",
@@ -17,5 +17,5 @@ __all__ = [
     "CUB",
     "MHD",
     "MMNISTDataset",
-    "CelebAttr"
+    "CelebAttr",
 ]

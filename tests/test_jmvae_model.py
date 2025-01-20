@@ -10,19 +10,18 @@ from pythae.models.nn.benchmarks.mnist.convnets import (
     Decoder_Conv_AE_MNIST,
     Encoder_Conv_AE_MNIST,
 )
-from pythae.models.nn.default_architectures import Encoder_VAE_MLP
+from pythae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
 from torch import nn
 
 from multivae.data.datasets import MnistSvhn
 from multivae.data.datasets.base import MultimodalBaseDataset
 from multivae.data.utils import set_inputs_to_device
 from multivae.models import JMVAE, AutoModel, JMVAEConfig
-from pythae.models.nn.default_architectures import Decoder_AE_MLP
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 
 
 class Test_forward_and_predict:
-    
+
     @pytest.fixture()
     def dataset(self):
         data = dict(
@@ -32,19 +31,36 @@ class Test_forward_and_predict:
         )
         labels = np.array([0, 1])
         return MultimodalBaseDataset(data, labels)
-    
-    @pytest.fixture(params=[
-        [dict(latent_dim = 9, alpha=0.1, beta=0.5, warmup=12, input_dims = dict(mod1 = (2,), mod2 = (3,), mod3 = (4,))),False],
-        [dict(latent_dim = 10, alpha=0.6, beta=5.0,warmup=140) ,True]
-    ])
+
+    @pytest.fixture(
+        params=[
+            [
+                dict(
+                    latent_dim=9,
+                    alpha=0.1,
+                    beta=0.5,
+                    warmup=12,
+                    input_dims=dict(mod1=(2,), mod2=(3,), mod3=(4,)),
+                ),
+                False,
+            ],
+            [dict(latent_dim=10, alpha=0.6, beta=5.0, warmup=140), True],
+        ]
+    )
     def config_and_architectures(self, request):
-        
+
         model_config = JMVAEConfig(n_modalities=3, **request.param[0])
-        
+
         if request.param[1]:
-            config1 = BaseAEConfig(input_dim=(2,), latent_dim=request.param[0]['latent_dim'])
-            config2 = BaseAEConfig(input_dim=(3,), latent_dim=request.param[0]['latent_dim'])
-            config3 = BaseAEConfig(input_dim=(4,), latent_dim=request.param[0]['latent_dim'])
+            config1 = BaseAEConfig(
+                input_dim=(2,), latent_dim=request.param[0]["latent_dim"]
+            )
+            config2 = BaseAEConfig(
+                input_dim=(3,), latent_dim=request.param[0]["latent_dim"]
+            )
+            config3 = BaseAEConfig(
+                input_dim=(4,), latent_dim=request.param[0]["latent_dim"]
+            )
 
             encoders = dict(
                 mod1=Encoder_VAE_MLP(config1),
@@ -57,64 +73,59 @@ class Test_forward_and_predict:
                 mod2=Decoder_AE_MLP(config2),
                 mod3=Decoder_AE_MLP(config3),
             )
-        else :
+        else:
             encoders = None
             decoders = None
-        return dict(model_config= model_config, encoders=encoders, decoders=decoders)
-
+        return dict(model_config=model_config, encoders=encoders, decoders=decoders)
 
     def test2(self, dataset, config_and_architectures):
-        
+
         model = JMVAE(**config_and_architectures)
 
-        
         # test model setup
         assert model.alpha == config_and_architectures["model_config"].alpha
-        assert model.beta == config_and_architectures['model_config'].beta
-        assert model.latent_dim == config_and_architectures['model_config'].latent_dim
+        assert model.beta == config_and_architectures["model_config"].beta
+        assert model.latent_dim == config_and_architectures["model_config"].latent_dim
 
         # test forward
         loss = model(dataset, epoch=2, warmup=2).loss
         assert type(loss) == torch.Tensor
         assert loss.size() == torch.Size([])
-        
+
         # test encode and decode
         outputs = model.encode(dataset)
         assert outputs.one_latent_space
         embeddings = outputs.z
         assert isinstance(outputs, ModelOutput)
-        assert embeddings.shape == (2,model.latent_dim )
-        
-        out_dec = model.decode(outputs,modalities='mod1')
-        assert out_dec.mod1.shape == (2,2)
-        
+        assert embeddings.shape == (2, model.latent_dim)
+
+        out_dec = model.decode(outputs, modalities="mod1")
+        assert out_dec.mod1.shape == (2, 2)
+
         outputs = model.encode(dataset, N=2, flatten=True)
         assert outputs.z.shape == (4, model.latent_dim)
-        
-        out_dec = model.decode(outputs,modalities='mod1')
-        assert out_dec.mod1.shape == (4,2)
-        
+
+        out_dec = model.decode(outputs, modalities="mod1")
+        assert out_dec.mod1.shape == (4, 2)
+
         # Encode conditioning on a subset of modalities
         embeddings = model.encode(dataset, cond_mod=["mod1"])
         assert embeddings.z.shape == (2, model.latent_dim)
-        
-        out_dec = model.decode(embeddings,modalities='mod1')
-        assert out_dec.mod1.shape == (2,2)
-        
-        
+
+        out_dec = model.decode(embeddings, modalities="mod1")
+        assert out_dec.mod1.shape == (2, 2)
+
         embeddings = model.encode(dataset, cond_mod="mod2", N=10)
         assert embeddings.z.shape == (10, 2, model.latent_dim)
-        
-        out_dec = model.decode(embeddings,modalities='mod1')
-        assert out_dec.mod1.shape == (10,2,2)
-        
-        embeddings = model.encode(
-            dataset, cond_mod=["mod2", "mod1"]
-        )
+
+        out_dec = model.decode(embeddings, modalities="mod1")
+        assert out_dec.mod1.shape == (10, 2, 2)
+
+        embeddings = model.encode(dataset, cond_mod=["mod2", "mod1"])
         assert embeddings.z.shape == (2, model.latent_dim)
-        
-        out_dec = model.decode(embeddings,modalities='mod1')
-        assert out_dec.mod1.shape == (2,2)
+
+        out_dec = model.decode(embeddings, modalities="mod1")
+        assert out_dec.mod1.shape == (2, 2)
 
         # test predict
         Y = model.predict(dataset, cond_mod="mod1")
@@ -132,7 +143,7 @@ class Test_forward_and_predict:
         assert Y.mod1.shape == (2 * 10, 2)
         assert Y.mod2.shape == (2 * 10, 3)
 
-    def test_encoder_raises_error(self, dataset,config_and_architectures):
+    def test_encoder_raises_error(self, dataset, config_and_architectures):
         model = JMVAE(**config_and_architectures)
 
         with pytest.raises(AttributeError):

@@ -71,7 +71,7 @@ class AutoConfig(BaseConfig):
             from ..nexus import NexusConfig
 
             model_config = NexusConfig.from_json_file(json_path)
-            
+
         elif config_name == "CVAEConfig":
             from ..cvae import CVAEConfig
 

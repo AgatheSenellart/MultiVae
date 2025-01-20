@@ -86,7 +86,7 @@ class AutoModel(nn.Module):
             from ..nexus import Nexus
 
             model = Nexus.load_from_folder(dir_path)
-            
+
         elif model_name == "CVAEConfig":
             from ..cvae import CVAE
 
@@ -188,7 +188,7 @@ class AutoModel(nn.Module):
             from ..nexus import Nexus
 
             model = Nexus.load_from_hf_hub(hf_hub_path, allow_pickle)
-            
+
         elif model_name == "CVAEConfig":
             from ..cvae import CVAE
 
