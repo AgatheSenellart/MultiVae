@@ -7,6 +7,7 @@ from .cub import CUB
 from .mhd import MHD
 from .mmnist import MMNISTDataset
 from .mnist_svhn import MnistSvhn
+from .celeba import CelebAttr
 
 __all__ = [
     "MultimodalBaseDataset",
@@ -16,4 +17,5 @@ __all__ = [
     "CUB",
     "MHD",
     "MMNISTDataset",
+    "CelebAttr"
 ]

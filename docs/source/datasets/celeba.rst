@@ -1,6 +1,6 @@
 **********************************
-Multimodal Handwritten Dataset (MHD)
+CelebAttributes dataset
 **********************************
 
-.. autoclass:: multivae.data.datasets.MHD
+.. autoclass:: multivae.data.datasets.CelebAttr
    :members:

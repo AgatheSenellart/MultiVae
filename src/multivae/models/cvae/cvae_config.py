@@ -13,7 +13,7 @@ class CVAEConfig(BaseConfig):
         latent_dim (int): The dimension of the latent space. Default: 10.
         conditioning_modality (str): The modality to condition the model on.
         main_modality (str): The main modality to reconstruct.
-        decoder_dist (str): The decoder distribution to use. Possible values ['normal','bernoulli','laplace', 'categorical'].
+        decoder_dist (str): The decoder distribution to use. Possible values ['normal', 'bernoulli', 'laplace', 'categorical'].
             For Bernoulli distribution, the decoder is expected to output **logits**.
         decoder_dist_params (dict) : To eventually specify parameters for the output decoder distribution. 
             Default to None.

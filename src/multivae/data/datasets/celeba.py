@@ -7,6 +7,10 @@ from .base import DatasetOutput, MultimodalBaseDataset
 
 
 class CelebAttr(MultimodalBaseDataset):  # pragma: no cover
+    
+    """A CelebA dataset with paired images and attributes. 
+    """
+    
     def __init__(
         self,
         root: str,

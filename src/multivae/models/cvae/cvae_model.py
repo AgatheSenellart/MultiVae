@@ -112,7 +112,7 @@ class CVAE(BaseModel):
             inputs (dict): A dictionary containing the input data for each modality.
             
         Returns:
-            dict: A dictionary containing the output data for each modality.
+            ModelOutput : A ModelOutput instance containing the loss and metrics.
         """
         
         # Encode the input data
@@ -172,7 +172,7 @@ class CVAE(BaseModel):
             N (int, optional): number of samples per datapoint to sample from the posterior. Defaults to 1.
 
         Returns:
-            ModelOutput: contains the embedding. 
+            A ModelOutput instance containing the embeddings. The shape of the embeddings is (N,batch_size,latent_dim)
             
             .. code-block:: python
             
@@ -212,9 +212,9 @@ class CVAE(BaseModel):
         """Decode embeddings to reconstruct the main modality.
 
         Returns:
-            ModelOutput: contains the reconstruction
+            A ModelOutput instance containing the reconstruction. 
             
-            ..code-block:: python
+            .. code-block:: python
 
                 >>> embeddings = model.encode(inputs, N=2)
                 >>> output = model.decode(embeddings)
@@ -238,6 +238,17 @@ class CVAE(BaseModel):
             
     
     def generate_from_prior(self, cond_mod_data:torch.Tensor, N:int = 1, **kwargs) -> ModelOutput:
+        
+        """Generates latent variables from the prior, conditioning on cond_mod_data.
+        
+        Args :
+            cond_mod_data (torch.Tensor) : Data from the conditioning modality.
+            N (int) : number of latent codes to sample from the prior per datapoint
+            
+
+        Returns:
+            A ModelOutput instance containing the embeddings. 
+        """
         
         flatten = kwargs.pop("flatten", False)
         
@@ -265,9 +276,29 @@ class CVAE(BaseModel):
     
     def predict(self, 
                 inputs:MultimodalBaseDataset,
-                cond_mod=Union[list, str],
-                gen_mod=Union[list,str],
-                N=1, **kwargs):
+                cond_mod:Union[list, str]='all',
+                N=1, **kwargs) -> ModelOutput:
+        
+        """Reconstruct from the input or from the conditioning modality. 
+
+
+        Args:
+            inputs (MultimodalBaseDataset) : The data to use for prediction.
+            cond_mod (list or str) : Either 'all' to perform reconstruction or the name of the conditioning modality to
+                sample from the prior using the conditioning modality.
+        Returns:
+            ModelOutput : A ModelOutput instance containing the reconstruction / generation. 
+            
+            .. code-block:: python
+            
+                >>> # reconstructions
+                >>> output = model.predict(inputs, cond_mod = 'all')
+                >>> reconstruction = output.reconstruction
+                
+                
+            
+        
+        """
                 
         if type(cond_mod) == str:
             if cond_mod == 'all':

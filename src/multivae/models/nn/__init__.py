@@ -1,3 +1,5 @@
-from .base_architectures import BaseJointEncoder
+from .base_architectures import BaseJointEncoder, BaseConditionalDecoder
 
-__all__ = ["BaseJointEncoder"]
+
+__all__ = ["BaseJointEncoder",
+           "BaseConditionalDecoder"]

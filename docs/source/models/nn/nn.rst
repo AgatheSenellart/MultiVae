@@ -18,5 +18,8 @@ Base Architectures
 -------------------------------------------
 
 .. autosummary::
-    ~multivae.models.nn.BaseJointEncoder
+    BaseJointEncoder
+    BaseConditionalDecoder
     :nosignatures:
+
+

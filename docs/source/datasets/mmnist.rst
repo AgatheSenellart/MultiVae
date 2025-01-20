@@ -1,6 +1,6 @@
 **********************************
-Multimodal Handwritten Dataset (MHD)
+PolyMNIST Dataset
 **********************************
 
-.. autoclass:: multivae.data.datasets.MHD
+.. autoclass:: multivae.data.datasets.MMNISTDataset
    :members:

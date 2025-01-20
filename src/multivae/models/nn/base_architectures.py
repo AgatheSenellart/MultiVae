@@ -2,7 +2,7 @@ from pythae.models.base.base_model import BaseEncoder, BaseDecoder, ModelOutput
 import torch
 
 class BaseJointEncoder(BaseEncoder):
-    """This is a base class for Encoders neural networks."""
+    """This is a base class for Joint Encoders neural networks."""
 
     def __init__(self):
         BaseEncoder.__init__(self)
@@ -46,6 +46,9 @@ class BaseJointEncoder(BaseEncoder):
     
     
 class BaseConditionalDecoder(BaseDecoder):
+    
+    """This is a base class for Conditional Decoders architectures.
+    """
     
     def __init__(self):
         BaseDecoder.__init__(self)
