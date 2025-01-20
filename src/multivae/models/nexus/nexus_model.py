@@ -461,15 +461,29 @@ class Nexus(BaseMultiVAE):
         use_bottom_z_for_reconstruction = kwargs.pop("use_bottom_z_for_recon", False)
 
         outputs = ModelOutput()
+        
+        reshape = False
+        if len(embedding.z.shape)==3:
+            N,bs,ldim = embedding.z.shape
+            reshape = True
 
         for m in modalities:
             if (use_bottom_z_for_reconstruction) and (
                 m in embedding.modalities_z.keys()
             ):
                 z_m = embedding.modalities_z[m]
+                if reshape:
+                    z_m = z_m.view(N*bs,-1)
             else:
-                z_m = self.top_decoders[m](embedding.z).reconstruction
+                z = embedding.z
+                if reshape:
+                    z = z.view(N*bs,-1)
+                z_m = self.top_decoders[m](z).reconstruction
+                
 
-            outputs[m] = self.decoders[m](z_m).reconstruction
+            recon = self.decoders[m](z_m).reconstruction
+            if reshape :
+                recon = recon.reshape(N,bs,*recon.shape[1:])
+            outputs[m] = recon
 
         return outputs
