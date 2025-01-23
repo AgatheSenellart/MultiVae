@@ -91,6 +91,11 @@ class AutoModel(nn.Module):
             from ..cvae import CVAE
 
             model = CVAE.load_from_folder(dir_path)
+            
+        elif model_name == "MHVAEConfig":
+            from ..mhvae import MHVAE
+            
+            model = MHVAE.load_from_folder(dir_path)
 
         else:
             raise NameError(
