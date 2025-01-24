@@ -108,15 +108,20 @@ class BaseModel(nn.Module):
 
         env_spec.save_json(dir_path, "environment")
         self.model_config.save_json(dir_path, "model_config")
+        
+        torch.save(model_dict, os.path.join(dir_path, "model.pt"))
 
         for archi in self.model_config.custom_architectures:
-            with open(os.path.join(dir_path, archi + ".pkl"), "wb") as fp:
-                cloudpickle.register_pickle_by_value(
-                    inspect.getmodule(self.__getattr__(archi))
-                )
-                cloudpickle.dump(self.__getattr__(archi), fp)
+            try:
+                with open(os.path.join(dir_path, archi + ".pkl"), "wb") as fp:
+                    cloudpickle.register_pickle_by_value(
+                        inspect.getmodule(self.__getattr__(archi))
+                    )
+                    cloudpickle.dump(self.__getattr__(archi), fp)
+            except:
+                logger.warning("The custom architectures could not have saved through cloudpickle."
+                               "Only the state_dict is saved.")
 
-        torch.save(model_dict, os.path.join(dir_path, "model.pt"))
 
     @classmethod
     def _load_model_config_from_folder(cls, dir_path):

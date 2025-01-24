@@ -148,25 +148,32 @@ class my_input_decoder(BaseDecoder):
 
 class prior_block(BaseEncoder):
     
-    def __init__(self, n_channels):
+    def __init__(self, n_channels, wn=False):
         super().__init__()
-
-        self.mu = nn.utils.weight_norm(nn.Conv2d(n_channels,n_channels,1,1,0))
-        self.logvar = nn.utils.weight_norm(nn.Conv2d(n_channels,n_channels,1,1,0))
+        if wn:
+            self.mu = nn.utils.parametrizations.weight_norm(nn.Conv2d(n_channels,n_channels,1,1,0))
+            self.logvar = nn.utils.parametrizations.weight_norm(nn.Conv2d(n_channels,n_channels,1,1,0))
+        else:
+            self.mu = nn.Conv2d(n_channels,n_channels,1,1,0)
+            self.logvar = nn.Conv2d(n_channels,n_channels,1,1,0)
+            
     def forward(self, x):
         return ModelOutput(embedding = self.mu(x), log_covariance = self.logvar(x))
 
 class posterior_block(BaseEncoder):
     
-    def __init__(self, n_channels_before_concat):
+    def __init__(self, n_channels_before_concat, wn=False):
         super().__init__()
         self.network = nn.Sequential(
             nn.Conv2d(2*n_channels_before_concat,n_channels_before_concat,3,1,1, bias=True), 
             nn.SiLU()
         )
-        
-        self.mu = nn.utils.weight_norm(nn.Conv2d(n_channels_before_concat,n_channels_before_concat,1,1,0))
-        self.logvar = nn.utils.weight_norm(nn.Conv2d(n_channels_before_concat,n_channels_before_concat,1,1,0))
+        if wn:
+            self.mu = nn.utils.parametrizations.weight_norm(nn.Conv2d(n_channels_before_concat,n_channels_before_concat,1,1,0))
+            self.logvar = nn.utils.parametrizations.weight_norm(nn.Conv2d(n_channels_before_concat,n_channels_before_concat,1,1,0))
+        else:
+            self.mu =  nn.Conv2d(n_channels_before_concat,n_channels_before_concat,1,1,0)
+            self.logvar = nn.Conv2d(n_channels_before_concat,n_channels_before_concat,1,1,0)
         
     def forward(self, x):
         h = self.network(x)
@@ -174,7 +181,7 @@ class posterior_block(BaseEncoder):
     
 
 
-class Test_CVAE:
+class Test_MHVAE:
 
     @fixture
     def dataset(self):
@@ -196,11 +203,15 @@ class Test_CVAE:
             beta=request.param[2]
         )
     
-
+    
+    @fixture(params = [True, False])
+    def wn(self, request):
+        return request.param
+        
 
 
     @fixture
-    def architectures(self, model_config):
+    def architectures(self, model_config, wn):
 
         encoders = dict(m0 = my_input_encoder(), m1=my_input_encoder())
         decoders = dict(m0 = my_input_decoder(), m1=my_input_decoder())
@@ -220,12 +231,12 @@ class Test_CVAE:
         td_blocks.append(td_2(model_config.latent_dim))
         
         if model_config.n_latent == 4:
-            prior_blocks = [prior_block(32), prior_block(64), prior_block(64)]
-            posterior_blocks = [posterior_block(32), posterior_block(64), posterior_block(64)]
+            prior_blocks = [prior_block(32, wn), prior_block(64,wn), prior_block(64,wn)]
+            posterior_blocks = [posterior_block(32,wn), posterior_block(64,wn), posterior_block(64,wn)]
             
         else:
-            prior_blocks = [prior_block(32), prior_block(64)]
-            posterior_blocks = [posterior_block(32), posterior_block(64)]
+            prior_blocks = [prior_block(32,wn), prior_block(64,wn)]
+            posterior_blocks = [posterior_block(32,wn), posterior_block(64,wn)]
         
         return dict(encoders=encoders, 
                     decoders=decoders,
@@ -276,21 +287,24 @@ class Test_CVAE:
         output = model.encode(samples)
 
         assert isinstance(output, ModelOutput)
-        assert output.z.shape == (10, model.latent_dim)
-        assert hasattr(output, "cond_mod_data")
-        assert torch.all(output.cond_mod_data == samples.data["label"])
+        assert hasattr(output, "z")
+        assert output.z.shape == (10,32,14,14)
+
+        assert hasattr(output, "all_z")
+        assert output.one_latent_space
+        assert type(output.all_z) == dict 
 
         output = model.encode(samples, N=4)
         assert isinstance(output, ModelOutput)
-        assert output.z.shape == (4, 10, model.latent_dim)
-        assert hasattr(output, "cond_mod_data")
-        assert output.cond_mod_data.shape == (4, *samples.data["label"].shape)
+        assert output.z.shape == (4, 10, 32,14,14)
+        assert hasattr(output, "all_z")
+        assert output.one_latent_space
+        assert type(output.all_z) == dict
 
         output = model.encode(samples, N=4, flatten=True)
         assert isinstance(output, ModelOutput)
-        assert output.z.shape == (4 * 10, model.latent_dim)
-        assert hasattr(output, "cond_mod_data")
-        assert torch.all(output.cond_mod_data == torch.cat([samples.data["label"]] * 4))
+        assert output.z.shape == (4 * 10, 32,14,14)
+        assert hasattr(output, "all_z")
 
         return
 
@@ -302,8 +316,8 @@ class Test_CVAE:
         output = model.decode(embeddings)
 
         assert isinstance(output, ModelOutput)
-        assert hasattr(output, "reconstruction")
-        assert output.reconstruction.shape == samples.data["m0"].shape
+        assert hasattr(output, "m0")
+        assert output.m0.shape == samples.data["m0"].shape
 
         return
 
@@ -439,7 +453,7 @@ class Test_CVAE:
         )
 
     @mark.slow
-    def test_checkpoint_saving(self, model, trainer, trainer_config):
+    def test_checkpoint_saving(self, model, trainer, trainer_config,wn):
         dir_path = trainer_config.output_dir
 
         # Make a training step, save the model and reload it
@@ -459,10 +473,10 @@ class Test_CVAE:
         assert set(["model.pt", "optimizer.pt", "training_config.json"]).issubset(
             set(files_list)
         )
-
-        # check pickled custom architectures are in the checkpoint folder
-        for archi in model.model_config.custom_architectures:
-            assert archi + ".pkl" in files_list
+        if not wn:
+            # check pickled custom architectures are in the checkpoint folder
+            for archi in model.model_config.custom_architectures:
+                assert archi + ".pkl" in files_list
 
         model_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "model.pt"))[
             "model_state_dict"
@@ -478,19 +492,20 @@ class Test_CVAE:
         )
 
         # Reload full model and check that it is the same
-        model_rec = AutoModel.load_from_folder(os.path.join(checkpoint_dir))
+        if not wn:
+            model_rec = AutoModel.load_from_folder(os.path.join(checkpoint_dir))
 
-        assert all(
-            [
-                torch.equal(
-                    model_rec.state_dict()[key].cpu(), model.state_dict()[key].cpu()
-                )
-                for key in model.state_dict().keys()
-            ]
-        )
+            assert all(
+                [
+                    torch.equal(
+                        model_rec.state_dict()[key].cpu(), model.state_dict()[key].cpu()
+                    )
+                    for key in model.state_dict().keys()
+                ]
+            )
 
-        assert type(model_rec.encoder.cpu()) == type(model.encoder.cpu())
-        assert type(model_rec.decoder.cpu()) == type(model.decoder.cpu())
+            assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
+            assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
 
         optim_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "optimizer.pt"))
 
@@ -514,7 +529,7 @@ class Test_CVAE:
         )
 
     @mark.slow
-    def test_checkpoint_saving_during_training(self, model, trainer, trainer_config):
+    def test_checkpoint_saving_during_training(self, model, trainer, trainer_config, wn):
 
         target_saving_epoch = trainer_config.steps_saving
 
@@ -525,7 +540,7 @@ class Test_CVAE:
         trainer.train()
 
         training_dir = os.path.join(
-            dir_path, f"CVAE_training_{trainer._training_signature}"
+            dir_path, f"MHVAE_training_{trainer._training_signature}"
         )
         assert os.path.isdir(training_dir)
 
@@ -541,10 +556,10 @@ class Test_CVAE:
         assert set(["model.pt", "optimizer.pt", "training_config.json"]).issubset(
             set(files_list)
         )
-
-        # check pickled custom architectures
-        for archi in model.model_config.custom_architectures:
-            assert archi + ".pkl" in files_list
+        if not wn:
+            # check pickled custom architectures
+            for archi in model.model_config.custom_architectures:
+                assert archi + ".pkl" in files_list
 
         model_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "model.pt"))[
             "model_state_dict"
@@ -558,7 +573,7 @@ class Test_CVAE:
         )
 
     @mark.slow
-    def test_final_model_saving(self, model, trainer, trainer_config):
+    def test_final_model_saving(self, model, trainer, trainer_config,wn):
         dir_path = trainer_config.output_dir
 
         trainer.train()
@@ -566,7 +581,7 @@ class Test_CVAE:
         model = deepcopy(trainer._best_model)
 
         training_dir = os.path.join(
-            dir_path, f"CVAE_training_{trainer._training_signature}"
+            dir_path, f"MHVAE_training_{trainer._training_signature}"
         )
         assert os.path.isdir(training_dir)
 
@@ -578,22 +593,22 @@ class Test_CVAE:
         assert set(["model.pt", "model_config.json", "training_config.json"]).issubset(
             set(files_list)
         )
+        if not wn:
+            # check pickled custom architectures
+            for archi in model.model_config.custom_architectures:
+                assert archi + ".pkl" in files_list
 
-        # check pickled custom architectures
-        for archi in model.model_config.custom_architectures:
-            assert archi + ".pkl" in files_list
+            # check reload full model
+            model_rec = AutoModel.load_from_folder(os.path.join(final_dir))
 
-        # check reload full model
-        model_rec = AutoModel.load_from_folder(os.path.join(final_dir))
+            assert all(
+                [
+                    torch.equal(
+                        model_rec.state_dict()[key].cpu(), model.state_dict()[key].cpu()
+                    )
+                    for key in model.state_dict().keys()
+                ]
+            )
 
-        assert all(
-            [
-                torch.equal(
-                    model_rec.state_dict()[key].cpu(), model.state_dict()[key].cpu()
-                )
-                for key in model.state_dict().keys()
-            ]
-        )
-
-        assert type(model_rec.encoder.cpu()) == type(model.encoder.cpu())
-        assert type(model_rec.decoder.cpu()) == type(model.decoder.cpu())
+            assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
+            assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())

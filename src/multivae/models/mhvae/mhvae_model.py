@@ -71,6 +71,7 @@ class MHVAE(BaseMultiVAE):
         super().__init__(model_config,encoders,decoders)
         self.n_latent = model_config.n_latent
         self.beta = model_config.beta
+        self.model_name = 'MHVAE'
 
         self.sanity_check_bottom_up(encoders, bottom_up_blocks)
         self.set_bottom_up_blocks(bottom_up_blocks)
@@ -126,9 +127,8 @@ class MHVAE(BaseMultiVAE):
         return subsets
     
     
-    def subset_encode(self, z_Ls_params, skips, subset, N=1):
+    def subset_encode(self, z_Ls_params, skips, subset):
         
-        sample_shape = [] if N==1 else [N]
         
         # Compute the joint posterior q(z_L | x) = p(z_L) * \prod_i q(z_L | x_i )
         list_mus = [z_Ls_params[mod].embedding for mod in subset]
@@ -140,7 +140,7 @@ class MHVAE(BaseMultiVAE):
         joint_mu, joint_lv = self.poe(list_mus, list_log_vars)
         
         # Sample z_L
-        z_L = dist.Normal(joint_mu, torch.exp(0.5*joint_lv)).rsample(sample_shape)
+        z_L = dist.Normal(joint_mu, torch.exp(0.5*joint_lv)).rsample()
         
         # Compute KL(q(z_L | x) || p(z_L))
         kl_L = self.kl_divergence_exact(joint_mu,torch.zeros_like(joint_mu), joint_lv, torch.zeros_like(joint_lv)) # p(z_L) = N(0,1)
@@ -177,7 +177,7 @@ class MHVAE(BaseMultiVAE):
             joint_mu, joint_lv = self.poe(list_mus, list_log_vars)
             
             # Sample z_l
-            z_dict[f'z_{i}'] = dist.Normal(joint_mu, torch.exp(0.5*joint_lv)).rsample(sample_shape)
+            z_dict[f'z_{i}'] = dist.Normal(joint_mu, torch.exp(0.5*joint_lv)).rsample()
             
             # Compute KL
             kl_dict[f'kl_{i}'] = self.kl_divergence_exact(joint_mu, prior_mu, joint_lv, prior_log_var)
@@ -221,7 +221,8 @@ class MHVAE(BaseMultiVAE):
         
         return ModelOutput(
             loss = loss,
-            loss_sum = loss
+            loss_sum = loss,
+            metrics = kl_dict 
         )
             
             
@@ -229,24 +230,43 @@ class MHVAE(BaseMultiVAE):
         
         """Returns all the z"""
         
+        
         cond_mod = super().encode(inputs,cond_mod,N,**kwargs).cond_mod
         
         z_Ls_params, skips = self.modality_encode(inputs.data)
         
-        z_dict, kl_dict = self.subset_encode(z_Ls_params,skips, cond_mod, N=N)
+        n_data = len(list(z_Ls_params.values())[0].embedding)
+        
+        if N> 1:
+            for mod in z_Ls_params:
+                z_Ls_params[mod].embedding = torch.cat([z_Ls_params[mod].embedding]*N, dim=0)
+                z_Ls_params[mod].log_covariance = torch.cat([z_Ls_params[mod].log_covariance]*N, dim=0)
+                
+                skips[mod] = [torch.cat([t]*N, dim=0) for t in skips[mod] ]
+        
+        z_dict, kl_dict = self.subset_encode(z_Ls_params,skips, cond_mod)
         
         flatten = kwargs.pop('flatten', False)
         
-        if flatten and N >1:
+        if not flatten and N >1:
             for k in z_dict:
-                N,bs = z_dict[k].shape[0],z_dict[k].shape[1]
-                z_dict[k] = z_dict[k].reshape(N*bs,*z_dict[k].shape[2:])
+                
+                z_dict[k] = z_dict[k].reshape(N,n_data,*z_dict[k].shape[1:])
         
         return ModelOutput(z = z_dict['z_1'], all_z = z_dict, one_latent_space = True)
             
     
     
     def modality_encode(self, data:dict):
+        
+        """
+        Encode each modality on its own. 
+
+        Returns:
+            z_Ls_params: a dictionary containing for each modality a ModelOutput instance
+                with embedding and logcovariance.
+            skips : a dictionary containing a list of tensors for each modality.
+        """
         
         # Apply all bottom_up layers, save the intermediate results
         skips = {mod : [] for mod in data}

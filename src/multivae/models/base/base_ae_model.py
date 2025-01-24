@@ -258,31 +258,27 @@ class BaseMultiVAE(BaseModel):
         elif type(modalities) == str:
             modalities = [modalities]
 
-        if embedding.one_latent_space:
-            z = embedding.z
-            outputs = ModelOutput()
-            if len(z.shape) == 3:
-                N, bs, ldim = z.shape
-                z = z.view(N * bs, ldim)
+        try:
+            if embedding.one_latent_space:
+                z = embedding.z
+                outputs = ModelOutput()
                 for m in modalities:
-                    recon = self.decoders[m](z).reconstruction
-                    outputs[m] = recon.reshape(N, bs, *recon.shape[1:])
+                    outputs[m] = self.decoders[m](z).reconstruction
+                return outputs
             else:
+                z_content = embedding.z
+                outputs = ModelOutput()
                 for m in modalities:
+                    z = torch.cat([z_content, embedding.modalities_z[m]], dim=-1)
                     outputs[m] = self.decoders[m](z).reconstruction
-            return outputs
-        else:
-            z_content = embedding.z
-            outputs = ModelOutput()
-            for m in modalities:
-                z = torch.cat([z_content, embedding.modalities_z[m]], dim=-1)
-                if len(z.shape) == 3:
-                    N, bs, ldim = z.shape
-                    recon = self.decoders[m](z.view(N * bs, ldim)).reconstruction
-                    outputs[m] = recon.reshape(N, bs, *recon.shape[1:])
-                else:
-                    outputs[m] = self.decoders[m](z).reconstruction
-            return outputs
+                return outputs
+        except:
+            raise ValueError("There was an error during decode. "
+                             " Check that the format for the embedding is correct:"
+                             "it must be a ModelOuput instance and "
+                             "embedding.z must be a Tensor of shape (batch_size, *latent_shape)"
+                             "If you used the encode function with N>1 to generate the embedding,"
+                             " you need to pass flatten=True to the encode function")
 
     def predict(
         self,
@@ -319,15 +315,15 @@ class BaseMultiVAE(BaseModel):
             inputs,
             cond_mod,
             N=N,
-            flatten=flatten,
+            flatten=True,
             ignore_incomplete=ignore_incomplete,
             **kwargs,
         )
         output = self.decode(z, gen_mod)
-        # n_data = len(z.z) // N
-        # if not flatten and N > 1:
-        #     for m in output.keys():
-        #         output[m] = output[m].reshape(N, n_data, *output[m].shape[1:])
+        n_data = len(z.z) // N
+        if not flatten and N > 1:
+            for m in output.keys():
+                output[m] = output[m].reshape(N, n_data, *output[m].shape[1:])
         return output
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
@@ -433,7 +429,8 @@ class BaseMultiVAE(BaseModel):
 
             while stop_index <= K:
                 # Encode with the conditional VAE
-                latents = o.z[start_idx:stop_index]
+                latents = o.z[start_idx:stop_index][:,i,:]
+                
 
                 # Decode with the opposite decoder
                 for k in pred_mods:
