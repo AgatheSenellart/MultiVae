@@ -3,11 +3,13 @@ from typing import Union
 
 import numpy as np
 import torch
+from torch import nn
 import torch.distributions as dist
 from numpy.random import choice
 from pythae.models.base.base_utils import ModelOutput
 
 from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
+from multivae.models.nn.default_architectures import BaseDictDecodersMultiLatents, BaseDictEncoders_MultiLatents
 
 from ..base import BaseMultiVAE
 from .dmvae_config import DMVAEConfig
@@ -15,7 +17,10 @@ from .dmvae_config import DMVAEConfig
 
 class DMVAE(BaseMultiVAE):
     """
-    The DVAE model.
+    The DVAE model from the paper 
+    'Private-Shared Disentangled Multimodal VAE for Learning of Latent Representations'
+
+    Mihee Lee, Vladimir Pavlovic
 
     Args:
         model_config (MVAEConfig): An instance of MVAEConfig in which any model's
@@ -25,7 +30,7 @@ class DMVAE(BaseMultiVAE):
             the modalities names and the encoders for each modality. Each encoder is an instance of
             Pythae's BaseEncoder. Default: None.
 
-        decoder (Dict[str, ~pythae.models.nn.base_architectures.BaseDecoder]): A dictionary containing
+        decoders (Dict[str, ~pythae.models.nn.base_architectures.BaseDecoder]): A dictionary containing
             the modalities names and the decoders for each modality. Each decoder is an instance of
             Pythae's BaseDecoder.
     """
@@ -35,10 +40,24 @@ class DMVAE(BaseMultiVAE):
     ):
         super().__init__(model_config, encoders, decoders)
 
-        self.modalities_specific_dim = model_config.modalities_specific_dim
         self.beta = model_config.beta
-        self.model_name = "MVAE"
-        self.set_private_betas(model_config.modality_specific_betas)
+        self.model_name = "DMVAE"
+        self.set_private_betas(model_config.modalities_specific_betas)
+        self.set_modalities_specific_dim(model_config)
+
+        
+    def set_modalities_specific_dim(self, model_config):
+        if model_config.modalities_specific_dim is None:
+            self.modalities_specific_dim = {m:1.0 for m in self.encoders}
+        else:
+            
+            if model_config.modalities_specific_dim.keys() != self.encoders.keys():
+                raise AttributeError("The keys in modalities_specific_dim doesn't match ",
+                                     "the keys in the encoders or input_dims")
+                
+            else:
+                self.modalities_specific_dim = model_config.modalities_specific_dim
+        return 
     
     def set_private_betas(self, beta_dict):
         if beta_dict is None:
@@ -49,6 +68,21 @@ class DMVAE(BaseMultiVAE):
                                      "keys (modalities) as the provided encoders dict.")
             self.private_betas = beta_dict
     
+    def default_encoders(self, model_config) -> nn.ModuleDict:
+        return BaseDictEncoders_MultiLatents(
+            input_dims=model_config.input_dims,
+            latent_dim=model_config.latent_dim,
+            modality_dims=model_config.modalities_specific_dim,
+        )
+        
+        
+    def default_decoders(self, model_config) -> nn.ModuleDict:
+        return BaseDictDecodersMultiLatents(
+            input_dims=model_config.input_dims,
+            latent_dim=model_config.latent_dim,
+            modality_dims=model_config.modalities_specific_dim
+        )
+        
 
     def poe(self, mus_list, log_vars_list):
         
@@ -77,26 +111,33 @@ class DMVAE(BaseMultiVAE):
         
         
         # First compute all embeddings 
-        private_params = dict()
-        shared_params = dict()
+        private_params = {}
+        shared_params = {}
         
         for mod in subset:
-            output_mod = self.encoders[mod](inputs.data['mod'])
-            private_params[mod]=(output_mod.style_embedding, output_mod.style_logcovariance)
+            output_mod = self.encoders[mod](inputs.data[mod])
+            private_params[mod]=(output_mod.style_embedding, output_mod.style_log_covariance)
+            if len(output_mod.style_embedding.shape)==1:
+                private_params[mod]=(output_mod.style_embedding.unsqueeze(0), output_mod.style_log_covariance.unsqueeze(0))
+
             shared_params[mod]=(output_mod.embedding, output_mod.log_covariance)
+            if len(output_mod.embedding.shape)==1:
+                shared_params[mod]=(output_mod.embedding.unsqueeze(0), output_mod.log_covariance.unsqueeze(0))
+
         
         # Compute the PoE for the shared variable
         list_mu = [shared_params[mod][0] for mod in shared_params]
         list_lvs = []
         
+        # For unavailable modalities, set the variance to infinity so that it doesn't count in the PoE
         for mod in subset:
-            log_var_mod = shared_params[mod][1]
+            log_var_mod = shared_params[mod][1].clone()
             if hasattr(inputs, "masks"):
-                        log_var_mod[(1 - inputs.masks[mod].int()).bool().flatten()] = (
+                
+                log_var_mod[(1 - inputs.masks[mod].int()).bool().flatten()] = (
                             torch.inf
                         )
-        
-        # For unavailable modalities, set the variance to infinity so that it doesn't count in the PoE
+            list_lvs.append(log_var_mod)
         
         joint_mu, joint_lv=self.poe(list_mu, list_lvs) # N(0,I) prior is added in the function
         
@@ -108,12 +149,13 @@ class DMVAE(BaseMultiVAE):
         self, inputs: Union[MultimodalBaseDataset, IncompleteDataset], **kwargs
     ):
         """The main function of the model that computes the loss and some monitoring metrics.
-        One of the advantages of MVAE is that we can train with incomplete data.
+        One of the advantages of DMVAE is that we can train with incomplete data.
 
         Args:
             inputs (MultimodalBaseDataset): The data. It can be an instance of IncompleteDataset
                 which contains a field masks for weakly supervised learning.
-                masks is a dictionary indicating which datasamples are missing in each of the modalities.
+                masks is a dictionary indicating which datasamples are missing 
+                in each of the modalities.
                 For each modality, a boolean tensor indicates which samples are available. (The non
                 available samples are assumed to be replaced with zero values in the multimodal dataset entry.)
         """
@@ -128,12 +170,17 @@ class DMVAE(BaseMultiVAE):
         metrics['joint']=joint_elbo
         
         # Compute crossmodal elbos
-        for m in shared_params:
-            mod_elbo = self.compute_elbo(shared_params[m][0], shared_params[m][1], private_params, inputs)
+        for k,params in shared_params.items():
+            mod_elbo = self.compute_elbo(params[0], params[1], private_params, inputs)
+            
+            if hasattr(inputs,'masks'):
+                mod_elbo = inputs.masks[k]*mod_elbo
+            
             loss += mod_elbo
-            metrics[m] = mod_elbo
+            
+            metrics[k] = mod_elbo.mean()
         
-        return ModelOutput(loss=loss)
+        return ModelOutput(loss=loss.mean(), metrics=metrics)
     
     
     def kl_divergence(self, mean, log_var, prior_mean, prior_log_var):
@@ -153,7 +200,6 @@ class DMVAE(BaseMultiVAE):
         return kl.sum(dim=-1)
     
     def compute_elbo(self,q_mu, q_lv, private_params, inputs):
-        
         sigma = torch.exp(0.5*q_lv)
         shared_z = dist.Normal(q_mu, sigma).rsample()
         
@@ -167,11 +213,18 @@ class DMVAE(BaseMultiVAE):
             
             z = torch.cat([
                 shared_z, z_mod
-            ])
+            ], dim=1)
             
             recon_mod = self.decoders[mod](z).reconstruction
             
-            recon_loss += self.recon_log_probs(recon_mod, inputs.data['mod']) * self.rescale_factors[mod]
+            recon_mod = self.recon_log_probs[mod](recon_mod, inputs.data[mod]) * self.rescale_factors[mod]
+            recon_mod = recon_mod.reshape(recon_mod.size(0), -1).sum(-1)
+            
+            if hasattr(inputs,'masks'):
+                # filter unavailable modalities in the reconstruction loss
+                recon_mod =   inputs.masks[mod].float() *recon_mod
+                
+            recon_loss+= recon_mod
             
         # Compute KL divergence for shared variable
         shared_kl = self.kl_divergence(q_mu, q_lv, torch.zeros_like(q_mu), torch.zeros_like(q_lv))
@@ -180,15 +233,19 @@ class DMVAE(BaseMultiVAE):
         # Add the modality specific kls
         for mod in self.encoders:
             mu, lv = private_params[mod]
-            kl += self.kl_divergence(mu,lv, 
-                                     torch.zeros_like(mu), torch.zeros_like(lv))*self.private_betas[mod]
-        
+            kl_mod = self.kl_divergence(mu,lv, 
+                                     torch.zeros_like(mu), torch.zeros_like(lv))
+            
+            kl_mod = kl_mod.reshape(kl_mod.size(0), -1).sum(-1)
+            
+            if hasattr(inputs, 'masks'):
+                kl_mod = inputs.masks[mod].float() * kl_mod
+                
+            kl+= kl_mod*self.private_betas[mod]
         
         neg_elbo = -recon_loss + kl
         
-        # TODO: filter unavailable data
-        
-        return neg_elbo.sum()
+        return neg_elbo
         
         
     def encode(
@@ -219,7 +276,7 @@ class DMVAE(BaseMultiVAE):
         cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
 
         # Compute the shared latent variable conditioning on input modalities
-        sub_mu, sub_logvar,_, private_params = self.compute_mu_log_var_subset(inputs, cond_mod)
+        sub_mu, sub_logvar,_, private_params = self.infer_latent_parameters(inputs, cond_mod)
         sub_std = torch.exp(0.5 * sub_logvar)
         sample_shape = [N] if N > 1 else []
 
@@ -229,19 +286,25 @@ class DMVAE(BaseMultiVAE):
             z = torch.stack([sub_mu] * N) if N > 1 else sub_mu
         else:
             z = dist.Normal(sub_mu, sub_std).rsample(sample_shape)
+            
         flatten = kwargs.pop("flatten", False)
         if flatten:
             z = z.reshape(-1, self.latent_dim)
         
-        modalities_z = dict()
-        for mod in cond_mod:
-            mod_mu, mod_std = private_params[mod][0], torch.exp(0.5*private_params[mod][1])
+        modalities_z = {}
+        for mod in self.encoders:
+            if mod in cond_mod:
+                mod_mu, mod_std = private_params[mod][0], torch.exp(0.5*private_params[mod][1])
+            else:
+                mod_mu = torch.zeros((sub_mu.shape[0], self.modalities_specific_dim[mod]))
+                mod_std = torch.ones_like(mod_mu)
+                
             if return_mean:
                 mod_z = torch.stack([mod_mu] * N) if N > 1 else mod_mu
             else:
                 mod_z = dist.Normal(mod_mu, mod_std).rsample(sample_shape)
             if flatten:
-                mod_z = mod_z.reshape(-1, self.latent_dim)
+                mod_z = mod_z.reshape(-1, self.modalities_specific_dim[mod])
             modalities_z[mod] = mod_z
 
         return ModelOutput(z=z, one_latent_space=False, modalities_z=modalities_z)

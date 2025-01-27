@@ -33,7 +33,6 @@ class DMVAEConfig(BaseMultiVAEConfig):
         modality_specific_betas (dict) : the betas for the private KL divergence terms. Default to None.
 
     """
-    modalities_specific_dim: dict
+    modalities_specific_dim: dict=None
+    modalities_specific_betas:dict=None
     beta: float = 1
-    modality_specific_betas:dict=None
-    

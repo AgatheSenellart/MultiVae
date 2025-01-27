@@ -14,6 +14,7 @@ from .mvae import MVAE, MVAEConfig
 from .mvtcae import MVTCAE, MVTCAEConfig
 from .nexus import Nexus, NexusConfig
 from .telbo import TELBO, TELBOConfig
+from .dmvae import DMVAE, DMVAEConfig
 
 __all__ = [
     "BaseModel",
@@ -43,4 +44,6 @@ __all__ = [
     "NexusConfig",
     "CVAE",
     "CVAEConfig",
+    "DMVAE",
+    "DMVAEConfig"
 ]

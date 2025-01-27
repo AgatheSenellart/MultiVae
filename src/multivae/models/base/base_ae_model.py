@@ -516,5 +516,5 @@ class BaseMultiVAE(BaseModel):
 
             nb_computed_samples += n_samples
 
-        cnll = {m: torch.logsumexp(torch.stack(cnll[mod]), dim=0) for m in cnll}
+        cnll = {m: torch.logsumexp(torch.stack(cnll[m]), dim=0) for m in cnll}
         return cnll
