@@ -92,6 +92,10 @@ class AutoModel(nn.Module):
 
             model = CVAE.load_from_folder(dir_path)
 
+        elif model_name == "DMVAEConfig":
+            from ..dmvae import DMVAE
+
+            model = DMVAE.load_from_folder(dir_path)
         else:
             raise NameError(
                 "Cannot reload automatically the model... "

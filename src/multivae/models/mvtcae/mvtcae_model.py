@@ -123,9 +123,9 @@ class MVTCAE(BaseMultiVAE):
             # For unavailable samples, set the log-variance to infty so that they don't contribute to the
             # product of experts
             if hasattr(inputs, "masks"):
-                output.log_covariance[(1 - inputs.masks[m_key].int()).bool()] = (
-                    torch.inf
-                )
+                output.log_covariance[
+                    (1 - inputs.masks[m_key].int()).bool()
+                ] = torch.inf
             encoders_outputs[m_key] = output
 
         return encoders_outputs
