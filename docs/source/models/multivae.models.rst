@@ -31,4 +31,5 @@ Available Multimodal VAEs
     JNF
     JNFDcca
     Nexus
+    DMVAE
     :nosignatures:

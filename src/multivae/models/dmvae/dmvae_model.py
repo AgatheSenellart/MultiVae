@@ -167,7 +167,7 @@ class DMVAE(BaseMultiVAE):
         # Compute the joint elbo
         joint_elbo = self.compute_elbo(joint_mu, joint_lv, private_params,inputs)
         loss = joint_elbo
-        metrics['joint']=joint_elbo
+        metrics['joint']=joint_elbo.mean()
         
         # Compute crossmodal elbos
         for k,params in shared_params.items():
@@ -296,8 +296,8 @@ class DMVAE(BaseMultiVAE):
             if mod in cond_mod:
                 mod_mu, mod_std = private_params[mod][0], torch.exp(0.5*private_params[mod][1])
             else:
-                mod_mu = torch.zeros((sub_mu.shape[0], self.modalities_specific_dim[mod]))
-                mod_std = torch.ones_like(mod_mu)
+                mod_mu = torch.zeros((sub_mu.shape[0], self.modalities_specific_dim[mod])).to(sub_mu.device)
+                mod_std = torch.ones_like(mod_mu).to(sub_logvar.device)
                 
             if return_mean:
                 mod_z = torch.stack([mod_mu] * N) if N > 1 else mod_mu
@@ -308,74 +308,41 @@ class DMVAE(BaseMultiVAE):
             modalities_z[mod] = mod_z
 
         return ModelOutput(z=z, one_latent_space=False, modalities_z=modalities_z)
-
-    def compute_joint_nll(
-        self,
-        inputs: Union[MultimodalBaseDataset, IncompleteDataset],
-        K: int = 1000,
-        batch_size_K: int = 100,
-    ):
+    
+    
+    def compute_cond_nll(self, inputs, cond_mod, pred_mods, K = 1000, batch_size_K = 100):
         raise NotImplementedError()
     
-        """Computes the joint_negative_nll for a batch of inputs."""
-
-        # iter on each datapoint to compute the iwae estimate of ln(p(x))
-        ll = 0
-        n_data = len(inputs.data[list(inputs.data.keys())[0]])
-        for i in range(n_data):
-            start_idx = 0
-            stop_idx = min(start_idx + batch_size_K, K)
-            lnpxs = []
-
-            # Compute the parameters of the joint posterior
-            mu, log_var = self.compute_mu_log_var_subset(
-                MultimodalBaseDataset(
-                    data={k: inputs.data[k][i].unsqueeze(0) for k in inputs.data}
-                ),
-                list(self.encoders.keys()),
-            )
-
-            sigma = torch.exp(0.5 * log_var)
-            qz_xy = dist.Normal(mu, sigma)
-
-            # And sample from the posterior
-            z_joint = qz_xy.rsample([K]).squeeze()  # shape K x latent_dim
-
-            while start_idx < stop_idx:
-                latents = z_joint[start_idx:stop_idx]
-
-                # Compute p(x_m|z) for z in latents and for each modality m
-                lpx_zs = 0  # ln(p(x,y|z))
-                for mod in inputs.data:
-                    decoder = self.decoders[mod]
-                    recon = decoder(latents)[
-                        "reconstruction"
-                    ]  # (batch_size_K, nb_channels, w, h)
-                    x_m = inputs.data[mod][i]  # (nb_channels, w, h)
-
-                    lpx_zs += (
-                        self.recon_log_probs[mod](
-                            recon, torch.stack([x_m] * len(recon))
-                        )
-                        .reshape(recon.size(0), -1)
-                        .sum(-1)
-                    )
-
-                # Compute ln(p(z))
-                prior = dist.Normal(0, 1)
-                lpz = prior.log_prob(latents).sum(dim=-1)
-
-                # Compute posteriors -ln(q(z|x,y))
-                qz_xy = dist.Normal(mu.squeeze(), sigma.squeeze())
-                lqz_xy = qz_xy.log_prob(latents).sum(dim=-1)
-
-                ln_px = torch.logsumexp(lpx_zs + lpz - lqz_xy, dim=0)
-                lnpxs.append(ln_px)
-
-                # next batch
-                start_idx += batch_size_K
-                stop_idx = min(stop_idx + batch_size_K, K)
-
-            ll += torch.logsumexp(torch.Tensor(lnpxs), dim=0) - np.log(K)
-
-        return -ll
+    def compute_joint_nll(self, inputs, K = 1000, batch_size_K = 100):
+        raise NotImplementedError()
+    
+    def generate_from_prior(self, n_samples, **kwargs):
+        """
+        Generates latent variables from the prior for the shared latent spaces and 
+        for each modality specific latent space.
+        
+        Args:
+            n_samples
+        """
+        
+        device = self.device if self.device is not None else 'cpu'
+        
+        # Generate shared latent variable
+        shared_latent_shape = (
+            [n_samples, self.latent_dim] if n_samples > 1 else [self.latent_dim]
+        )
+        z_shared = dist.Normal(0, 1).rsample(shared_latent_shape).to(self.device)
+        
+        # Generate modalities specific variables
+        modalities_z = {}
+        
+        for k, dim in self.modalities_specific_dim.items():
+            shape = [n_samples,dim] if n_samples > 1 else [dim]
+            modalities_z[k] = dist.Normal(0,1).rsample(shape).to(self.device)
+        
+        return ModelOutput(z = z_shared, one_latent_space=False,modalities_z=modalities_z)
+            
+            
+        
+       
+        

@@ -108,7 +108,7 @@ class Test:
         assert loss.requires_grad
 
         # Try encoding and prediction
-        outputs = model.encode(dataset[0])
+        outputs = model.encode(dataset[3])
         assert ~outputs.one_latent_space
         assert hasattr(outputs, 'modalities_z')
         embeddings = outputs.z
@@ -118,7 +118,7 @@ class Test:
         for k, value in model_config.modalities_specific_dim.items():
             assert outputs.modalities_z[k].shape == (1,value)
         
-        outputs=model.encode(dataset[0], N=2)
+        outputs=model.encode(dataset[3], N=2)
         embeddings = outputs.z
         assert embeddings.shape == (2, 1, model_config.latent_dim)
         
@@ -160,6 +160,43 @@ class Test:
         assert isinstance(Y, ModelOutput)
         assert Y.mod1.shape == (len(dataset)* 10, 3,28,28)
         assert Y.mod2.shape == (len(dataset) * 10, 3,28,28)
+        
+    
+    def test_generate_from_prior(self, model):
+        
+        latents = model.generate_from_prior(n_samples=1)
+        
+        assert isinstance(latents, ModelOutput)
+        shared = latents.z
+        assert shared.shape == (model.latent_dim,)
+        for mod, dim in model.modalities_specific_dim.items():
+            latent_mod = latents.modalities_z[mod]
+            assert latent_mod.shape == (dim,)
+        
+        # Test decode on generate_from_prior
+        generations = model.decode(latents)
+        
+        assert isinstance(generations, ModelOutput)
+        assert generations.mod1.shape == (3,28,28)
+        assert generations.mod2.shape == (3,28,28)
+        
+        # Test with multiple generations
+        
+        latents = model.generate_from_prior(n_samples=10)
+        assert isinstance(latents, ModelOutput)
+        shared = latents.z
+        assert shared.shape == (10,model.latent_dim)
+        for mod, dim in model.modalities_specific_dim.items():
+            latent_mod = latents.modalities_z[mod]
+            assert latent_mod.shape == (10,dim)
+        
+        # Test decode on generate_from_prior
+        generations = model.decode(latents)
+        
+        assert isinstance(generations, ModelOutput)
+        assert generations.mod1.shape == (10,3,28,28)
+        assert generations.mod2.shape == (10,3,28,28)
+                
 
 
     def test_grad(self, model, dataset, model_config_and_architectures):
@@ -205,7 +242,7 @@ class Test:
         trainer.prepare_training()
 
         return trainer
-
+    @pytest.mark.slow
     def test_train_step(self, trainer):
         start_model_state_dict = deepcopy(trainer.model.state_dict())
         start_optimizer = trainer.optimizer
@@ -221,7 +258,7 @@ class Test:
             ]
         )
         assert trainer.optimizer == start_optimizer
-
+    @pytest.mark.slow
     def test_eval_step(self, trainer):
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
@@ -236,7 +273,7 @@ class Test:
                 for key in start_model_state_dict.keys()
             ]
         )
-
+    @pytest.mark.slow
     def test_main_train_loop(self, trainer):
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
@@ -251,7 +288,7 @@ class Test:
                 for key in start_model_state_dict.keys()
             ]
         )
-
+    @pytest.mark.slow
     def test_checkpoint_saving(self, model, trainer, training_config):
         dir_path = training_config.output_dir
 
@@ -325,7 +362,7 @@ class Test:
                 )
             ]
         )
-
+    @pytest.mark.slow
     def test_checkpoint_saving_during_training(self, model, trainer, training_config):
         #
         target_saving_epoch = training_config.steps_saving
@@ -368,7 +405,7 @@ class Test:
                 for key in model.state_dict().keys()
             ]
         )
-
+    @pytest.mark.slow
     def test_final_model_saving(self, model, trainer, training_config):
         dir_path = training_config.output_dir
 
