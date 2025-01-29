@@ -8,7 +8,7 @@ class DMVAEConfig(BaseMultiVAEConfig):
     """
     Config class for the DMVAE model from "Private-Shared Disentangled Multimodal VAE for Learning of Latent
     Representations".
-    
+
 
     Args:
         n_modalities (int): The number of modalities. Default: None.
@@ -33,6 +33,7 @@ class DMVAEConfig(BaseMultiVAEConfig):
         modality_specific_betas (dict) : the betas for the private KL divergence terms. Default to None.
 
     """
-    modalities_specific_dim: dict=None
-    modalities_specific_betas:dict=None
+
+    modalities_specific_dim: dict = None
+    modalities_specific_betas: dict = None
     beta: float = 1

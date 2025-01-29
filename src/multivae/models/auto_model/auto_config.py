@@ -76,10 +76,10 @@ class AutoConfig(BaseConfig):
             from ..cvae import CVAEConfig
 
             model_config = CVAEConfig.from_json_file(json_path)
-            
+
         elif config_name == "DMVAEConfig":
             from ..dmvae import DMVAEConfig
-            
+
             model_config = DMVAEConfig.from_json_file(json_path)
 
         else:

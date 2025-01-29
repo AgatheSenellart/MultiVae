@@ -200,7 +200,6 @@ class Visualization(Evaluator):
         return recon_image
 
     def reconstruction(self, modality: str, **kwargs):
-
         return self.conditional_samples_subset([modality], gen_mod=modality)
 
     def eval(self):

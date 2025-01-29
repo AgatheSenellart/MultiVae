@@ -24,7 +24,7 @@ from ..auto_model import AutoConfig
 from ..nn.default_architectures import BaseDictDecoders, BaseDictEncoders
 from .base_config import BaseMultiVAEConfig, EnvironmentConfig
 from .base_model import BaseModel
-from .base_utils import hf_hub_is_available, model_card_template
+from .base_utils import cross_entropy, hf_hub_is_available, model_card_template
 
 logger = logging.getLogger(__name__)
 console = logging.StreamHandler()
@@ -240,7 +240,7 @@ class BaseMultiVAE(BaseModel):
                     f"modalities {cond_mod}, but some samples are not available"
                     "in all those modalities.",
                 )
-        return ModelOutput(cond_mod=cond_mod)
+        return ModelOutput(cond_mod=cond_mod, z=None, one_latent_space=None)
 
     def decode(self, embedding: ModelOutput, modalities: Union[list, str] = "all"):
         """Decode a latent variable z in all modalities specified in modalities.

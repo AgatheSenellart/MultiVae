@@ -23,9 +23,9 @@ from .cvae_config import CVAEConfig
 
 
 class CVAE(BaseModel):
-    """Conditional Variational Autoencoder model. 
-    
-    See https://arxiv.org/abs/1906.02691 for more information. 
+    """Conditional Variational Autoencoder model.
+
+    See https://arxiv.org/abs/1906.02691 for more information.
     """
 
     def __init__(self, model_config, encoder=None, decoder=None, prior_network=None):
@@ -51,7 +51,6 @@ class CVAE(BaseModel):
         self.set_prior_network(prior_network)
 
     def set_encoder(self, encoder, model_config):
-
         if encoder is None:
             encoder = self.default_encoder(model_config)
         else:
@@ -63,7 +62,6 @@ class CVAE(BaseModel):
         self.encoder = encoder
 
     def set_decoder(self, decoder, model_config):
-
         if decoder is None:
             decoder = self.default_decoder(model_config)
 
@@ -78,7 +76,6 @@ class CVAE(BaseModel):
         self.decoder = decoder
 
     def set_prior_network(self, prior_network):
-
         if prior_network is None:
             self.prior_network = (
                 None  # the prior will be fixed to a standard normal distribution
@@ -92,11 +89,9 @@ class CVAE(BaseModel):
             self.model_config.custom_architectures.append("prior_network")
 
     def set_decoder_dist(self, dist, dist_params):
-
         self.recon_log_prob = set_decoder_dist(dist, dist_params)
 
     def default_encoder(self, model_config):
-
         if model_config.input_dims is None:
             raise AttributeError(
                 "No encoder was provided but model_config.input_dims is None",
@@ -113,7 +108,6 @@ class CVAE(BaseModel):
         )
 
     def default_decoder(self, model_config):
-
         if model_config.input_dims is None:
             raise AttributeError(
                 "No decoder was provided but model_config.input_dims is None",
@@ -180,7 +174,6 @@ class CVAE(BaseModel):
         return ModelOutput(loss=loss, metrics=metrics)
 
     def kl_divergence(self, mean, log_var, prior_mean, prior_log_var):
-
         kl = (
             0.5
             * (
@@ -342,7 +335,6 @@ class CVAE(BaseModel):
                 cond_mod = [cond_mod]
 
         if len(cond_mod) == 1:
-
             if cond_mod[0] == self.conditioning_modality:
                 embeddings = self.generate_from_prior(
                     cond_mod_data=inputs.data[self.conditioning_modality], N=N, **kwargs
@@ -355,7 +347,6 @@ class CVAE(BaseModel):
                     ". You provided {}".format(cond_mod[0])
                 )
         elif len(cond_mod) == 2:
-
             if (
                 self.conditioning_modality not in cond_mod
                 or self.main_modality not in cond_mod

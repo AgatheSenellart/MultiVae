@@ -21,7 +21,6 @@ from multivae.trainers import BaseTrainer, BaseTrainerConfig
 
 
 class Test_forward_and_predict:
-
     @pytest.fixture()
     def dataset(self):
         data = dict(
@@ -48,7 +47,6 @@ class Test_forward_and_predict:
         ]
     )
     def config_and_architectures(self, request):
-
         model_config = JMVAEConfig(n_modalities=3, **request.param[0])
 
         if request.param[1]:
@@ -79,7 +77,6 @@ class Test_forward_and_predict:
         return dict(model_config=model_config, encoders=encoders, decoders=decoders)
 
     def test2(self, dataset, config_and_architectures):
-
         model = JMVAE(**config_and_architectures)
 
         # test model setup

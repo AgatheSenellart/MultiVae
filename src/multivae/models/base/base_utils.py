@@ -2,6 +2,7 @@ import importlib
 
 import torch
 import torch.distributions as dist
+import torch.nn.functional as F
 
 model_card_template = """---
 language: en
@@ -43,14 +44,13 @@ def cross_entropy(input, target, eps=1e-6):
     Wrapper for the cross_entropy loss handling different inputs / targets types.
 
     """
+    _input = input
+    _target = target
     if isinstance(input, dict):
         if "one_hot" in input:
             _input = input["one_hot"]
         else:
             raise NotImplementedError()
-
-    else:
-        _input = input
 
     if isinstance(target, dict):
         if "one_hot" in target:
@@ -58,17 +58,13 @@ def cross_entropy(input, target, eps=1e-6):
 
         elif "tokens" in target:
             # converts to tokens proba instead of class id for text
-            _target = torch.nn.functional.one_hot(target["tokens"], _input.shape[-1])
-    else:
-        _target = target
+            _target = F.one_hot(target["tokens"], _input.shape[-1])
 
     return cross_entropy_(_input, _target, eps)
 
 
 def set_decoder_dist(dist_name, dist_params):
-
     if dist_name == "normal":
-
         scale = dist_params.pop("scale", 1.0)
         log_prob = lambda input, target: dist.Normal(input, scale).log_prob(target)
 

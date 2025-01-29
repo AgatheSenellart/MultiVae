@@ -22,7 +22,6 @@ from multivae.trainers import BaseTrainer, BaseTrainerConfig
 
 
 class Test_CVAE:
-
     @fixture
     def dataset(self):
         return MultimodalBaseDataset(
@@ -34,7 +33,6 @@ class Test_CVAE:
 
     @fixture(params=[[10, "normal", {}, 1.0], [14, "laplace", dict(scale=0.5), 2.5]])
     def model_config(self, request):
-
         return CVAEConfig(
             input_dims=dict(mnist=(3, 28, 28), label=(10,)),
             latent_dim=request.param[0],
@@ -47,7 +45,6 @@ class Test_CVAE:
 
     @fixture(params=[True, False])
     def architectures(self, model_config, request):
-
         if request.param:
             prior_network = Encoder_VAE_MLP(
                 BaseAEConfig(input_dim=(10,), latent_dim=model_config.latent_dim)
@@ -80,7 +77,6 @@ class Test_CVAE:
         return dict(encoder=encoder, decoder=decoder, prior_network=prior_network)
 
     def test_setup(self, model_config, architectures):
-
         model = CVAE(model_config=model_config, **architectures)
 
         assert model.latent_dim == model_config.latent_dim
@@ -114,7 +110,6 @@ class Test_CVAE:
         return CVAE(model_config=model_config, **architectures)
 
     def test_forward(self, model, dataset):
-
         samples = dataset[:10]
         output = model(samples)
 
@@ -125,7 +120,6 @@ class Test_CVAE:
         return
 
     def test_encode(self, dataset, model):
-
         samples = dataset[:10]
         output = model.encode(samples)
 
@@ -149,7 +143,6 @@ class Test_CVAE:
         return
 
     def test_decode(self, model, dataset):
-
         samples = dataset[:10]
 
         embeddings = model.encode(samples)
@@ -162,7 +155,6 @@ class Test_CVAE:
         return
 
     def test_generate_from_prior(self, model, dataset):
-
         samples = dataset[:10]
 
         output = model.generate_from_prior(cond_mod_data=samples.data["label"])
@@ -186,7 +178,6 @@ class Test_CVAE:
         return
 
     def test_predict(self, model, dataset):
-
         samples = dataset[:10]
 
         # Test reconstruction
@@ -234,7 +225,6 @@ class Test_CVAE:
 
     @fixture(params=[[32, 64, 3, "Adagrad"], [16, 16, 4, "Adam"]])
     def trainer_config(self, request):
-
         tmp = tempfile.mkdtemp()
 
         return BaseTrainerConfig(
@@ -249,7 +239,6 @@ class Test_CVAE:
 
     @fixture
     def trainer(self, trainer_config, model, dataset):
-
         return BaseTrainer(
             model,
             train_dataset=dataset,
@@ -382,7 +371,6 @@ class Test_CVAE:
 
     @mark.slow
     def test_checkpoint_saving_during_training(self, model, trainer, trainer_config):
-
         target_saving_epoch = trainer_config.steps_saving
 
         dir_path = trainer_config.output_dir
