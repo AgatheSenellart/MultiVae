@@ -26,7 +26,7 @@ class DMVAE(BaseMultiVAE):
     Mihee Lee, Vladimir Pavlovic
 
     Args:
-        model_config (MVAEConfig): An instance of MVAEConfig in which any model's
+        model_config (DMVAEConfig): An instance of MVAEConfig in which any model's
             parameters is made available.
 
         encoders (Dict[str, ~pythae.models.nn.base_architectures.BaseEncoder]): A dictionary containing
@@ -47,6 +47,7 @@ class DMVAE(BaseMultiVAE):
         self.model_name = "DMVAE"
         self.set_private_betas(model_config.modalities_specific_betas)
         self.set_modalities_specific_dim(model_config)
+        self.multiple_latent_spaces = True
 
     def set_modalities_specific_dim(self, model_config):
         if model_config.modalities_specific_dim is None:

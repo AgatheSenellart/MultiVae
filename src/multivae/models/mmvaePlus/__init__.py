@@ -1,7 +1,6 @@
 """
-Implementation of the Variational Mixture-of-Experts Autoencoder model from the paper "Variational Mixture-of-Experts Autoencoders for
-Multi-Modal Deep Generative Models"
-(https://arxiv.org/abs/1911.03393)
+Implementation of "MMVAE+: Enhancing the Generative Quality of Multimodal VAEs without Compromises"
+(https://openreview.net/forum?id=sdQGxouELX)
 
 """
 
