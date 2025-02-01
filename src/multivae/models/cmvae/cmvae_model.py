@@ -182,11 +182,6 @@ class CMVAE(BaseMultiVAE):
             qw_x = self.post_dist(mu_style, sigma_style)
             w_x = qw_x.rsample([K])
 
-            # The DREG loss uses detached parameters in the loss computation afterwards.
-            qu_x_detach = self.post_dist(mu.clone().detach(), sigma.clone().detach())
-            qw_x_detach = self.post_dist(
-                mu_style.clone().detach(), sigma_style.clone().detach()
-            )
 
             # Then compute all the cross-modal reconstructions
             reconstructions[cond_mod] = {}
@@ -223,32 +218,36 @@ class CMVAE(BaseMultiVAE):
                 recon = recon.reshape((*z_x.shape[:-1], *recon.shape[1:]))
 
                 reconstructions[cond_mod][recon_mod] = recon
-
+                
+            # The DREG loss uses detached posteriors in the loss computation afterwards.
+            qu_x_detach = self.post_dist(mu.clone().detach(), sigma.clone().detach())
+            qw_x_detach = self.post_dist(
+                mu_style.clone().detach(), sigma_style.clone().detach()
+            )
+            
             qu_xs[cond_mod] = qu_x
             qu_xs_detach[cond_mod] = qu_x_detach
             qw_xs[cond_mod] = qw_x
             qw_xs_detach[cond_mod] = qw_x_detach
             embeddings[cond_mod] = dict(u=u_x, w=w_x)
 
-        # Compute DREG loss using detached posteriors as in MMVAE model
+        
         if compute_loss:
             if self.objective == "dreg_looser":
-                loss_output = self.dreg_looser(
-                    qu_xs_detach, qw_xs_detach, embeddings, reconstructions, inputs
-                )
-                # loss_output = self.dreg_looser(
-                #     qu_xs, qw_xs, embeddings, reconstructions, inputs
-                # )
+                # For the DreG estimation, we compute the individual likelihoods with detached posteriors.
+                lws, embeddings = self.compute_k_loss(qu_xs_detach,qw_xs_detach,embeddings,reconstructions, inputs)
+                loss_output = self.dreg_looser(lws,embeddings)
+                
             elif self.objective == "iwae_looser":
-                loss_output = self.iwae_looser(
-                    qu_xs, qw_xs, embeddings, reconstructions, inputs
-                )
+                
+                lws,_ = self.compute_k_loss(qu_xs,qw_xs,embeddings, reconstructions, inputs)
+                loss_output = self.iwae_looser(lws)
+                
             else:
                 raise NotImplemented()
         else:
             loss_output = ModelOutput()
-        if detailed_output:
-            loss_output["zss"] = embeddings
+            loss_output["embeddings"] = embeddings
             loss_output["recon"] = reconstructions
 
         return loss_output
@@ -271,8 +270,7 @@ class CMVAE(BaseMultiVAE):
         n_mods_sample = torch.tensor([self.n_modalities])
 
         lws = []
-        wss = []
-        uss = []
+        
         for mod in embeddings:
             
             ### Compute log p(w_m) / regularizing prior for the private spaces
@@ -345,12 +343,10 @@ class CMVAE(BaseMultiVAE):
                 lw *= inputs.masks[mod].float()
 
             lws.append(lw)
-            zss.append()
         
         lws = torch.stack(lws, dim=0) # n_modalities, K, n_batch
-        zss = torch.stack(zss, dim=0) # n_modalities, K, n_batch, total_latent_dim
 
-        return lws, zss
+        return lws, embeddings
 
     def iwae_looser(self, lws):
         """
@@ -364,9 +360,10 @@ class CMVAE(BaseMultiVAE):
         # Take the mean on modalities
         lws = lws.mean(0) # n_batch
         
+        # Return the sum over the batch
         return ModelOutput(loss=-lws.sum(), loss_sum=-lws.sum(), metrics=dict())
     
-    def dreg_looser(self,lws, zss):
+    def dreg_looser(self,lws, embeddings):
         """The DreG estimation for IWAE. lws needs to have been computed on
         **detached** posteriors.
          
@@ -375,9 +372,20 @@ class CMVAE(BaseMultiVAE):
             wk = (lws - torch.logsumexp(lws, 1, keepdim=True)).exp() #n_modalities, K, n_batch
             # wk is a constant that will not require grad
             
-            if zss.requires_grad:  # True except when we are in eval mode
-                zss.register_hook(lambda grad: wk.unsqueeze(-1) * grad)
-
+        # Compute the loss
+        lws = (lws * wk).sum(1) # n_modalities, n_batch
+        
+        # The gradient with respect to \phi is multiplied one more time by wk
+        # To achieve that, we register a hook on the latent variables u and w
+        for mod in embeddings:
+            embeddings[mod]["w"].register_hook(lambda grad : wk.unsqueeze(-1)*grad)
+            embeddings[mod]["u"].register_hook(lambda grad : wk.unsqueeze(-1)*grad)
+        
+        # Average over modalities
+        lws = lws.mean(0) # n_batch
+        
+        # Return the sum over the batch
+        return ModelOutput(loss=-lws.sum(), loss_sum=-lws.sum(), metrics=dict())
         
         
 
