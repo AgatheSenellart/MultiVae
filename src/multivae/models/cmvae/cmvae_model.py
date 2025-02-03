@@ -25,6 +25,8 @@ console = logging.StreamHandler()
 logger.addHandler(console)
 logger.setLevel(logging.INFO)
 
+# TODO : code a compute_clusters function / and the post-hoc selection of clusters
+
 
 class CMVAE(BaseMultiVAE):
     """
@@ -106,7 +108,7 @@ class CMVAE(BaseMultiVAE):
 
         # Initialize the weights for the cluster distribution
         self._pc_params = torch.nn.Parameter(
-                torch.zeros(1, model_config.modalities_specific_dim),
+                torch.zeros(self.n_clusters),
                 requires_grad=True,
             )
         
@@ -129,7 +131,7 @@ class CMVAE(BaseMultiVAE):
         Returns: Parameters of uniform prior distribution on latent clusters.
 
         """
-        return F.softmax(self._pc_params[0], dim=-1)
+        return F.softmax(self._pc_params, dim=-1)
 
 
     def log_var_to_std(self, log_var):
@@ -257,7 +259,7 @@ class CMVAE(BaseMultiVAE):
     def compute_k_loss(self, qu_xs, qw_xs, embeddings, reconstructions, inputs):
         """
         
-        Compute the loss without any aggregation on K. 
+        Compute all losses components without any aggregation on K. 
         
         Returns:
 
@@ -269,7 +271,7 @@ class CMVAE(BaseMultiVAE):
 
         n_mods_sample = torch.tensor([self.n_modalities])
 
-        lws = []
+        lws = {}
         
         for mod in embeddings:
             
@@ -294,7 +296,7 @@ class CMVAE(BaseMultiVAE):
             
             ### Compute log p_{\pi}(c) for all clusters
             
-            lpc = torch.log(self.pc_params()) # n_clusters
+            lpc = torch.log(self.pc_params) # n_clusters
             
             ### Compute log p(z|c) for all clusters
             
@@ -334,7 +336,7 @@ class CMVAE(BaseMultiVAE):
             for c,q_c in enumerate(qzc):
                 lw_c = lpx_z + self.beta * (lpc[c] + lpzc[c] + lpw - lqu_x - lqw_x - q_c.log())
                 lw += q_c * lw_c
-                
+            assert lw.shape[0] ==(K)
             # lw.shape : (K, n_batch)
             
 
@@ -342,18 +344,20 @@ class CMVAE(BaseMultiVAE):
                 # cancel unavailable modalities
                 lw *= inputs.masks[mod].float()
 
-            lws.append(lw)
+            lws[mod] = lw
         
-        lws = torch.stack(lws, dim=0) # n_modalities, K, n_batch
 
         return lws, embeddings
 
     def iwae_looser(self, lws):
         """
-        The IWAE loss but with the sum outside of the loss for increased stability.
+        The IWAE loss with the sum outside of the loss for increased stability.
         (following Shi et al 2019)
 
         """
+        
+        lws = torch.stack(list(lws.values()), dim=0) # n_modalities, K, n_batch
+
         # Take log_mean_exp on K
         lws = torch.logsumexp(lws, dim=1) - math.log(lws.size(1)) # n_modalities, n_batch
         
@@ -364,26 +368,31 @@ class CMVAE(BaseMultiVAE):
         return ModelOutput(loss=-lws.sum(), loss_sum=-lws.sum(), metrics=dict())
     
     def dreg_looser(self,lws, embeddings):
-        """The DreG estimation for IWAE. lws needs to have been computed on
+        
+        """The DreG estimation for IWAE. losses components in lws needs to have been computed on
         **detached** posteriors.
          
         """
+        wk = {}
         with torch.no_grad():
-            wk = (lws - torch.logsumexp(lws, 1, keepdim=True)).exp() #n_modalities, K, n_batch
+            for mod, lw in lws.items():
+                wk[mod] = (lw - torch.logsumexp(lw, 0, keepdim=True)).exp() # K, n_batch
             # wk is a constant that will not require grad
             
         # Compute the loss
-        lws = (lws * wk).sum(1) # n_modalities, n_batch
+        lws = torch.stack([(lws[mod] * wk[mod]) for mod in embeddings],dim=0) # n_modalities,K, n_batch
+        lws = lws.sum(1) # sum on K
         
         # The gradient with respect to \phi is multiplied one more time by wk
         # To achieve that, we register a hook on the latent variables u and w
         for mod in embeddings:
-            embeddings[mod]["w"].register_hook(lambda grad : wk.unsqueeze(-1)*grad)
-            embeddings[mod]["u"].register_hook(lambda grad : wk.unsqueeze(-1)*grad)
+            embeddings[mod]["w"].register_hook(lambda grad : wk[mod].unsqueeze(-1)*grad)
+            embeddings[mod]["u"].register_hook(lambda grad : wk[mod].unsqueeze(-1)*grad)
         
         # Average over modalities
         lws = lws.mean(0) # n_batch
         
+                
         # Return the sum over the batch
         return ModelOutput(loss=-lws.sum(), loss_sum=-lws.sum(), metrics=dict())
         
@@ -427,12 +436,19 @@ class CMVAE(BaseMultiVAE):
             mu = encoders_outputs[random_mod].embedding
             log_var = encoders_outputs[random_mod].log_covariance
             sigma = self.log_var_to_std(log_var)
+            
+            # Adapt shape in the case of one sample for uniformity
+            if len(mu.shape)==1:
+                mu = mu.unsqueeze(0)
+                sigma = sigma.unsqueeze(0)
 
             qz_x = self.post_dist(mu, sigma)
             sample_shape = torch.Size([]) if N == 1 else torch.Size([N])
             z = qz_x.rsample(sample_shape)
 
             flatten = kwargs.pop("flatten", False)
+            
+            
             if flatten:
                 z = z.reshape(-1, self.latent_dim)
 
@@ -445,12 +461,12 @@ class CMVAE(BaseMultiVAE):
                 if m not in cond_mod:
                     # Sample from priors parameters.
                     if self.reconstruction_option == "single_prior":
-                        mu_m = self.mean_priors[m]
-                        logvar_m = self.logvars_priors[m]
+                        mu_m = self.r_mean_priors[m]
+                        logvar_m = self.r_logvars_priors[m]
 
                     if self.reconstruction_option == "joint_prior":
-                        mu_m = self.mean_priors["shared"][:, self.latent_dim :]
-                        logvar_m = self.logvars_priors["shared"][:, self.latent_dim :]
+                        mu_m = self.w_mean_prior
+                        logvar_m = self.w_logvar_prior
 
                     mu_m = torch.cat([mu_m] * len(mu), dim=0)
                     logvar_m = torch.cat([logvar_m] * len(mu), dim=0)
@@ -459,6 +475,10 @@ class CMVAE(BaseMultiVAE):
                     # Sample from posteriors parameters
                     mu_m = encoders_outputs[m].style_embedding
                     logvar_m = encoders_outputs[m].style_log_covariance
+                    
+                if len(mu_m.shape)==1: # eventually adapt the shape when there is one sample for uniformity
+                    mu_m = mu_m.unsqueeze(0)
+                    logvar_m = logvar_m.unsqueeze(0)
 
                 sigma_m = self.log_var_to_std(logvar_m)
                 style_z[m] = self.post_dist(mu_m, sigma_m).rsample(sample_shape)
@@ -480,67 +500,41 @@ class CMVAE(BaseMultiVAE):
         """
         raise (NotImplementedError)
 
-        # First compute all the parameters of the joint posterior q(z|x,y)
-        post_params = []
-        for cond_mod in self.encoders:
-            output = self.encoders[cond_mod](inputs.data[cond_mod])
-            mu, log_var = output.embedding, output.log_covariance
-            sigma = self.log_var_to_std(log_var)
-            post_params.append((mu, sigma))
-
-        z_joint = self.encode(inputs, N=K).z
-        z_joint = z_joint.permute(1, 0, 2)
-        n_data, _, latent_dim = z_joint.shape
-
-        # Then iter on each datapoint to compute the iwae estimate of ln(p(x))
-        ll = 0
-        for i in range(n_data):
-            start_idx = 0
-            stop_idx = min(start_idx + batch_size_K, K)
-            lnpxs = []
-            while start_idx < stop_idx:
-                latents = z_joint[i][start_idx:stop_idx]
-
-                # Compute p(x_m|z) for z in latents and for each modality m
-                lpx_zs = 0  # ln(p(x,y|z))
-                for mod in inputs.data:
-                    decoder = self.decoders[mod]
-                    recon = decoder(latents)[
-                        "reconstruction"
-                    ]  # (batch_size_K, nb_channels, w, h)
-                    x_m = inputs.data[mod][i]  # (nb_channels, w, h)
-
-                    lpx_zs += (
-                        self.recon_log_probs[mod](recon, x_m)
-                        .reshape(recon.size(0), -1)
-                        .sum(-1)
-                    )
-
-                # Compute ln(p(z))
-                prior = self.prior_dist(*self.pz_params)
-                lpz = prior.log_prob(latents).sum(dim=-1)
-
-                # Compute posteriors -ln(q(z|x,y))
-                qz_xs = [self.post_dist(p[0][i], p[1][i]) for p in post_params]
-                lqz_xy = torch.logsumexp(
-                    torch.stack([q.log_prob(latents).sum(-1) for q in qz_xs]), dim=0
-                ) - np.log(self.n_modalities)
-
-                ln_px = torch.logsumexp(lpx_zs + lpz - lqz_xy, dim=0)
-                lnpxs.append(ln_px)
-
-                # next batch
-                start_idx += batch_size_K
-                stop_idx = min(stop_idx + batch_size_K, K)
-
-            ll += torch.logsumexp(torch.Tensor(lnpxs), dim=0) - np.log(K)
-
-        return -ll
 
     def generate_from_prior(self, n_samples, **kwargs):
-        sample_shape = [n_samples] if n_samples > 1 else []
-        z = self.prior_dist(*self.pz_params).rsample(sample_shape).to(self.device)
-        return ModelOutput(z=z.squeeze(), one_latent_space=True)
+        
+        # generate the clusters assignements
+        
+        clusters = dist.Categorical(logits = self._pc_params).sample([n_samples]) # n_samples, n_clusters
+        
+        # get means for each clusters
+        means = torch.cat([self.mean_clusters[c] for c in clusters], dim=0)
+        lvs = torch.cat([self.logvar_clusters[c] for c in clusters], dim=0) # n_samples, latent_dims
+        
+        # sample shared latent variable
+        z_shared = self.prior_dist(means, self.log_var_to_std(lvs)).sample() #n_samples,latent_dim
+        
+        # generate private parameters
+        style_z = {}
+        for m in self.encoders:
+            if self.reconstruction_option == "single_prior":
+                mu_m = self.r_mean_priors[m]
+                logvar_m = self.r_logvars_priors[m]
+
+            elif self.reconstruction_option == "joint_prior":
+                mu_m = self.w_mean_prior
+                logvar_m = self.w_logvar_prior
+            
+            else :
+                raise NotImplementedError()
+
+            mu_m = torch.cat([mu_m] * n_samples, dim=0)
+            logvar_m = torch.cat([logvar_m] * n_samples, dim=0)
+            style_z[m] = self.prior_dist(mu_m, self.log_var_to_std(logvar_m)).sample()
+        
+        return ModelOutput(z=z_shared, one_latent_space = False,modalities_z=style_z)
+            
+        
 
     def default_encoders(self, model_config) -> nn.ModuleDict:
         return BaseDictEncoders_MultiLatents(
