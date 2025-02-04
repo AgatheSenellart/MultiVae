@@ -25,7 +25,7 @@ console = logging.StreamHandler()
 logger.addHandler(console)
 logger.setLevel(logging.INFO)
 
-# TODO : code a compute_clusters function / and the post-hoc selection of clusters
+# TODO : code a compute_clusters function / and the post-hoc selection of clusters / adapt for incomplete datasets
 
 
 class CMVAE(BaseMultiVAE):
@@ -243,10 +243,14 @@ class CMVAE(BaseMultiVAE):
             elif self.objective == "iwae_looser":
                 
                 lws,_ = self.compute_k_loss(qu_xs,qw_xs,embeddings, reconstructions, inputs)
+                
+                for k, value in lws.items():
+                    assert not torch.any(torch.isnan(value))
+                
                 loss_output = self.iwae_looser(lws)
                 
             else:
-                raise NotImplemented()
+                raise NotImplementedError()
         else:
             loss_output = ModelOutput()
             loss_output["embeddings"] = embeddings
@@ -292,7 +296,7 @@ class CMVAE(BaseMultiVAE):
                 )  # n_modalities,K,nbatch
             lqu_x = torch.logsumexp(lqu_x, dim=0) - torch.log(
                 n_mods_sample
-            )  # log_mean_exp
+            ).to(lqu_x.device)  # log_mean_exp
             
             ### Compute log p_{\pi}(c) for all clusters
             
@@ -309,8 +313,10 @@ class CMVAE(BaseMultiVAE):
             lpzc = lpzc.sum(-1) # n_clusters, K, batch_size
             
             ### Compute q (c | z) for all clusters
-            qzc = lpc.view(self.n_clusters,1,1).exp()*lpzc.exp() #p(c)*p(z|c) # shape n_clusters, K, batch_size
-            qzc = qzc / qzc.sum(0)
+            # qzc = lpc.view(self.n_clusters,1,1).exp()*lpzc.exp() #p(c)*p(z|c) # shape n_clusters, K, batch_size
+            # qzc = qzc / qzc.sum(0)
+            
+            qzc = torch.softmax(lpc.view(self.n_clusters, 1, 1)+lpzc, dim=0) + 1e20 # shape n_clusters, K, batch_size
 
 
             ### Compute \sum_m log p(x_m|z,w_m)
@@ -533,6 +539,16 @@ class CMVAE(BaseMultiVAE):
             style_z[m] = self.prior_dist(mu_m, self.log_var_to_std(logvar_m)).sample()
         
         return ModelOutput(z=z_shared, one_latent_space = False,modalities_z=style_z)
+    
+    def predict_clusters(self, 
+                         inputs: MultimodalBaseDataset, 
+                         cond_mod = 'all'):
+        
+        """ Returns the clusters for all samples in inputs and the probabilities per cluster"""
+        
+        
+        
+        
             
         
 
