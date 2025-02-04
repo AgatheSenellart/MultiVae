@@ -245,6 +245,20 @@ class Test:
         for param in model.encoders["mod1"].parameters():
             
             assert not torch.all(param.grad == 0)
+            
+    def test_predict_clusters(self, model, model_config_and_architectures,dataset):
+        
+        # Test with one sample
+        output = model.predict_clusters(dataset[0])
+        assert isinstance(output, ModelOutput)
+        assert output.clusters.shape == (1,)
+        
+        # Test with a batch
+        output = model.predict_clusters(dataset)
+        assert output.clusters.shape == (len(dataset),)
+        assert output.clusters.dtype == torch.int64
+        assert torch.all(output.clusters<= model.n_clusters)
+        assert torch.all(output.clusters >= 0) 
 
     @pytest.fixture
     def training_config(self, tmpdir):

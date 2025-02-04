@@ -316,7 +316,7 @@ class CMVAE(BaseMultiVAE):
             # qzc = lpc.view(self.n_clusters,1,1).exp()*lpzc.exp() #p(c)*p(z|c) # shape n_clusters, K, batch_size
             # qzc = qzc / qzc.sum(0)
             
-            qzc = torch.softmax(lpc.view(self.n_clusters, 1, 1)+lpzc, dim=0) + 1e20 # shape n_clusters, K, batch_size
+            qzc = torch.softmax(lpc.view(self.n_clusters, 1, 1)+lpzc, dim=0) + 1e-20 # shape n_clusters, K, batch_size
 
 
             ### Compute \sum_m log p(x_m|z,w_m)
@@ -544,13 +544,40 @@ class CMVAE(BaseMultiVAE):
                          inputs: MultimodalBaseDataset, 
                          cond_mod = 'all'):
         
-        """ Returns the clusters for all samples in inputs and the probabilities per cluster"""
+        """ Returns the clusters for all samples in inputs"""
         
-        
-        
-        
+        modalities_cluster_assign = []
+        # First we compute the cluster assignements according to each modality individually
+        for mod in inputs.data:
+            # Compute shared embeddings
+            output_encoder = self.encoders[mod](inputs.data[mod])
+            mu = output_encoder.embedding
+            sigma = self.log_var_to_std(output_encoder.log_covariance)
             
+            z = self.post_dist(mu, sigma).sample()
+            
+            # Compute p(c|z) \propto p(z|c)p(c)
+            lpc = torch.log(self.pc_params + 1e-20) # n_clusters
+            lpz_c = [
+                self.prior_dist(self.mean_clusters[i], 
+                                self.log_var_to_std(self.logvar_clusters[i])).log_prob(z).sum(-1)
+                
+                for i in range(self.n_clusters)
+            ]
+            lpz_c = torch.stack(lpz_c, dim=0) # n_clusters, batch_size
+            pc_z = torch.softmax(lpc.view(-1,1)+lpz_c, dim=0)#n_clusters, batch_size
+            
+            cluster_assign = torch.argmax(pc_z,dim=0) #batch_size
+            modalities_cluster_assign.append(cluster_assign)
+
+        # Take a majority vote among modalities
+        modalities_cluster_assign = torch.stack(modalities_cluster_assign, dim=-1)#batch_size, n_modalities
+        vote_cluster = torch.mode(modalities_cluster_assign, dim=-1)[0] #batch_size
         
+        return ModelOutput(clusters = vote_cluster)
+        
+        
+
 
     def default_encoders(self, model_config) -> nn.ModuleDict:
         return BaseDictEncoders_MultiLatents(
