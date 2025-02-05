@@ -37,6 +37,7 @@ class MMVAEConfig(BaseMultiVAEConfig):
             training. Default to True.
         beta (float) : When using K = 1 (ElBO loss), the beta factor regularizes the divergence term.
             Default to 1.
+        loss (Literal) : Either 'iwae_looser' or 'dreg_looser'. 
     """
 
     K: int = 10
@@ -45,3 +46,4 @@ class MMVAEConfig(BaseMultiVAEConfig):
     ] = "laplace_with_softmax"
     learn_prior: bool = True
     beta: float = 1.0
+    loss:Literal['iwae_looser', 'dreg_looser'] = 'iwae_looser'

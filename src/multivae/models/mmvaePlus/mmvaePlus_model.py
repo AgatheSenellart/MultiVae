@@ -57,7 +57,6 @@ class MMVAEPlus(BaseMultiVAE):
 
         super().__init__(model_config, encoders, decoders)
 
-        self.K = model_config.K
         if model_config.prior_and_posterior_dist == "laplace_with_softmax":
             self.post_dist = Laplace
             self.prior_dist = Laplace
@@ -126,27 +125,18 @@ class MMVAEPlus(BaseMultiVAE):
             return F.softplus(log_var) + 1e-6
         else:
             return torch.exp(0.5 * log_var)
-
-    def forward(self, inputs: MultimodalBaseDataset, **kwargs):
-        # TODO : maybe implement a minibatch strategy for stashing the gradients before
-        # backpropagation when using a large number k.
-        # Also, I've only implemented the dreg_looser loss but it may be nice to offer other options.
+        
+    def compute_posteriors_and_embeddings(self,inputs, detach,**kwargs):
 
         # Drop unused modalities
         inputs = drop_unused_modalities(inputs)
 
         # First compute all the encodings for all modalities
         embeddings = {}
-        qu_xs = {}
-        qw_xs = {}
-        qu_xs_detach = {}
-        qw_xs_detach = {}
-
+        posteriors = {m : {} for m in inputs.data}
         reconstructions = {}
 
-        compute_loss = kwargs.pop("compute_loss", True)
-        detailed_output = kwargs.pop("detailed_output", False)
-        K = kwargs.pop("K", self.K)
+        k_iwae = kwargs.pop("K", self.model_config.K)
 
         for cond_mod in inputs.data:
             output = self.encoders[cond_mod](inputs.data[cond_mod])
@@ -159,18 +149,18 @@ class MMVAEPlus(BaseMultiVAE):
 
             # Shared latent variable
             qu_x = self.post_dist(mu, sigma)
-
-            u_x = qu_x.rsample([K])
+            u_x = qu_x.rsample([k_iwae])
 
             # Private latent variable
             qw_x = self.post_dist(mu_style, sigma_style)
-            w_x = qw_x.rsample([K])
+            w_x = qw_x.rsample([k_iwae])
 
             # The DREG loss uses detached parameters in the loss computation afterwards.
-            qu_x_detach = self.post_dist(mu.clone().detach(), sigma.clone().detach())
-            qw_x_detach = self.post_dist(
-                mu_style.clone().detach(), sigma_style.clone().detach()
-            )
+            if detach:
+                qu_x = self.post_dist(mu.clone().detach(), sigma.clone().detach())
+                qw_x = self.post_dist(
+                    mu_style.clone().detach(), sigma_style.clone().detach()
+                )
 
             # Then compute all the cross-modal reconstructions
             reconstructions[cond_mod] = {}
@@ -195,47 +185,42 @@ class MMVAEPlus(BaseMultiVAE):
                     w = self.prior_dist(
                         mu_prior_mod,
                         sigma_prior_mod,
-                    ).rsample([K])
-                    # print(w.shape)
-                    # print(u_x.shape,w.shape)
+                    ).rsample([k_iwae])
+                    
                     z_x = torch.cat([u_x, w], dim=-1)
                 # Decode
-                # print(z_x.shape)
-                decoder = self.decoders[recon_mod]
+
                 z = z_x.reshape(-1, z_x.shape[-1])
-                recon = decoder(z)["reconstruction"]
+                recon = self.decoders[recon_mod](z)["reconstruction"]
                 recon = recon.reshape((*z_x.shape[:-1], *recon.shape[1:]))
 
                 reconstructions[cond_mod][recon_mod] = recon
 
-            qu_xs[cond_mod] = qu_x
-            qu_xs_detach[cond_mod] = qu_x_detach
-            qw_xs[cond_mod] = qw_x
-            qw_xs_detach[cond_mod] = qw_x_detach
-            embeddings[cond_mod] = dict(u=u_x, w=w_x)
+            posteriors[cond_mod] = {'u':qu_x,'w':qw_x}
+            embeddings[cond_mod] = {'u':u_x, 'w':w_x}
 
-        # Compute DREG loss using detached posteriors as in MMVAE model
-        if compute_loss:
-            if self.objective == "dreg_looser":
-                loss_output = self.dreg_looser(
-                    qu_xs_detach, qw_xs_detach, embeddings, reconstructions, inputs
-                )
-                # loss_output = self.dreg_looser(
-                #     qu_xs, qw_xs, embeddings, reconstructions, inputs
-                # )
-            elif self.objective == "iwae_looser":
-                loss_output = self.iwae_looser(
-                    qu_xs, qw_xs, embeddings, reconstructions, inputs
-                )
-            else:
-                raise NotImplemented()
-        else:
-            loss_output = ModelOutput()
-        if detailed_output:
-            loss_output["zss"] = embeddings
-            loss_output["recon"] = reconstructions
+        return embeddings, posteriors, reconstructions
+        
 
-        return loss_output
+
+    def forward(self, inputs: MultimodalBaseDataset, **kwargs):
+        """Compute loss and metrics."""
+        
+        
+        if self.objective == "dreg_looser":
+            # The DreG estimation uses detached posteriors
+            embeddings, posteriors, reconstructions = self.compute_posteriors_and_embeddings(inputs,detach=True)
+            return self.dreg_looser(
+                posteriors, embeddings,reconstructions, inputs
+            )
+
+        if self.objective == "iwae_looser":
+            embeddings, posteriors, reconstructions = self.compute_posteriors_and_embeddings(inputs, detach=False)
+            return self.iwae_looser(
+                    posteriors, embeddings, reconstructions, inputs
+                )
+        raise NotImplemented()
+        
 
     @property
     def pz_params(self):
@@ -250,13 +235,11 @@ class MMVAEPlus(BaseMultiVAE):
         log_var = self.logvars_priors["shared"]
         std = self.log_var_to_std(log_var)
         return mean, std
+    
 
-    def dreg_looser(self, qu_xs, qw_xs, embeddings, reconstructions, inputs):
-        """
-        The objective function used in the original implementation.
-        it is said to use the Dreg estimator but I am not sure it is done correctly since it doesn't
-        detach the parameters of the posteriors.
-        """
+    def compute_k_lws(self, posteriors, embeddings, reconstructions, inputs):
+        '''Compute the individual likelihoods without any aggregation on k_iwae
+        or the batch.'''
 
         if hasattr(inputs, "masks"):
             # Compute the number of available modalities per sample
@@ -266,22 +249,23 @@ class MMVAEPlus(BaseMultiVAE):
         else:
             n_mods_sample = torch.tensor([self.n_modalities])
 
-        lws = []
-        zss = []
+        lws = {}
         for mod in embeddings:
-            # Log-probabilities to the prior are the same as in MMVAE
+
             u = embeddings[mod]["u"]  # (K, n_batch, latent_dim)
             w = embeddings[mod]["w"]  # (K, n_batch, latent_dim)
             n_mods_sample = n_mods_sample.to(u.device)
-            prior = self.prior_dist(*self.pz_params)
-            z = torch.cat([u, w], dim=-1)
-            lpz = prior.log_prob(z).sum(-1)
 
-            # For the shared latent variable it is the same
+            ### Compute log p(z)
+            z = torch.cat([u, w], dim=-1)
+            lpz = self.prior_dist(*self.pz_params).log_prob(z).sum(-1)
+
+            ### Compute log q(u|X) where u is the shared latent
+            # Get all the individual log q(u|x_i) for all modalities
             if hasattr(inputs, "masks"):
                 qu_x = []
-                for m in qu_xs:
-                    qu = qu_xs[m].log_prob(u).sum(-1)
+                for m in posteriors:
+                    qu = posteriors[m]['u'].log_prob(u).sum(-1)
                     # for unavailable modalities, set the log prob to -infinity so that it accounts for 0
                     # in the log_sum_exp.
                     qu[torch.stack([inputs.masks[m] == False] * len(u))] = -torch.inf
@@ -289,17 +273,18 @@ class MMVAEPlus(BaseMultiVAE):
                 lqu_x = torch.stack(qu_x)  # n_modalities,K,nbatch
             else:
                 lqu_x = torch.stack(
-                    [qu_xs[m].log_prob(u).sum(-1) for m in qu_xs]
+                    [posteriors[m]['u'].log_prob(u).sum(-1) for m in posteriors]
                 )  # n_modalities,K,nbatch
 
+            # Compute the mixture of experts 
             lqu_x = torch.logsumexp(lqu_x, dim=0) - torch.log(
                 n_mods_sample
             )  # log_mean_exp
 
-            # Then we have to add the modality specific posterior
-            lqw_x = qw_xs[mod].log_prob(w).sum(-1)
+            ### Compute log q(w |x_m)
+            lqw_x = posteriors[mod]['w'].log_prob(w).sum(-1)
 
-            # The reconstructions are the same as in the MMVAE
+            ### Compute log p(X|u,w) for all modalities
             lpx_z = 0
             for recon_mod in reconstructions[mod]:
                 x_recon = reconstructions[mod][recon_mod]
@@ -317,108 +302,65 @@ class MMVAEPlus(BaseMultiVAE):
 
                 lpx_z += lpx_z_mod
 
+            ### Compute the entire likelihood
             lw = lpx_z + self.beta * (lpz - lqu_x - lqw_x)
 
             if hasattr(inputs, "masks"):
                 # cancel unavailable modalities
                 lw *= inputs.masks[mod].float()
 
-            lws.append(lw)
-            zss.append(z)
+            lws[mod] = lw
 
-        lws = torch.stack(lws)  # (n_modalities, K, n_batch)
-        zss = torch.stack(zss)  # (n_modalities, K, n_batch,latent_dim)
-        with torch.no_grad():
-            grad_wt = (lws - torch.logsumexp(lws, 1, keepdim=True)).exp()
-            if zss.requires_grad:  # True except when we are in eval mode
-                zss.register_hook(lambda grad: grad_wt.unsqueeze(-1) * grad)
+        return lws, n_mods_sample
 
-        lws = (grad_wt * lws).sum(0) / n_mods_sample  # mean over modalities
 
-        # Note that in the original implementation, loss is summed over the batch (and not averaged)
-        # so the learning_rate might need to be adapted
-        return ModelOutput(loss=-lws.mean(0).sum(), loss_sum=-lws.sum(), metrics=dict())
+    def dreg_looser(self, posteriors, embeddings, reconstructions, inputs):
+        """
+        The DreG estimation for IWAE. losses components in lws needs to have been computed on
+        **detached** posteriors.
+        """
+        lws, n_mods_sample = self.compute_k_lws(posteriors, embeddings,reconstructions, inputs)
 
-    def iwae_looser(self, qu_xs, qw_xs, embeddings, reconstructions, inputs):
+        ### Compute the wk for each modality
+        wk = {}
+        with torch.no_grad(): # The wk are constants
+            for m,lw in lws.items():
+                wk[m] = (lw - torch.logsumexp(lw, 0, keepdim=True)).exp() # K, batch_size
+        
+        ### Compute the loss
+        lws = torch.stack([lws[mod]*wk[mod] for mod in lws], dim=0) #n_modalities, K, batch_size
+        lws = lws.sum(1) # Sum over the k_iwae samples
+
+        ### Take the mean over the modalities (outside the log)
+        lws = lws.sum(0) / n_mods_sample  
+
+        # The gradient with respect to \phi is multiplied one more time by wk
+        # To achieve that, we register a hook on the latent variables u and w
+        for mod in embeddings:
+            embeddings[mod]["w"].register_hook(lambda grad,w=wk[mod] : w.unsqueeze(-1)*grad)
+            embeddings[mod]["u"].register_hook(lambda grad,w=wk[mod] : w.unsqueeze(-1)*grad)
+        
+        ### Return the sum over the batch
+        return ModelOutput(loss=-lws.sum(), loss_sum=-lws.sum(), metrics=dict())
+
+    def iwae_looser(self, posteriors, embeddings, reconstructions, inputs):
         """
         The IWAE loss but with the sum outside of the loss for increased stability.
         (following Shi et al 2019)
 
         """
+        # Get all individual likelihoods
+        lws, n_mods_sample = self.compute_k_lws(posteriors, embeddings,reconstructions,inputs)
+        lws = torch.stack(list(lws.values()), dim=0)  # (n_modalities, K, n_batch)
 
-        if hasattr(inputs, "masks"):
-            # Compute the number of available modalities per sample
-            n_mods_sample = torch.sum(
-                torch.stack(tuple(inputs.masks.values())).int(), dim=0
-            )
-        else:
-            n_mods_sample = torch.tensor([self.n_modalities])
+        # Take log_mean_exp on the k_iwae samples to obtain the k-sampled estimate
+        lws = torch.logsumexp(lws, dim=1) - math.log(lws.size(1)) # n_modalities, n_batch
 
-        lws = []
-        zss = []
-        for mod in embeddings:
-            # Log-probabilities to the prior are the same as in MMVAE
-            u = embeddings[mod]["u"]  # (K, n_batch, latent_dim)
-            w = embeddings[mod]["w"]  # (K, n_batch, latent_dim)
-            n_mods_sample = n_mods_sample.to(u.device)
-            prior = self.prior_dist(*self.pz_params)
-            z = torch.cat([u, w], dim=-1)
-            lpz = prior.log_prob(z).sum(-1)
-
-            # For the shared latent variable it is the same
-            if hasattr(inputs, "masks"):
-                qu_x = []
-                for m in qu_xs:
-                    qu = qu_xs[m].log_prob(u).sum(-1)
-                    # for unavailable modalities, set the log prob to -infinity so that it accounts for 0
-                    # in the log_sum_exp.
-                    qu[torch.stack([inputs.masks[m] == False] * len(u))] = -torch.inf
-                    qu_x.append(qu)
-                lqu_x = torch.stack(qu_x)  # n_modalities,K,nbatch
-            else:
-                lqu_x = torch.stack(
-                    [qu_xs[m].log_prob(u).sum(-1) for m in qu_xs]
-                )  # n_modalities,K,nbatch
-
-            lqu_x = torch.logsumexp(lqu_x, dim=0) - torch.log(
-                n_mods_sample
-            )  # log_mean_exp
-
-            # Then we have to add the modality specific posterior
-            lqw_x = qw_xs[mod].log_prob(w).sum(-1)
-
-            # The reconstructions are the same as in the MMVAE
-            lpx_z = 0
-            for recon_mod in reconstructions[mod]:
-                x_recon = reconstructions[mod][recon_mod]
-                K, n_batch = x_recon.shape[0], x_recon.shape[1]
-                lpx_z_mod = (
-                    self.recon_log_probs[recon_mod](x_recon, inputs.data[recon_mod])
-                    .view(K, n_batch, -1)
-                    .mul(self.rescale_factors[recon_mod])
-                    .sum(-1)
-                )
-
-                if hasattr(inputs, "masks"):
-                    # cancel unavailable modalities
-                    lpx_z_mod *= inputs.masks[recon_mod].float()
-
-                lpx_z += lpx_z_mod
-
-            lw = lpx_z + self.beta * (lpz - lqu_x - lqw_x)
-
-            if hasattr(inputs, "masks"):
-                # cancel unavailable modalities
-                lw *= inputs.masks[mod].float()
-
-            lws.append(lw)
-            zss.append(z)
-
-        lws = torch.stack(lws)  # (n_modalities, K, n_batch)
-
-        lws = torch.logsumexp(lws, dim=1) - math.log(lws.size(1))
-
-        return ModelOutput(loss=-lws.mean(0).sum(), loss_sum=-lws.sum(), metrics=dict())
+        # Take the mean on modalities
+        lws = lws.sum(0)/n_mods_sample
+        
+        # Return the sum over the batch
+        return ModelOutput(loss=-lws.sum(), loss_sum=-lws.sum(), metrics=dict())
 
     def encode(
         self,
@@ -456,12 +398,10 @@ class MMVAEPlus(BaseMultiVAE):
 
             # Sample the shared latent code
             mu = encoders_outputs[random_mod].embedding
-            log_var = encoders_outputs[random_mod].log_covariance
-            sigma = self.log_var_to_std(log_var)
+            sigma = self.log_var_to_std(encoders_outputs[random_mod].log_covariance)
 
-            qz_x = self.post_dist(mu, sigma)
             sample_shape = torch.Size([]) if N == 1 else torch.Size([N])
-            z = qz_x.rsample(sample_shape)
+            z = self.post_dist(mu, sigma).rsample(sample_shape)
 
             flatten = kwargs.pop("flatten", False)
             if flatten:
@@ -470,7 +410,7 @@ class MMVAEPlus(BaseMultiVAE):
             # Modality specific encodings : given by encoders for conditioning modalities
             # Sampling from the priors for the rest of the modalities.
 
-            style_z = dict()
+            style_z = {}
 
             for m in self.encoders:
                 if m not in cond_mod:
@@ -498,75 +438,6 @@ class MMVAEPlus(BaseMultiVAE):
 
             return ModelOutput(z=z, one_latent_space=False, modalities_z=style_z)
 
-    def compute_joint_nll(
-        self, inputs: MultimodalBaseDataset, K: int = 1000, batch_size_K: int = 100
-    ):
-        """
-        Return the estimated negative log-likelihood summed over the inputs.
-        The negative log-likelihood is estimated using importance sampling.
-
-        Args:
-            inputs : the data to compute the joint likelihood
-
-        """
-        raise (NotImplementedError)
-
-        # First compute all the parameters of the joint posterior q(z|x,y)
-        post_params = []
-        for cond_mod in self.encoders:
-            output = self.encoders[cond_mod](inputs.data[cond_mod])
-            mu, log_var = output.embedding, output.log_covariance
-            sigma = self.log_var_to_std(log_var)
-            post_params.append((mu, sigma))
-
-        z_joint = self.encode(inputs, N=K).z
-        z_joint = z_joint.permute(1, 0, 2)
-        n_data, _, latent_dim = z_joint.shape
-
-        # Then iter on each datapoint to compute the iwae estimate of ln(p(x))
-        ll = 0
-        for i in range(n_data):
-            start_idx = 0
-            stop_idx = min(start_idx + batch_size_K, K)
-            lnpxs = []
-            while start_idx < stop_idx:
-                latents = z_joint[i][start_idx:stop_idx]
-
-                # Compute p(x_m|z) for z in latents and for each modality m
-                lpx_zs = 0  # ln(p(x,y|z))
-                for mod in inputs.data:
-                    decoder = self.decoders[mod]
-                    recon = decoder(latents)[
-                        "reconstruction"
-                    ]  # (batch_size_K, nb_channels, w, h)
-                    x_m = inputs.data[mod][i]  # (nb_channels, w, h)
-
-                    lpx_zs += (
-                        self.recon_log_probs[mod](recon, x_m)
-                        .reshape(recon.size(0), -1)
-                        .sum(-1)
-                    )
-
-                # Compute ln(p(z))
-                prior = self.prior_dist(*self.pz_params)
-                lpz = prior.log_prob(latents).sum(dim=-1)
-
-                # Compute posteriors -ln(q(z|x,y))
-                qz_xs = [self.post_dist(p[0][i], p[1][i]) for p in post_params]
-                lqz_xy = torch.logsumexp(
-                    torch.stack([q.log_prob(latents).sum(-1) for q in qz_xs]), dim=0
-                ) - np.log(self.n_modalities)
-
-                ln_px = torch.logsumexp(lpx_zs + lpz - lqz_xy, dim=0)
-                lnpxs.append(ln_px)
-
-                # next batch
-                start_idx += batch_size_K
-                stop_idx = min(stop_idx + batch_size_K, K)
-
-            ll += torch.logsumexp(torch.Tensor(lnpxs), dim=0) - np.log(K)
-
-        return -ll
 
     def generate_from_prior(self, n_samples, **kwargs):
         sample_shape = [n_samples] if n_samples > 1 else []

@@ -20,8 +20,8 @@ class Test:
         params=[
             ("complete", True),
             ("complete", False),
-            # ("incomplete", True),
-            # ("incomplete", False),
+            ("incomplete", True),
+            ("incomplete", False),
         ]
     )
     def dataset(self, request):
@@ -111,11 +111,7 @@ class Test:
         model_config = model_config_and_architectures["model_config"]
 
         # Check parameters setup
-        assert model.beta == model_config.beta
         assert model.n_clusters == model_config.number_of_clusters
-        assert model.modalities_specific_dim == model_config.modalities_specific_dim
-        assert model.objective == model_config.loss
-        assert model.K == model_config.K
         
         for mod in model_config.input_dims:
             if model_config.learn_modality_prior:
@@ -126,7 +122,7 @@ class Test:
         # Test forward
         output = model(dataset, epoch=2)
         loss = output.loss
-        assert type(loss) == torch.Tensor
+        assert isinstance(loss, torch.Tensor)
         assert loss.size() == torch.Size([])
         assert loss.requires_grad
 
@@ -180,10 +176,10 @@ class Test:
         )
         
         # Test predict
-        Y = model.predict(dataset)
+        Y = model.predict(dataset[3:])
         assert isinstance(Y, ModelOutput)
-        assert Y.mod1.shape == (len(dataset), 3, 28, 28)
-        assert Y.mod2.shape == (len(dataset), 3, 28, 28)
+        assert Y.mod1.shape == (3, 3, 28, 28)
+        assert Y.mod2.shape == (3, 3, 28, 28)
 
         Y = model.predict(dataset, cond_mod="mod2", N=10)
         assert isinstance(Y, ModelOutput)
@@ -202,7 +198,7 @@ class Test:
         shared = latents.z
         assert shared.shape == (1,model.latent_dim)
         for k, tensor in latents.modalities_z.items():
-            assert tensor.shape == (1,model.modalities_specific_dim)
+            assert tensor.shape == (1,model.model_config.modalities_specific_dim)
 
         # Test decode on generate_from_prior
         generations = model.decode(latents)
@@ -218,7 +214,7 @@ class Test:
         shared = latents.z
         assert shared.shape == (10, model.latent_dim)
         for k, tensor in latents.modalities_z.items():
-            assert tensor.shape == (10,model.modalities_specific_dim)
+            assert tensor.shape == (10,model.model_config.modalities_specific_dim)
 
         # Test decode on generate_from_prior
         generations = model.decode(latents)
@@ -228,8 +224,9 @@ class Test:
         assert generations.mod2.shape == (10, 3, 28, 28)
 
     def test_grad(self, model, dataset, model_config_and_architectures):
-        model_config = model_config_and_architectures["model_config"]
-        ### Check that the grad with regard to missing modalities is null
+        '''Check that the grad with regard to missing modalities is null and
+        that the rest of the gradients are not'''
+
         output = model(dataset[:3], epoch=2)
         loss = output.loss
         loss.backward()
@@ -237,16 +234,17 @@ class Test:
        
         if isinstance(dataset, IncompleteDataset):
             for param in model.encoders["mod1"].parameters():
-                assert torch.all(param.grad == 0)
+                assert param.grad is None or torch.all(param.grad == 0)
 
         output = model(dataset[-3:], epoch=2)
         loss = output.loss
         loss.backward()
         for param in model.encoders["mod1"].parameters():
-            
+            assert param.grad is not None
             assert not torch.all(param.grad == 0)
             
-    def test_predict_clusters(self, model, model_config_and_architectures,dataset):
+    def test_predict_clusters(self, model,dataset):
+        '''Test the prediction of clusters'''
         
         # Test with one sample
         output = model.predict_clusters(dataset[0])
