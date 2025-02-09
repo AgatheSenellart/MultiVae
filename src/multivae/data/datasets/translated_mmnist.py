@@ -20,32 +20,39 @@ console = logging.StreamHandler()
 logger.addHandler(console)
 logger.setLevel(logging.INFO)
 
-class TranslatedMMNIST(MultimodalBaseDataset):
+class TranslatedMMNIST(MultimodalBaseDataset): # pragma: no cover
     """
     Translated version of the PolyMNIST dataset. 
     The data is built from background images. 
     
-    TODO : provide automatic download for the background images. 
+    The original PolyMNIST (5 modalities) background images can be downloaded from : https://mybox.inria.fr/d/78e581ee5b07402983fa/
+    To use the ExtendedPolyMNIST dataset (10 modalities) introduced in "Score-Based Multimodal Autoencoder" (Wesego 2024),
+    download the background images from https://github.com/rooshenasgroup/sbmae/tree/main/poly_background
+    
+    Args:
+            path (str): parent path where to save the dataset
+            scale (float): The scale factor to downsample the MNIST images
+            translate (bool): Wether to translate the MNIST images
+            n_modalities (int): The number of modalities.
+            background_path (str, optional): Path to the background images. Defaults to None.
+            split (str, optional): train or test. Defaults to 'train'.
+            transform (torchvision.transforms, optional): The transform to apply to images. Defaults to ToTensor().
+            target_transform (torchvision.transform, optional): The transform to apply to labels. Defaults to None.
     
     """
 
-    def __init__(self, path,scale,translate,n_modalities, background_path=None, split='train', transform=None, target_transform=None):
-        """
-            Args:
-                data_path (str): Path where to find the dataset. 
-                transform: tranforms on colored MNIST digits.
-                target_transform: transforms on labels.
-        """
+    def __init__(self, path:str,scale:float,translate:bool,n_modalities:int, background_path=None, split='train', transform=ToTensor(), target_transform=None):
         
         self.scale = scale
         self.translate = translate
-        self.save_path = os.path.join(path, f'Translated_MMNIST_scale_{scale*100}_translated_{translate}', split)
+        self.parent_path = path
+        self.save_path = os.path.join(path, f'Translated_MMNIST_scale_{int(scale*100)}_translated_{translate}', split)
         
         self.num_modalities = n_modalities
         unimodal_datapaths = [
-            os.path.join(self.save_path, f"m{i}.pt") for i in range(self.num_modalities)
+            os.path.join(self.save_path, f"m{i}") for i in range(self.num_modalities)
         ]
-        self.transform = transform if transform is not None else ToTensor()
+        self.transform = transform 
         self.target_transform = target_transform
         
         self.check_or_create_dataset(unimodal_datapaths,background_path,split)
@@ -92,12 +99,12 @@ class TranslatedMMNIST(MultimodalBaseDataset):
         """
         
         # load MNIST data
-        mnist = datasets.MNIST("/tmp", train=train, download=True, transform=None)
+        mnist = datasets.MNIST(self.parent_path, train=train, download=True, transform=None)
 
         # load background images
         background_filepaths = sorted(glob.glob(os.path.join(background_path, "*.jpg")))
 
-        logger.info("\nbackground_filepaths:\n" +  background_filepaths + "\n")
+        logger.info("\nbackground_filepaths:\n" +  str(background_filepaths) + "\n")
         if self.num_modalities > len(background_filepaths):
             raise ValueError("Number of background images must be larger or equal to number of modalities")
         background_images = [Image.open(fp) for fp in background_filepaths]
