@@ -9,6 +9,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from pythae.models.base.base_utils import ModelOutput
 from torch.distributions import Laplace, Normal
+from torch.utils.data import DataLoader
+from scipy.stats import entropy
 
 from multivae.data.datasets.base import MultimodalBaseDataset
 from multivae.data.utils import drop_unused_modalities
@@ -16,6 +18,7 @@ from multivae.models.nn.default_architectures import (
     BaseDictDecodersMultiLatents,
     BaseDictEncoders_MultiLatents,
 )
+from multivae.data.utils import set_inputs_to_device
 
 from ..base import BaseMultiVAE
 from .cmvae_config import CMVAEConfig
@@ -528,36 +531,134 @@ class CMVAE(BaseMultiVAE):
                          inputs: MultimodalBaseDataset, **kwargs):
         
         """ Returns the clusters for all samples in inputs"""
-        
-        modalities_cluster_assign = []
-        # First we compute the cluster assignements according to each modality individually
-        for mod in inputs.data:
-            # Compute shared embeddings
-            output_encoder = self.encoders[mod](inputs.data[mod])
-            mu = output_encoder.embedding
-            sigma = self.log_var_to_std(output_encoder.log_covariance)
+        with torch.no_grad():
+            modalities_cluster_assign = []
+            pc_zs = {}
             
-            z = self.latent_dist(mu, sigma).sample()
-            
-            # Compute p(c|z) \propto p(z|c)p(c)
-            lpc = torch.log(self.pc_params + 1e-20) # n_clusters
-            lpz_c = [
-                self.latent_dist(self.mean_clusters[i], 
-                                self.log_var_to_std(self.logvar_clusters[i])).log_prob(z).sum(-1)
+            # Optional additional computation useful for pruning
+            compute_norm_lliks = kwargs.pop('compute_lliks', False)
+            if compute_norm_lliks:
+                normalized_likelihoods = []
+            # First we compute the cluster assignements according to each modality individually
+            for mod in inputs.data:
+                # Compute shared embeddings
+                output_encoder = self.encoders[mod](inputs.data[mod])
+                mu = output_encoder.embedding
+                sigma = self.log_var_to_std(output_encoder.log_covariance)
                 
-                for i in range(self.n_clusters)
-            ]
-            lpz_c = torch.stack(lpz_c, dim=0) # n_clusters, batch_size
-            pc_z = torch.softmax(lpc.view(-1,1)+lpz_c, dim=0)#n_clusters, batch_size
-            
-            cluster_assign = torch.argmax(pc_z,dim=0) #batch_size
-            modalities_cluster_assign.append(cluster_assign)
+                z = self.latent_dist(mu, sigma).sample()
+                
+                # Compute p(c|z) \propto p(z|c)p(c)
+                lpc = torch.log(self.pc_params + 1e-20) # n_clusters
+                lpz_c = [
+                    self.latent_dist(self.mean_clusters[i], 
+                                    self.log_var_to_std(self.logvar_clusters[i])).log_prob(z).sum(-1)
+                    
+                    for i in range(len(self.mean_clusters))
+                ]
+                lpz_c = torch.stack(lpz_c, dim=0) # n_clusters, batch_size
+                pc_z = torch.softmax(lpc.view(-1,1)+lpz_c, dim=0)#n_clusters, batch_size
+                
+                cluster_assign = torch.argmax(pc_z,dim=0) #batch_size
+                modalities_cluster_assign.append(cluster_assign)
+                pc_zs[mod] = pc_z
+                
+                if compute_norm_lliks:
+                    normalized_likelihoods.append(((lpz_c + lpc.view(-1,1) - pc_z.log()) * pc_z).sum(-1).squeeze(0) / self.latent_dim)
 
-        # Take a majority vote among modalities
-        modalities_cluster_assign = torch.stack(modalities_cluster_assign, dim=-1)#batch_size, n_modalities
-        vote_cluster = torch.mode(modalities_cluster_assign, dim=-1)[0] #batch_size
+            # Take a majority vote among modalities
+            modalities_cluster_assign = torch.stack(modalities_cluster_assign, dim=-1)#batch_size, n_modalities
+            vote_cluster = torch.mode(modalities_cluster_assign, dim=-1)[0] #batch_size
+            
+            # Compute the mean normalized likelihood
+            if compute_norm_lliks:
+                mean_norm_llik = torch.stack(normalized_likelihoods, dim=0).mean(0)
+            
+            if compute_norm_lliks:
+                return ModelOutput(clusters = vote_cluster, pc_zs = pc_zs,norm_lliks = mean_norm_llik)
+            
+            return ModelOutput(clusters = vote_cluster, pc_zs = pc_zs)
+    
+    
+    def prune_clusters(self, train_data:MultimodalBaseDataset, batch_size=128):
+        """Follows the pruning procedure described in the paper to compute the optimal 
+        number of clusters. 
+        At the end of this pruning, the model._pc_params will have been 
+        adapted to correspond to selected clusters.
+
+        Args:
+            train_data (MultimodalBaseDataset): The data to use for pruning.
+            batch_size (int, optional): Defaults to 128.
+
+        Returns:
+            h_values (list): the list of entropy values from 0 to max_clusters.
+        """
         
-        return ModelOutput(clusters = vote_cluster)
+        with torch.no_grad():
+            dataloader = DataLoader(train_data, batch_size=batch_size)
+            
+            n_cluster_params = [None]*(self.n_clusters + 1)
+            h_values = [torch.inf]*(self.n_clusters + 1)
+            
+            device = 'cuda' if torch.cuda.is_available() else 'cpu'
+            
+            while self.n_clusters >= 2:
+                logger.info(f"Computing entropy value with {self.n_clusters} clusters")
+                
+                mass_per_clusters = torch.zeros_like(self._pc_params)
+                h_data = []
+                for batch in dataloader:
+                    batch.data = set_inputs_to_device(batch.data, device)
+                    # Compute all p(c|z_m) and cluster assignements
+                    cluster_predict = self.predict_clusters(batch,compute_lliks = True )
+                    
+                    # Compute the mass per cluster
+                    for i, m in enumerate(mass_per_clusters):
+                        m += (cluster_predict.clusters == i).int().sum()
+                    
+                    # Compute the entropies H(p(c|z_m)) 
+                    h_pzc = []
+                    for mod, pc_z in cluster_predict.pc_zs.items():
+                        
+                        h = torch.Tensor(entropy(pc_z.squeeze(0).cpu().numpy(), axis=1) / (np.log(np.count_nonzero(pc_z.squeeze(0).cpu().numpy(), axis=1))))
+                        h_pzc.append(h.to(device))
+                    # Compute the mean entropy over modalities
+                    h_pzc = torch.stack(h_pzc,dim=0).mean(0)
+                    
+                    # Compute the penalized_norm_entropy
+                    h_data.append(self.model_config.beta*h_pzc - cluster_predict.norm_lliks)
+
+                    
+                # Take mean on the dataset
+                h_data = torch.cat(h_data, dim=-1).mean(-1)
+                
+                # Save the parameters pc
+                h_values[self.n_clusters] = h_data
+                n_cluster_params[self.n_clusters] = self._pc_params.clone()
+                
+                # Sanity check : verify that there is no mass in previously eliminated cluster
+                assert (torch.all(mass_per_clusters[torch.argwhere(self._pc_params==-torch.inf)]==0))
+                logger.info(f"Mass in each cluster : {mass_per_clusters}")
+                
+                # Adapt the clusters parameters by removing the cluster with less mass
+                self.n_clusters = self.n_clusters - 1
+                cluster_to_eliminate = torch.argmin(mass_per_clusters)
+                self._pc_params[cluster_to_eliminate] = -torch.inf
+                logger.info(f'Adapted pc_params to {self._pc_params}')
+            
+            # Get the parameters for the number of clusters that minimizes entropy
+            self.n_clusters = torch.argmin(torch.Tensor(h_values))
+            self._pc_params = torch.nn.Parameter(n_cluster_params[self.n_clusters])
+            logger.info(f"The optimal number of clusters is {self.n_clusters} and the pc_params have been adapted to :{self.pc_params}")
+            
+            return h_values
+            
+        
+            
+                
+            
+            
+            
         
         
 

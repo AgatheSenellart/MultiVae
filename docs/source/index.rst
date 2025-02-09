@@ -8,7 +8,7 @@ Welcome to MultiVae's documentation!
 **********************************
 
 This library gathers some of the most common multi-modal Variational AutoEncoder (VAE)
-implementation in PyTorch. 
+implementations in PyTorch. 
 
 
 .. toctree::

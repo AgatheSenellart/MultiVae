@@ -1,8 +1,8 @@
 """
 Implementation of "Deep Generative Clustering with Multimodal Diffusion Variational Autoencoders"
+(Palumbo et al, 2023)
 
 (https://openreview.net/forum?id=k5THrhXDV3)
-
 
 
 """

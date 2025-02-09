@@ -289,6 +289,23 @@ class MMVAE(BaseMultiVAE):
         # Return the sum over the batch
         return ModelOutput(loss=-lws.sum(), loss_sum=-lws.sum(), metrics={})
 
+    def iwae(self, qz_xs, embeddings, reconstructions, inputs):
+        
+        lws, n_mods_sample = self.compute_k_lws(qz_xs,embeddings,reconstructions,inputs)
+
+        # Transform into a tensor
+        lws = torch.stack(list(lws.values()), dim=0) #n_modalities, K, n_batch
+
+        # Take log_mean_exp on K to compute the IWAE estimation
+        lws = torch.logsumexp(lws, dim=1) - math.log(lws.size(1)) # n_modalities, n_batch
+
+        # Take log_mean_exp on the modalities
+        lws = torch.logsumexp(lws,dim=0) - n_mods_sample.log()
+
+        # Return the sum over the batch
+        return ModelOutput(loss=-lws.sum(), loss_sum=-lws.sum(), metrics={})
+
+
 
 
     def encode(
@@ -437,13 +454,13 @@ class MMVAE(BaseMultiVAE):
             output = self.forward(
                 inputs, compute_loss=False, K=n_samples, detailed_output=True
             )
-            lw = self.iwae(output.qz_xs, output.zss, output.recon, inputs).loss
+            lw = -self.iwae(output.qz_xs, output.zss, output.recon, inputs).loss
             lws.append(lw + np.log(n_samples * self.n_modalities))
 
         ll = torch.logsumexp(torch.stack(lws), dim=0) - np.log(
             nb_computed_samples * self.n_modalities
         )  # n_batch
-        return -ll
+        return -ll # we return the negative log liklihood
 
     def generate_from_prior(self, n_samples, **kwargs):
         sample_shape = [n_samples] if n_samples > 1 else []

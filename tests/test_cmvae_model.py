@@ -257,6 +257,10 @@ class Test:
         assert output.clusters.dtype == torch.int64
         assert torch.all(output.clusters<= model.n_clusters)
         assert torch.all(output.clusters >= 0) 
+        
+    def test_prune_clusters(self, model, dataset):
+        
+        model.prune_clusters(dataset, batch_size=4)
 
     @pytest.fixture
     def training_config(self, tmpdir):
@@ -493,6 +497,7 @@ class Test:
 
         assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
         assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
+        
 
     # # def test_compute_nll(self, model, dataset):
     # #     nll = model.compute_joint_nll(dataset, K=10, batch_size_K=2)

@@ -526,3 +526,8 @@ class TestTraining:
             assert nll >= 0
             assert type(nll) == torch.Tensor
             assert nll.size() == torch.Size([])
+            
+            nll = model.compute_joint_nll_paper(input_dataset, K=10, batch_size_K=2)
+            assert nll >= 0
+            assert type(nll) == torch.Tensor
+            assert nll.size() == torch.Size([])
