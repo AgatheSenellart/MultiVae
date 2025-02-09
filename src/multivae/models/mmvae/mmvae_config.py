@@ -46,4 +46,4 @@ class MMVAEConfig(BaseMultiVAEConfig):
     ] = "laplace_with_softmax"
     learn_prior: bool = True
     beta: float = 1.0
-    loss:Literal['iwae_looser', 'dreg_looser'] = 'iwae_looser'
+    loss:Literal['iwae_looser', 'dreg_looser'] = 'dreg_looser'

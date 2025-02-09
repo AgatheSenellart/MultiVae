@@ -11,6 +11,7 @@ from pythae.models.base.base_utils import ModelOutput
 from torch.distributions import Laplace, Normal
 from torch.utils.data import DataLoader
 from scipy.stats import entropy
+from tqdm import tqdm
 
 from multivae.data.datasets.base import MultimodalBaseDataset
 from multivae.data.utils import drop_unused_modalities
@@ -601,13 +602,14 @@ class CMVAE(BaseMultiVAE):
             h_values = [torch.inf]*(self.n_clusters + 1)
             
             device = 'cuda' if torch.cuda.is_available() else 'cpu'
+            self.to(device)
             
             while self.n_clusters >= 2:
                 logger.info(f"Computing entropy value with {self.n_clusters} clusters")
                 
                 mass_per_clusters = torch.zeros_like(self._pc_params)
                 h_data = []
-                for batch in dataloader:
+                for batch in tqdm(dataloader):
                     batch.data = set_inputs_to_device(batch.data, device)
                     # Compute all p(c|z_m) and cluster assignements
                     cluster_predict = self.predict_clusters(batch,compute_lliks = True )
@@ -633,6 +635,7 @@ class CMVAE(BaseMultiVAE):
                 h_data = torch.cat(h_data, dim=-1).mean(-1)
                 
                 # Save the parameters pc
+                logger.info(f"Entropy value : {h_data}")
                 h_values[self.n_clusters] = h_data
                 n_cluster_params[self.n_clusters] = self._pc_params.clone()
                 
@@ -642,8 +645,11 @@ class CMVAE(BaseMultiVAE):
                 
                 # Adapt the clusters parameters by removing the cluster with less mass
                 self.n_clusters = self.n_clusters - 1
+                # set inf in mass for the clusters that were already removed
+                mass_per_clusters[self._pc_params.isinf()] = torch.inf 
                 cluster_to_eliminate = torch.argmin(mass_per_clusters)
                 self._pc_params[cluster_to_eliminate] = -torch.inf
+                assert torch.sum(self._pc_params.isinf())==self.n_clusters
                 logger.info(f'Adapted pc_params to {self._pc_params}')
             
             # Get the parameters for the number of clusters that minimizes entropy
@@ -652,16 +658,6 @@ class CMVAE(BaseMultiVAE):
             logger.info(f"The optimal number of clusters is {self.n_clusters} and the pc_params have been adapted to :{self.pc_params}")
             
             return h_values
-            
-        
-            
-                
-            
-            
-            
-        
-        
-
 
     def default_encoders(self, model_config) -> nn.ModuleDict:
         return BaseDictEncoders_MultiLatents(
