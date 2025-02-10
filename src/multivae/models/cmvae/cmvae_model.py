@@ -565,7 +565,7 @@ class CMVAE(BaseMultiVAE):
                 pc_zs[mod] = pc_z
                 
                 if compute_norm_lliks:
-                    normalized_likelihoods.append(((lpz_c + lpc.view(-1,1) - pc_z.log()) * pc_z).sum(0).squeeze(1) / self.latent_dim) # batch_size
+                    normalized_likelihoods.append(((lpz_c + lpc.view(-1,1) - pc_z.log()) * pc_z).sum(0).squeeze(-1) / self.latent_dim) # batch_size
 
             # Take a majority vote among modalities
             modalities_cluster_assign = torch.stack(modalities_cluster_assign, dim=-1)#batch_size, n_modalities
@@ -648,8 +648,9 @@ class CMVAE(BaseMultiVAE):
                 # set inf in mass for the clusters that were already removed
                 mass_per_clusters[self._pc_params.isinf()] = torch.inf 
                 cluster_to_eliminate = torch.argmin(mass_per_clusters)
+                logger.info(cluster_to_eliminate)
                 self._pc_params[cluster_to_eliminate] = -torch.inf
-                assert torch.sum(self._pc_params.isinf())==self.n_clusters
+                assert torch.sum(~self._pc_params.isinf())==self.n_clusters
                 logger.info(f'Adapted pc_params to {self._pc_params}')
             
             # Get the parameters for the number of clusters that minimizes entropy

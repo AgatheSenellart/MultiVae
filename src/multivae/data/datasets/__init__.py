@@ -8,6 +8,7 @@ from .cub import CUB
 from .mhd import MHD
 from .mmnist import MMNISTDataset
 from .mnist_svhn import MnistSvhn
+from .translated_mmnist import TranslatedMMNIST
 
 __all__ = [
     "MultimodalBaseDataset",
@@ -18,4 +19,5 @@ __all__ = [
     "MHD",
     "MMNISTDataset",
     "CelebAttr",
+    "TranslatedMMNIST"
 ]
