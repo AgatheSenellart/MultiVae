@@ -565,7 +565,7 @@ class CMVAE(BaseMultiVAE):
                 pc_zs[mod] = pc_z
                 
                 if compute_norm_lliks:
-                    normalized_likelihoods.append(((lpz_c + lpc.view(-1,1) - pc_z.log()) * pc_z).sum(-1).squeeze(0) / self.latent_dim)
+                    normalized_likelihoods.append(((lpz_c + lpc.view(-1,1) - pc_z.log()) * pc_z).sum(0).squeeze(1) / self.latent_dim) # batch_size
 
             # Take a majority vote among modalities
             modalities_cluster_assign = torch.stack(modalities_cluster_assign, dim=-1)#batch_size, n_modalities
@@ -621,8 +621,8 @@ class CMVAE(BaseMultiVAE):
                     # Compute the entropies H(p(c|z_m)) 
                     h_pzc = []
                     for mod, pc_z in cluster_predict.pc_zs.items():
-                        
-                        h = torch.Tensor(entropy(pc_z.squeeze(0).cpu().numpy(), axis=1) / (np.log(np.count_nonzero(pc_z.squeeze(0).cpu().numpy(), axis=1))))
+                        # Compute entropy along the cluster axis
+                        h = torch.Tensor(entropy(pc_z.squeeze(1).cpu().numpy(), axis=0) / (np.log(np.count_nonzero(pc_z.squeeze(1).cpu().numpy(), axis=0))))
                         h_pzc.append(h.to(device))
                     # Compute the mean entropy over modalities
                     h_pzc = torch.stack(h_pzc,dim=0).mean(0)
