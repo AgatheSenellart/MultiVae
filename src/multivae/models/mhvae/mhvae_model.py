@@ -40,7 +40,7 @@ class MHVAE(BaseMultiVAE):
                  decoders:dict,
                  bottom_up_blocks:dict,
                  top_down_blocks:list,
-                 posterior_blocks:list,
+                 posterior_blocks:dict,
                  prior_blocks: list
                  ):
         
@@ -56,7 +56,7 @@ class MHVAE(BaseMultiVAE):
                 of BaseEncoder and must return the mean and log_covariance for the deepest latent variable.
             top_down_blocks (List[nn.Module]): contains the (n_latent-1) top-down layers. 
                 Each layer must be an instance of nn.Module. 
-            posterior_blocks (List): contains the (n_latent - 1) posterior layers. 
+            posterior_blocks (Dict): contains the (n_latent - 1) posterior layers for each modality. 
                 Each layer must be an instance of BaseEncoder. The input dimension of each posterior
                 block must match 2 * the output dimension of the corresponding top_down_blocks. 
             prior_blocks (List): contains the (n_latent - 1) prior layers. 
@@ -83,7 +83,9 @@ class MHVAE(BaseMultiVAE):
         self.prior_blocks = torch.nn.ModuleList(prior_blocks)
         
         self.sanity_check_posterior_blocks(posterior_blocks)
-        self.posterior_blocks = torch.nn.ModuleList(posterior_blocks)
+        self.posterior_blocks = torch.nn.ModuleDict()
+        for mod in posterior_blocks:
+            self.posterior_blocks[mod] = torch.nn.ModuleList(posterior_blocks[mod])
         
         self.model_config.custom_architectures.extend([
             'bottom_up_blocks',
@@ -170,7 +172,7 @@ class MHVAE(BaseMultiVAE):
                 
                 concat = torch.cat([h,d], dim=1) # concatenate on the channels 
                 
-                output = self.posterior_blocks[i-1](concat)
+                output = self.posterior_blocks[mod][i-1](concat)
                 list_mus.append(output.embedding)
                 list_log_vars.append(output.log_covariance)
             
@@ -288,8 +290,6 @@ class MHVAE(BaseMultiVAE):
             z_Ls_params[mod] = output
         
         return z_Ls_params, skips
-            
-
         
 
     def sanity_check_bottom_up(self, encoders, bottom_up_blocks):
@@ -323,11 +323,13 @@ class MHVAE(BaseMultiVAE):
         
     def sanity_check_posterior_blocks(self, posterior_blocks):
         
-        if len(posterior_blocks) != self.n_latent - 1:
-            raise AttributeError(f"There must be {self.n_latent-1} modules in posterior_blocks.")
-        for block in posterior_blocks:
-            if not isinstance(block,BaseEncoder ):
-                raise AttributeError(f'The modules in posterior blocks must be instances of BaseEncoder')
+        assert posterior_blocks.keys() == self.encoders.keys()
+        for m, p in posterior_blocks.items():
+            if len(p) != self.n_latent - 1:
+                raise AttributeError(f"There must be {self.n_latent-1} modules in posterior_blocks[{m}].")
+            for block in p:
+                if not isinstance(block,BaseEncoder ):
+                    raise AttributeError(f'The modules in posterior_blocks[{m}] must be instances of BaseEncoder')
             
     def sanity_check_prior_blocks(self, prior_blocks):
         
