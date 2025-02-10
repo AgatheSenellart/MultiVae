@@ -19,5 +19,5 @@ __all__ = [
     "MHD",
     "MMNISTDataset",
     "CelebAttr",
-    "TranslatedMMNIST"
+    "TranslatedMMNIST",
 ]

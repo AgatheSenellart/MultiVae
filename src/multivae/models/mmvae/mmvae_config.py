@@ -37,13 +37,13 @@ class MMVAEConfig(BaseMultiVAEConfig):
             training. Default to True.
         beta (float) : When using K = 1 (ElBO loss), the beta factor regularizes the divergence term.
             Default to 1.
-        loss (Literal) : Either 'iwae_looser' or 'dreg_looser'. 
+        loss (Literal) : Either 'iwae_looser' or 'dreg_looser'.
     """
 
     K: int = 10
-    prior_and_posterior_dist: Literal[
-        "laplace_with_softmax", "normal"
-    ] = "laplace_with_softmax"
+    prior_and_posterior_dist: Literal["laplace_with_softmax", "normal"] = (
+        "laplace_with_softmax"
+    )
     learn_prior: bool = True
     beta: float = 1.0
-    loss:Literal['iwae_looser', 'dreg_looser'] = 'dreg_looser'
+    loss: Literal["iwae_looser", "dreg_looser"] = "dreg_looser"

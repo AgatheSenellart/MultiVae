@@ -8,7 +8,7 @@ from pythae.models.base.base_utils import ModelOutput
 
 from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
 from multivae.data.utils import set_inputs_to_device
-from multivae.models import CMVAEConfig, CMVAE, AutoModel
+from multivae.models import CMVAE, AutoModel, CMVAEConfig
 from multivae.models.base.base_config import BaseAEConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
 from multivae.models.nn.mmnist import DecoderConvMMNIST, EncoderConvMMNIST_multilatents
@@ -52,8 +52,19 @@ class Test:
         return dataset
 
     @pytest.fixture(
-        params=[(12, 2.5,12, None,True,6,'dreg_looser',7),
-                (13, 1.2, 3, {"mod1":'laplace', "mod2" : 'laplace',"mod3":'normal'}, False,7, 'iwae_looser',9)]
+        params=[
+            (12, 2.5, 12, None, True, 6, "dreg_looser", 7),
+            (
+                13,
+                1.2,
+                3,
+                {"mod1": "laplace", "mod2": "laplace", "mod3": "normal"},
+                False,
+                7,
+                "iwae_looser",
+                9,
+            ),
+        ]
     )
     def model_config_and_architectures(self, request):
         """Return model_config and custom architectures for DMVAE model"""
@@ -68,28 +79,28 @@ class Test:
             learn_modality_prior=request.param[4],
             number_of_clusters=request.param[5],
             loss=request.param[6],
-            K = request.param[7]
-            
+            K=request.param[7],
         )
 
         encoders_config = BaseAEConfig(
-                input_dim=(3, 28, 28),
-                latent_dim=model_config.latent_dim,
-                style_dim=model_config.modalities_specific_dim)
-            
+            input_dim=(3, 28, 28),
+            latent_dim=model_config.latent_dim,
+            style_dim=model_config.modalities_specific_dim,
+        )
 
         decoders_config = BaseAEConfig(
-                input_dim=(3, 28, 28),
-                latent_dim=model_config.latent_dim
-                + model_config.modalities_specific_dim)
-            
+            input_dim=(3, 28, 28),
+            latent_dim=model_config.latent_dim + model_config.modalities_specific_dim,
+        )
 
         encoders = {
             m: EncoderConvMMNIST_multilatents(encoders_config)
             for m in model_config.input_dims
         }
 
-        decoders = {m: DecoderConvMMNIST(decoders_config) for m in model_config.input_dims}
+        decoders = {
+            m: DecoderConvMMNIST(decoders_config) for m in model_config.input_dims
+        }
 
         return {
             "model_config": model_config,
@@ -107,18 +118,18 @@ class Test:
         return model
 
     def test_setup(self, model, dataset, model_config_and_architectures):
-        
+
         model_config = model_config_and_architectures["model_config"]
 
         # Check parameters setup
         assert model.n_clusters == model_config.number_of_clusters
-        
+
         for mod in model_config.input_dims:
             if model_config.learn_modality_prior:
                 assert model.r_logvars_priors[mod].requires_grad
             else:
                 assert not model.r_logvars_priors[mod].requires_grad
-        
+
         # Test forward
         output = model(dataset, epoch=2)
         loss = output.loss
@@ -127,7 +138,7 @@ class Test:
         assert loss.requires_grad
 
         ## Test encode
-        
+
         # conditioning on all modalities
         outputs = model.encode(dataset[3])
         assert ~outputs.one_latent_space
@@ -144,8 +155,8 @@ class Test:
         assert embeddings.shape == (2, 1, model_config.latent_dim)
 
         for k, tensor in outputs.modalities_z.items():
-            assert tensor.shape == (2,1, model_config.modalities_specific_dim)
-            
+            assert tensor.shape == (2, 1, model_config.modalities_specific_dim)
+
         # conditioning on one modality
         outputs = model.encode(dataset, cond_mod=["mod2"])
         embeddings = outputs.z
@@ -174,7 +185,7 @@ class Test:
             len(dataset),
             model_config.modalities_specific_dim,
         )
-        
+
         # Test predict
         Y = model.predict(dataset[3:])
         assert isinstance(Y, ModelOutput)
@@ -186,7 +197,7 @@ class Test:
         assert Y.mod1.shape == (10, len(dataset), 3, 28, 28)
         assert Y.mod2.shape == (10, len(dataset), 3, 28, 28)
 
-        Y = model.predict(dataset, cond_mod=["mod2","mod3"], N=10, flatten=True)
+        Y = model.predict(dataset, cond_mod=["mod2", "mod3"], N=10, flatten=True)
         assert isinstance(Y, ModelOutput)
         assert Y.mod1.shape == (len(dataset) * 10, 3, 28, 28)
         assert Y.mod2.shape == (len(dataset) * 10, 3, 28, 28)
@@ -196,16 +207,16 @@ class Test:
 
         assert isinstance(latents, ModelOutput)
         shared = latents.z
-        assert shared.shape == (1,model.latent_dim)
+        assert shared.shape == (1, model.latent_dim)
         for k, tensor in latents.modalities_z.items():
-            assert tensor.shape == (1,model.model_config.modalities_specific_dim)
+            assert tensor.shape == (1, model.model_config.modalities_specific_dim)
 
         # Test decode on generate_from_prior
         generations = model.decode(latents)
 
         assert isinstance(generations, ModelOutput)
-        assert generations.mod1.shape == (1,3, 28, 28)
-        assert generations.mod2.shape == (1,3, 28, 28)
+        assert generations.mod1.shape == (1, 3, 28, 28)
+        assert generations.mod2.shape == (1, 3, 28, 28)
 
         # Test with multiple generations
 
@@ -214,7 +225,7 @@ class Test:
         shared = latents.z
         assert shared.shape == (10, model.latent_dim)
         for k, tensor in latents.modalities_z.items():
-            assert tensor.shape == (10,model.model_config.modalities_specific_dim)
+            assert tensor.shape == (10, model.model_config.modalities_specific_dim)
 
         # Test decode on generate_from_prior
         generations = model.decode(latents)
@@ -224,14 +235,13 @@ class Test:
         assert generations.mod2.shape == (10, 3, 28, 28)
 
     def test_grad(self, model, dataset, model_config_and_architectures):
-        '''Check that the grad with regard to missing modalities is null and
-        that the rest of the gradients are not'''
+        """Check that the grad with regard to missing modalities is null and
+        that the rest of the gradients are not"""
 
         output = model(dataset[:3], epoch=2)
         loss = output.loss
         loss.backward()
-        
-       
+
         if isinstance(dataset, IncompleteDataset):
             for param in model.encoders["mod1"].parameters():
                 assert param.grad is None or torch.all(param.grad == 0)
@@ -242,24 +252,24 @@ class Test:
         for param in model.encoders["mod1"].parameters():
             assert param.grad is not None
             assert not torch.all(param.grad == 0)
-            
-    def test_predict_clusters(self, model,dataset):
-        '''Test the prediction of clusters'''
-        
+
+    def test_predict_clusters(self, model, dataset):
+        """Test the prediction of clusters"""
+
         # Test with one sample
         output = model.predict_clusters(dataset[0])
         assert isinstance(output, ModelOutput)
         assert output.clusters.shape == (1,)
-        
+
         # Test with a batch
         output = model.predict_clusters(dataset)
         assert output.clusters.shape == (len(dataset),)
         assert output.clusters.dtype == torch.int64
-        assert torch.all(output.clusters<= model.n_clusters)
-        assert torch.all(output.clusters >= 0) 
-        
+        assert torch.all(output.clusters <= model.n_clusters)
+        assert torch.all(output.clusters >= 0)
+
     def test_prune_clusters(self, model, dataset):
-        
+
         model.prune_clusters(dataset, batch_size=4)
 
     @pytest.fixture
@@ -273,7 +283,7 @@ class Test:
             optimizer_cls="AdamW",
             optimizer_params={"betas": (0.91, 0.995)},
             output_dir=dir_path,
-            no_cuda=True
+            no_cuda=True,
         )
 
     @pytest.fixture
@@ -282,7 +292,7 @@ class Test:
             model=model,
             train_dataset=dataset,
             eval_dataset=dataset,
-            training_config=training_config
+            training_config=training_config,
         )
 
         trainer.prepare_training()
@@ -497,7 +507,6 @@ class Test:
 
         assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
         assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
-        
 
     # # def test_compute_nll(self, model, dataset):
     # #     nll = model.compute_joint_nll(dataset, K=10, batch_size_K=2)

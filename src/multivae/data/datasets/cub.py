@@ -29,7 +29,6 @@ logger.addHandler(console)
 logger.setLevel(logging.INFO)
 
 
-
 class OrderedCounter(Counter, OrderedDict):
     """Counter that remembers the order elements are first encountered."""
 
@@ -206,6 +205,7 @@ class CUBSentences(Dataset):  # pragma : no cover
 
     def _create_vocab(self):
         import nltk
+
         nltk.download("punkt_tab")
         nltk.download("punkt")
 

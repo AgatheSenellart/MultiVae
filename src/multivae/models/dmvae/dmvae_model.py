@@ -26,12 +26,12 @@ class DMVAE(BaseMultiVAE):
     Mihee Lee, Vladimir Pavlovic
 
     Args:
-        model_config (DMVAEConfig): An instance of MVAEConfig in which any model's
+        model_config (DMVAEConfig): An instance of DMVAEConfig in which any model's
             parameters is made available.
 
-        encoders (Dict[str, ~pythae.models.nn.base_architectures.BaseEncoder]): A dictionary containing
+        encoders (Dict[str, ~multivae.models.nn.base_architectures.BaseMultilatentEncoder]): A dictionary containing
             the modalities names and the encoders for each modality. Each encoder is an instance of
-            Pythae's BaseEncoder. Default: None.
+            Multivae's BaseMultilatentEncoder since this model uses multiple latent spaces. Default: None.
 
         decoders (Dict[str, ~pythae.models.nn.base_architectures.BaseDecoder]): A dictionary containing
             the modalities names and the decoders for each modality. Each decoder is an instance of
