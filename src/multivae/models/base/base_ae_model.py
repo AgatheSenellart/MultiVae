@@ -422,6 +422,7 @@ class BaseMultiVAE(BaseModel):
 
         # Compute K samples for each datapoint
         o = self.encode(inputs, cond_mod, N=K)
+        print(o.z.shape)
 
         # Compute the negative recon_log_prob for each datapoint
         ll = {k: [] for k in pred_mods}
@@ -431,9 +432,10 @@ class BaseMultiVAE(BaseModel):
             start_idx, stop_index = 0, batch_size_K
             lnpxs = {k: [] for k in pred_mods}
 
-            while stop_index <= K:
+            while stop_index < K:
                 # Encode with the conditional VAE
-                latents = o.z[start_idx:stop_index]
+                latents = o.z[start_idx:stop_index][i]
+                print(latents)
 
                 # Decode with the opposite decoder
                 for k in pred_mods:
@@ -441,6 +443,8 @@ class BaseMultiVAE(BaseModel):
                     recon = self.decoders[k](
                         latents
                     ).reconstruction  # (batch_size,*recon_shape)
+
+                    print('recon',recon.shape)
                     # Compute lnp(y|z)
                     lpxz = (
                         self.recon_log_probs[k](target, recon)

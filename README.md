@@ -131,7 +131,7 @@ See our tutorial Notebook at /examples/tutorial_notebooks/getting_started.ipynb 
 
 Many models implemented in the library can be trained on incomplete datasets. To do so, see the tutorial notebook in examples/tutorial_notebooks/learning_with_partial_data.ipynb. 
 
-![image](../MultiVae/static/handling_incomplete.png)
+![image](./static/handling_incomplete.png)
 
 You can learn more about how each model is adapted to the partial setting in Appendix A of our [paper](https://hal.science/hal-04207151).
 
