@@ -210,8 +210,8 @@ class Test_MHVAE:
         
 
 
-    @fixture
-    def architectures(self, model_config, wn):
+    @fixture(params=[True,False])
+    def architectures(self, model_config, wn, request):
 
         encoders = dict(m0 = my_input_encoder(), m1=my_input_encoder())
         decoders = dict(m0 = my_input_decoder(), m1=my_input_decoder())
@@ -232,11 +232,21 @@ class Test_MHVAE:
         
         if model_config.n_latent == 4:
             prior_blocks = [prior_block(32, wn), prior_block(64,wn), prior_block(64,wn)]
-            posterior_blocks = [posterior_block(32,wn), posterior_block(64,wn), posterior_block(64,wn)]
+            if request.param:
+                posterior_blocks = [posterior_block(32,wn), posterior_block(64,wn), posterior_block(64,wn)]
+            else:
+                posterior_blocks = {}
+                for m in encoders:
+                    posterior_blocks[m] = [posterior_block(32,wn), posterior_block(64,wn), posterior_block(64,wn)]
             
         else:
             prior_blocks = [prior_block(32,wn), prior_block(64,wn)]
-            posterior_blocks = [posterior_block(32,wn), posterior_block(64,wn)]
+            if request.param:
+                posterior_blocks = [posterior_block(32,wn), posterior_block(64,wn)]
+            else:
+                posterior_blocks = {}
+                for m in encoders:
+                    posterior_blocks[m] = [posterior_block(32,wn), posterior_block(64,wn)]
         
         return dict(encoders=encoders, 
                     decoders=decoders,
@@ -260,8 +270,10 @@ class Test_MHVAE:
         assert isinstance(model.bottom_up_blocks, nn.ModuleDict)
         assert isinstance(model.top_down_blocks, nn.ModuleList)
         assert isinstance(model.prior_blocks, nn.ModuleList)
-        assert isinstance(model.posterior_blocks, nn.ModuleList)
-
+        if model.share_posterior_weights:
+            assert isinstance(model.posterior_blocks, nn.ModuleList)
+        else:
+            assert isinstance(model.posterior_blocks, nn.ModuleDict)
 
 
         return
