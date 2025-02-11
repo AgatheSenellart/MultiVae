@@ -8,8 +8,7 @@ from ..base import BaseMultiVAEConfig
 @dataclass
 class NexusConfig(BaseMultiVAEConfig):
     """
-    This is the base config for the Nexus model from
-    "Leveraging hierarchy in multimodal generative models for effective cross-modality inference" (Vasco et al 2022)
+    This is the base config for the Nexus model from (Vasco et al 2022)
 
     Args:
 

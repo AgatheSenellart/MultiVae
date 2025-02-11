@@ -21,6 +21,7 @@ Multimodal Variational Autoencoders Models
     jnf_dcca
     nexus
     dmvae
+    cmvae
 
 .. automodule::
     multivae.models
@@ -40,4 +41,5 @@ Available VAEs
     JNFDcca
     Nexus
     DMVAE
+    CMVAE
     :nosignatures:

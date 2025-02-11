@@ -3,6 +3,7 @@
 
 from .auto_model import AutoConfig, AutoModel
 from .base import BaseModel, BaseMultiVAE, BaseMultiVAEConfig
+from .cmvae import CMVAE, CMVAEConfig
 from .cvae import CVAE, CVAEConfig
 from .dmvae import DMVAE, DMVAEConfig
 from .jmvae import JMVAE, JMVAEConfig
@@ -46,4 +47,6 @@ __all__ = [
     "CVAEConfig",
     "DMVAE",
     "DMVAEConfig",
+    "CMVAE",
+    "CMVAEConfig",
 ]

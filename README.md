@@ -9,8 +9,8 @@
 	<a href='https://multivae.readthedocs.io/en/latest/?badge=latest'>
     	<img src='https://readthedocs.org/projects/multivae/badge/?version=latest' alt='Documentation Status' />
 	</a>
-    <a href='https://opensource.org/licenses/Apache-2.0'>
-	    <img src='https://img.shields.io/github/license/clementchadebec/benchmark_VAE?color=blue' />
+    <!-- <a href='https://opensource.org/licenses/Apache-2.0'>
+	    <img src='https://img.shields.io/github/license/clementchadebec/benchmark_VAE?color=blue' /> -->
 	</a>
     <a>
 	    <img src='https://img.shields.io/badge/code%20style-black-black' />
@@ -44,6 +44,7 @@ DMVAE| [Private-Shared Disentangled Multimodal VAE for Learning of Latent Repres
 |JNF,JNF-DCCA| [Improving Multimodal Joint Variational Autoencoders through Normalizing Flows and Correlation Analysis](https://arxiv.org/abs/2305.11832) | x |
 |MMVAE + |[MMVAE+: ENHANCING THE GENERATIVE QUALITY OF MULTIMODAL VAES WITHOUT COMPROMISES](https://openreview.net/forum?id=sdQGxouELX) | [link](https://openreview.net/forum?id=sdQGxouELX)|
 |Nexus | [Leveraging hierarchy in multimodal generative models for effective cross-modality inference](https://www.sciencedirect.com/science/article/abs/pii/S0893608021004470)|[link](https://github.com/miguelsvasco/nexus_pytorch)|
+|CMVAE| [Deep Generative Clustering with Multimodal Diffusion Variational Autoencoders](https://openreview.net/forum?id=k5THrhXDV3)| [link](https://github.com/epalu/CMVAE)
 
 # Quickstart
 
@@ -126,6 +127,13 @@ pip install .
 Our library allows you to use any of the models with custom configuration, encoders and decoders architectures and datasets easily. 
 See our tutorial Notebook at /examples/tutorial_notebooks/getting_started.ipynb to easily get the gist of principal features. 
 
+## Training on incomplete datasets
+
+Many models implemented in the library can be trained on incomplete datasets. To do so, see the tutorial notebook in examples/tutorial_notebooks/learning_with_partial_data.ipynb. 
+
+![image](../MultiVae/static/handling_incomplete.png)
+
+You can learn more about how each model is adapted to the partial setting in Appendix A of our [paper](https://hal.science/hal-04207151).
 
 # Contribute
 [(Back to top)](#table-of-contents)
@@ -140,8 +148,17 @@ In order to propose a contribution, you can follow the guidelines in `CONTRIBUTI
 
 Most implemented models are validated by reproducing a key result of the paper.
 
-![Alt text](./static/reproduction_results.png)
 
+|Model|Dataset|Metrics|Paper|Ours|
+|--|--|--|--|--|
+|JMVAE|Mnist|Likelihood|-86.86|-86.85 +- 0.03|
+|MMVAE|MnistSVHN|Coherences|86/69/42 | 88/67/41|
+|MVAE|Mnist|ELBO|188.8 |188.3 +-0.4|
+|DMVAE|MnistSVHN|Coherences|88.1/83.7/44.7|89.2/81.3/46.0|
+|MoPoE| PolyMNIST| Coherences|66/77/81/83|67/79/84/85|
+|MVTCAE|PolyMNIST|Coherences|69/77/83/86|64/82/88/91|
+|MMVAE+|PolyMNIST|Coherences/FID|86.9/92.81|88.6 +-0;8/ 93+-5|
+|CMVAE|PolyMNIST|Coherences|89.7/78.1|88.6/76.4|
 
 
 # Citation

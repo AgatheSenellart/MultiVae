@@ -76,9 +76,9 @@ class MVAE(BaseMultiVAE):
                 output_mod = self.encoders[mod](inputs.data[mod])
                 mu_mod, log_var_mod = output_mod.embedding, output_mod.log_covariance
                 if hasattr(inputs, "masks"):
-                    log_var_mod[
-                        (1 - inputs.masks[mod].int()).bool().flatten()
-                    ] = torch.inf
+                    log_var_mod[(1 - inputs.masks[mod].int()).bool().flatten()] = (
+                        torch.inf
+                    )
 
                 mus_sub.append(mu_mod)
                 log_vars_sub.append(log_var_mod)

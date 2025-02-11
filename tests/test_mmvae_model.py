@@ -71,7 +71,7 @@ class Test:
             decoders=decoders,
         )
 
-    @pytest.fixture(params=[True, False])
+    @pytest.fixture(params=[(True, "iwae_looser"), (False, "dreg_looser")])
     def model_config(self, request):
         model_config = dict(
             n_modalities=4,
@@ -104,13 +104,12 @@ class Test:
         assert model_config.decoder_dist_params == dict(
             mod1={"scale": 0.75}, mod2={"scale": 0.75}
         )
-        assert model.K == model_config.K
 
         # Try forward
 
         output = model(dataset, epoch=2)
         loss = output.loss
-        assert type(loss) == torch.Tensor
+        assert isinstance(loss, torch.Tensor)
         assert loss.size() == torch.Size([])
         assert loss.requires_grad
 
@@ -200,13 +199,14 @@ class Test_backward_with_missing_inputs:
             decoders=decoders,
         )
 
-    @pytest.fixture(params=[True, False])
+    @pytest.fixture(params=[(True, "dreg_looser"), (False, "iwae_looser")])
     def model_config(self, request):
         model_config = MMVAEConfig(
             n_modalities=4,
             latent_dim=5,
             input_dims=dict(mod1=(2,), mod2=(3,), mod3=(4,), mod4=(4,)),
-            use_likelihood_rescaling=request.param,
+            uses_likelihood_rescaling=request.param[0],
+            loss=request.param[1],
         )
 
         return model_config
@@ -220,7 +220,7 @@ class Test_backward_with_missing_inputs:
             model = MMVAE(model_config)
         return model
 
-    def test(self, model, dataset, model_config):
+    def test(self, model, dataset):
         ### Check that the grad with regard to missing modalities is null
         output = model(dataset[:3], epoch=2)
         loss = output.loss
@@ -249,8 +249,8 @@ class TestTraining:
 
         return dataset
 
-    @pytest.fixture
-    def model_config(self, input_dataset):
+    @pytest.fixture(params=["dreg_looser", "iwae_looser"])
+    def model_config(self, input_dataset, request):
         return MMVAEConfig(
             n_modalities=int(len(input_dataset.data.keys())),
             latent_dim=5,
@@ -258,9 +258,9 @@ class TestTraining:
                 mod1=tuple(input_dataset[0].data["mod1"].shape),
                 mod2=tuple(input_dataset[0].data["mod2"].shape),
             ),
-            warmup=10,
             decoders_dist=dict(mod1="laplace", mod2="laplace"),
             decoder_dist_params=dict(mod1={"scale": 0.75}, mod2={"scale": 0.75}),
+            loss=request.param,
         )
 
     @pytest.fixture
@@ -523,6 +523,11 @@ class TestTraining:
     def test_compute_nll(self, model, input_dataset):
         if not hasattr(input_dataset, "masks"):
             nll = model.compute_joint_nll(input_dataset, K=10, batch_size_K=2)
+            assert nll >= 0
+            assert type(nll) == torch.Tensor
+            assert nll.size() == torch.Size([])
+
+            nll = model.compute_joint_nll_paper(input_dataset, K=10, batch_size_K=2)
             assert nll >= 0
             assert type(nll) == torch.Tensor
             assert nll.size() == torch.Size([])

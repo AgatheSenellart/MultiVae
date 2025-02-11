@@ -21,7 +21,7 @@ logger.addHandler(console)
 logger.setLevel(logging.INFO)
 
 
-class MMNISTDataset(MultimodalBaseDataset):
+class MMNISTDataset(MultimodalBaseDataset): # pragma: no cover
     """
     Multimodal PolyMNIST Dataset from
     'Generalized Multimodal Elbo' Sutter et al 2021.
