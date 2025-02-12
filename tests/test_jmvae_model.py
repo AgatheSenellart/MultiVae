@@ -153,10 +153,10 @@ class TestTraining:
     def input_dataset(self):
         # Create simple small dataset
         data = dict(
-            mod1=torch.Tensor([[1.0, 2.0], [4.0, 5.0]]),
-            mod2=torch.Tensor([[67.1, 2.3, 3.0], [1.3, 2.0, 3.0]]),
+            mod1=torch.Tensor([[1.0, 2.0], [4.0, 5.0], [1.0, 2.0], [4.0, 5.0],[3.0,4.0]]),
+            mod2=torch.Tensor([[67.1, 2.3, 3.0], [1.3, 2.0, 3.0],[67.1, 2.3, 3.0], [1.3, 2.0, 3.0],[3.0,4.0,4.5]]),
         )
-        labels = np.array([0, 1])
+        labels = np.array([0, 1,0,0,1])
         dataset = MultimodalBaseDataset(data, labels)
 
         return dataset
@@ -433,9 +433,10 @@ class TestTraining:
     def test_compute_nll(self, model, input_dataset):
         nll = model.compute_joint_nll(input_dataset, K=10, batch_size_K=2)
         assert nll >= 0
-        assert type(nll) == torch.Tensor
+        assert isinstance(nll, torch.Tensor)
         assert nll.size() == torch.Size([])
 
         cond_ll = model.compute_cond_nll(input_dataset, "mod1", ["mod2"])
-        assert isinstance(cond_ll, ModelOutput)
-        assert cond_ll.ll_mod1_mod2.size() == torch.Size([])
+        assert isinstance(cond_ll, dict)
+        assert cond_ll['mod2'].size() == torch.Size([])
+        
