@@ -23,7 +23,7 @@ from ...data.datasets.base import MultimodalBaseDataset
 from ..auto_model import AutoConfig
 from ..nn.default_architectures import BaseDictDecoders, BaseDictEncoders
 from .base_config import BaseConfig, EnvironmentConfig
-from .base_utils import hf_hub_is_available, model_card_template
+from .base_utils import hf_hub_is_available, MODEL_CARD_TEMPLATE
 
 logger = logging.getLogger(__name__)
 console = logging.StreamHandler()
@@ -268,7 +268,7 @@ class BaseModel(nn.Module):
             )
 
         with open(os.path.join(tempdir, "model_card.md"), "w") as f:
-            f.write(model_card_template)
+            f.write(MODEL_CARD_TEMPLATE)
 
         hf_operations.append(
             CommitOperationAdd(

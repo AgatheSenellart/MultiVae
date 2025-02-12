@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import Union
 from itertools import combinations
 import logging
 
@@ -8,19 +8,7 @@ import torch.distributions as dist
 from multivae.data.datasets.base import MultimodalBaseDataset
 from multivae.models.base import BaseMultiVAE
 from multivae.models.base.base_model import ModelOutput
-from multivae.models.base.base_utils import set_decoder_dist
-from multivae.models.nn.base_architectures import (
-    BaseConditionalDecoder,
-    BaseEncoder,
-    BaseJointEncoder,
-)
-from multivae.models.nn.default_architectures import (
-    BaseDictEncoders,
-    ConditionalDecoder_MLP,
-    Encoder_VAE_MLP,
-    MultipleHeadJointEncoder,
-)
-
+from multivae.models.nn.base_architectures import BaseEncoder
 from .mhvae_config import MHVAEConfig
 
 logger = logging.getLogger(__name__)
@@ -35,8 +23,26 @@ class MHVAE(BaseMultiVAE):
     Multimodal Hierarchical Variational Autoencoder from 
     'Unified Brain MR-Ultrasound Synthesis using Multi-Modal Hierarchical Representations' 
     (Dorent et al, 2O23) (https://arxiv.org/abs/2309.08747)
+
+    The MHVAE is a hierarchical VAE that can handle multiple modalities.
+    The latent variable is partitioned into disjoint groups :math:`z = {z_1, z_2, ..., z_L}`
+    where L is the number of levels.
     
-     
+    The prior on the latent variables is defined as :math:`p_{\theta}(z) = p_{\theta_L}(z_L)\prod_l p_{\theta_l}(z_l|z>l)`
+    where :math:`z>l` denotes the latent variables at levels higher than l.
+    
+    The posterior is defined as :math:`q_{\phi}(z|x) = \prod_l q_{\phi_l}(z_l|x,z>l)`
+    that approximates the intractable true posterior :math:`p_{\theta}(z|x)`.
+    
+    At each level l, the posterior :math: `q_{\phi_l}(z_l|x,z>l)` is approximated by a Product-of-Experts.
+    At the deepest level, :math:`q_{\phi_L}(z_L|x) = p_{\theta_L}(z_L) \prod_i q_{\phi_L^{i}}(z_L|x_i)`    
+    At following levels, :math:`q_{\phi_l}(z_l|x,z>l) = p_{\theta_l}(z_l|z>l) \prod_i q_{\phi_l^{i}}(z_l|x_i,z>l)` 
+    
+    Some weights are shared between the different posteriors and priors distribution. 
+    To allow flexibility while remaining close to the original implementation, we describe customizable 
+    blocks in diagram below. (adaptated from the diagram in the original paper)
+    
+    .. image:: ./mhvae_architectures.png
     """
 
     def __init__(self,
@@ -449,7 +455,7 @@ class MHVAE(BaseMultiVAE):
             raise AttributeError(f"There must be {self.n_latent-1} modules in prior.")
         for block in prior_blocks:
             if not isinstance(block,BaseEncoder ):
-                raise AttributeError(f'The modules in prior_blocks  must be instances of BaseEncoder')
+                raise AttributeError('The modules in prior_blocks  must be instances of BaseEncoder')
 
     
     def set_top_down_blocks(self, top_down_blocks):
