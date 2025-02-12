@@ -552,8 +552,8 @@ class TestTraining:
             assert type(nll) == torch.Tensor
             assert nll.size() == torch.Size([])
 
-            cnll = model.cond_nll_from_subset(
-                dataset, ["mod1", "mod2"], ["mod3"], K=10, batch_size_k=2
+            cnll = model.compute_cond_nll(
+                dataset, ["mod1", "mod2"], ["mod3"], K=10
             )
             assert type(cnll) == dict
             assert "mod3" in cnll.keys()
