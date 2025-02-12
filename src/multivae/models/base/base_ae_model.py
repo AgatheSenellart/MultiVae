@@ -207,7 +207,7 @@ class BaseMultiVAE(BaseModel):
                     f"modalities {cond_mod}, but some samples are not available"
                     "in all those modalities.",
                 )
-        return ModelOutput(cond_mod=cond_mod)
+        return ModelOutput(cond_mod=cond_mod, z=None, one_latent_space=None)
 
     def decode(self, embedding: ModelOutput, modalities: Union[list, str] = "all"):
         """Decode a latent variable z in all modalities specified in modalities.
@@ -480,5 +480,5 @@ class BaseMultiVAE(BaseModel):
 
             nb_computed_samples += n_samples
 
-        cnll = {m: torch.logsumexp(torch.stack(cnll[mod]), dim=0) for m in cnll}
+        cnll = {m: torch.logsumexp(torch.stack(cnll[m]), dim=0) for m in cnll}
         return cnll

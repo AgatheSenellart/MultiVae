@@ -6,12 +6,9 @@ from ..base import BaseMultiVAEConfig
 
 
 @dataclass
-class MMVAEConfig(BaseMultiVAEConfig):
+class CMVAEConfig(BaseMultiVAEConfig):
     """
-    This class is the configuration class for the MMVAE model, from
-    (Variational Mixture-of-Experts Autoencoders
-    for Multi-Modal Deep Generative Models, Shi et al 2019,
-    https://proceedings.neurips.cc/paper/2019/hash/0ae775a8cb3b499ad1fca944e6f5c836-Abstract.html)
+    This class is the configuration class for the CMVAE model.
 
 
     Args:
@@ -28,22 +25,30 @@ class MMVAEConfig(BaseMultiVAEConfig):
             computing the log-probability.
             For instance, with normal or laplace distribution, you can pass the scale in this dictionary.
             ex :  {'mod1' : {scale : 0.75}}
-        K (int) : the number of samples to use in the DreG loss. Default to 1.
+        K (int) : the number of samples to use in the IWAE or DreG loss. Default to 1.
         prior_and_posterior_dist (str) : The type of distribution to use for posterior and prior.
-            Possible values ['laplace_with_softmax','normal'].
+            Possible values ['laplace_with_softmax','normal_with_softplus','normal'].
             Default to 'laplace_with_softmax' the posterior distribution that is used in
             the original paper.
-        learn_prior (bool) : If True, the mean and variance of the prior are optimized during the
-            training. Default to True.
-        beta (float) : When using K = 1 (ElBO loss), the beta factor regularizes the divergence term.
+        learn_modality_prior (bool) : Learn modality specific priors. Should be True for the method to work. 
+            Default to True.
+        beta (float) : Regularizes the divergence term as in beta-VAE.
             Default to 1.
-        loss (Literal) : Either 'iwae_looser' or 'dreg_looser'.
+        modalities_specific_dim (int) : The dimensionality of the modalitie's private latent spaces.
+            Must be provided.
+        reconstruction_option (Literal['single_prior','joint_prior']) : Specifies how to sample the modality specific
+            variable when reconstructing/ translating modalities. Default to 'joint_prior' used in the article.
+        loss (Literal['dreg_looser','iwae_looser']) : Default to 'dreg_looser'.
+        number_of_clusters (int): Default to 10.
     """
 
     K: int = 10
-    prior_and_posterior_dist: Literal["laplace_with_softmax", "normal"] = (
-        "laplace_with_softmax"
-    )
-    learn_prior: bool = True
+    prior_and_posterior_dist: Literal[
+        "laplace_with_softmax", "normal_with_softplus", "normal"
+    ] = "laplace_with_softmax"
+    learn_modality_prior: bool = True
     beta: float = 1.0
+    modalities_specific_dim: int = None
+    reconstruction_option: Literal["single_prior", "joint_prior"] = "joint_prior"
     loss: Literal["iwae_looser", "dreg_looser"] = "dreg_looser"
+    number_of_clusters: int = 10

@@ -180,7 +180,6 @@ class TestCUBNets:
         )
 
     def test_image_forward(self, ae_cubimage_config, cubimage_like_data):
-
         encoder = CUB_Resnet_Encoder(latent_dim=ae_cubimage_config.latent_dim).to(
             device
         )

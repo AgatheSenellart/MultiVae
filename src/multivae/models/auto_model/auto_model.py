@@ -97,6 +97,16 @@ class AutoModel(nn.Module):
             
             model = MHVAE.load_from_folder(dir_path)
 
+        elif model_name == "DMVAEConfig":
+            from ..dmvae import DMVAE
+
+            model = DMVAE.load_from_folder(dir_path)
+
+        elif model_name == "CMVAEConfig":
+            from ..cmvae import CMVAE
+
+            model = CMVAE.load_from_folder(dir_path)
+
         else:
             raise NameError(
                 "Cannot reload automatically the model... "
@@ -198,6 +208,16 @@ class AutoModel(nn.Module):
             from ..cvae import CVAE
 
             model = CVAE.load_from_hf_hub(hf_hub_path, allow_pickle)
+
+        elif model_name == "DMVAEConfig":
+            from ..dmvae import DMVAE
+
+            model = DMVAE.load_from_hf_hub(hf_hub_path, allow_pickle)
+
+        elif model_name == "CMVAEConfig":
+            from ..cmvae import CMVAE
+
+            model = CMVAE.load_from_hf_hub(hf_hub_path, allow_pickle)
 
         else:
             raise NameError(

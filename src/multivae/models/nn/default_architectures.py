@@ -321,7 +321,6 @@ class MultipleHeadJointEncoder(BaseJointEncoder):
 
 
 class ConditionalDecoder_MLP(BaseConditionalDecoder):
-
     def __init__(
         self, latent_dim: int, conditioning_data_dim: tuple, data_dim: tuple
     ) -> ModelOutput:
@@ -335,7 +334,6 @@ class ConditionalDecoder_MLP(BaseConditionalDecoder):
         )
 
     def forward(self, z, conditioning_modality):
-
         cond_data = conditioning_modality.view(z.shape[0], -1)
         concatenated = torch.cat([z, cond_data], dim=1)
         return self.network(concatenated)

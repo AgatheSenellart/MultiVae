@@ -28,8 +28,6 @@ console = logging.StreamHandler()
 logger.addHandler(console)
 logger.setLevel(logging.INFO)
 
-nltk.download("punkt_tab")
-
 
 class OrderedCounter(Counter, OrderedDict):
     """Counter that remembers the order elements are first encountered."""
@@ -59,6 +57,7 @@ class CUBSentences(Dataset):  # pragma : no cover
         self, root_data_dir, split, output_type="one_hot", transform=None, **kwargs
     ):
         super().__init__()
+
         self.data_dir = os.path.join(root_data_dir, "cub")
         self.split = split
         self.max_sequence_length = kwargs.get("max_sequence_length", 32)
@@ -207,6 +206,7 @@ class CUBSentences(Dataset):  # pragma : no cover
     def _create_vocab(self):
         import nltk
 
+        nltk.download("punkt_tab")
         nltk.download("punkt")
 
         assert (

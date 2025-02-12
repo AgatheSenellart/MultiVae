@@ -30,8 +30,8 @@ logger.setLevel(logging.INFO)
 
 class Nexus(BaseMultiVAE):
     """
-    The Nexus model from
-     "Leveraging hierarchy in multimodal generative models for effective cross-modality inference" (Vasco et al 2022)
+    The Nexus model from (Vasco et al 2022)
+    "Leveraging hierarchy in multimodal generative models for effective cross-modality inference"
 
 
     Args:

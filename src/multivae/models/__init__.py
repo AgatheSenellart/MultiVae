@@ -3,7 +3,9 @@
 
 from .auto_model import AutoConfig, AutoModel
 from .base import BaseModel, BaseMultiVAE, BaseMultiVAEConfig
+from .cmvae import CMVAE, CMVAEConfig
 from .cvae import CVAE, CVAEConfig
+from .dmvae import DMVAE, DMVAEConfig
 from .jmvae import JMVAE, JMVAEConfig
 from .jnf import JNF, JNFConfig
 from .jnf_dcca import JNFDcca, JNFDccaConfig
@@ -46,4 +48,8 @@ __all__ = [
     "CVAEConfig",
     "MHVAE",
     "MHVAEConfig"
+    "DMVAE",
+    "DMVAEConfig",
+    "CMVAE",
+    "CMVAEConfig",
 ]

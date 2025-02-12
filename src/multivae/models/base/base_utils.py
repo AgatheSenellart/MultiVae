@@ -38,21 +38,20 @@ def cross_entropy_(_input, _target, eps=1e-6):
     return loss
 
 
-def cross_entropy(recon, target, eps=1e-6):
+def cross_entropy(input, target, eps=1e-6):
     """
 
     Wrapper for the cross_entropy loss handling different inputs / targets types.
 
     """
-    if isinstance(recon, dict):
-        if "one_hot" in recon:
-            _input = recon["one_hot"]
+    _input = input
+    _target = target
+    if isinstance(input, dict):
+        if "one_hot" in input:
+            _input = input["one_hot"]
         else:
             raise NotImplementedError()
 
-    else:
-        _input = recon
-    _target = None
     if isinstance(target, dict):
         if "one_hot" in target:
             _target = target["one_hot"]
@@ -60,8 +59,6 @@ def cross_entropy(recon, target, eps=1e-6):
         elif "tokens" in target:
             # converts to tokens proba instead of class id for text
             _target = F.one_hot(target["tokens"], _input.shape[-1])
-    else:
-        _target = target
 
     return cross_entropy_(_input, _target, eps)
 
@@ -70,7 +67,6 @@ def set_decoder_dist(dist_name, dist_params):
     """Transforms the distribution name and parameters into a callable log_prob function"""
 
     if dist_name == "normal":
-
         scale = dist_params.pop("scale", 1.0)
         def log_prob(recon, target): 
             return dist.Normal(recon, scale).log_prob(target)
