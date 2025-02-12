@@ -2,6 +2,7 @@ import importlib
 
 import torch
 import torch.distributions as dist
+import torch.nn.functional as F
 
 model_card_template = """---
 language: en
@@ -37,28 +38,28 @@ def cross_entropy_(_input, _target, eps=1e-6):
     return loss
 
 
-def cross_entropy(input, target, eps=1e-6):
+def cross_entropy(recon, target, eps=1e-6):
     """
 
     Wrapper for the cross_entropy loss handling different inputs / targets types.
 
     """
-    if isinstance(input, dict):
-        if "one_hot" in input:
-            _input = input["one_hot"]
+    if isinstance(recon, dict):
+        if "one_hot" in recon:
+            _input = recon["one_hot"]
         else:
             raise NotImplementedError()
 
     else:
-        _input = input
-
+        _input = recon
+    _target = None
     if isinstance(target, dict):
         if "one_hot" in target:
             _target = target["one_hot"]
 
         elif "tokens" in target:
             # converts to tokens proba instead of class id for text
-            _target = torch.nn.functional.one_hot(target["tokens"], _input.shape[-1])
+            _target = F.one_hot(target["tokens"], _input.shape[-1])
     else:
         _target = target
 
@@ -66,21 +67,25 @@ def cross_entropy(input, target, eps=1e-6):
 
 
 def set_decoder_dist(dist_name, dist_params):
+    """Transforms the distribution name and parameters into a callable log_prob function"""
 
     if dist_name == "normal":
 
         scale = dist_params.pop("scale", 1.0)
-        log_prob = lambda input, target: dist.Normal(input, scale).log_prob(target)
+        def log_prob(recon, target): 
+            return dist.Normal(recon, scale).log_prob(target)
 
     elif dist_name == "bernoulli":
-        log_prob = lambda input, target: dist.Bernoulli(logits=input).log_prob(target)
+        def log_prob(recon, target):
+            return dist.Bernoulli(logits=recon).log_prob(target)
 
     elif dist_name == "laplace":
         scale = dist_params.pop("scale", 1.0)
-        log_prob = lambda input, target: dist.Laplace(input, scale).log_prob(target)
+        def log_prob(recon, target):
+            return dist.Laplace(recon, scale).log_prob(target)
 
     elif dist_name == "categorical":
-        log_prob = lambda input, target: cross_entropy(input, target)
+        log_prob =  cross_entropy
 
     else:
         raise ValueError("The distribution type 'dist' is not supported")

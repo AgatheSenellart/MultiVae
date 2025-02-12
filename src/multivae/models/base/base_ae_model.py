@@ -1,30 +1,19 @@
-import importlib
-import inspect
 import logging
-import os
-import shutil
-import sys
-import tempfile
-import warnings
 from copy import deepcopy
-from http.cookiejar import LoadError
 from typing import Union
 
-import cloudpickle
 import numpy as np
 import torch
 import torch.distributions as dist
 import torch.nn as nn
-from pythae.models.base.base_utils import CPU_Unpickler, ModelOutput
+from pythae.models.base.base_utils import ModelOutput
 from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
-from torch.nn import functional as F
 
 from ...data.datasets.base import MultimodalBaseDataset
-from ..auto_model import AutoConfig
 from ..nn.default_architectures import BaseDictDecoders, BaseDictEncoders
-from .base_config import BaseMultiVAEConfig, EnvironmentConfig
+from .base_config import BaseMultiVAEConfig
 from .base_model import BaseModel
-from .base_utils import hf_hub_is_available, model_card_template
+from .base_utils import cross_entropy, set_decoder_dist
 
 logger = logging.getLogger(__name__)
 console = logging.StreamHandler()
@@ -70,13 +59,12 @@ class BaseMultiVAE(BaseModel):
                 raise AttributeError(
                     "Please provide encoders or input dims for the modalities in the model_config."
                 )
-            else:
-                if len(self.input_dims.keys()) != self.n_modalities:
-                    raise AttributeError(
+            if len(self.input_dims.keys()) != self.n_modalities:
+                raise AttributeError(
                         f"The provided number of input_dims {len(self.input_dims.keys())} doesn't"
                         f"match the number of modalities ({self.n_modalities} in model config "
                     )
-                encoders = self.default_encoders(model_config)
+            encoders = self.default_encoders(model_config)
         else:
             self.model_config.custom_architectures.append("encoders")
 
@@ -85,13 +73,12 @@ class BaseMultiVAE(BaseModel):
                 raise AttributeError(
                     "Please provide decoders or input dims for the modalities in the model_config."
                 )
-            else:
-                if len(self.input_dims.keys()) != self.n_modalities:
-                    raise AttributeError(
+            if len(self.input_dims.keys()) != self.n_modalities:
+                raise AttributeError(
                         f"The provided number of input_dims {len(self.input_dims.keys())} doesn't"
                         f"match the number of modalities ({self.n_modalities} in model config "
                     )
-                decoders = self.default_decoders(model_config)
+            decoders = self.default_decoders(model_config)
         else:
             self.model_config.custom_architectures.append("decoders")
 
@@ -152,34 +139,14 @@ class BaseMultiVAE(BaseModel):
         self.recon_log_probs = {}
 
         for k in recon_dict:
-            if recon_dict[k] == "normal":
-                params_mod = dist_params_dict.pop(k, {})
-                scale = params_mod.pop("scale", 1.0)
-                self.recon_log_probs[k] = lambda input, target: dist.Normal(
-                    input, scale
-                ).log_prob(target)
-
-            elif recon_dict[k] == "bernoulli":
-                self.recon_log_probs[k] = lambda input, target: dist.Bernoulli(
-                    logits=input
-                ).log_prob(target)
-
-            elif recon_dict[k] == "laplace":
-                params_mod = dist_params_dict.pop(k, {})
-                scale = params_mod.pop("scale", 1.0)
-                self.recon_log_probs[k] = lambda input, target: dist.Laplace(
-                    input, scale
-                ).log_prob(target)
-
-            elif recon_dict[k] == "categorical":
-                self.recon_log_probs[k] = lambda input, target: cross_entropy(
-                    input, target
-                )
+            self.recon_log_probs[k] = set_decoder_dist(recon_dict[k], dist_params_dict.get(k, {}))
 
         # TODO : add the possibility to provide custom reconstruction loss and in that case use the negative
         # reconstruction loss as the log probability.
 
     def sanity_check(self, encoders, decoders):
+        """Check coherences between the encoders, decoders and model configuration.
+        """
         if self.n_modalities != len(encoders.keys()):
             raise AttributeError(
                 f"The provided number of encoders {len(encoders.keys())} doesn't"
@@ -216,7 +183,7 @@ class BaseMultiVAE(BaseModel):
         """
 
         # If the input cond_mod is a string : convert it to a list
-        if type(cond_mod) == str:
+        if isinstance(cond_mod, str):
             if cond_mod == "all":
                 cond_mod = list(self.encoders.keys())
             elif cond_mod in self.encoders.keys():
