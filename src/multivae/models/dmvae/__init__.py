@@ -1,5 +1,5 @@
 """
-Implementation of the DMVAE model from 
+Implementation of the DMVAE model from
 
 "Private-Shared Disentangled Multimodal VAE for Learning of Latent
 Representations" (Lee & Pavlovic 2021)

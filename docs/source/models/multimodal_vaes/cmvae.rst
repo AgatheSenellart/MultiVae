@@ -4,7 +4,7 @@ CMVAE
 
 
 .. automodule::
-   multivae.models.CMVAE
+   multivae.models.cmvae
 
 .. autoclass:: multivae.models.CMVAEConfig
    :members:

@@ -61,9 +61,9 @@ class BaseMultiVAE(BaseModel):
                 )
             if len(self.input_dims.keys()) != self.n_modalities:
                 raise AttributeError(
-                        f"The provided number of input_dims {len(self.input_dims.keys())} doesn't"
-                        f"match the number of modalities ({self.n_modalities} in model config "
-                    )
+                    f"The provided number of input_dims {len(self.input_dims.keys())} doesn't"
+                    f"match the number of modalities ({self.n_modalities} in model config "
+                )
             encoders = self.default_encoders(model_config)
         else:
             self.model_config.custom_architectures.append("encoders")
@@ -75,9 +75,9 @@ class BaseMultiVAE(BaseModel):
                 )
             if len(self.input_dims.keys()) != self.n_modalities:
                 raise AttributeError(
-                        f"The provided number of input_dims {len(self.input_dims.keys())} doesn't"
-                        f"match the number of modalities ({self.n_modalities} in model config "
-                    )
+                    f"The provided number of input_dims {len(self.input_dims.keys())} doesn't"
+                    f"match the number of modalities ({self.n_modalities} in model config "
+                )
             decoders = self.default_decoders(model_config)
         else:
             self.model_config.custom_architectures.append("decoders")
@@ -139,14 +139,15 @@ class BaseMultiVAE(BaseModel):
         self.recon_log_probs = {}
 
         for k in recon_dict:
-            self.recon_log_probs[k] = set_decoder_dist(recon_dict[k], dist_params_dict.get(k, {}))
+            self.recon_log_probs[k] = set_decoder_dist(
+                recon_dict[k], dist_params_dict.get(k, {})
+            )
 
         # TODO : add the possibility to provide custom reconstruction loss and in that case use the negative
         # reconstruction loss as the log probability.
 
     def sanity_check(self, encoders, decoders):
-        """Check coherences between the encoders, decoders and model configuration.
-        """
+        """Check coherences between the encoders, decoders and model configuration."""
         if self.n_modalities != len(encoders.keys()):
             raise AttributeError(
                 f"The provided number of encoders {len(encoders.keys())} doesn't"
@@ -240,12 +241,14 @@ class BaseMultiVAE(BaseModel):
                     outputs[m] = self.decoders[m](z).reconstruction
                 return outputs
         except:
-            raise ValueError("There was an error during decode. "
-                             " Check that the format for the embedding is correct:"
-                             "it must be a ModelOuput instance and "
-                             "embedding.z must be a Tensor of shape (batch_size, *latent_shape)"
-                             "If you used the encode function with N>1 to generate the embedding,"
-                             " you need to pass flatten=True to the encode function")
+            raise ValueError(
+                "There was an error during decode. "
+                " Check that the format for the embedding is correct:"
+                "it must be a ModelOuput instance and "
+                "embedding.z must be a Tensor of shape (batch_size, *latent_shape)"
+                "If you used the encode function with N>1 to generate the embedding,"
+                " you need to pass flatten=True to the encode function"
+            )
 
     def predict(
         self,
@@ -396,8 +399,7 @@ class BaseMultiVAE(BaseModel):
 
             while stop_index <= K:
                 # Encode with the conditional VAE
-                latents = o.z[start_idx:stop_index][:,i,:]
-                
+                latents = o.z[start_idx:stop_index][:, i, :]
 
                 # Decode with the opposite decoder
                 for k in pred_mods:

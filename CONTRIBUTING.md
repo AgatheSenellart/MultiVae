@@ -59,7 +59,7 @@ All models inheriting from the `BaseMultiVAE` class are considered to have a dic
 
 The additional architectural components must be passed as inputs to the model init. Set the architecture as an attribute during instantiation and add the attribute name to the `self.model_config.custom_architectures` list so that the model will be correctly saved and reloaded when using the `BaseMultiVAE` functions.
 
-Apart from the `__init__`, you need to implement the `forward` function. The output of the forward function is a `pythae.models.base.ModelOutput` instance that must contain a **loss** field for the trainer. It can also contain a **metrics** field which contains a dictionary of different values that you which to monitor during training. This metrics field will be passed to callbacks during training for logging.
+Apart from the `__init__`, you need to implement the `forward` function. The output of the forward function is a `pythae.models.base.ModelOutput` instance that must contain a **loss** field for the trainer. It must also contain a **metrics** field which contains a dictionary of different values that you which to monitor during training. This metrics field will be passed to callbacks during training for logging. If you don't have any metrics to monitor, you can just return `metrics = {}`.
 
 ![Alt text](./static/forward_output.png)
 
@@ -67,7 +67,7 @@ Finally you need to define the `encode` function, that will be used for cross-mo
 
 ![Alt text](./static/encode_basic.png)
 The `encode` function returns a `pythae.models.base.ModelOutput` instance containing a field `z` which are the latent variables obtained from encoding the input considering the modalities in `cond_mod`.
-When the model only consider one latent space, the output has a field `one_latent_space` that is set to True. 
+When the model only consider one latent space for decoding, the output has a field `one_latent_space` that is set to True. 
 When the model has multiple latent spaces, one shared and one private to each modality (see the MMVAE+, or the MoPoE model for instance), this field is set to False and there is an additional field `modalities_z` that contains a dictionary with the private latent variables for each modality. 
 ![Alt text](./static/encode_multiple.png)
 

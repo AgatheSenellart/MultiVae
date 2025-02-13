@@ -7,9 +7,9 @@ from .celeba import CelebAttr
 from .cub import CUB
 from .mhd import MHD
 from .mmnist import MMNISTDataset
+from .mnist_labels import MnistLabels
 from .mnist_svhn import MnistSvhn
 from .translated_mmnist import TranslatedMMNIST
-from .mnist_labels import MnistLabels
 
 __all__ = [
     "MultimodalBaseDataset",

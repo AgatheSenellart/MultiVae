@@ -45,6 +45,7 @@ class BaseJointEncoder(BaseEncoder):
         """
         raise NotImplementedError()
 
+
 class BaseMultilatentEncoder(BaseEncoder):
     """This is a base class for Conditional Decoders architectures."""
 
@@ -58,7 +59,7 @@ class BaseMultilatentEncoder(BaseEncoder):
         It takes the input tensor x and returns an instance of
         :class:`~pythae.models.base.base_utils.ModelOutput` with the parameters for the shared latent space
         and the modality-specific latent space.
-        If you decide to provide your own encoder network in a model that uses multiple 
+        If you decide to provide your own encoder network in a model that uses multiple
         latent spaces, you must make sure your
         model inherits from this class by setting and then defining your forward function as
         such:

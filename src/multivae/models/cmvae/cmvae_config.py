@@ -30,7 +30,7 @@ class CMVAEConfig(BaseMultiVAEConfig):
             Possible values ['laplace_with_softmax','normal_with_softplus','normal'].
             Default to 'laplace_with_softmax' the posterior distribution that is used in
             the original paper.
-        learn_modality_prior (bool) : Learn modality specific priors. Should be True for the method to work. 
+        learn_modality_prior (bool) : Learn modality specific priors. Should be True for the method to work.
             Default to True.
         beta (float) : Regularizes the divergence term as in beta-VAE.
             Default to 1.

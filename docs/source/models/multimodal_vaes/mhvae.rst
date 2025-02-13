@@ -1,10 +1,10 @@
 **********************************
-LHVAE
+MHVAE
 **********************************
 
 
 .. automodule::
-   multivae.models.MHVAE
+   multivae.models.mhvae
 
 .. autoclass:: multivae.models.MHVAEConfig
    :members:

@@ -1,5 +1,5 @@
 """
-This implementation of the InceptionV3 network comes from 
+This implementation of the InceptionV3 network comes from
 https://github.com/mseitzer/pytorch-fid.
 """
 

@@ -23,7 +23,7 @@ from ...data.datasets.base import MultimodalBaseDataset
 from ..auto_model import AutoConfig
 from ..nn.default_architectures import BaseDictDecoders, BaseDictEncoders
 from .base_config import BaseConfig, EnvironmentConfig
-from .base_utils import hf_hub_is_available, MODEL_CARD_TEMPLATE
+from .base_utils import MODEL_CARD_TEMPLATE, hf_hub_is_available
 
 logger = logging.getLogger(__name__)
 console = logging.StreamHandler()
@@ -108,7 +108,7 @@ class BaseModel(nn.Module):
 
         env_spec.save_json(dir_path, "environment")
         self.model_config.save_json(dir_path, "model_config")
-        
+
         torch.save(model_dict, os.path.join(dir_path, "model.pt"))
 
         for archi in self.model_config.custom_architectures:
@@ -119,9 +119,10 @@ class BaseModel(nn.Module):
                     )
                     cloudpickle.dump(self.__getattr__(archi), fp)
             except:
-                logger.warning("The custom architectures could not have saved through cloudpickle."
-                               "Only the state_dict is saved.")
-
+                logger.warning(
+                    "The custom architectures could not have saved through cloudpickle."
+                    "Only the state_dict is saved."
+                )
 
     @classmethod
     def _load_model_config_from_folder(cls, dir_path):

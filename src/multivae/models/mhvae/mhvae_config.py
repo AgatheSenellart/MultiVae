@@ -2,17 +2,18 @@ from dataclasses import field
 from typing import Dict, List, Literal
 
 from pydantic.dataclasses import dataclass
+
 from multivae.models.base import BaseMultiVAEConfig
 
 
 @dataclass
 class MHVAEConfig(BaseMultiVAEConfig):
     """
-    
+
     This is the configuration class for the Conditional Variational Autoencoder model.
 
     Parameters:
-    
+
         n_modalities (int): The number of modalities. Default: None.
         latent_dim (int): The dimension of the latent space. Default: None.
         input_dims (dict[str,tuple]) : The modalities'names (str) and input shapes (tuple).
@@ -30,13 +31,11 @@ class MHVAEConfig(BaseMultiVAEConfig):
             computing the log-probability.
             For instance, with normal or laplace distribution, you can pass the scale in this dictionary.
             ex :  {'mod1' : {scale : 0.75}}
-            
-        n_latent (int) : the number of latent variables. 
-        beta (float) : the weight for the KL divergence.
-        
-    """
-    
-    n_latent:int = 3
-    beta:float = 1.0
 
-    
+        n_latent (int) : the number of latent variables.
+        beta (float) : the weight for the KL divergence.
+
+    """
+
+    n_latent: int = 3
+    beta: float = 1.0

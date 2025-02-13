@@ -69,20 +69,23 @@ def set_decoder_dist(dist_name, dist_params):
 
     if dist_name == "normal":
         scale = dist_params.pop("scale", 1.0)
-        def log_prob(recon, target): 
+
+        def log_prob(recon, target):
             return dist.Normal(recon, scale).log_prob(target)
 
     elif dist_name == "bernoulli":
+
         def log_prob(recon, target):
             return dist.Bernoulli(logits=recon).log_prob(target)
 
     elif dist_name == "laplace":
         scale = dist_params.pop("scale", 1.0)
+
         def log_prob(recon, target):
             return dist.Laplace(recon, scale).log_prob(target)
 
     elif dist_name == "categorical":
-        log_prob =  cross_entropy
+        log_prob = cross_entropy
 
     else:
         raise ValueError("The distribution type 'dist' is not supported")
