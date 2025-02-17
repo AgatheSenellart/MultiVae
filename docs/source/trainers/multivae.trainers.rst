@@ -20,7 +20,7 @@ Available Trainers
 -------------------------------------------
 
 .. autosummary::
-    ~multivae.trainers.BaseTrainer
-    ~multivae.trainers.MultistageTrainer
-    ~multivae.trainers.AddDccaTrainer
+    BaseTrainer
+    MultistageTrainer
+    AddDccaTrainer
     :nosignatures:

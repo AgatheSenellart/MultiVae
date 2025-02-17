@@ -14,12 +14,12 @@ from architectures_mmnist import (prior_block,
 
 
 # Set data path and experiment path:
-DATA_PATH = '/Users/agathe/dev/data'
-SAVING_PATH = 'Users/agathe/dev/expes/mhvae_mmnist'
+DATA_PATH = '/home/asenella/data'
+SAVING_PATH = '/home/asenella/expes/mhvae_mmnist'
 
-# Parser to define if weights are shared or not 
+# Parser to define if weights are shared or not
 parser = argparse.ArgumentParser()
-parser.add_argument('--share_weights', action='store_true') 
+parser.add_argument('--share_weights', action='store_true')
 args=parser.parse_args()
 
 # Define architectures and posterior blocks with or without shared weights
@@ -51,8 +51,6 @@ model = MHVAE(
 train_set = MMNISTDataset(DATA_PATH)
 train_set, eval_set = random_split(train_set, [0.8,0.2])
 
-
-
 # Define training configuration
 trainer_config = BaseTrainerConfig(
     output_dir=SAVING_PATH,
@@ -64,15 +62,15 @@ trainer_config = BaseTrainerConfig(
     )
 
 # Set up wandb callback
-wandb_cb = WandbCallback()
-wandb_cb.setup(trainer_config,model_config,'mhvae_mmnist')
+# wandb_cb = WandbCallback()
+# wandb_cb.setup(trainer_config,model_config,'mhvae_mmnist')
 
 # Define trainer and train
 trainer = BaseTrainer(training_config=trainer_config,
                       model=model,
                       train_dataset=train_set,
                       eval_dataset=eval_set,
-                      callbacks=[wandb_cb]
+                    #   callbacks=[wandb_cb]
                       )
 
 trainer.train()

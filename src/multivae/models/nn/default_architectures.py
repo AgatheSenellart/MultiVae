@@ -1,3 +1,5 @@
+"""Default architectures for the MultiVAE models."""
+
 import math
 from copy import deepcopy
 from typing import List
@@ -7,13 +9,13 @@ import torch
 from pythae.models.base.base_model import BaseDecoder
 from pythae.models.base.base_utils import ModelOutput
 from pythae.models.nn.base_architectures import BaseEncoder
-from pythae.models.nn.default_architectures import Encoder_VAE_MLP
 from torch import nn
 
 from multivae.models.base.base_config import BaseAEConfig
 from multivae.models.nn.base_architectures import (
     BaseConditionalDecoder,
     BaseJointEncoder,
+    BaseMultilatentEncoder
 )
 
 
@@ -69,7 +71,7 @@ class Encoder_VAE_MLP(BaseEncoder):
         return output
 
 
-class Encoder_VAE_MLP_Style(BaseEncoder):
+class Encoder_VAE_MLP_Style(BaseMultilatentEncoder):
     """
     A basic MLP encoders with two output embeddings :
 
@@ -81,7 +83,7 @@ class Encoder_VAE_MLP_Style(BaseEncoder):
     """
 
     def __init__(self, args: dict):
-        BaseEncoder.__init__(self)
+        BaseMultilatentEncoder.__init__(self)
         self.input_dim = args.input_dim
         self.latent_dim = args.latent_dim
         self.style_dim = args.style_dim
@@ -221,7 +223,10 @@ def BaseDictDecodersMultiLatents(
 
 
 class Decoder_AE_MLP(BaseDecoder):
-    # The same as in Pythae but allows for any input shape (*, latent_dim) with * containing any number of dimensions.
+    """ The same as in Pythae but allows for any input shape (*, latent_dim) 
+    with * containing any number of dimensions.
+    """
+
     def __init__(self, args: BaseAEConfig):
         BaseDecoder.__init__(self)
 
@@ -238,7 +243,7 @@ class Decoder_AE_MLP(BaseDecoder):
         self.layers = layers
         self.depth = len(layers)
 
-    def forward(self, z: torch.Tensor):
+    def forward(self, z: torch.Tensor,**kwargs):
         output = ModelOutput()
 
         max_depth = self.depth
@@ -285,7 +290,7 @@ class MultipleHeadJointEncoder(BaseJointEncoder):
         modules = [
             nn.Sequential(nn.Linear(self.joint_input_dim, hidden_dim), nn.ReLU(True))
         ]
-        for i in range(n_hidden_layers - 1):
+        for _ in range(n_hidden_layers - 1):
             modules.extend(
                 [nn.Sequential(nn.Linear(hidden_dim, hidden_dim), nn.ReLU(True))]
             )
@@ -321,6 +326,9 @@ class MultipleHeadJointEncoder(BaseJointEncoder):
 
 
 class ConditionalDecoder_MLP(BaseConditionalDecoder):
+    """
+    Base MLP Conditional Decoder for a single modality.
+    """
     def __init__(
         self, latent_dim: int, conditioning_data_dim: tuple, data_dim: tuple
     ) -> ModelOutput:

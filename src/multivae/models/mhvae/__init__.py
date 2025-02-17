@@ -27,6 +27,9 @@ Multimodal Hierarchical Variational Autoencoder from
     blocks in diagram below. (adaptated from the diagram in the original paper)
 
 .. image:: mhvae_architectures.png
+
+.. note:: In the original paper, the authors use a discriminator loss to improve the quality of the generated samples.
+    This block is not yet implemented in this version of the code.
 """
 
 from .mhvae_config import MHVAEConfig

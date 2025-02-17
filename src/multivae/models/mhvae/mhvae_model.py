@@ -20,6 +20,7 @@ logger.setLevel(logging.INFO)
 
 class MHVAE(BaseMultiVAE):
     """MHVAE model.
+    .. image:: mhvae_architectures.png
 
     Parameters :
 
@@ -90,14 +91,14 @@ class MHVAE(BaseMultiVAE):
             joint_logvar (torch.Tensor): logvar of the product of experts
         """
 
-        lnT = torch.stack(
+        log_inverse_cov = torch.stack(
             [-l for l in log_vars_list]
         )  # Compute the inverse of variances
-        lnV = -torch.logsumexp(lnT, dim=0)  # variances of the product of expert
+        log_var = -torch.logsumexp(log_inverse_cov, dim=0)  # variances of the product of expert
         mus = torch.stack(mus_list)
-        joint_mu = (torch.exp(lnT) * mus).sum(dim=0) * torch.exp(lnV)
+        joint_mu = (torch.exp(log_inverse_cov) * mus).sum(dim=0) * torch.exp(log_var)
 
-        return joint_mu, lnV
+        return joint_mu, log_var
 
     def kl_divergence_exact(self, mean, prior_mean, log_var, prior_log_var):
         """
@@ -137,12 +138,12 @@ class MHVAE(BaseMultiVAE):
             subsets += combinations(list(self.encoders.keys()), r=i)
         return subsets
 
-    def subset_encode(self, z_Ls_params, skips, subset):
+    def subset_encode(self, z_deepest_params, skips, subset):
         """
         Compute all the latent variables and KL divergences for a given subset of modalities.
 
         Args:
-            z_Ls_params (Dict[str, ModelOutput]): dictionary containing the mean and logvar of the deepest latent variable
+            z_deepest_params (Dict[str, ModelOutput]): dictionary containing the mean and logvar of the deepest latent variable
                 for each modality.
             skips (Dict[str, List[torch.Tensor]]): dictionary containing the intermediate results of the bottom-up
                 layers for each modality.
@@ -154,10 +155,10 @@ class MHVAE(BaseMultiVAE):
         """
 
         # Compute the joint posterior q(z_L | x) = p(z_L) * \prod_i q(z_L | x_i )
-        list_mus = [z_Ls_params[mod].embedding for mod in subset]
+        list_mus = [z_deepest_params[mod].embedding for mod in subset]
         list_mus.append(torch.zeros_like(list_mus[0]))  # add the prior p(z_L) mean = 0
 
-        list_log_vars = [z_Ls_params[mod].log_covariance for mod in subset]
+        list_log_vars = [z_deepest_params[mod].log_covariance for mod in subset]
         list_log_vars.append(
             torch.zeros_like(list_log_vars[0])
         )  # add the prior p(z_L) std = 1, logstd = 0
@@ -182,16 +183,13 @@ class MHVAE(BaseMultiVAE):
             h = self.top_down_blocks[i - 1](z_dict[f"z_{i+1}"])
 
             # Compute p(z_l|z>l)
-            output = self.prior_blocks[i - 1](
+            prior_params = self.prior_blocks[i - 1](
                 h
-            )  # len(self.prior_blocks) = n_latent - 1
-            prior_mu = output.embedding
-            prior_log_var = output.log_covariance
+            )  
 
             # Compute q(z_l | x, z>l) = p(z_l|z>l) \prod_i q(z_l | x_i, z>l)
-
-            list_mus = [prior_mu]
-            list_log_vars = [prior_log_var]
+            list_mus = [prior_params.embedding ]
+            list_log_vars = [prior_params.log_covariance]
             for mod in subset:
                 # Compute the parameters of q(z_l | x_i, z>l)
                 d = skips[mod][i - 1]  # skips[mod is of lenght self.n_latent - 1]
@@ -211,7 +209,7 @@ class MHVAE(BaseMultiVAE):
 
             # Compute KL
             kl_dict[f"kl_{i}"] = self.kl_divergence_exact(
-                joint_mu, prior_mu, joint_lv, prior_log_var
+                joint_mu, prior_params.embedding, joint_lv, prior_params.log_covariance
             )
 
         return z_dict, kl_dict
@@ -344,7 +342,7 @@ class MHVAE(BaseMultiVAE):
 
         # Apply all bottom_up layers, save the intermediate results
         skips = {mod: [] for mod in data}
-        z_ls_params = dict()
+        z_ls_params = {}
 
         for mod in data:
             # Apply first encoder layer
@@ -409,12 +407,12 @@ class MHVAE(BaseMultiVAE):
             self.share_posterior_weights = True
             if len(posterior_blocks) != self.n_latent - 1:
                 raise AttributeError(
-                    f"There must be {self.n_latent-1} modules in posterior_blocks[{m}]."
+                    f"There must be {self.n_latent-1} modules in posterior_blocks."
                 )
             for block in posterior_blocks:
                 if not isinstance(block, BaseEncoder):
                     raise AttributeError(
-                        f"The modules in posterior_blocks[{m}] must be instances of BaseEncoder"
+                        "The modules in posterior_blocks must be instances of BaseEncoder"
                     )
             self.posterior_blocks = torch.nn.ModuleList(posterior_blocks)
             return
