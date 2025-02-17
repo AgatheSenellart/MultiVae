@@ -78,7 +78,7 @@ class JMVAE(BaseJointModel):
                 Generate encodings conditioning on all modalities or a subset of modalities.
         Returns:
             ModelOutput instance with fields:
-                z (torch.Tensor (n_data, N, latent_dim))
+                z (torch.Tensor (N, n_data, latent_dim))
                 one_latent_space (bool) = True
         """
         self.eval()

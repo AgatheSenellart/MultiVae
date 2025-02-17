@@ -140,7 +140,7 @@ class Visualization(Evaluator):
         )
         data = next(iter(dataloader))
         # set inputs to device
-        # data = set_inputs_to_device(data, self.device)
+        data = set_inputs_to_device(data, self.device)
 
         recon = self.model.predict(
             data,

@@ -1,8 +1,6 @@
 name: Codecov coverage computation
 on: 
   push:
-    branches:
-      - main
 jobs:
   run:
     runs-on: ${{ matrix.os }}
@@ -25,7 +23,7 @@ jobs:
         pip install pytest-cov
         pytest --cov=multivae ./ --cov-report=xml --runslow
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v2
+      uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         directory: ./coverage/reports/

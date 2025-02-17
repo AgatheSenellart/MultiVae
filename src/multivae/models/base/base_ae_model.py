@@ -363,72 +363,6 @@ class BaseMultiVAE(BaseModel):
     ):
         raise NotImplementedError
 
-    def compute_cond_nll(
-        self,
-        inputs: MultimodalBaseDataset,
-        cond_mod: str,
-        pred_mods: list,
-        K: int = 1000,
-        batch_size_K: int = 100,
-    ):
-        """Compute the conditional likelihoods ln p(x|y) , ln p(y|x) with MonteCarlo Sampling and the approximation :
-
-                ln p(x|y) = \sum_{z ~ q(z|y)} ln p(x|z)
-
-        Args:
-            inputs (MultimodalBaseDataset): the data to compute the likelihood on.
-            cond_mod (str): the modality to condition on
-            gen_mod (str): the modality to condition on
-            K (int, optional): number of samples per batch. Defaults to 1000.
-            batch_size_K (int, optional): _description_. Defaults to 100.
-
-        Returns:
-            dict: _description_
-        """
-
-        # Compute K samples for each datapoint
-        o = self.encode(inputs, cond_mod, N=K)
-
-        # Compute the negative recon_log_prob for each datapoint
-        ll = {k: [] for k in pred_mods}
-
-        n_data = len(inputs.data[list(inputs.data.keys())[0]])
-        for i in range(n_data):
-            start_idx, stop_index = 0, batch_size_K
-            lnpxs = {k: [] for k in pred_mods}
-
-            while stop_index <= K:
-                # Encode with the conditional VAE
-                latents = o.z[start_idx:stop_index][:, i, :]
-
-                # Decode with the opposite decoder
-                for k in pred_mods:
-                    target = inputs.data[k][i]
-                    recon = self.decoders[k](
-                        latents
-                    ).reconstruction  # (batch_size,*recon_shape)
-                    # Compute lnp(y|z)
-                    lpxz = (
-                        self.recon_log_probs[k](target, recon)
-                        .reshape(recon.size(0), -1)
-                        .sum(-1)
-                    )
-                    lnpxs[k].append(torch.logsumexp(lpxz, dim=0))
-
-                # next batch
-                start_idx += batch_size_K
-                stop_index += batch_size_K
-            for k in pred_mods:
-                ll[k].append(torch.logsumexp(torch.tensor(lnpxs[k]), dim=0) - np.log(K))
-
-        results = {}
-        for k in pred_mods:
-            results["ll_" + cond_mod + "_" + k] = torch.sum(torch.tensor(ll[k])) / len(
-                ll[k]
-            )
-
-        return ModelOutput(**results)
-
     def generate_from_prior(self, n_samples, **kwargs):
         """
         Generate latent samples from the prior distribution.
@@ -441,46 +375,44 @@ class BaseMultiVAE(BaseModel):
         z = dist.Normal(0, 1).rsample(sample_shape).to(self.device)
         return ModelOutput(z=z, one_latent_space=True)
 
-    def cond_nll_from_subset(
+    def compute_cond_nll(
         self,
         inputs: MultimodalBaseDataset,
         subset: Union[list, tuple],
         pred_mods: Union[list, tuple],
-        K=1000,
-        batch_size_k=100,
+        k_iwae=1000,
     ):
-        """
-        Compute the negative log-likelihoods of the conditional generative models : encoding
-        from one / a subset of modalities to generate others.
-        log p(x_i|x_j,x_l) = log 1/K \sum_k p(x_i|z_k).
-
+        """Compute the conditional likelihood :math: `ln p(x_{pred}|x_{cond})`` with MonteCarlo Sampling and the approximation :
+        .. math::
+                \ln p(x_{pred)|x_{cond}) = \frac{1}{K}\sum_{z^{(i)} ~ q(z^{(i)}|x_{cond}), i=1}^{K} \ln p(x_{pred}|z^{(i)})
 
         Args:
-            inputs (MultimodalBaseDataset): The inputs to use for the estimation.
-            subset (list, tuple): The modalities to take as inputs.
-            pred_mods (list, tuple): The modalities to take into account in the prediction.
-            K (int, optional): The number of samples. Defaults to 1000.
-            batch_size_k (int, optional): Batch size to use. Defaults to 100.
+            inputs (MultimodalBaseDataset): the data to compute the likelihood on.
+            cond_mod (str): the modality to condition on
+            gen_mod (str): the modality to condition on
+            K (int, optional): number of samples per batch. Defaults to 1000.
+
+        Returns:
+            dict: Contains the negative log-likelihood for each modality in pred_mods.
         """
 
         cnll = {m: [] for m in pred_mods}
 
-        # Encode using the subset modalities
-        nb_computed_samples = 0
+        for _ in range(k_iwae):
+            # Encode the inputs conditioning on subset
+            encode_output = self.encode(inputs, subset)
+            # Decode
+            decode_output = self.decode(encode_output, pred_mods)
+            # Compute ln(p(x_{pred}|z)) for each modality
+            for mod in pred_mods:
+                recon = decode_output[mod]  # (n_data, *recon_size )
+                lpxz = self.recon_log_probs[mod](recon, inputs.data[mod]).reshape(recon.size(0), -1).sum(-1)
+                cnll[mod].append(lpxz) # (n_data)
 
-        while nb_computed_samples < K:
-            n_samples = min(batch_size_k, K - nb_computed_samples)
-            encode_output = self.encode(inputs, subset, N=n_samples)
-            if encode_output.one_latent_space:
-                decode_output = self.decode(encode_output, pred_mods)
-
-                for mod in pred_mods:
-                    recon = decode_output[mod]  # (batch_size_k, n_data, *recon_size )
-                    target = inputs.data[mod]
-                    lpxz = self.recon_log_probs[mod](recon, target)
-                    cnll[mod].append(torch.logsumexp(lpxz, dim=0))
-
-            nb_computed_samples += n_samples
-
-        cnll = {m: torch.logsumexp(torch.stack(cnll[m]), dim=0) for m in cnll}
+        for mod, c in cnll.items():
+            cnll[mod] = torch.stack(c) # stack the results of mini_batches of K samples
+            cnll[mod] = torch.logsumexp(cnll[mod], dim=0) - np.log(k_iwae) # average over the samples
+            cnll[mod] = - torch.sum(cnll[mod]) / len(cnll[mod]) # average over the data points and take negative
+            
+        
         return cnll
