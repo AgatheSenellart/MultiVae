@@ -13,15 +13,15 @@ from multivae.trainers import BaseTrainer, BaseTrainerConfig
 from multivae.trainers.base.callbacks import WandbCallback
 
 # Set data path and experiment path
-DATA_PATH = "/Users/agathe/dev/data"
-SAVING_PATH = "/Users/agathe/dev/expes/mvtcae_cub"
+DATA_PATH = "/home/asenella/data"
+SAVING_PATH = "/home/asenella/expes/mvtcae_cub"
 
 # Import the dataset
 train_data = CUB(
-    DATA_PATH, "train", im_size=(64, 64), output_type="tokens"
+    DATA_PATH, "train", im_size=(64, 64), output_type="tokens", download=True
 )
 eval_data = CUB(
-    DATA_PATH, "eval", im_size=(64, 64), output_type="tokens"
+    DATA_PATH, "eval", im_size=(64, 64), output_type="tokens", download=True
 )
 # Set up model configuration
 model_config = MVTCAEConfig(

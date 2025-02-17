@@ -13,7 +13,7 @@ from ...data.datasets.base import MultimodalBaseDataset
 from ..nn.default_architectures import BaseDictDecoders, BaseDictEncoders
 from .base_config import BaseMultiVAEConfig
 from .base_model import BaseModel
-from .base_utils import cross_entropy, set_decoder_dist
+from .base_utils import  set_decoder_dist
 
 logger = logging.getLogger(__name__)
 console = logging.StreamHandler()
@@ -247,7 +247,7 @@ class BaseMultiVAE(BaseModel):
                 "it must be a ModelOuput instance and "
                 "embedding.z must be a Tensor of shape (batch_size, *latent_shape)"
                 "If you used the encode function with N>1 to generate the embedding,"
-                " you need to pass flatten=True to the encode function"
+                " you need to pass flatten=True to have the right format for decoding."
             )
 
     def predict(

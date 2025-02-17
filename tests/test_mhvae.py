@@ -402,7 +402,7 @@ class Test_MHVAE:
             per_device_train_batch_size=request.param[1],
             num_epochs=request.param[2],
             optimizer_cls=request.param[3],
-            learning_rate=1e-3,
+            learning_rate=1e-4,
             steps_saving=2,
         )
 

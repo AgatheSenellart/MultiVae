@@ -15,8 +15,8 @@ from multivae.trainers.base.callbacks import WandbCallback
 
 
 # Set data path and experiment path
-DATA_PATH = "/Users/agathe/dev/data"
-SAVING_PATH = "/Users/agathe/dev/expes/mvtcae_mmnist"
+DATA_PATH = "/home/asenella/data"
+SAVING_PATH = "/home/asenella/expes/mvtcae_mmnist"
 
 # Download data and split it
 train_data = MMNISTDataset(data_path=DATA_PATH, split="train", download=True)
