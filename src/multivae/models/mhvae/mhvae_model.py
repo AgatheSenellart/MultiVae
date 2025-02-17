@@ -421,7 +421,8 @@ class MHVAE(BaseMultiVAE):
         if isinstance(posterior_blocks, (dict, torch.nn.ModuleDict)):
             logger.info("Not shared weights for the posterior blocks")
             self.share_posterior_weights = False
-            assert posterior_blocks.keys() == self.encoders.keys()
+            if posterior_blocks.keys() != self.encoders.keys():
+                raise AttributeError("The keys of posterior_blocks must match the keys of encoders.")
             for m, p in posterior_blocks.items():
                 if len(p) != self.n_latent - 1:
                     raise AttributeError(
@@ -460,8 +461,3 @@ class MHVAE(BaseMultiVAE):
         for mod in bottom_up_blocks:
             self.bottom_up_blocks[mod] = torch.nn.ModuleList(bottom_up_blocks[mod])
 
-    def default_encoders(self, model_config):
-        raise ValueError("You have to provide encoders for this model.")
-
-    def default_decoders(self, model_config):
-        raise ValueError("You have to provide decoders for this model.")

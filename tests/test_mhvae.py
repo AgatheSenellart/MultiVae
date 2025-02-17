@@ -277,10 +277,91 @@ class Test_MHVAE:
 
 
         return
+    
+    
 
     @fixture
     def model(self, model_config, architectures):
         return MHVAE(model_config=model_config, **architectures)
+    
+    def test_sanity_check_bottom_up(self, model):
+        wrong_bottom_up = deepcopy(model.bottom_up_blocks)
+        with pytest.raises(AttributeError):
+            model.sanity_check_bottom_up(model.encoders,wrong_bottom_up.pop("m0"))
+        
+        wrong_bottom_up = deepcopy(model.bottom_up_blocks)
+        wrong_bottom_up['m2'] = wrong_bottom_up.pop('m1')
+
+        with pytest.raises(AttributeError):
+            model.sanity_check_bottom_up(model.encoders,wrong_bottom_up)
+
+        wrong_bottom_up = deepcopy(model.bottom_up_blocks)
+        wrong_bottom_up['m0'] = wrong_bottom_up['m0'][:-1]
+        with pytest.raises(AttributeError):
+            model.sanity_check_bottom_up(model.encoders,wrong_bottom_up)
+
+        wrong_bottom_up = deepcopy(model.bottom_up_blocks)
+        wrong_bottom_up['m0'][-1] = wrong_bottom_up['m0'][-2]
+        with pytest.raises(AttributeError):
+            model.sanity_check_bottom_up(model.encoders,wrong_bottom_up)
+        
+        return
+    
+    def test_sanity_check_top_down(self, model):
+        wrong_top_bottom = deepcopy(model.top_down_blocks)
+        wrong_top_bottom = wrong_top_bottom[:-1]
+        with pytest.raises(AttributeError):
+            
+            model.sanity_check_top_down_blocks(wrong_top_bottom)
+        return
+    
+    def test_check_and_set_posterior_blocks(self, model):
+
+        wrong_posteriors = deepcopy(model.posterior_blocks)
+        if isinstance(wrong_posteriors,nn.ModuleList):
+            wrong_posteriors = wrong_posteriors[:-1]
+        else:
+            wrong_posteriors['m2'] = wrong_posteriors.pop('m1')
+        with pytest.raises(AttributeError):
+            model.check_and_set_posterior_blocks(wrong_posteriors)
+
+        
+        wrong_posteriors = deepcopy(model.posterior_blocks)
+        if isinstance(wrong_posteriors,nn.ModuleList):
+            wrong_posteriors[-1] = nn.Linear(2,3)
+        else:
+            wrong_posteriors['m1'] = wrong_posteriors.pop('m1')[:-1]
+        with pytest.raises(AttributeError):
+            model.check_and_set_posterior_blocks(wrong_posteriors)
+        
+        wrong_posteriors = deepcopy(model.posterior_blocks)
+        if isinstance(wrong_posteriors,nn.ModuleDict):
+            wrong_posteriors['m1'][-1] = nn.Linear(2,3)
+            with pytest.raises(AttributeError):
+                model.check_and_set_posterior_blocks(wrong_posteriors)
+        
+    def test_sanity_check_prior_blocks(self, model):
+
+        wrong_priors = deepcopy(model.prior_blocks)
+        wrong_priors = wrong_priors[:-1]
+        with pytest.raises(AttributeError):
+            model.sanity_check_prior_blocks(wrong_priors)
+        
+        wrong_priors = deepcopy(model.prior_blocks)
+        wrong_priors[-1] = torch.nn.Linear(2,3)
+        with pytest.raises(AttributeError):
+            model.sanity_check_prior_blocks(wrong_priors)
+        
+        return
+    
+    def test_model_without_architectures(self, model_config, architectures):
+        with pytest.raises(TypeError):
+            archi = deepcopy(architectures)
+            archi.pop('encoders')
+            model = MHVAE(model_config=model_config, **archi)
+        with pytest.raises(TypeError):
+            architectures.pop('decoders')
+            model = MHVAE(model_config=model_config, **architectures)
 
     def test_forward(self, model, dataset):
 
