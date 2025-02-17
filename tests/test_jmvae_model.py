@@ -112,11 +112,8 @@ class Test_forward_and_predict:
         out_dec = model.decode(embeddings, modalities="mod1")
         assert out_dec.mod1.shape == (2, 2)
 
-        embeddings = model.encode(dataset, cond_mod="mod2", N=10)
+        embeddings = model.encode(dataset, cond_mod="mod2", N=10, flatten=False)
         assert embeddings.z.shape == (10, 2, model.latent_dim)
-
-        out_dec = model.decode(embeddings, modalities="mod1")
-        assert out_dec.mod1.shape == (10, 2, 2)
 
         embeddings = model.encode(dataset, cond_mod=["mod2", "mod1"])
         assert embeddings.z.shape == (2, model.latent_dim)

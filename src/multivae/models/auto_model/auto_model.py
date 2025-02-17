@@ -2,7 +2,7 @@ import json
 import logging
 import os
 
-import torch.nn as nn
+from torch import nn
 
 from ..base.base_utils import hf_hub_is_available
 
@@ -91,6 +91,11 @@ class AutoModel(nn.Module):
             from ..cvae import CVAE
 
             model = CVAE.load_from_folder(dir_path)
+
+        elif model_name == "MHVAEConfig":
+            from ..mhvae import MHVAE
+
+            model = MHVAE.load_from_folder(dir_path)
 
         elif model_name == "DMVAEConfig":
             from ..dmvae import DMVAE
@@ -213,6 +218,11 @@ class AutoModel(nn.Module):
             from ..cmvae import CMVAE
 
             model = CMVAE.load_from_hf_hub(hf_hub_path, allow_pickle)
+
+        elif model_name == "MHVAEConfig":
+            from ..mhvae import MHVAE
+
+            model = MHVAE.load_from_hf_hub(hf_hub_path, allow_pickle)
 
         else:
             raise NameError(

@@ -1,5 +1,5 @@
 import torch
-from pythae.models.base.base_model import BaseDecoder, BaseEncoder, ModelOutput
+from pythae.models.base.base_model import BaseDecoder, BaseEncoder
 
 
 class BaseJointEncoder(BaseEncoder):
@@ -46,10 +46,10 @@ class BaseJointEncoder(BaseEncoder):
         raise NotImplementedError()
 
 class BaseMultilatentEncoder(BaseEncoder):
-    """This is a base class for Conditional Decoders architectures."""
+    """This is a base class for for encoders with multiple latent spaces."""
 
     def __init__(self):
-        BaseDecoder.__init__(self)
+        BaseEncoder.__init__(self)
         self.latent_dim = None  # to be set in child class
         self.style_dim = None  # to be set in child class
 
@@ -58,7 +58,7 @@ class BaseMultilatentEncoder(BaseEncoder):
         It takes the input tensor x and returns an instance of
         :class:`~pythae.models.base.base_utils.ModelOutput` with the parameters for the shared latent space
         and the modality-specific latent space.
-        If you decide to provide your own encoder network in a model that uses multiple 
+        If you decide to provide your own encoder network in a model that uses multiple
         latent spaces, you must make sure your
         model inherits from this class by setting and then defining your forward function as
         such:
@@ -131,7 +131,7 @@ class BaseConditionalDecoder(BaseDecoder):
 
         Parameters:
             z (torch.Tensor): Latent variable
-            conditioning_modality (torch.Tensor): Conditioning modality data
+            conditioning_modality (torch.Tensor): Conditioning data.
 
         Returns:
             output (~pythae.models.base.base_utils.ModelOutput): The output of the decoder

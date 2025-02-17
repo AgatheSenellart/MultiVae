@@ -75,6 +75,10 @@ class MVAE(BaseMultiVAE):
             if mod in subset:
                 output_mod = self.encoders[mod](inputs.data[mod])
                 mu_mod, log_var_mod = output_mod.embedding, output_mod.log_covariance
+
+                # set variance to inf for missing modalities so that they are not taken into account
+                # in the product of experts
+
                 if hasattr(inputs, "masks"):
                     log_var_mod[(1 - inputs.masks[mod].int()).bool().flatten()] = (
                         torch.inf

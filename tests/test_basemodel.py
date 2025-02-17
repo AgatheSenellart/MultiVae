@@ -140,12 +140,12 @@ class Test_BaseMultiVAE:
 
     def test_recon_dist(self):
         model_config = BaseMultiVAEConfig(
-            n_modalities=3,
+            n_modalities=4,
             latent_dim=10,
-            input_dims=dict(mod1=(3,), mod2=(3, 4), mod3=(3, 4, 4)),
-            decoders_dist=dict(mod1="normal", mod2="bernoulli", mod3="laplace"),
+            input_dims=dict(mod1=(3,), mod2=(3, 4), mod3=(3, 4, 4), mod4=(3, 4, 4, 4)),
+            decoders_dist=dict(mod1="normal", mod2="bernoulli", mod3="laplace", mod4='categorical'),
             decoder_dist_params=dict(
-                mod1=dict(scale=12), mod2=None, mod3=dict(scale=31)
+                mod1=dict(scale=12), mod2=None, mod3=dict(scale=31), 
             ),
         )
 
@@ -155,6 +155,7 @@ class Test_BaseMultiVAE:
         dumb_x2 = torch.rand(2, 3, 4)
         dumb_x2_target = torch.randint(0, 2, (2, 3, 4)).float()
         dumb_x3 = torch.randn(2, 3, 4, 4)
+        dumb_x4 = torch.randint(0, 2, (2, 3, 4, 4, 4)).float()
 
         assert model.recon_log_probs["mod1"](dumb_x1, dumb_x1).shape == dumb_x1.shape
         assert (
@@ -162,6 +163,7 @@ class Test_BaseMultiVAE:
             == dumb_x2.shape
         )
         assert model.recon_log_probs["mod3"](dumb_x3, dumb_x3).shape == dumb_x3.shape
+        assert model.recon_log_probs['mod4'](dumb_x4, dumb_x4).shape == dumb_x4.shape
 
     def test_raises_sanity_check_flags(self):
         model_config = BaseMultiVAEConfig(

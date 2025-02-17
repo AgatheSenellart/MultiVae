@@ -1,13 +1,13 @@
 **********************************
-CMVAE
+MHVAE
 **********************************
 
 
 .. automodule::
-   multivae.models.cmvae
+   multivae.models.mhvae
 
-.. autoclass:: multivae.models.CMVAEConfig
+.. autoclass:: multivae.models.MHVAEConfig
    :members:
 
-.. autoclass:: multivae.models.CMVAE
+.. autoclass:: multivae.models.MHVAE
    :members:

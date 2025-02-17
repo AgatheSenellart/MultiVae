@@ -33,4 +33,5 @@ Available Multimodal VAEs
     Nexus
     DMVAE
     CMVAE
+    MHVAE
     :nosignatures:

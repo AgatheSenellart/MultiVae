@@ -4,7 +4,7 @@ import torch
 import torch.distributions as dist
 import torch.nn.functional as F
 
-model_card_template = """---
+MODEL_CARD_TEMPLATE = """---
 language: en
 tags:
 - multivae
@@ -21,6 +21,7 @@ This model was trained with multivae. It can be downloaded or reloaded using the
 
 
 def hf_hub_is_available():
+    """Function to check if the huggingface_hub library is available"""
     return importlib.util.find_spec("huggingface_hub") is not None
 
 
@@ -64,19 +65,27 @@ def cross_entropy(input, target, eps=1e-6):
 
 
 def set_decoder_dist(dist_name, dist_params):
+    """Transforms the distribution name and parameters into a callable log_prob function"""
+
     if dist_name == "normal":
         scale = dist_params.pop("scale", 1.0)
-        log_prob = lambda input, target: dist.Normal(input, scale).log_prob(target)
+
+        def log_prob(recon, target):
+            return dist.Normal(recon, scale).log_prob(target)
 
     elif dist_name == "bernoulli":
-        log_prob = lambda input, target: dist.Bernoulli(logits=input).log_prob(target)
+
+        def log_prob(recon, target):
+            return dist.Bernoulli(logits=recon).log_prob(target)
 
     elif dist_name == "laplace":
         scale = dist_params.pop("scale", 1.0)
-        log_prob = lambda input, target: dist.Laplace(input, scale).log_prob(target)
+
+        def log_prob(recon, target):
+            return dist.Laplace(recon, scale).log_prob(target)
 
     elif dist_name == "categorical":
-        log_prob = lambda input, target: cross_entropy(input, target)
+        log_prob = cross_entropy
 
     else:
         raise ValueError("The distribution type 'dist' is not supported")

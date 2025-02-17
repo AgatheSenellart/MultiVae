@@ -6,10 +6,8 @@ from typing import Literal
 
 import numpy as np
 import torch
-from PIL import Image
 from pythae.data.datasets import DatasetOutput
 from torchvision.datasets.utils import download_and_extract_archive
-from torchvision.transforms import transforms
 
 from .base import MultimodalBaseDataset
 
@@ -21,7 +19,7 @@ logger.addHandler(console)
 logger.setLevel(logging.INFO)
 
 
-class MMNISTDataset(MultimodalBaseDataset): # pragma: no cover
+class MMNISTDataset(MultimodalBaseDataset):  # pragma: no cover
     """
     Multimodal PolyMNIST Dataset from
     'Generalized Multimodal Elbo' Sutter et al 2021.

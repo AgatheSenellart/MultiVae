@@ -22,6 +22,7 @@ Multimodal Variational Autoencoders Models
     nexus
     dmvae
     cmvae
+    mhvae
 
 .. automodule::
     multivae.models
@@ -42,4 +43,5 @@ Available VAEs
     Nexus
     DMVAE
     CMVAE
+    MHVAE
     :nosignatures:

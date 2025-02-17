@@ -12,13 +12,14 @@ Neural Network Architectures
     base
 
 .. automodule::
-    multivae.models.nn
+    multivae.models.nn.base_architectures
 
 Base Architectures
 -------------------------------------------
 
 .. autosummary::
     BaseJointEncoder
+    BaseMultilatentEncoder
     BaseConditionalDecoder
     :nosignatures:
 

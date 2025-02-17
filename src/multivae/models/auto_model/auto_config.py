@@ -77,6 +77,11 @@ class AutoConfig(BaseConfig):
 
             model_config = CVAEConfig.from_json_file(json_path)
 
+        elif config_name == "MHVAEConfig":
+            from ..mhvae import MHVAEConfig
+
+            model_config = MHVAEConfig.from_json_file(json_path)
+
         elif config_name == "DMVAEConfig":
             from ..dmvae import DMVAEConfig
 
