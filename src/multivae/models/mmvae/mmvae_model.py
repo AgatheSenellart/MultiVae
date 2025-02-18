@@ -4,7 +4,6 @@ from typing import Union
 
 import numpy as np
 import torch
-import torch.distributions as dist
 import torch.nn.functional as F
 from pythae.models.base.base_utils import ModelOutput
 from torch.distributions import Laplace, Normal
@@ -97,7 +96,7 @@ class MMVAE(BaseMultiVAE):
         return mean, std
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs):
-
+        """Forward pass of the model. Outputs the loss and metrics."""
         # First compute all the encodings for all modalities
 
         # drop modalities that are completely unavailable in the batch to avoid Nan in backward
@@ -279,7 +278,7 @@ class MMVAE(BaseMultiVAE):
         return ModelOutput(loss=-lws.sum(), loss_sum=-lws.sum(), metrics={})
 
     def iwae_looser(self, qz_xs, embeddings, reconstructions, inputs):
-
+        """Compute the iwae loss without the DReG estimator for the gradient."""
         lws, n_mods_sample = self.compute_k_lws(
             qz_xs, embeddings, reconstructions, inputs
         )
@@ -299,7 +298,7 @@ class MMVAE(BaseMultiVAE):
         return ModelOutput(loss=-lws.sum(), loss_sum=-lws.sum(), metrics={})
 
     def iwae(self, qz_xs, embeddings, reconstructions, inputs):
-
+        
         lws, n_mods_sample = self.compute_k_lws(
             qz_xs, embeddings, reconstructions, inputs
         )
@@ -335,9 +334,7 @@ class MMVAE(BaseMultiVAE):
             N (int) : The number of encodings to sample for each datapoint. Default to 1.
 
         Returns:
-            ModelOutput instance with fields:
-                z (torch.Tensor (n_data, N, latent_dim))
-                one_latent_space (bool) = True
+            ModelOutput instance with fields 'z' (torch.Tensor (n_data, N, latent_dim)),'one_latent_space' (bool) = True
 
 
 

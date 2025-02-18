@@ -5,6 +5,7 @@ import torch.distributions as dist
 from pythae.models.base.base_utils import ModelOutput
 from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
 
+from ..nn.base_architectures import BaseJointEncoder
 from ...data.datasets.base import MultimodalBaseDataset
 from ..joint_models import BaseJointModel
 from .telbo_config import TELBOConfig
@@ -27,7 +28,7 @@ class TELBO(BaseJointModel):
             the modalities names and the decoders for each modality. Each decoder is an instance of
             Pythae's BaseDecoder.
 
-        joint_encoder (~pythae.models.nn.base_architectures.BaseEncoder) : An instance of BaseEncoder that takes all the modalities as an input.
+        joint_encoder (~multivae.models.nn.base_architectures.BaseJointEncoder) : takes all the modalities as an input.
             If none is provided, one is created from the unimodal encoders. Default : None.
 
 
@@ -38,7 +39,7 @@ class TELBO(BaseJointModel):
         model_config: TELBOConfig,
         encoders: Dict[str, BaseEncoder] = None,
         decoders: Dict[str, BaseDecoder] = None,
-        joint_encoder: Union[BaseEncoder, None] = None,
+        joint_encoder: Union[BaseJointEncoder, None] = None,
         **kwargs,
     ):
         super().__init__(model_config, encoders, decoders, joint_encoder, **kwargs)
@@ -63,6 +64,7 @@ class TELBO(BaseJointModel):
         self.decoders.requires_grad_(False)
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs):
+        """Forward pass of the model."""
         epoch = kwargs.pop("epoch", 1)
 
         # First compute the joint ELBO
@@ -141,7 +143,7 @@ class TELBO(BaseJointModel):
 
         Returns:
             ModelOutput instance with fields:
-                z (torch.Tensor (n_data, N, latent_dim))
+                z (torch.Tensor (N,n_data, latent_dim))
                 one_latent_space (bool) = True
 
         """

@@ -5,8 +5,8 @@ import numpy as np
 import torch
 import torch.distributions as dist
 from pythae.models.base.base_utils import ModelOutput
-from pythae.models.nn.base_architectures import BaseEncoder
 
+from ..nn.base_architectures import BaseJointEncoder
 from ...data.datasets.base import MultimodalBaseDataset
 from ..joint_models import BaseJointModel
 from .jmvae_config import JMVAEConfig
@@ -32,8 +32,8 @@ class JMVAE(BaseJointModel):
             the modalities names and the decoders for each modality. Each decoder is an instance of
             Pythae's BaseDecoder.
 
-        joint_encoder (~pythae.models.nn.base_architectures.BaseEncoder) : An instance of
-            BaseEncoder that takes all the modalities as an input. If none is provided, one is
+        joint_encoder (~multivae.models.nn.base_architectures.BaseJointEncoder) : Takes all the modalities
+            as input. If none is provided, one is
             created from the unimodal encoders. Default : None.
     """
 
@@ -42,7 +42,7 @@ class JMVAE(BaseJointModel):
         model_config: JMVAEConfig,
         encoders: dict = None,
         decoders: dict = None,
-        joint_encoder: Union[BaseEncoder, None] = None,
+        joint_encoder: Union[BaseJointEncoder, None] = None,
         **kwargs,
     ):
         super().__init__(model_config, encoders, decoders, joint_encoder, **kwargs)

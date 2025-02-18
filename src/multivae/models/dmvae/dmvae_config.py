@@ -1,4 +1,5 @@
 from pydantic.dataclasses import dataclass
+from typing import Union, Dict
 
 from ..base import BaseMultiVAEConfig
 
@@ -35,5 +36,5 @@ class DMVAEConfig(BaseMultiVAEConfig):
     """
 
     modalities_specific_dim: dict = None
-    modalities_specific_betas: dict = None
-    beta: float = 1
+    modalities_specific_betas: Union[dict, None] = None
+    beta: float = 1.0

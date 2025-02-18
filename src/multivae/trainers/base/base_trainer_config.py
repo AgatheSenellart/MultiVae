@@ -115,6 +115,7 @@ class BaseTrainerConfig(BaseConfig):
                     lr=self.learning_rate,
                     **self.optimizer_params,
                 )
+                
             except TypeError as e:
                 raise TypeError(
                     "Error in optimizer's parameters. Check that the provided dict contains only "

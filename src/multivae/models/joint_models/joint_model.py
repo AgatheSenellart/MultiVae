@@ -4,7 +4,6 @@ from typing import Union
 import numpy as np
 import torch
 import torch.distributions as dist
-from pythae.models.nn.base_architectures import BaseEncoder
 
 from multivae.models.nn import BaseJointEncoder
 
@@ -33,7 +32,7 @@ class BaseJointModel(BaseMultiVAE):
         decoder (Dict[BaseDecoder]): A dictionary containing the modalities names and the decoders for each
             modality. Each decoder is an instance of Pythae's BaseDecoder class.
 
-        joint_encoder (BaseEncoder) : An instance of BaseEncoder that takes all the modalities as an input.
+        joint_encoder (BaseJointEncoder) : Takes all the modalities as an input.
             If none is provided, one is created from the unimodal encoders. Default : None.
     """
 
@@ -59,13 +58,13 @@ class BaseJointModel(BaseMultiVAE):
         return MultipleHeadJointEncoder(self.encoders, model_config)
 
     def set_joint_encoder(self, joint_encoder):
-        "Checks that the provided joint encoder is an instance of BaseEncoder."
+        "Checks that the provided joint encoder is an instance of BaseJointEncoder."
 
-        if not issubclass(type(joint_encoder), BaseEncoder):
+        if not issubclass(type(joint_encoder), BaseJointEncoder):
             raise AttributeError(
                 (
-                    f"The joint encoder must inherit from BaseEncoder class from "
-                    "multivae.models.nn.default_architectures.BaseJointEncoder . Refer to documentation."
+                    f"The joint encoder must inherit from "
+                    "~multivae.models.nn.default_architectures.BaseJointEncoder . Refer to documentation."
                 )
             )
         self.joint_encoder = joint_encoder

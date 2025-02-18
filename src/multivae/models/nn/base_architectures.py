@@ -30,6 +30,7 @@ class BaseJointEncoder(BaseEncoder):
             ...         self.latent_dim = ...
             ...
             ...     def forward(self, x: dict):
+            ...         # x is a dict with a tensor for each modality
             ...         # your code
             ...         output = ModelOutput(
             ...             embedding=embedding,

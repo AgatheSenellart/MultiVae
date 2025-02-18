@@ -226,9 +226,7 @@ class MVAE(BaseMultiVAE):
             N (int) : The number of encodings to sample for each datapoint. Default to 1.
 
         Returns:
-            ModelOutput instance with fields:
-                z (torch.Tensor (n_data, N, latent_dim))
-                one_latent_space (bool) = True
+            ModelOutput : contains `z` (torch.Tensor (n_data, N, latent_dim)), `one_latent_space` (bool) = True
 
         """
 

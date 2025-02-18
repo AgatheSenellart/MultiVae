@@ -24,13 +24,15 @@ Available Multimodal VAEs
     CVAE
     BaseMultiVAE
     AutoModel
+    JMVAE
+    TELBO
     MVAE
     MMVAE
-    TELBO
-    JMVAE
-    JNF
-    Nexus
+    MoPoE
+    MVTCAE
     DMVAE
+    Nexus
+    JNF
     CMVAE
     MHVAE
     :nosignatures:
