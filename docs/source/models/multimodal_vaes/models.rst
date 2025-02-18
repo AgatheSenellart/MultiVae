@@ -18,7 +18,6 @@ Multimodal Variational Autoencoders Models
     mopoe
     jmvae
     jnf
-    jnf_dcca
     nexus
     dmvae
     cmvae
@@ -39,7 +38,6 @@ Available VAEs
     TELBO
     JMVAE
     JNF
-    JNFDcca
     Nexus
     DMVAE
     CMVAE

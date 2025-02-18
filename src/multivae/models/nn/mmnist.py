@@ -64,7 +64,7 @@ class EncoderConvMMNIST(BaseEncoder):
 
 class EncoderConvMMNIST_adapted(BaseEncoder):
     """
-    Adapt so that it works with DCCA and models with multiple latent spaces.
+    Simple convolutional encoder with no linear layers at the end.
     """
 
     def __init__(self, model_config: BaseAEConfig):

@@ -29,7 +29,6 @@ Available Multimodal VAEs
     TELBO
     JMVAE
     JNF
-    JNFDcca
     Nexus
     DMVAE
     CMVAE
