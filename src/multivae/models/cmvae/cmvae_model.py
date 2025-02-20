@@ -130,12 +130,12 @@ class CMVAE(BaseMultiVAE):
     @property
     def pc_params(self):
         """
-        Parameters of uniform prior distribution on latent clusters.
+        Parameters of prior distribution on latent clusters.
 
         """
         return F.softmax(self._pc_params, dim=-1)
 
-    def log_var_to_std(self, log_var):
+    def _log_var_to_std(self, log_var):
         """
         For latent distributions parameters, transform the log covariance to the
         standard deviation of the distribution either applying softmax, softplus
@@ -149,7 +149,7 @@ class CMVAE(BaseMultiVAE):
         else:
             return torch.exp(0.5 * log_var)
 
-    def compute_posteriors_and_embeddings(self, inputs, detach, **kwargs):
+    def _compute_posteriors_and_embeddings(self, inputs, detach, **kwargs):
 
         # Drop unused modalities
         inputs = drop_unused_modalities(inputs)
@@ -166,8 +166,8 @@ class CMVAE(BaseMultiVAE):
             mu_style = output.style_embedding
             log_var_style = output.style_log_covariance
 
-            sigma = self.log_var_to_std(log_var)
-            sigma_style = self.log_var_to_std(log_var_style)
+            sigma = self._log_var_to_std(log_var)
+            sigma_style = self._log_var_to_std(log_var_style)
 
             # Shared latent variable
             qu_x = self.latent_dist(mu, sigma)
@@ -193,7 +193,7 @@ class CMVAE(BaseMultiVAE):
                         [self.r_mean_priors[recon_mod]] * len(mu), axis=0
                     )
                     sigma_prior_mod = torch.cat(
-                        [self.log_var_to_std(self.r_logvars_priors[recon_mod])]
+                        [self._log_var_to_std(self.r_logvars_priors[recon_mod])]
                         * len(mu),
                         axis=0,
                     )
@@ -227,30 +227,31 @@ class CMVAE(BaseMultiVAE):
         return posteriors, embeddings, reconstructions
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs):
+        """Forward pass of the CMVAE model. Returns the loss on the batch."""
 
         if self.model_config.loss == "dreg_looser":
             posteriors, embeddings, reconstructions = (
-                self.compute_posteriors_and_embeddings(inputs, detach=True, **kwargs)
+                self._compute_posteriors_and_embeddings(inputs, detach=True, **kwargs)
             )
             # For the DreG estimation, we compute the individual likelihoods with detached posteriors.
-            lws, embeddings, n_mods_sample = self.compute_k_lws(
+            lws, embeddings, n_mods_sample = self._compute_k_lws(
                 posteriors, embeddings, reconstructions, inputs
             )
-            return self.dreg_looser(lws, embeddings, n_mods_sample)
+            return self._dreg_looser(lws, embeddings, n_mods_sample)
 
         if self.model_config.loss == "iwae_looser":
             posteriors, embeddings, reconstructions = (
-                self.compute_posteriors_and_embeddings(inputs, detach=False, **kwargs)
+                self._compute_posteriors_and_embeddings(inputs, detach=False, **kwargs)
             )
-            lws, _, n_mods_sample = self.compute_k_lws(
+            lws, _, n_mods_sample = self._compute_k_lws(
                 posteriors, embeddings, reconstructions, inputs
             )
 
-            return self.iwae_looser(lws, n_mods_sample)
+            return self._iwae_looser(lws, n_mods_sample)
 
         raise NotImplementedError()
 
-    def compute_k_lws(self, posteriors, embeddings, reconstructions, inputs):
+    def _compute_k_lws(self, posteriors, embeddings, reconstructions, inputs):
         """
 
         Compute all losses components without any aggregation on K nor batch
@@ -277,7 +278,7 @@ class CMVAE(BaseMultiVAE):
 
             ### Compute log p(w_m) / regularizing prior for the private spaces
             mu = self.w_mean_prior
-            sigma = self.log_var_to_std(self.w_logvar_prior)
+            sigma = self._log_var_to_std(self.w_logvar_prior)
             lpw = self.latent_dist(mu, sigma).log_prob(embeddings[mod]["w"]).sum(-1)
 
             ### Compute log q(w_m | x_m)
@@ -309,7 +310,7 @@ class CMVAE(BaseMultiVAE):
             lpzc = []
             for i in range(self.n_clusters):
                 mu_cluster = self.mean_clusters[i]
-                sigma_cluster = self.log_var_to_std(self.logvar_clusters[i])
+                sigma_cluster = self._log_var_to_std(self.logvar_clusters[i])
                 lpzc.append(self.latent_dist(mu_cluster, sigma_cluster).log_prob(u))
             lpzc = torch.stack(lpzc, dim=0)  # n_clusters, K, batch_size, latent_dim
             lpzc = lpzc.sum(-1)  # n_clusters, K, batch_size
@@ -355,7 +356,7 @@ class CMVAE(BaseMultiVAE):
 
         return lws, embeddings, n_mods_sample
 
-    def iwae_looser(self, lws, n_mods_sample):
+    def _iwae_looser(self, lws, n_mods_sample):
         """
         The IWAE loss with the sum outside of the log for increased stability.
         (following Shi et al 2019)
@@ -375,7 +376,7 @@ class CMVAE(BaseMultiVAE):
         # Return the sum over the batch
         return ModelOutput(loss=-lws.sum(), loss_sum=-lws.sum(), metrics=dict())
 
-    def dreg_looser(self, lws, embeddings, n_mods_sample):
+    def _dreg_looser(self, lws, embeddings, n_mods_sample):
         """The DreG estimation for IWAE. losses components in lws needs to have been computed on
         **detached** posteriors.
 
@@ -427,10 +428,10 @@ class CMVAE(BaseMultiVAE):
             N (int) : The number of encodings to sample for each datapoint. Default to 1.
 
         Returns:
-            ModelOutput: A ModelOutput object with the following fields:
-                z (torch.Tensor (n_data, N, latent_dim))
-                one_latent_space (bool)
-                modalities_z (Dict[str,torch.Tensor (n_data, N, latent_dim) ])
+            ModelOutput: Contains the following fields
+                'z' (torch.Tensor (n_data, N, latent_dim))
+                'one_latent_space' (bool)
+                'modalities_z' (Dict[str,torch.Tensor (n_data, N, latent_dim) ])
 
 
 
@@ -447,7 +448,7 @@ class CMVAE(BaseMultiVAE):
             # Sample the shared latent code
             mu = encoders_outputs[random_mod].embedding
             log_var = encoders_outputs[random_mod].log_covariance
-            sigma = self.log_var_to_std(log_var)
+            sigma = self._log_var_to_std(log_var)
 
             # Adapt shape in the case of one sample for uniformity
             if len(mu.shape) == 1:
@@ -493,7 +494,7 @@ class CMVAE(BaseMultiVAE):
                     mu_m = mu_m.unsqueeze(0)
                     logvar_m = logvar_m.unsqueeze(0)
 
-                sigma_m = self.log_var_to_std(logvar_m)
+                sigma_m = self._log_var_to_std(logvar_m)
                 style_z[m] = self.latent_dist(mu_m, sigma_m).rsample(sample_shape)
                 if flatten:
                     style_z[m] = style_z[m].reshape(
@@ -503,6 +504,7 @@ class CMVAE(BaseMultiVAE):
             return ModelOutput(z=z, one_latent_space=False, modalities_z=style_z)
 
     def generate_from_prior(self, n_samples, **kwargs):
+        """Generate latent variables sampling from the prior distribution."""
 
         # generate the clusters assignements
 
@@ -518,7 +520,7 @@ class CMVAE(BaseMultiVAE):
 
         # sample shared latent variable
         z_shared = self.latent_dist(
-            means, self.log_var_to_std(lvs)
+            means, self._log_var_to_std(lvs)
         ).sample()  # n_samples,latent_dim
 
         # generate private parameters
@@ -537,7 +539,7 @@ class CMVAE(BaseMultiVAE):
 
             mu_m = torch.cat([mu_m] * n_samples, dim=0)
             logvar_m = torch.cat([logvar_m] * n_samples, dim=0)
-            style_z[m] = self.latent_dist(mu_m, self.log_var_to_std(logvar_m)).sample()
+            style_z[m] = self.latent_dist(mu_m, self._log_var_to_std(logvar_m)).sample()
 
         return ModelOutput(z=z_shared, one_latent_space=False, modalities_z=style_z)
 
@@ -565,7 +567,7 @@ class CMVAE(BaseMultiVAE):
                 # Compute shared embeddings
                 output_encoder = self.encoders[mod](inputs.data[mod])
                 mu = output_encoder.embedding
-                sigma = self.log_var_to_std(output_encoder.log_covariance)
+                sigma = self._log_var_to_std(output_encoder.log_covariance)
 
                 z = self.latent_dist(mu, sigma).sample()
 
@@ -574,7 +576,7 @@ class CMVAE(BaseMultiVAE):
                 lpz_c = [
                     self.latent_dist(
                         self.mean_clusters[i],
-                        self.log_var_to_std(self.logvar_clusters[i]),
+                        self._log_var_to_std(self.logvar_clusters[i]),
                     )
                     .log_prob(z)
                     .sum(-1)
@@ -617,7 +619,8 @@ class CMVAE(BaseMultiVAE):
             return ModelOutput(clusters=vote_cluster, pc_zs=pc_zs)
 
     def prune_clusters(self, train_data: MultimodalBaseDataset, batch_size=128):
-        """Follows the pruning procedure described in the paper to compute the optimal
+        """
+        Follows the pruning procedure described in the paper to compute the optimal
         number of clusters.
         At the end of this pruning, the model._pc_params will have been
         adapted to correspond to selected clusters.

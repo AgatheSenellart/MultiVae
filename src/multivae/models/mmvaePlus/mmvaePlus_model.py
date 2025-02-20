@@ -112,7 +112,7 @@ class MMVAEPlus(BaseMultiVAE):
         self.model_name = "MMVAEPlus"
         self.objective = model_config.loss
 
-    def log_var_to_std(self, log_var):
+    def _log_var_to_std(self, log_var):
         """
         For latent distributions parameters, transform the log covariance to the
         standard deviation of the distribution either applying softmax, softplus
@@ -126,7 +126,7 @@ class MMVAEPlus(BaseMultiVAE):
         else:
             return torch.exp(0.5 * log_var)
 
-    def compute_posteriors_and_embeddings(self, inputs, detach, **kwargs):
+    def _compute_posteriors_and_embeddings(self, inputs, detach, **kwargs):
 
         # Drop unused modalities
         inputs = drop_unused_modalities(inputs)
@@ -144,8 +144,8 @@ class MMVAEPlus(BaseMultiVAE):
             mu_style = output.style_embedding
             log_var_style = output.style_log_covariance
 
-            sigma = self.log_var_to_std(log_var)
-            sigma_style = self.log_var_to_std(log_var_style)
+            sigma = self._log_var_to_std(log_var)
+            sigma_style = self._log_var_to_std(log_var_style)
 
             # Shared latent variable
             qu_x = self.post_dist(mu, sigma)
@@ -178,7 +178,7 @@ class MMVAEPlus(BaseMultiVAE):
                         [self.mean_priors[recon_mod]] * len(mu), axis=0
                     )
                     sigma_prior_mod = torch.cat(
-                        [self.log_var_to_std(self.logvars_priors[recon_mod])] * len(mu),
+                        [self._log_var_to_std(self.logvars_priors[recon_mod])] * len(mu),
                         axis=0,
                     )
 
@@ -207,15 +207,15 @@ class MMVAEPlus(BaseMultiVAE):
         if self.objective == "dreg_looser":
             # The DreG estimation uses detached posteriors
             embeddings, posteriors, reconstructions = (
-                self.compute_posteriors_and_embeddings(inputs, detach=True)
+                self._compute_posteriors_and_embeddings(inputs, detach=True)
             )
-            return self.dreg_looser(posteriors, embeddings, reconstructions, inputs)
+            return self._dreg_looser(posteriors, embeddings, reconstructions, inputs)
 
         if self.objective == "iwae_looser":
             embeddings, posteriors, reconstructions = (
-                self.compute_posteriors_and_embeddings(inputs, detach=False)
+                self._compute_posteriors_and_embeddings(inputs, detach=False)
             )
-            return self.iwae_looser(posteriors, embeddings, reconstructions, inputs)
+            return self._iwae_looser(posteriors, embeddings, reconstructions, inputs)
         raise NotImplemented()
 
     @property
@@ -229,10 +229,10 @@ class MMVAEPlus(BaseMultiVAE):
         """
         mean = self.mean_priors["shared"]
         log_var = self.logvars_priors["shared"]
-        std = self.log_var_to_std(log_var)
+        std = self._log_var_to_std(log_var)
         return mean, std
 
-    def compute_k_lws(self, posteriors, embeddings, reconstructions, inputs):
+    def _compute_k_lws(self, posteriors, embeddings, reconstructions, inputs):
         """Compute the individual likelihoods without any aggregation on k_iwae
         or the batch."""
 
@@ -308,12 +308,12 @@ class MMVAEPlus(BaseMultiVAE):
 
         return lws, n_mods_sample
 
-    def dreg_looser(self, posteriors, embeddings, reconstructions, inputs):
+    def _dreg_looser(self, posteriors, embeddings, reconstructions, inputs):
         """
         The DreG estimation for IWAE. losses components in lws needs to have been computed on
         **detached** posteriors.
         """
-        lws, n_mods_sample = self.compute_k_lws(
+        lws, n_mods_sample = self._compute_k_lws(
             posteriors, embeddings, reconstructions, inputs
         )
 
@@ -347,14 +347,14 @@ class MMVAEPlus(BaseMultiVAE):
         ### Return the sum over the batch
         return ModelOutput(loss=-lws.sum(), loss_sum=-lws.sum(), metrics=dict())
 
-    def iwae_looser(self, posteriors, embeddings, reconstructions, inputs):
+    def _iwae_looser(self, posteriors, embeddings, reconstructions, inputs):
         """
         The IWAE loss but with the sum outside of the loss for increased stability.
         (following Shi et al 2019)
 
         """
         # Get all individual likelihoods
-        lws, n_mods_sample = self.compute_k_lws(
+        lws, n_mods_sample = self._compute_k_lws(
             posteriors, embeddings, reconstructions, inputs
         )
         lws = torch.stack(list(lws.values()), dim=0)  # (n_modalities, K, n_batch)
@@ -387,17 +387,14 @@ class MMVAEPlus(BaseMultiVAE):
             N (int) : The number of encodings to sample for each datapoint. Default to 1.
 
         Returns:
-            ModelOutput instance with fields:
-                z (torch.Tensor (n_data, N, latent_dim))
-                one_latent_space (bool) = False
-                modalities_z (Dict[str,torch.Tensor (n_data, N, latent_dim) ])
-
-
-
+            ModelOutput : contains fields 
+                'z' (torch.Tensor (n_data, N, latent_dim))
+                'one_latent_space' (bool) = False
+                'modalities_z' (Dict[str,torch.Tensor (n_data, N, latent_dim) ])
         """
 
         cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
-        if all([s in self.encoders.keys() for s in cond_mod]):
+        if all(s in self.encoders.keys() for s in cond_mod):
             # For the conditioning modalities we compute all the embeddings
             encoders_outputs = {m: self.encoders[m](inputs.data[m]) for m in cond_mod}
 
@@ -406,7 +403,7 @@ class MMVAEPlus(BaseMultiVAE):
 
             # Sample the shared latent code
             mu = encoders_outputs[random_mod].embedding
-            sigma = self.log_var_to_std(encoders_outputs[random_mod].log_covariance)
+            sigma = self._log_var_to_std(encoders_outputs[random_mod].log_covariance)
 
             sample_shape = torch.Size([]) if N == 1 else torch.Size([N])
             z = self.post_dist(mu, sigma).rsample(sample_shape)
@@ -439,7 +436,7 @@ class MMVAEPlus(BaseMultiVAE):
                     mu_m = encoders_outputs[m].style_embedding
                     logvar_m = encoders_outputs[m].style_log_covariance
 
-                sigma_m = self.log_var_to_std(logvar_m)
+                sigma_m = self._log_var_to_std(logvar_m)
                 style_z[m] = self.post_dist(mu_m, sigma_m).rsample(sample_shape)
                 if flatten:
                     style_z[m] = style_z[m].reshape(-1, self.modalities_specific_dim)
