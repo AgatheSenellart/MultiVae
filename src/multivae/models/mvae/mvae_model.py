@@ -198,7 +198,7 @@ class MVAE(BaseMultiVAE):
                     len_batch,
                 ) = self._compute_elbo_subset(filtered_inputs, s, beta)
             else:
-                subset_elbo = 0
+                subset_elbo = subset_kld = subset_recon = 0
             total_loss += subset_elbo
             metrics["_".join(sorted(s))] = subset_elbo
             metrics["beta"] = beta
