@@ -323,7 +323,7 @@ class DMVAE(BaseMultiVAE):
             else:
                 mod_z = dist.Normal(mod_mu, mod_std).rsample(sample_shape)
             if flatten:
-                mod_z = mod_z.reshape(-1, self.modalities_specific_dim[mod])
+                mod_z = mod_z.reshape(-1, self.style_dims[mod])
             modalities_z[mod] = mod_z
 
         return ModelOutput(z=z, one_latent_space=False, modalities_z=modalities_z)

@@ -71,3 +71,5 @@ class MultistageTrainer(BaseTrainer):
         return best_train_loss, best_eval_loss
 
     
+    def checktrainer(self, model):
+        return

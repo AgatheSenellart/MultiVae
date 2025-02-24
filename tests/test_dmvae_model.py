@@ -193,7 +193,7 @@ class Test:
         assert isinstance(latents, ModelOutput)
         shared = latents.z
         assert shared.shape == (model.latent_dim,)
-        for mod, dim in model.modalities_specific_dim.items():
+        for mod, dim in model.style_dims.items():
             latent_mod = latents.modalities_z[mod]
             assert latent_mod.shape == (dim,)
 
@@ -210,7 +210,7 @@ class Test:
         assert isinstance(latents, ModelOutput)
         shared = latents.z
         assert shared.shape == (10, model.latent_dim)
-        for mod, dim in model.modalities_specific_dim.items():
+        for mod, dim in model.style_dims.items():
             latent_mod = latents.modalities_z[mod]
             assert latent_mod.shape == (10, dim)
 
