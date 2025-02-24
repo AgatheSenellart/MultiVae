@@ -17,6 +17,7 @@ Metrics
     clustering
     visualization
     reconstruction
+    info_wandb
     
 Available Metrics
 -------------------------------------------
