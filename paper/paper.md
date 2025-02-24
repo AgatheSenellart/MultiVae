@@ -78,7 +78,8 @@ What should I include below:
 
 - A more detailed description of all functionalities and structural diagram
 
-- A case study on partial data ? 
+- A case study on partial data ? maybe in the examples, I should include a advanced folder with a complete set of experiments for a benchmark ? 
+  or I should do another repository with an example benchmark using MultiVae. Ce serait peut-être plus clean comme il faut mettre tous les fichiers de configuration et tout...
 
 # Mathematics
 
