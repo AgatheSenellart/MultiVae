@@ -1,26 +1,21 @@
 ---
-title: 'Gala: A Python package for galactic dynamics'
+title: 'MultiVae: A Python package for Multimodal Variational Autoencoders on Partial Datasets '
 tags:
   - Python
-  - astronomy
-  - dynamics
-  - galactic dynamics
-  - milky way
+  - Pytorch
+  - Variational Autoencoders
+  - multimodality
+  - missing data
 authors:
-  - name: Adrian M. Price-Whelan
+  - name: Agathe Senellart
     orcid: 0000-0000-0000-0000
+    corresponding: true
     equal-contrib: true
     affiliation: "1, 2" # (Multiple affiliations must be quoted)
-  - name: Author Without ORCID
-    equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
+  - name: Stéphanie Allassonnière
+    equal-contrib: false # (This is how you can denote equal contributions between multiple authors)
     affiliation: 2
-  - name: Author with no affiliation
-    corresponding: true # (This is how to denote the corresponding author)
-    affiliation: 3
-  - given-names: Ludwig
-    dropping-particle: van
-    surname: Beethoven
-    affiliation: 3
+  
 affiliations:
  - name: Lyman Spitzer, Jr. Fellow, Princeton University, United States
    index: 1
@@ -40,37 +35,50 @@ aas-journal: Astrophysical Journal <- The name of the AAS journal.
 
 # Summary
 
-The forces on stars, galaxies, and dark matter under external gravitational
-fields lead to the dynamical evolution of structures in the universe. The orbits
-of these bodies are therefore key to understanding the formation, history, and
-future state of galaxies. The field of "galactic dynamics," which aims to model
-the gravitating components of galaxies to study their structure and evolution,
-is now well-established, commonly taught, and frequently used in astronomy.
-Aside from toy problems and demonstrations, the majority of problems require
-efficient numerical tools, many of which require the same base code (e.g., for
-performing numerical orbit integration).
+In recent years, there has been a major boom in the development of multimodal
+machine learning models. Among open topics, representation (fusion) and genera-
+tion of multimodal data are very active fields of research. Recently, Multimodal
+Variational Autoencoders have been attracting growing interest for both tasks, thanks
+to their versatility, scalability, and interpretability as probabilistic latent variable
+models. They are also particularly interesting models in the partially observed
+setting, as most of them can learn even with missing data. 
+Develop on the importance of this setting that is the standard one in medical applications for instance.
+In this article, we present
+MultiVae, an open-source Python library designed to bring together unified imple-
+mentations of multimodal generative autoencoders models. It has been designed
+for easy, customizable use of these models on partially or fully observed data. This
+library facilitates the development and benchmarking of algorithms by integrating
+several popular datasets, variety of evaluation metrics and tools for monitoring and
+sharing models. 
 
 # Statement of need
 
-`Gala` is an Astropy-affiliated Python package for galactic dynamics. Python
-enables wrapping low-level languages (e.g., C) for speed without losing
-flexibility or ease-of-use in the user-interface. The API for `Gala` was
-designed to provide a class-based and user-friendly interface to fast (C or
-Cython-optimized) implementations of common operations such as gravitational
-potential and force evaluation, orbit integration, dynamical transformations,
-and chaos indicators for nonlinear dynamics. `Gala` also relies heavily on and
-interfaces well with the implementations of physical units and astronomical
-coordinate systems in the `Astropy` package [@astropy] (`astropy.units` and
-`astropy.coordinates`).
+- `MultiVae` is Pytorch based and share the same structure as Pythae
 
-`Gala` was designed to be used by both astronomical researchers and by
-students in courses on gravitational dynamics or astronomy. It has already been
-used in a number of scientific publications [@Pearson:2017] and has also been
-used in graduate courses on Galactic dynamics to, e.g., provide interactive
-visualizations of textbook material [@Binney:2008]. The combination of speed,
-design, and support for Astropy functionality in `Gala` will enable exciting
-scientific explorations of forthcoming data releases from the *Gaia* mission
-[@gaia] by students and experts alike.
+- It was designed to be easy to use even without a lot of knowledge about Multimodal VAEs to make accessible to people from different research fields
+
+- It includes a lot of benchmarking tools as datasets, metrics, samplers to make development and analysis of new multimodal VAEs models easier. 
+
+- Most implementations are verified by reproducing a key result of the original paper. We include a reproducibilty statement 
+  with our results. 
+
+- All models present with a lot of options and includes all coding tricks originally used by the authors to get the best results out of a model.
+
+- We focused on making the models easily usable on real world datasets which means adapting them for incomplete datasets.
+
+Related works:
+
+multiview-ae presents with a different design (all configurations are handled with .yaml files where as for us, all training/ model config are handled with python dataclasses) / not exactly the same models / not adapted for partial data / we have additional features such as  metrics/ loading on hf, samplers, etc ...
+We believe our work complements theirs
+
+
+What should I include below:
+
+- Quick review of multimodal VAEs, what is does, what are the different types of models, etc...
+
+- A more detailed description of all functionalities and structural diagram
+
+- A case study on partial data ? 
 
 # Mathematics
 
