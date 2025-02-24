@@ -6,7 +6,6 @@ from pythae.data.datasets import BaseDataset
 from pythae.models.normalizing_flows import IAF, IAFConfig, NFModel
 from pythae.trainers import BaseTrainer, BaseTrainerConfig
 from torch.distributions import MultivariateNormal
-from torch.nn import ModuleDict
 from torch.utils.data import DataLoader
 
 from multivae.data.utils import set_inputs_to_device
@@ -218,3 +217,42 @@ class IAFSampler(BaseSampler):
             output["modalities_z"] = {m: torch.cat(z_gen[m]) for m in z_gen}
 
         return output
+
+    def save(self, dir_path):
+        """
+        Save the config and trained models
+        """     
+
+        super().save(dir_path=dir_path)
+
+        if not self.is_fitted:
+            raise ArithmeticError(
+                "The sampler needs to be fitted by calling sampler.fit() method"
+                "before sampling."
+            )
+
+        for m, model in self.iaf_models.items():
+            path = os.path.join(dir_path, m)
+            os.makedirs(path,exist_ok=True)
+            model.save(path)
+
+    
+    def load_flows_from_folder(self,dir_path):
+
+        """Instead of calling fit, you can reload weights from a previous training.
+        
+        .. code-block:: python
+        
+            >>> sampler.save(dir_path)
+            >>> new_sampler = IAFSampler(model, sampler_config) # must be the same model and config
+            >>> new_sampler.load_flows_from_folder(dir_path)
+        """
+        self.iaf_models = torch.nn.ModuleDict()
+        for m in self.flows_models:
+            try:
+                self.iaf_models[m] = IAF.load_from_folder(os.path.join(dir_path,m))
+            except Exception as exc:
+                raise AttributeError(f'Error when trying to load the flows from the folder.',
+                                     f'Check that you provided the right path. Exception raised: {exc}')
+
+        self.is_fitted = True

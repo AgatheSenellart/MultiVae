@@ -23,7 +23,7 @@ class MAFSampler(BaseSampler):
 
     Args:
         model (BaseMultiVAE): The model to sample from
-        sampler_config (IAFSamplerConfig): A IAFSamplerConfig instance containing
+        sampler_config (MAFSamplerConfig): A IAFSamplerConfig instance containing
             the main parameters of the sampler. If None, a pre-defined configuration is used.
             Default: None
 
@@ -54,7 +54,7 @@ class MAFSampler(BaseSampler):
                 torch.eye(self.flows_dims[key]).to(self.device),
             )
 
-            iaf_config = MAFConfig(
+            maf_config = MAFConfig(
                 input_dim=(self.flows_dims[key],),
                 n_made_blocks=sampler_config.n_made_blocks,
                 n_hidden_in_made=sampler_config.n_hidden_in_made,
@@ -62,8 +62,8 @@ class MAFSampler(BaseSampler):
                 include_batch_norm=sampler_config.include_batch_norm,
             )
 
-            iaf_model = MAF(model_config=iaf_config)
-            self.flows_models[key] = NFModel(self.priors[key], iaf_model).to(
+            maf_model = MAF(model_config=maf_config)
+            self.flows_models[key] = NFModel(self.priors[key], maf_model).to(
                 self.device
             )
 
@@ -139,7 +139,7 @@ class MAFSampler(BaseSampler):
 
             eval_data = {m: torch.cat(zs[m]) for m in zs}
 
-        self.iaf_models = torch.nn.ModuleDict()
+        self.maf_models = torch.nn.ModuleDict()
 
         for m in train_data:  # number of latent_spaces
             train_dataset = BaseDataset(
@@ -162,7 +162,7 @@ class MAFSampler(BaseSampler):
 
             trainer.train()
 
-            self.iaf_models[m] = MAF.load_from_folder(
+            self.maf_models[m] = MAF.load_from_folder(
                 os.path.join(trainer.training_dir, "final_model")
             ).to(self.device)
 
@@ -201,12 +201,12 @@ class MAFSampler(BaseSampler):
         if last_batch_samples_nbr != 0:
             batches = batches + [last_batch_samples_nbr]
 
-        z_gen = {m: [] for m in self.iaf_models}
+        z_gen = {m: [] for m in self.maf_models}
 
         for batch in batches:
-            for m in self.iaf_models:
+            for m in self.maf_models:
                 u = self.priors[m].sample((batch,))
-                z = self.iaf_models[m].inverse(u).out
+                z = self.maf_models[m].inverse(u).out
                 z_gen[m].append(z)
 
         # Output with the same format as the output of encode or generate_from_prior functions
@@ -218,3 +218,43 @@ class MAFSampler(BaseSampler):
             output["modalities_z"] = {m: torch.cat(z_gen[m]) for m in z_gen}
 
         return output
+    
+    def save(self, dir_path):
+        """
+        Save the config and trained models
+        """     
+
+        super().save(dir_path=dir_path)
+
+        if not self.is_fitted:
+            raise ArithmeticError(
+                "The sampler needs to be fitted by calling sampler.fit() method"
+                "before sampling."
+            )
+
+        for m, model in self.maf_models.items():
+            path = os.path.join(dir_path, m)
+            os.makedirs(path,exist_ok=True)
+            model.save(path)
+
+    
+    def load_flows_from_folder(self,dir_path):
+
+        """Instead of calling fit, you can reload weights from a previous training.
+        
+        .. code-block:: python
+        
+            >>> sampler.save(dir_path)
+            >>> new_sampler = MAFSampler(model, sampler_config) # must be the same model and config
+            >>> new_sampler.load_flows_from_folder(dir_path)
+        """
+
+        self.maf_models = torch.nn.ModuleDict()
+        for m in self.flows_models:
+            try:
+                self.maf_models[m] = MAF.load_from_folder(os.path.join(dir_path,m))
+            except Exception as exc:
+                raise AttributeError(f'Error when trying to load the flows from the folder.',
+                                     f'Check that you provided the right path. Exception raised: {exc}')
+
+        self.is_fitted = True

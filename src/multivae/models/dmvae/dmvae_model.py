@@ -53,7 +53,7 @@ class DMVAE(BaseMultiVAE):
 
     def _set_modalities_specific_dim(self, model_config):
         if model_config.modalities_specific_dim is None:
-            self.modalities_specific_dim = {m: 1.0 for m in self.encoders}
+            self.style_dims = {m: 1.0 for m in self.encoders}
         else:
             if model_config.modalities_specific_dim.keys() != self.encoders.keys():
                 raise AttributeError(
@@ -62,7 +62,7 @@ class DMVAE(BaseMultiVAE):
                 )
 
             else:
-                self.modalities_specific_dim = model_config.modalities_specific_dim
+                self.style_dims = model_config.modalities_specific_dim
         return
 
     def _set_private_betas(self, beta_dict):
@@ -314,7 +314,7 @@ class DMVAE(BaseMultiVAE):
                 )
             else:
                 mod_mu = torch.zeros(
-                    (sub_mu.shape[0], self.modalities_specific_dim[mod])
+                    (sub_mu.shape[0], self.style_dims[mod])
                 ).to(sub_mu.device)
                 mod_std = torch.ones_like(mod_mu).to(sub_logvar.device)
 
@@ -352,7 +352,7 @@ class DMVAE(BaseMultiVAE):
         # Generate modalities specific variables
         modalities_z = {}
 
-        for k, dim in self.modalities_specific_dim.items():
+        for k, dim in self.style_dims.items():
             shape = [n_samples, dim] if n_samples > 1 else [dim]
             modalities_z[k] = dist.Normal(0, 1).rsample(shape).to(device)
 

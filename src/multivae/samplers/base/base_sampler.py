@@ -9,6 +9,7 @@ from imageio import imwrite
 
 from ...models import BaseMultiVAE
 from .base_sampler_config import BaseSamplerConfig
+from ...data.datasets.base import MultimodalBaseDataset
 
 logger = logging.getLogger(__name__)
 
@@ -45,9 +46,9 @@ class BaseSampler:
         self.model.to(device)
         self.name = "BaseSampler"
 
-    def fit(self, *args, **kwargs):
+    def fit(self, train_data: MultimodalBaseDataset, **kwargs):
         """Function to be called to fit the sampler before sampling"""
-        pass
+        return
 
     def sample(
         self,
