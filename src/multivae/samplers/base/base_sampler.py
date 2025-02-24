@@ -73,4 +73,7 @@ class BaseSampler:
         """Method to save the sampler config. The config is saved a as ``sampler_config.json``
         file in ``dir_path``"""
 
+        logger.info(f'Saving model in {dir_path}.')
+
+        os.makedirs(dir_path,exist_ok=True)
         self.sampler_config.save_json(dir_path, "sampler_config")

@@ -178,12 +178,7 @@ class MAFSampler(BaseSampler):
         Args:
             num_samples (int): The number of samples to generate
             batch_size (int): The batch size to use during sampling
-            output_dir (str): The directory where the images will be saved. If does not exist the
-                folder is created. If None: the images are not saved. Defaults: None.
-            return_gen (bool): Whether the sampler should directly return a tensor of generated
-                data. Default: True.
-            save_sampler_config (bool): Whether to save the sampler config. It is saved in
-                output_dir
+            
 
         Returns:
             ~torch.Tensor: The generated images
@@ -231,7 +226,8 @@ class MAFSampler(BaseSampler):
                 "The sampler needs to be fitted by calling sampler.fit() method"
                 "before sampling."
             )
-
+        
+        # Save the state_dicts for the flow models
         for m, model in self.maf_models.items():
             path = os.path.join(dir_path, m)
             os.makedirs(path,exist_ok=True)
@@ -252,7 +248,7 @@ class MAFSampler(BaseSampler):
         self.maf_models = torch.nn.ModuleDict()
         for m in self.flows_models:
             try:
-                self.maf_models[m] = MAF.load_from_folder(os.path.join(dir_path,m))
+                self.maf_models[m] = MAF.load_from_folder(os.path.join(dir_path,m)).to(self.device)
             except Exception as exc:
                 raise AttributeError(f'Error when trying to load the flows from the folder.',
                                      f'Check that you provided the right path. Exception raised: {exc}')

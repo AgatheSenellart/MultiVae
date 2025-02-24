@@ -26,19 +26,23 @@ class TranslatedMMNIST(MultimodalBaseDataset):  # pragma: no cover
     Translated version of the PolyMNIST dataset.
     The data is built from background images that need to be downloaded beforehand.
 
-    The original PolyMNIST (5 modalities) background images can be downloaded from : https://mybox.inria.fr/d/78e581ee5b07402983fa/
-    To use the ExtendedPolyMNIST dataset (10 modalities) introduced in "Score-Based Multimodal Autoencoder" (Wesego 2024),
-    download the background images from https://github.com/rooshenasgroup/sbmae/tree/main/poly_background
+    The original PolyMNIST (5 modalities) background images can be downloaded from : https://mybox.inria.fr/d/78e581ee5b07402983fa/.
 
-    .. code-block::
-            >>> from multivae.data.datasets import TranslatedMMNIST
-            >>> dataset = TranslatedMMNIST(
-                path = 'your_data_path',
-                scale = 0.75,
-                translate = True,
-                n_modalities = 5,
-                background_path = 'path_to_background_image'
-            )
+    To use the ExtendedPolyMNIST dataset (10 modalities) introduced in "Score-Based Multimodal Autoencoder" (Wesego 2024),
+    download the background images from https://github.com/rooshenasgroup/sbmae/tree/main/poly_background.
+
+    
+
+    .. code-block:: python
+
+        >>> from multivae.data.datasets import TranslatedMMNIST
+        >>> dataset = TranslatedMMNIST(
+        ...   path = 'your_data_path',
+        ...   scale = 0.75, # downscale 75%
+        ...   translate = True, # random translation
+        ...   n_modalities = 5,
+        ...   background_path = 'path_to_background_image'
+        ...)
 
     Args:
             path (str): parent path where to save the dataset

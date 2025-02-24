@@ -27,20 +27,25 @@ class MHD(IncompleteDataset):  # pragma: no cover
     cross-modality inference' (Vasco et al, 2021).'
 
     In this version of the dataset class, we add the possibility to
-    simulate missingness in the data, depending on the dataclass.
-    For that the missing_probabilities input provides probabilities of missingness for each class,
-    for each modality. For instance,
+    simulate missingness in the data, depending on the dataclass (Missing Not At Random).
+    For that, the `missing_probabilities` parameter provides probabilities of missingness for each class,
+    and for each modality. For instance, the code below will define a dataset with missing samples in the 
+    trajectory modality, only in the classes 0,1,2, et 9. 
 
     .. code-block:: python
 
+        >>> from multivae.data.datasets import MHD
         >>> missing_probabilities = {
         ...     image = np.zeros(10,).float(),
         ...     audio = np.zeros(10,).float(),
         ...     trajectory = [0.1,0.3,0.4,0.,0.,0.,0.,0.,0.,0.9]
         ... }
+        >>> dataset = MHD(data_path,
+        ...  'train',
+        ...   modalities = ['image', 'audio', 'trajectory'],
+        ...   download = True,
+        ...   missing_probabilities = missing_probabilities)
 
-    will define a dataset with missing samples in the trajectory modality only in the classes
-    0,1,2, et 9.
 
     Args:
 

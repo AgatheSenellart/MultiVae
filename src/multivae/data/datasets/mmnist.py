@@ -24,6 +24,19 @@ class MMNISTDataset(MultimodalBaseDataset):  # pragma: no cover
     Multimodal PolyMNIST Dataset from
     'Generalized Multimodal Elbo' Sutter et al 2021.
 
+    This dataset class has a parameter 'missing_ratio' that allows to simulate a dataset 
+    with missing values (Missing At Random). 
+
+    .. code-block:: python
+
+        >>> from multivae.data.datasets import MMNISTDataset
+        >>> dataset = MMNISTDataset(
+        ...            data_path = 'your_data_path',
+        ...            split = 'train',
+        ...            download = True, #to download the dataset
+        ...            missing_ratio = 0.2 # 20% of missing data
+        ...        )
+
     """
 
     def __init__(

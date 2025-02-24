@@ -1,5 +1,5 @@
 import torch
-from pythae.models.base.base_model import BaseDecoder, BaseEncoder
+from pythae.models.base.base_model import BaseDecoder, BaseEncoder, ModelOutput
 
 
 class BaseJointEncoder(BaseEncoder):
