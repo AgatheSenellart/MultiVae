@@ -15,7 +15,6 @@ from multivae.models.nn.base_architectures import (
 from multivae.models.nn.default_architectures import (
     BaseDictEncoders,
     ConditionalDecoder_MLP,
-    Encoder_VAE_MLP,
     MultipleHeadJointEncoder,
 )
 
@@ -28,7 +27,13 @@ class CVAE(BaseModel):
     See https://arxiv.org/abs/1906.02691 for more information.
     """
 
-    def __init__(self, model_config, encoder=None, decoder=None, prior_network=None):
+    def __init__(
+        self,
+        model_config: CVAEConfig,
+        encoder: Union[BaseEncoder, None] = None,
+        decoder: Union[BaseConditionalDecoder, None] = None,
+        prior_network: Union[BaseEncoder, None] = None,
+    ):
         super().__init__(model_config)
 
         self.latent_dim = model_config.latent_dim
@@ -46,11 +51,11 @@ class CVAE(BaseModel):
         self.conditioning_modality = model_config.conditioning_modality
         self.model_config = model_config
 
-        self.set_encoder(encoder, model_config)
-        self.set_decoder(decoder, model_config)
-        self.set_prior_network(prior_network)
+        self._set_encoder(encoder, model_config)
+        self._set_decoder(decoder, model_config)
+        self._set_prior_network(prior_network)
 
-    def set_encoder(self, encoder, model_config):
+    def _set_encoder(self, encoder, model_config):
         if encoder is None:
             encoder = self.default_encoder(model_config)
         else:
@@ -61,7 +66,7 @@ class CVAE(BaseModel):
 
         self.encoder = encoder
 
-    def set_decoder(self, decoder, model_config):
+    def _set_decoder(self, decoder, model_config):
         if decoder is None:
             decoder = self.default_decoder(model_config)
 
@@ -75,7 +80,7 @@ class CVAE(BaseModel):
 
         self.decoder = decoder
 
-    def set_prior_network(self, prior_network):
+    def _set_prior_network(self, prior_network):
         if prior_network is None:
             self.prior_network = (
                 None  # the prior will be fixed to a standard normal distribution

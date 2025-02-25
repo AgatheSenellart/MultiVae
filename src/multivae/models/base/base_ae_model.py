@@ -13,7 +13,7 @@ from ...data.datasets.base import MultimodalBaseDataset
 from ..nn.default_architectures import BaseDictDecoders, BaseDictEncoders
 from .base_config import BaseMultiVAEConfig
 from .base_model import BaseModel
-from .base_utils import  set_decoder_dist
+from .base_utils import set_decoder_dist
 
 logger = logging.getLogger(__name__)
 console = logging.StreamHandler()
@@ -406,13 +406,20 @@ class BaseMultiVAE(BaseModel):
             # Compute ln(p(x_{pred}|z)) for each modality
             for mod in pred_mods:
                 recon = decode_output[mod]  # (n_data, *recon_size )
-                lpxz = self.recon_log_probs[mod](recon, inputs.data[mod]).reshape(recon.size(0), -1).sum(-1)
-                cnll[mod].append(lpxz) # (n_data)
+                lpxz = (
+                    self.recon_log_probs[mod](recon, inputs.data[mod])
+                    .reshape(recon.size(0), -1)
+                    .sum(-1)
+                )
+                cnll[mod].append(lpxz)  # (n_data)
 
         for mod, c in cnll.items():
-            cnll[mod] = torch.stack(c) # stack the results of mini_batches of K samples
-            cnll[mod] = torch.logsumexp(cnll[mod], dim=0) - np.log(k_iwae) # average over the samples
-            cnll[mod] = - torch.sum(cnll[mod]) / len(cnll[mod]) # average over the data points and take negative
-            
-        
+            cnll[mod] = torch.stack(c)  # stack the results of mini_batches of K samples
+            cnll[mod] = torch.logsumexp(cnll[mod], dim=0) - np.log(
+                k_iwae
+            )  # average over the samples
+            cnll[mod] = -torch.sum(cnll[mod]) / len(
+                cnll[mod]
+            )  # average over the data points and take negative
+
         return cnll

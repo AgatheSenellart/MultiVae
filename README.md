@@ -41,7 +41,7 @@ It integrates model monitoring with [Wandb](https://wandb.ai) and a quick way to
 |MoPoE| [Generalized Multimodal ELBO](https://openreview.net/forum?id=5Y21V0RDBV)|[link](https://github.com/thomassutter/MoPoE)|
 |MVTCAE | [Multi-View Representation Learning via Total Correlation Objective](https://proceedings.neurips.cc/paper/2021/hash/65a99bb7a3115fdede20da98b08a370f-Abstract.html)|[link](https://github.com/gr8joo/MVTCAE/)|
 DMVAE| [Private-Shared Disentangled Multimodal VAE for Learning of Latent Representations](https://www.computer.org/csdl/proceedings-article/cvprw/2021/489900b692/1yZ4y9uUPfi)|[link](https://github.com/seqam-lab/DMVAE) | 
-|JNF,JNF-DCCA| [Improving Multimodal Joint Variational Autoencoders through Normalizing Flows and Correlation Analysis](https://arxiv.org/abs/2305.11832) | x |
+|JNF| [Improving Multimodal Joint Variational Autoencoders through Normalizing Flows and Correlation Analysis](https://arxiv.org/abs/2305.11832) | x |
 |MMVAE + |[MMVAE+: ENHANCING THE GENERATIVE QUALITY OF MULTIMODAL VAES WITHOUT COMPROMISES](https://openreview.net/forum?id=sdQGxouELX) | [link](https://openreview.net/forum?id=sdQGxouELX)|
 |Nexus | [Leveraging hierarchy in multimodal generative models for effective cross-modality inference](https://www.sciencedirect.com/science/article/abs/pii/S0893608021004470)|[link](https://github.com/miguelsvasco/nexus_pytorch)|
 |CMVAE| [Deep Generative Clustering with Multimodal Diffusion Variational Autoencoders](https://openreview.net/forum?id=k5THrhXDV3)| [link](https://github.com/epalu/CMVAE)|
@@ -125,16 +125,53 @@ pip install .
 # Usage
 [(Back to top)](#table-of-contents)
 
-Our library allows you to use any of the models with custom configuration, encoders and decoders architectures and datasets easily. 
-See our tutorial Notebook at /examples/tutorial_notebooks/getting_started.ipynb to easily get the gist of principal features. 
+Our library allows you to use any of the models with custom configuration, encoders and decoders architectures and datasets easily. To learn how to use MultiVae's features we propose different tutorial notebooks:
+
+- [Getting started](examples/tutorial_notebooks/getting_started.ipynb)
+- [Computing Metrics](examples/tutorial_notebooks/computing_visualization_and_metrics.ipynb)
+- [Learning with partial datasets](examples/tutorial_notebooks/learning_with_partial_data.ipynb)
+- [Using samplers to improve joint generation](examples/tutorial_notebooks/using_samplers.ipynb)
+
 
 ## Training on incomplete datasets
 
-Many models implemented in the library can be trained on incomplete datasets. To do so, see the tutorial notebook in examples/tutorial_notebooks/learning_with_partial_data.ipynb. 
+Many models implemented in the library can be trained on incomplete datasets. To do so, you will need to define a dataset that inherits from MultiVae's IncompleteDataset class. 
+
+For a step-by-step tutorial on training on incomplete datasets, see this [notebook](examples/tutorial_notebooks/learning_with_partial_data.ipynb).
+
+**How does MultiVae handles partial data ?**
+We handle partial data by sampling random batchs, artificially filling the missing modalities, and using the mask to compute the final loss. 
+
+This allows for *unbiased* mini-batches. There are other ways to handle missing data (for instance using a batch sampler): don't hesitate to reach out if you would like additional options! 
 
 ![image](./static/handling_incomplete.png)
 
-You can learn more about how each model is adapted to the partial setting in Appendix A of our [paper](https://hal.science/hal-04207151).
+For more details on how each model is adapted to the partial view setting, see the model's description in the documentation. 
+
+Below is the list of models that can be used on Incomplete datasets:
+
+|Model|Can be used on Incomplete Datasets|Details|
+|:---:|:----:|:--:|
+|CVAE|:x:  |
+|JMVAE|:x:|
+|MVAE| :white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mvae.html)|
+|MMVAE|:white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mmvae.html)
+|MoPoE| :white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mopoe.html)
+|MVTCAE |:white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mvtcae.html)
+DMVAE| :white_check_mark: | [see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/dmvae.html)
+|JNF| :x:|
+|MMVAE + |:white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mmvae_plus.html)
+|Nexus | :white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/nexus.html)
+|CMVAE| :white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/cmvae.html)
+|MHVAE| not yet|
+
+### Toy datasets with missing values
+
+To ease the development of new methods on incomplete datasets, we propose two easy-to-import toy datasets with missing values:
+- Missing at Random: The PolyMNIST dataset with missing values. 
+- Missing not at Random: The MHD dataset with missing ratios that depend on the label. 
+
+See the documentation for more information on those datasets. 
 
 # Contribute
 [(Back to top)](#table-of-contents)
@@ -148,6 +185,7 @@ In order to propose a contribution, you can follow the guidelines in `CONTRIBUTI
 # Reproducibility statement
 
 Most implemented models are validated by reproducing a key result of the paper.
+Here we provide details on the results we managed to reproduce. 
 
 
 |Model|Dataset|Metrics|Paper|Ours|
@@ -161,6 +199,7 @@ Most implemented models are validated by reproducing a key result of the paper.
 |MMVAE+|PolyMNIST|Coherences/FID|86.9/92.81|88.6 +-0;8/ 93+-5|
 |CMVAE|PolyMNIST|Coherences|89.7/78.1|88.6/76.4|
 
+Note that we also tried to reproduce results for the Nexus model, but didn't obtain similar results as the ones presented in the original paper. If you spot a difference between our implementation and theirs, please reach out to us. 
 
 # Citation
 

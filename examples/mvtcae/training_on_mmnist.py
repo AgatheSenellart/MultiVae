@@ -13,7 +13,6 @@ from multivae.models.nn.mmnist import (
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 from multivae.trainers.base.callbacks import WandbCallback
 
-
 # Set data path and experiment path
 DATA_PATH = "/home/asenella/data"
 SAVING_PATH = "/home/asenella/expes/mvtcae_mmnist"

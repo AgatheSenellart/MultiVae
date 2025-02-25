@@ -39,7 +39,7 @@ class OrderedCounter(Counter, OrderedDict):
         return self.__class__, (OrderedDict(self),)
 
 
-class CUBSentences(Dataset):  # pragma : no cover
+class CUBSentences(Dataset):  # pragma: no cover
     """
 
     Dataset for the CUB captions only.
@@ -277,7 +277,7 @@ class CUBSentences(Dataset):  # pragma : no cover
         return ret_str
 
 
-class CUB(MultimodalBaseDataset):  # pragma : no cover
+class CUB(MultimodalBaseDataset):  # pragma: no cover
     """
 
     A paired text image CUB dataset.

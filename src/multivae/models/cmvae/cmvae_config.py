@@ -18,6 +18,9 @@ class CMVAEConfig(BaseMultiVAEConfig):
         uses_likelihood_rescaling (bool): To mitigate modality collapse, it is possible to use likelihood rescaling.
             (see : https://proceedings.mlr.press/v162/javaloy22a.html).
             The inputs_dim must be provided to compute the likelihoods rescalings. Default to True.
+        rescale_factors (dict[str, float]): The reconstruction rescaling factors per modality.
+            If None is provided but uses_likelihood_rescaling is True, a default value proportional to the input modality
+            size is computed. Default to None.
         decoders_dist (Dict[str, Union[function, str]]). The decoder distributions to use per modality.
             Per modality, you can provide a string in ['normal','bernoulli','laplace','categorical']. For Bernoulli distribution,
             the decoder is expected to output **logits**. If None is provided, a normal distribution is used for each modality.

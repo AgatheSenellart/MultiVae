@@ -18,11 +18,12 @@ Multimodal Variational Autoencoders Models
     mopoe
     jmvae
     jnf
-    jnf_dcca
     nexus
     dmvae
     cmvae
     mhvae
+    mvtcae
+    mmvae_plus
 
 .. automodule::
     multivae.models
@@ -34,14 +35,16 @@ Available VAEs
     CVAE
     BaseMultiVAE
     AutoModel
+    JMVAE
+    TELBO
     MVAE
     MMVAE
-    TELBO
-    JMVAE
-    JNF
-    JNFDcca
-    Nexus
+    MoPoE
+    MVTCAE
     DMVAE
+    Nexus
+    JNF
+    MMVAEPlus
     CMVAE
     MHVAE
     :nosignatures:

@@ -94,7 +94,9 @@ class MHVAE(BaseMultiVAE):
         log_inverse_cov = torch.stack(
             [-l for l in log_vars_list]
         )  # Compute the inverse of variances
-        log_var = -torch.logsumexp(log_inverse_cov, dim=0)  # variances of the product of expert
+        log_var = -torch.logsumexp(
+            log_inverse_cov, dim=0
+        )  # variances of the product of expert
         mus = torch.stack(mus_list)
         joint_mu = (torch.exp(log_inverse_cov) * mus).sum(dim=0) * torch.exp(log_var)
 
@@ -183,12 +185,10 @@ class MHVAE(BaseMultiVAE):
             h = self.top_down_blocks[i - 1](z_dict[f"z_{i+1}"])
 
             # Compute p(z_l|z>l)
-            prior_params = self.prior_blocks[i - 1](
-                h
-            )  
+            prior_params = self.prior_blocks[i - 1](h)
 
             # Compute q(z_l | x, z>l) = p(z_l|z>l) \prod_i q(z_l | x_i, z>l)
-            list_mus = [prior_params.embedding ]
+            list_mus = [prior_params.embedding]
             list_log_vars = [prior_params.log_covariance]
             for mod in subset:
                 # Compute the parameters of q(z_l | x_i, z>l)
@@ -336,7 +336,7 @@ class MHVAE(BaseMultiVAE):
         Returns:
             z_Ls_params: a dictionary containing for each modality a ModelOutput instance
                 with embedding and logcovariance.
-                
+
             skips : a dictionary containing a list of tensors for each modality.
         """
 
@@ -422,7 +422,9 @@ class MHVAE(BaseMultiVAE):
             logger.info("Not shared weights for the posterior blocks")
             self.share_posterior_weights = False
             if posterior_blocks.keys() != self.encoders.keys():
-                raise AttributeError("The keys of posterior_blocks must match the keys of encoders.")
+                raise AttributeError(
+                    "The keys of posterior_blocks must match the keys of encoders."
+                )
             for m, p in posterior_blocks.items():
                 if len(p) != self.n_latent - 1:
                     raise AttributeError(
@@ -460,4 +462,3 @@ class MHVAE(BaseMultiVAE):
         self.bottom_up_blocks = torch.nn.ModuleDict()
         for mod in bottom_up_blocks:
             self.bottom_up_blocks[mod] = torch.nn.ModuleList(bottom_up_blocks[mod])
-

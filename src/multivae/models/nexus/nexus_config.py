@@ -1,4 +1,4 @@
-from typing import Dict, List, Literal
+from typing import Dict, List, Literal, Union
 
 from pydantic.dataclasses import dataclass
 
@@ -43,11 +43,11 @@ class NexusConfig(BaseMultiVAEConfig):
     """
 
     modalities_specific_dim: Dict[str, int] = None
-    bottom_betas: Dict[str, float] = None
+    bottom_betas: Union[Dict[str, float], None] = None
     dropout_rate: float = 0
     msg_dim: int = 10
     aggregator: Literal["mean"] = "mean"
     top_beta: float = 1
-    gammas: Dict[str, float] = None
+    gammas: Union[Dict[str, float], None] = None
     warmup: int = 20
-    adapt_top_decoder_variance: List[str] = None
+    adapt_top_decoder_variance: Union[List[str], None] = None

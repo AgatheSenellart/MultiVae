@@ -1,6 +1,7 @@
 """Main code for training a MVTCAE model on the CUB dataset"""
 
 from pythae.models.base.base_config import BaseAEConfig
+
 from multivae.data.datasets.cub import CUB
 from multivae.models import MVTCAE, MVTCAEConfig
 from multivae.models.nn.cub import (
@@ -57,7 +58,7 @@ decoders = {
             latent_dim=model_config.latent_dim,
             input_dim=(train_data.max_words_in_caption, train_data.vocab_size),
         )
-    )
+    ),
 }
 
 # Create the model
@@ -69,7 +70,7 @@ trainer_config = BaseTrainerConfig(
     steps_predict=5,
     per_device_train_batch_size=128,
     per_device_eval_batch_size=128,
-    output_dir=SAVING_PATH
+    output_dir=SAVING_PATH,
 )
 
 # Set up callbacks and train

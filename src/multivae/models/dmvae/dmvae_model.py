@@ -1,11 +1,9 @@
-from itertools import combinations
-from typing import Union
+from typing import Dict, Union
 
-import numpy as np
 import torch
 import torch.distributions as dist
-from numpy.random import choice
 from pythae.models.base.base_utils import ModelOutput
+from pythae.models.nn.base_architectures import BaseDecoder
 from torch import nn
 
 from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
@@ -15,12 +13,13 @@ from multivae.models.nn.default_architectures import (
 )
 
 from ..base import BaseMultiVAE
+from ..nn.base_architectures import BaseMultilatentEncoder
 from .dmvae_config import DMVAEConfig
 
 
 class DMVAE(BaseMultiVAE):
     """
-    The DVAE model from the paper
+    The DMVAE model from the paper
     'Private-Shared Disentangled Multimodal VAE for Learning of Latent Representations'
 
     Mihee Lee, Vladimir Pavlovic
@@ -39,19 +38,22 @@ class DMVAE(BaseMultiVAE):
     """
 
     def __init__(
-        self, model_config: DMVAEConfig, encoders: dict = None, decoders: dict = None
+        self,
+        model_config: DMVAEConfig,
+        encoders: Union[Dict[str, BaseMultilatentEncoder], None] = None,
+        decoders: Union[Dict[str, BaseDecoder], None] = None,
     ):
         super().__init__(model_config, encoders, decoders)
 
         self.beta = model_config.beta
         self.model_name = "DMVAE"
-        self.set_private_betas(model_config.modalities_specific_betas)
-        self.set_modalities_specific_dim(model_config)
+        self._set_private_betas(model_config.modalities_specific_betas)
+        self._set_modalities_specific_dim(model_config)
         self.multiple_latent_spaces = True
 
-    def set_modalities_specific_dim(self, model_config):
+    def _set_modalities_specific_dim(self, model_config):
         if model_config.modalities_specific_dim is None:
-            self.modalities_specific_dim = {m: 1.0 for m in self.encoders}
+            self.style_dims = {m: 1.0 for m in self.encoders}
         else:
             if model_config.modalities_specific_dim.keys() != self.encoders.keys():
                 raise AttributeError(
@@ -60,10 +62,10 @@ class DMVAE(BaseMultiVAE):
                 )
 
             else:
-                self.modalities_specific_dim = model_config.modalities_specific_dim
+                self.style_dims = model_config.modalities_specific_dim
         return
 
-    def set_private_betas(self, beta_dict):
+    def _set_private_betas(self, beta_dict):
         if beta_dict is None:
             self.private_betas = {mod: 1.0 for mod in self.encoders}
         else:
@@ -88,7 +90,7 @@ class DMVAE(BaseMultiVAE):
             modality_dims=model_config.modalities_specific_dim,
         )
 
-    def poe(self, mus_list, log_vars_list):
+    def _poe(self, mus_list, log_vars_list):
         if len(mus_list) == 1:
             return mus_list[0], log_vars_list[0]
 
@@ -107,7 +109,7 @@ class DMVAE(BaseMultiVAE):
 
         return joint_mu, lnV
 
-    def infer_latent_parameters(self, inputs, subset=None):
+    def _infer_latent_parameters(self, inputs, subset=None):
         # if no subset is provided, use all available modalities
         if subset is None:
             subset = list(inputs.data.keys())
@@ -146,7 +148,7 @@ class DMVAE(BaseMultiVAE):
                 log_var_mod[(1 - inputs.masks[mod].int()).bool().flatten()] = torch.inf
             list_lvs.append(log_var_mod)
 
-        joint_mu, joint_lv = self.poe(
+        joint_mu, joint_lv = self._poe(
             list_mu, list_lvs
         )  # N(0,I) prior is added in the function
 
@@ -172,17 +174,17 @@ class DMVAE(BaseMultiVAE):
             joint_lv,
             shared_params,
             private_params,
-        ) = self.infer_latent_parameters(inputs)
+        ) = self._infer_latent_parameters(inputs)
 
         metrics = dict()
         # Compute the joint elbo
-        joint_elbo = self.compute_elbo(joint_mu, joint_lv, private_params, inputs)
+        joint_elbo = self._compute_elbo(joint_mu, joint_lv, private_params, inputs)
         loss = joint_elbo
         metrics["joint"] = joint_elbo.mean()
 
         # Compute crossmodal elbos
         for k, params in shared_params.items():
-            mod_elbo = self.compute_elbo(params[0], params[1], private_params, inputs)
+            mod_elbo = self._compute_elbo(params[0], params[1], private_params, inputs)
 
             if hasattr(inputs, "masks"):
                 mod_elbo = inputs.masks[k] * mod_elbo
@@ -193,7 +195,7 @@ class DMVAE(BaseMultiVAE):
 
         return ModelOutput(loss=loss.mean(), metrics=metrics)
 
-    def kl_divergence(self, mean, log_var, prior_mean, prior_log_var):
+    def _kl_divergence(self, mean, log_var, prior_mean, prior_log_var):
         kl = (
             0.5
             * (
@@ -208,7 +210,7 @@ class DMVAE(BaseMultiVAE):
 
         return kl.sum(dim=-1)
 
-    def compute_elbo(self, q_mu, q_lv, private_params, inputs):
+    def _compute_elbo(self, q_mu, q_lv, private_params, inputs):
         sigma = torch.exp(0.5 * q_lv)
         shared_z = dist.Normal(q_mu, sigma).rsample()
 
@@ -236,7 +238,7 @@ class DMVAE(BaseMultiVAE):
             recon_loss += recon_mod
 
         # Compute KL divergence for shared variable
-        shared_kl = self.kl_divergence(
+        shared_kl = self._kl_divergence(
             q_mu, q_lv, torch.zeros_like(q_mu), torch.zeros_like(q_lv)
         )
 
@@ -244,7 +246,7 @@ class DMVAE(BaseMultiVAE):
         # Add the modality specific kls
         for mod in self.encoders:
             mu, lv = private_params[mod]
-            kl_mod = self.kl_divergence(
+            kl_mod = self._kl_divergence(
                 mu, lv, torch.zeros_like(mu), torch.zeros_like(lv)
             )
 
@@ -276,10 +278,10 @@ class DMVAE(BaseMultiVAE):
             N (int) : The number of encodings to sample for each datapoint. Default to 1.
 
         Returns:
-            ModelOutput instance with fields:
-                z (torch.Tensor (n_data, N, latent_dim))
-                one_latent_space (bool) = True
-
+            ModelOutput : Contains fields
+                'z' (torch.Tensor (N, n_data, latent_dim))
+                'one_latent_space' (bool) = False
+                'modalities_z' (dict[str,torch.Tensor (N, n_data,mod_latent_dim)])
         """
 
         # Call super to perform some checks and preprocess the cond_mod argument
@@ -287,7 +289,7 @@ class DMVAE(BaseMultiVAE):
         cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
 
         # Compute the shared latent variable conditioning on input modalities
-        sub_mu, sub_logvar, _, private_params = self.infer_latent_parameters(
+        sub_mu, sub_logvar, _, private_params = self._infer_latent_parameters(
             inputs, cond_mod
         )
         sub_std = torch.exp(0.5 * sub_logvar)
@@ -311,9 +313,9 @@ class DMVAE(BaseMultiVAE):
                     0.5 * private_params[mod][1]
                 )
             else:
-                mod_mu = torch.zeros(
-                    (sub_mu.shape[0], self.modalities_specific_dim[mod])
-                ).to(sub_mu.device)
+                mod_mu = torch.zeros((sub_mu.shape[0], self.style_dims[mod])).to(
+                    sub_mu.device
+                )
                 mod_std = torch.ones_like(mod_mu).to(sub_logvar.device)
 
             if return_mean:
@@ -321,13 +323,10 @@ class DMVAE(BaseMultiVAE):
             else:
                 mod_z = dist.Normal(mod_mu, mod_std).rsample(sample_shape)
             if flatten:
-                mod_z = mod_z.reshape(-1, self.modalities_specific_dim[mod])
+                mod_z = mod_z.reshape(-1, self.style_dims[mod])
             modalities_z[mod] = mod_z
 
         return ModelOutput(z=z, one_latent_space=False, modalities_z=modalities_z)
-
-    def compute_cond_nll(self, inputs, cond_mod, pred_mods, K=1000, batch_size_K=100):
-        raise NotImplementedError()
 
     def compute_joint_nll(self, inputs, K=1000, batch_size_K=100):
         raise NotImplementedError()
@@ -352,7 +351,7 @@ class DMVAE(BaseMultiVAE):
         # Generate modalities specific variables
         modalities_z = {}
 
-        for k, dim in self.modalities_specific_dim.items():
+        for k, dim in self.style_dims.items():
             shape = [n_samples, dim] if n_samples > 1 else [dim]
             modalities_z[k] = dist.Normal(0, 1).rsample(shape).to(device)
 

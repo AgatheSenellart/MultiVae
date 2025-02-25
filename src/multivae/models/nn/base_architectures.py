@@ -1,5 +1,5 @@
 import torch
-from pythae.models.base.base_model import BaseDecoder, BaseEncoder
+from pythae.models.base.base_model import BaseDecoder, BaseEncoder, ModelOutput
 
 
 class BaseJointEncoder(BaseEncoder):
@@ -30,6 +30,7 @@ class BaseJointEncoder(BaseEncoder):
             ...         self.latent_dim = ...
             ...
             ...     def forward(self, x: dict):
+            ...         # x is a dict with a tensor for each modality
             ...         # your code
             ...         output = ModelOutput(
             ...             embedding=embedding,
@@ -44,6 +45,7 @@ class BaseJointEncoder(BaseEncoder):
             output (~pythae.models.base.base_utils.ModelOutput): The output of the encoder
         """
         raise NotImplementedError()
+
 
 class BaseMultilatentEncoder(BaseEncoder):
     """This is a base class for for encoders with multiple latent spaces."""
