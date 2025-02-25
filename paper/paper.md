@@ -75,6 +75,9 @@ A simple interpretation of this objective is to see that the first term is a rec
 Most multimodal VAEs differ in how they construct the encoder $q_{\phi}(z|x_1,..,x_M)$. In Figure \ref, we summarize several approaches:
 Aggregated models use a mean or a product operation to aggregate the information coming from all modalities, where joint models uses a neural network taking all modalities as input. Finally coordinated models uses different latent spaces but add a constraint term in the loss to force them to be similar. 
 
+![Caption for example figure.\label{fig:example}](mvae_models_diagram.png)
+
+
 Aggregated models have a natural way of learning on incomplete datasets: for an incomplete sample $X$, we use only the available modalities to encode the data and compute the loss $l(X)$. However, except in MultiVae, there doesn't exist an implementation of these models that can be used on incomplete datasets in a straightforward manner. 
 
 Recent extensions of multimodal VAEs include additional terms to the loss, multiple or hierarchical latent spaces to more comprehensively describe the multimodal data. 
@@ -90,6 +93,22 @@ In this way, our work complements existing work and addresses different needs.
 
 # Description of the software
 
+
+ Our implementation is based on PyTorch [37] and is inspired by the architecture
+of [8] and [53]. The implementations of the models
+are collected in the module multivae.models. For each of the models, the actual implementation
+of the model is accompanied by a configuration as a dataclass gathering the collection of any relevant
+hyperparameter which enables them to be saved and loaded straightforwardly. The models are
+implemented in a unified way, so that they can be easily integrated within the multivae.trainers.
+Like the models, the trainers are also accompanied by a training configuration dataclass used
+to specify any training-related hyperparameters (number of epochs, optimizers, schedulers, etc..).
+Models that have a multistage training [50, 40] benefit from their dedicated trainer that makes
+them as straightforward to use as other models. MultiVae also supports distributed training, allowing
+users to train their models on multiple GPUs straightforwardly. Partially observed datasets can be
+conveniently handled using the IncompleteDataset class that contains masks informing on missing
+or corrupted modalities in each sample. Finally, the MultiVae library also integrates an evaluation
+pipeline for all models where common metrics such as likelihoods, coherences, FID scores [18] and
+visualizations can be computed in a unified and reliable way
 
 # Citations
 
