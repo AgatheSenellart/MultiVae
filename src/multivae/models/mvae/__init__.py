@@ -3,8 +3,8 @@ Implementation of the MVAE model from "Multimodal Generative Models for Scalable
 Weakly-Supervised Learning" (https://arxiv.org/abs/1802.05335).
 
 
-The MVAE model was the first aggregated model proposed by [1]. 
-The joint posterior is modelled as a Product-of-Experts :math:`q_{\phi}(z|X) \propto p(z)\prod_j q_{\phi_j}(z|x_j)`. 
+The MVAE model was the first aggregated model proposed by [1].
+The joint posterior is modelled as a Product-of-Experts :math:`q_{\phi}(z|X) \propto p(z)\prod_j q_{\phi_j}(z|x_j)`.
 The ELBO is then optimized:
 
 .. math::
@@ -26,7 +26,7 @@ where :math:`s_k` are random subsets.
 
 .. note::
     As an aggregated model, this model can be used in the partially observed setting.
-    In the partially observed setting, we don't use the sub-sampling paradigm since the dataset is naturally sub-sampled, 
+    In the partially observed setting, we don't use the sub-sampling paradigm since the dataset is naturally sub-sampled,
     and for each sample :math:`X`, we compute the ELBO with only the observed modalities in :math:`S_{obs}(X)` using the posterior:
 
     .. math::

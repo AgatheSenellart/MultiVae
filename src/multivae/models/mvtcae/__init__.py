@@ -14,12 +14,12 @@ The MVTCAE loss is derived from a Total Correlation Analysis and writes as follo
         \mathcal L(X) &= \frac{M - \alpha}{M}\mathbb{E}_{q_{\phi}(z|X)}\left [\log p_{\theta}(X|z) \right] \\&- \beta \left[(1- \alpha) KL(q_{\phi}(z|X)|| p_{\theta}(z)) + \frac{\alpha}{M} \sum_{j=1}^{M} KL(q_{\phi}(z|X) || q_{\phi_j}(z|x_j)  \right]
     \end{split}
 
-Although this loss derives from a different analysis, it uses same terms that in the JMVAE model. 
+Although this loss derives from a different analysis, it uses same terms that in the JMVAE model.
 A :math:`\beta` factor weighs the regularization, while the :math:`\alpha` parameters is used to ponder the different divergence terms.
 
 .. note::
-    For the partially observed setting, we follow the authors' indications setting the variance for the missing modalities' decoders 
-    to :math:`\infty` which amounts to setting the reconstruction loss to 0 for those modalities. 
+    For the partially observed setting, we follow the authors' indications setting the variance for the missing modalities' decoders
+    to :math:`\infty` which amounts to setting the reconstruction loss to 0 for those modalities.
     The KL terms for missing modalities are also set to 0.
 
 

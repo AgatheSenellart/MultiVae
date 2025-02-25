@@ -62,7 +62,6 @@ class AutoModel(nn.Module):
 
             model = MVAE.load_from_folder(dir_path)
 
-
         elif model_name == "MoPoEConfig":
             from ..mopoe import MoPoE
 
@@ -174,7 +173,6 @@ class AutoModel(nn.Module):
             from ..mvae import MVAE
 
             model = MVAE.load_from_hf_hub(hf_hub_path, allow_pickle)
-
 
         elif model_name == "MoPoEConfig":
             from ..mopoe import MoPoE

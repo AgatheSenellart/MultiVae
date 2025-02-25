@@ -27,10 +27,13 @@ class CVAE(BaseModel):
     See https://arxiv.org/abs/1906.02691 for more information.
     """
 
-    def __init__(self, model_config:CVAEConfig,
-                encoder: Union[BaseEncoder, None]=None,
-                decoder: Union[BaseConditionalDecoder, None]=None,
-                prior_network: Union[BaseEncoder,None]=None):
+    def __init__(
+        self,
+        model_config: CVAEConfig,
+        encoder: Union[BaseEncoder, None] = None,
+        decoder: Union[BaseConditionalDecoder, None] = None,
+        prior_network: Union[BaseEncoder, None] = None,
+    ):
         super().__init__(model_config)
 
         self.latent_dim = model_config.latent_dim

@@ -1,4 +1,4 @@
-from typing import Union, Dict
+from typing import Dict, Union
 
 import torch
 import torch.distributions as dist
@@ -12,8 +12,8 @@ from multivae.models.nn.default_architectures import (
     BaseDictEncoders_MultiLatents,
 )
 
-from ..nn.base_architectures import BaseMultilatentEncoder
 from ..base import BaseMultiVAE
+from ..nn.base_architectures import BaseMultilatentEncoder
 from .dmvae_config import DMVAEConfig
 
 
@@ -38,10 +38,10 @@ class DMVAE(BaseMultiVAE):
     """
 
     def __init__(
-        self, 
-        model_config: DMVAEConfig, 
-        encoders: Union[Dict[str,BaseMultilatentEncoder], None] = None, 
-        decoders: Union[Dict[str,BaseDecoder], None] = None
+        self,
+        model_config: DMVAEConfig,
+        encoders: Union[Dict[str, BaseMultilatentEncoder], None] = None,
+        decoders: Union[Dict[str, BaseDecoder], None] = None,
     ):
         super().__init__(model_config, encoders, decoders)
 
@@ -313,9 +313,9 @@ class DMVAE(BaseMultiVAE):
                     0.5 * private_params[mod][1]
                 )
             else:
-                mod_mu = torch.zeros(
-                    (sub_mu.shape[0], self.style_dims[mod])
-                ).to(sub_mu.device)
+                mod_mu = torch.zeros((sub_mu.shape[0], self.style_dims[mod])).to(
+                    sub_mu.device
+                )
                 mod_std = torch.ones_like(mod_mu).to(sub_logvar.device)
 
             if return_mean:
@@ -327,7 +327,6 @@ class DMVAE(BaseMultiVAE):
             modalities_z[mod] = mod_z
 
         return ModelOutput(z=z, one_latent_space=False, modalities_z=modalities_z)
-
 
     def compute_joint_nll(self, inputs, K=1000, batch_size_K=100):
         raise NotImplementedError()

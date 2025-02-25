@@ -7,5 +7,5 @@ __all__ = [
     "BaseTrainer",
     "BaseTrainerConfig",
     "MultistageTrainer",
-    "MultistageTrainerConfig"
+    "MultistageTrainerConfig",
 ]

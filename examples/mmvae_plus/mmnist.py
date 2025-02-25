@@ -1,17 +1,17 @@
-"""In this file, we reproduce the MMVAE+ results on the PolyMNIST dataset. """
+"""In this file, we reproduce the MMVAE+ results on the PolyMNIST dataset."""
+
+from architectures import Dec, Enc, load_mmnist_classifiers
 
 from multivae.data.datasets.mmnist import MMNISTDataset
-from multivae.trainers.base.callbacks import  WandbCallback
-from multivae.models.mmvaePlus import MMVAEPlus, MMVAEPlusConfig
-from multivae.trainers.base import BaseTrainer, BaseTrainerConfig
 from multivae.metrics.coherences import CoherenceEvaluator, CoherenceEvaluatorConfig
 from multivae.metrics.fids import FIDEvaluator, FIDEvaluatorConfig
+from multivae.models.mmvaePlus import MMVAEPlus, MMVAEPlusConfig
+from multivae.trainers.base import BaseTrainer, BaseTrainerConfig
+from multivae.trainers.base.callbacks import WandbCallback
 
-from architectures import Enc, Dec, load_mmnist_classifiers
-
-# Define paths 
-DATA_PATH = '/home/asenella/data'
-SAVE_PATH = '/home/asenella/experiments'
+# Define paths
+DATA_PATH = "/home/asenella/data"
+SAVE_PATH = "/home/asenella/experiments"
 
 
 # Define model
@@ -28,7 +28,7 @@ model_config = MMVAEPlusConfig(
     input_dims={m: (3, 28, 28) for m in modalities},
     learn_shared_prior=False,
     learn_modality_prior=True,
-    loss='iwae_looser'
+    loss="iwae_looser",
 )
 
 encoders = {
@@ -82,23 +82,24 @@ trainer.train()
 #### Validation ####
 
 # Compute Coherences
-config = CoherenceEvaluatorConfig(batch_size=512, 
-                                  wandb_path=wandb_cb.run.path
-                                  )
+config = CoherenceEvaluatorConfig(batch_size=512, wandb_path=wandb_cb.run.path)
 
 CoherenceEvaluator(
     model=model,
     test_dataset=test_data,
-    classifiers=load_mmnist_classifiers(data_path=DATA_PATH + '/clf', device=model.device),
+    classifiers=load_mmnist_classifiers(
+        data_path=DATA_PATH + "/clf", device=model.device
+    ),
     output=trainer.training_dir,
     eval_config=config,
 ).eval()
 
 # Compute FID
-config = FIDEvaluatorConfig(batch_size=512, 
-                            wandb_path=wandb_cb.run.path, 
-                            inception_weights_path=DATA_PATH + '/pt_inception-2015-12-05-6726825d.pth'
-                            )
+config = FIDEvaluatorConfig(
+    batch_size=512,
+    wandb_path=wandb_cb.run.path,
+    inception_weights_path=DATA_PATH + "/pt_inception-2015-12-05-6726825d.pth",
+)
 
 fid = FIDEvaluator(
     model, test_data, output=trainer.training_dir, eval_config=config

@@ -28,6 +28,7 @@ console = logging.StreamHandler()
 logger.addHandler(console)
 logger.setLevel(logging.INFO)
 
+
 class CMVAE(BaseMultiVAE):
     """
     The CMVAE model from "Deep Generative Clustering with Multimodal Diffusion Variational Autoencoders"

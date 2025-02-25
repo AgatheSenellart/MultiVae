@@ -1,11 +1,13 @@
+import os
+
 import numpy as np
 import pytest
 import torch
 from encoders import Encoder_test, Encoder_test_multilatents
 
 from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
+from multivae.models import DMVAE, MVAE, DMVAEConfig, MVAEConfig
 from multivae.models.base.base_config import BaseAEConfig
-from multivae.models import MVAE, MVAEConfig, DMVAE, DMVAEConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP, ModelOutput
 from multivae.samplers.gaussian_mixture import (
     GaussianMixtureSampler,
@@ -13,7 +15,6 @@ from multivae.samplers.gaussian_mixture import (
 )
 from multivae.samplers.iaf_sampler import IAFSampler, IAFSamplerConfig
 from multivae.samplers.maf_sampler import MAFSampler, MAFSamplerConfig
-import os
 
 
 class Test_IAFSampler:
@@ -37,7 +38,7 @@ class Test_IAFSampler:
         return request.param
 
     @pytest.fixture
-    def archi_and_config(self,beta, one_latent_space):
+    def archi_and_config(self, beta, one_latent_space):
         if one_latent_space:
             # Create an instance of mvae model
             config1 = BaseAEConfig(input_dim=(2,), latent_dim=5)
@@ -92,16 +93,14 @@ class Test_IAFSampler:
 
         return dict(encoders=encoders, decoders=decoders, model_config=model_config)
 
-
     @pytest.fixture(params=[1.0, 1.5, 2.0])
-    def beta(self,request):
+    def beta(self, request):
         beta = request.param
 
         return beta
 
-
     @pytest.fixture(params=[True, False])
-    def model(self,archi_and_config, one_latent_space, request):
+    def model(self, archi_and_config, one_latent_space, request):
         custom = request.param
 
         if one_latent_space:
@@ -115,19 +114,12 @@ class Test_IAFSampler:
             model = model_class(archi_and_config["model_config"])
         return model
 
-
-
-    
     @pytest.fixture(params=[0, 1])
     def iaf_sampler_config(self, request):
         if request.param == 0:
             return IAFSamplerConfig(n_made_blocks=2, n_hidden_in_made=4, hidden_size=64)
         else:
-            return IAFSamplerConfig(
-                n_made_blocks=1, n_hidden_in_made=1, hidden_size=16
-            )
-
-
+            return IAFSamplerConfig(n_made_blocks=1, n_hidden_in_made=1, hidden_size=16)
 
     def test_fit(self, iaf_sampler_config, model, dataset, tmpdir):
 
@@ -139,21 +131,19 @@ class Test_IAFSampler:
         # Test that trying to sample before fit raises an error:
         with pytest.raises(ArithmeticError):
             sampler.sample(100)
-        
+
         with pytest.raises(AttributeError):
             sampler.load_flows_from_folder(dir_path)
-
 
         sampler.fit(dataset, eval_data=dataset)
 
         assert hasattr(sampler, "flows_models")
-        assert hasattr(sampler, "iaf_models")
 
         assert sampler.is_fitted
 
         if sampler.model.multiple_latent_spaces:
             for m in sampler.model.encoders:
-                assert m in sampler.iaf_models.keys()
+                assert m in sampler.flows_models.keys()
 
         # test sample
         output = sampler.sample(100)
@@ -166,23 +156,28 @@ class Test_IAFSampler:
             assert hasattr(output, "modalities_z")
 
         # test save
-        
+
         sampler.save(dir_path)
-        for m in sampler.iaf_models:
+        for m in sampler.flows_models:
             assert os.path.exists(os.path.join(dir_path, m))
 
         # Try reloading the config
-        reload_config = IAFSamplerConfig.from_json_file(os.path.join(dir_path, 'sampler_config.json'))
+        reload_config = IAFSamplerConfig.from_json_file(
+            os.path.join(dir_path, "sampler_config.json")
+        )
         assert reload_config == sampler.sampler_config
 
         # Try reloading the flows
         reload_sampler = IAFSampler(model, iaf_sampler_config)
         reload_sampler.load_flows_from_folder(dir_path)
 
-        for m, model in reload_sampler.iaf_models.items():
+        for m, flow_model in reload_sampler.flows_models.items():
             assert all(
-            [
-                torch.equal(model.state_dict()[key].cpu(), sampler.iaf_models[m].state_dict()[key].cpu())
-                for key in model.state_dict().keys()
-            ]
-        )
+                [
+                    torch.equal(
+                        flow_model.state_dict()[key].cpu(),
+                        sampler.flows_models[m].state_dict()[key].cpu(),
+                    )
+                    for key in flow_model.state_dict().keys()
+                ]
+            )

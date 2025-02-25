@@ -7,9 +7,9 @@ import numpy as np
 import torch
 from imageio import imwrite
 
+from ...data.datasets.base import MultimodalBaseDataset
 from ...models import BaseMultiVAE
 from .base_sampler_config import BaseSamplerConfig
-from ...data.datasets.base import MultimodalBaseDataset
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +73,7 @@ class BaseSampler:
         """Method to save the sampler config. The config is saved a as ``sampler_config.json``
         file in ``dir_path``"""
 
-        logger.info(f'Saving model in {dir_path}.')
+        logger.info(f"Saving model in {dir_path}.")
 
-        os.makedirs(dir_path,exist_ok=True)
+        os.makedirs(dir_path, exist_ok=True)
         self.sampler_config.save_json(dir_path, "sampler_config")

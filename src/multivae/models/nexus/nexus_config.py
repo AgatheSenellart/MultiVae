@@ -43,7 +43,7 @@ class NexusConfig(BaseMultiVAEConfig):
     """
 
     modalities_specific_dim: Dict[str, int] = None
-    bottom_betas: Union[Dict[str, float],None] = None
+    bottom_betas: Union[Dict[str, float], None] = None
     dropout_rate: float = 0
     msg_dim: int = 10
     aggregator: Literal["mean"] = "mean"

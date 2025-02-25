@@ -29,8 +29,8 @@ class MHD(IncompleteDataset):  # pragma: no cover
     In this version of the dataset class, we add the possibility to
     simulate missingness in the data, depending on the dataclass (Missing Not At Random).
     For that, the `missing_probabilities` parameter provides probabilities of missingness for each class,
-    and for each modality. For instance, the code below will define a dataset with missing samples in the 
-    trajectory modality, only in the classes 0,1,2, et 9. 
+    and for each modality. For instance, the code below will define a dataset with missing samples in the
+    trajectory modality, only in the classes 0,1,2, et 9.
 
     .. code-block:: python
 

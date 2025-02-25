@@ -1,8 +1,15 @@
 """Define architectures for reproducing the results of the MMVAE+ model on PolyMNIST"""
+
 import numpy as np
 import torch
 from torch import nn
-from multivae.models.nn.base_architectures import BaseMultilatentEncoder, BaseDecoder, ModelOutput
+
+from multivae.models.nn.base_architectures import (
+    BaseDecoder,
+    BaseMultilatentEncoder,
+    ModelOutput,
+)
+
 
 def actvn(x):
     out = torch.nn.functional.leaky_relu(x, 2e-1)
@@ -154,7 +161,7 @@ class Dec(BaseDecoder):
 
         # consider also predicting the length scale
         return ModelOutput(reconstruction=out)
-    
+
 
 # Classifiers
 

@@ -14,7 +14,6 @@ from multivae.samplers.gaussian_mixture import (
 )
 
 
-
 class Test_GMMSampler:
 
     @pytest.fixture
@@ -31,9 +30,8 @@ class Test_GMMSampler:
 
         return dataset
 
-
     @pytest.fixture(params=["one_latent_space", "multi_latent_spaces"])
-    def archi_and_config(self,beta, request):
+    def archi_and_config(self, beta, request):
         if request.param == "one_latent_space":
             # Create an instance of mvae model
             config1 = BaseAEConfig(input_dim=(2,), latent_dim=5)
@@ -89,24 +87,20 @@ class Test_GMMSampler:
 
         return dict(encoders=encoders, decoders=decoders, model_config=model_config)
 
-
     @pytest.fixture(params=[1.0, 1.5, 2.0])
-    def beta(self,request):
+    def beta(self, request):
         beta = request.param
 
         return beta
 
-
     @pytest.fixture(params=[True, False])
-    def model(self,archi_and_config, request):
+    def model(self, archi_and_config, request):
         custom = request.param
         if custom:
             model = MoPoE(**archi_and_config)
         else:
             model = MoPoE(archi_and_config["model_config"])
         return model
-
-
 
     @pytest.fixture(params=[4, 10])
     def gmm_config(self, request):
@@ -118,7 +112,6 @@ class Test_GMMSampler:
         return sampler
 
     def test_fit_gmm(self, gmm_sampler, dataset):
-
         """Check that the fit function compiles and set the right attributes"""
         gmm_sampler.fit(dataset)
 
@@ -139,6 +132,9 @@ class Test_GMMSampler:
         assert output.z.shape == (100, gmm_sampler.model.latent_dim)
 
         if gmm_sampler.model.multiple_latent_spaces:
-            assert hasattr(output, 'modalities_z')
+            assert hasattr(output, "modalities_z")
             for m, z in output.modalities_z.items():
-                assert z.shape == (100, gmm_sampler.model.model_config.modalities_specific_dim[m])
+                assert z.shape == (
+                    100,
+                    gmm_sampler.model.model_config.modalities_specific_dim[m],
+                )

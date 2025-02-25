@@ -1,9 +1,10 @@
 """In this file, we define the architectures for reproducing the MoPoE results on PolyMNIST"""
 
 import torch
-from torch import nn
 from pythae.models.base import BaseAEConfig
-from multivae.models.nn.base_architectures import BaseEncoder, BaseDecoder, ModelOutput
+from torch import nn
+
+from multivae.models.nn.base_architectures import BaseDecoder, BaseEncoder, ModelOutput
 
 
 class Flatten(torch.nn.Module):
@@ -135,4 +136,3 @@ def load_mmnist_classifiers(data_path="../../../data/clf", device="cpu"):
         if clf is None:
             raise ValueError("Classifier is 'None' for modality %s" % str(i))
     return clfs
-

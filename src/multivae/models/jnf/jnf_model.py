@@ -11,9 +11,9 @@ from pythae.models.normalizing_flows.base import BaseNF
 from pythae.models.normalizing_flows.maf import MAF, MAFConfig
 from torch.nn import ModuleDict
 
-from ..nn.base_architectures import BaseJointEncoder
 from ...data.datasets.base import MultimodalBaseDataset
 from ..joint_models import BaseJointModel
+from ..nn.base_architectures import BaseJointEncoder
 from .jnf_config import JNFConfig
 
 logger = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ class JNF(BaseJointModel):
             containing the modalities names and the decoders for each modality. Each decoder is an
             instance of Pythae's BaseDecoder.
 
-        joint_encoder (~multivae.models.nn.base_architectures.BaseJointEncoder) : Takes all 
+        joint_encoder (~multivae.models.nn.base_architectures.BaseJointEncoder) : Takes all
             the modalities as an input. If none is provided, one is
             created from the unimodal encoders. Default : None.
 
@@ -208,7 +208,7 @@ class JNF(BaseJointModel):
 
         Returns:
             ModelOutput :
-                Contains fields 
+                Contains fields
                 'z' (torch.Tensor (N, n_data, latent_dim))
                 'one_latent_space' (bool) = True
 

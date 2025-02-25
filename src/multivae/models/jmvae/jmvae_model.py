@@ -6,9 +6,9 @@ import torch
 import torch.distributions as dist
 from pythae.models.base.base_utils import ModelOutput
 
-from ..nn.base_architectures import BaseJointEncoder
 from ...data.datasets.base import MultimodalBaseDataset
 from ..joint_models import BaseJointModel
+from ..nn.base_architectures import BaseJointEncoder
 from .jmvae_config import JMVAEConfig
 
 logger = logging.getLogger(__name__)

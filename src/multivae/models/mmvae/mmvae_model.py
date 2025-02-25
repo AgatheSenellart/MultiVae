@@ -298,7 +298,7 @@ class MMVAE(BaseMultiVAE):
         return ModelOutput(loss=-lws.sum(), loss_sum=-lws.sum(), metrics={})
 
     def iwae(self, qz_xs, embeddings, reconstructions, inputs):
-        
+
         lws, n_mods_sample = self.compute_k_lws(
             qz_xs, embeddings, reconstructions, inputs
         )

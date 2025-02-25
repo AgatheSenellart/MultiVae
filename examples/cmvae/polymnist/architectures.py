@@ -1,10 +1,12 @@
 """In this file, we define the encoders and decoders architectures for reproducing the results of the CMVAE model on PolyMNIST."""
+
 import numpy as np
 import torch
 import torch.nn.functional as F
-
 from torch import nn
-from multivae.models.base import BaseEncoder, BaseDecoder, ModelOutput
+
+from multivae.models.base import BaseDecoder, BaseEncoder, ModelOutput
+
 
 def actvn(x):
     out = torch.nn.functional.leaky_relu(x, 2e-1)
@@ -155,7 +157,6 @@ class Dec(BaseDecoder):
 
         # consider also predicting the length scale
         return ModelOutput(reconstruction=out)
-
 
 
 ##############################################################

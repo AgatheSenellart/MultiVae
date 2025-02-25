@@ -143,9 +143,13 @@ class Test_BaseMultiVAE:
             n_modalities=4,
             latent_dim=10,
             input_dims=dict(mod1=(3,), mod2=(3, 4), mod3=(3, 4, 4), mod4=(3, 4, 4, 4)),
-            decoders_dist=dict(mod1="normal", mod2="bernoulli", mod3="laplace", mod4='categorical'),
+            decoders_dist=dict(
+                mod1="normal", mod2="bernoulli", mod3="laplace", mod4="categorical"
+            ),
             decoder_dist_params=dict(
-                mod1=dict(scale=12), mod2=None, mod3=dict(scale=31), 
+                mod1=dict(scale=12),
+                mod2=None,
+                mod3=dict(scale=31),
             ),
         )
 
@@ -163,7 +167,7 @@ class Test_BaseMultiVAE:
             == dumb_x2.shape
         )
         assert model.recon_log_probs["mod3"](dumb_x3, dumb_x3).shape == dumb_x3.shape
-        assert model.recon_log_probs['mod4'](dumb_x4, dumb_x4).shape == dumb_x4.shape
+        assert model.recon_log_probs["mod4"](dumb_x4, dumb_x4).shape == dumb_x4.shape
 
     def test_raises_sanity_check_flags(self):
         model_config = BaseMultiVAEConfig(

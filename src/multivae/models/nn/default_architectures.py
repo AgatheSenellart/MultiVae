@@ -15,7 +15,7 @@ from multivae.models.base.base_config import BaseAEConfig
 from multivae.models.nn.base_architectures import (
     BaseConditionalDecoder,
     BaseJointEncoder,
-    BaseMultilatentEncoder
+    BaseMultilatentEncoder,
 )
 
 
@@ -223,7 +223,7 @@ def BaseDictDecodersMultiLatents(
 
 
 class Decoder_AE_MLP(BaseDecoder):
-    """ The same as in Pythae but allows for any input shape (*, latent_dim) 
+    """The same as in Pythae but allows for any input shape (*, latent_dim)
     with * containing any number of dimensions.
     """
 
@@ -243,7 +243,7 @@ class Decoder_AE_MLP(BaseDecoder):
         self.layers = layers
         self.depth = len(layers)
 
-    def forward(self, z: torch.Tensor,**kwargs):
+    def forward(self, z: torch.Tensor, **kwargs):
         output = ModelOutput()
 
         max_depth = self.depth
@@ -329,6 +329,7 @@ class ConditionalDecoder_MLP(BaseConditionalDecoder):
     """
     Base MLP Conditional Decoder for a single modality.
     """
+
     def __init__(
         self, latent_dim: int, conditioning_data_dim: tuple, data_dim: tuple
     ) -> ModelOutput:

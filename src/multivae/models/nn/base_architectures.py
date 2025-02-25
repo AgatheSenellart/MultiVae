@@ -46,6 +46,7 @@ class BaseJointEncoder(BaseEncoder):
         """
         raise NotImplementedError()
 
+
 class BaseMultilatentEncoder(BaseEncoder):
     """This is a base class for for encoders with multiple latent spaces."""
 

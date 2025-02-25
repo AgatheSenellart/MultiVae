@@ -28,7 +28,7 @@ class MMVAEPlusConfig(BaseMultiVAEConfig):
 
         decoders_dist (Dict[str, Union[function, str]]). The decoder distributions to use per modality.
             Per modality, you can provide a string in ['normal','bernoulli','laplace','categorical'].
-            For Bernoulli distribution, the decoder is expected to output **logits**. 
+            For Bernoulli distribution, the decoder is expected to output **logits**.
             If None is provided, a normal distribution is used for each modality.
 
         decoder_dist_params (Dict[str,dict]) : Parameters for the output decoder distributions, for
@@ -60,7 +60,7 @@ class MMVAEPlusConfig(BaseMultiVAEConfig):
             Default to 'joint_prior' used in the article.
 
         loss (Literal['dreg_looser','iwae_looser']) : Default to 'dreg_looser'.
-        
+
     """
 
     K: int = 10

@@ -1,4 +1,5 @@
 """"""
+
 import logging
 from typing import Dict, Union
 
@@ -73,15 +74,14 @@ class Nexus(BaseMultiVAE):
         self._set_top_encoders(top_encoders, model_config)
         self._set_joint_encoder(joint_encoder, model_config)
 
-
         self._set_bottom_betas(model_config.bottom_betas)
         self._set_gammas(model_config.gammas)
-        
-        self.start_keep_best_epoch = model_config.warmup + 1 # important for training.
+
+        self.start_keep_best_epoch = model_config.warmup + 1  # important for training.
         self.adapt_top_decoder_variance = self._set_top_decoder_variance(model_config)
+        self.check_aggregator(model_config)
 
-
-    def _compute_bottom_elbos(self, inputs:MultimodalBaseDataset, **kwargs):
+    def _compute_bottom_elbos(self, inputs: MultimodalBaseDataset, **kwargs):
         """Passes the inputs through the first level of encoding and compute the bottom elbos"""
         epoch = kwargs.pop("epoch", 1)
         annealing = min(epoch / self.model_config.warmup, 1.0)
@@ -95,19 +95,28 @@ class Nexus(BaseMultiVAE):
         for m, x_m in inputs.data.items():
             # Encode the modality
             output_m = self.encoders[m](x_m)
-            z_m = dist.Normal(output_m.embedding, torch.exp(0.5*output_m.log_covariance)).rsample()
+            z_m = dist.Normal(
+                output_m.embedding, torch.exp(0.5 * output_m.log_covariance)
+            ).rsample()
 
             # Decode and reconstruct
             recon_x_m = self.decoders[m](z_m).reconstruction
 
             # Compute -log p(x_m|z_m)
-            nlogprob = -(
-                    self.recon_log_probs[m](recon_x_m, x_m)
-                    * self.rescale_factors[m]
-                ).reshape(recon_x_m.size(0), -1).sum(-1)
-            
+            nlogprob = (
+                -(self.recon_log_probs[m](recon_x_m, x_m) * self.rescale_factors[m])
+                .reshape(recon_x_m.size(0), -1)
+                .sum(-1)
+            )
+
             # Compute KL(q(z_m|x_m)||p(z_m)). p(z_m) is a standard gaussian
-            KLD = -0.5 * torch.sum(1 + output_m.log_covariance - output_m.embedding.pow(2) - output_m.log_covariance.exp(), dim=-1)
+            KLD = -0.5 * torch.sum(
+                1
+                + output_m.log_covariance
+                - output_m.embedding.pow(2)
+                - output_m.log_covariance.exp(),
+                dim=-1,
+            )
 
             # Compute the negative elbo loss
             m_elbo = nlogprob + KLD * self.bottom_betas[m] * annealing
@@ -117,8 +126,8 @@ class Nexus(BaseMultiVAE):
             # Pass the modality specific latent variable through the top encoder to compute the message
             modalities_msg[m] = self.top_encoders[m](first_level_z[m]).embedding
             # Save some metrics for monitoring the training.
-            metrics['recon_loss_'+ m] = nlogprob.mean()
-            metrics['kl_'+ m] = KLD.mean()
+            metrics["recon_loss_" + m] = nlogprob.mean()
+            metrics["kl_" + m] = KLD.mean()
 
             # Partial dataset : use masks to filter out unavailable samples in the loss
             if hasattr(inputs, "masks"):
@@ -128,20 +137,23 @@ class Nexus(BaseMultiVAE):
 
         return bottom_loss, modalities_msg, first_level_z, metrics
 
-
     def forward(self, inputs: MultimodalBaseDataset, **kwargs):
         """Forward pass of the model. Returns loss and metrics."""
         # Compute bottom level elbos
-        bottom_loss, modalities_msg, first_level_z,metrics = self._compute_bottom_elbos(inputs, **kwargs)
+        bottom_loss, modalities_msg, first_level_z, metrics = (
+            self._compute_bottom_elbos(inputs, **kwargs)
+        )
 
         # Aggregate the modalities messages
         aggregated_msg = self._aggregate_during_training(inputs, modalities_msg)
 
         # Compute the higher level latent variable z_\sigma
         joint_output = self.joint_encoder(aggregated_msg)
-        joint_z = dist.Normal(joint_output.embedding, torch.exp(0.5*joint_output.log_covariance)).rsample()
+        joint_z = dist.Normal(
+            joint_output.embedding, torch.exp(0.5 * joint_output.log_covariance)
+        ).rsample()
 
-        # Compute log p(z_m|z_sigma) 
+        # Compute log p(z_m|z_sigma)
         z_recon_loss = 0
         for m in self.top_decoders:
             z_m_recon = self.top_decoders[m](joint_z).reconstruction
@@ -156,36 +168,42 @@ class Nexus(BaseMultiVAE):
             else:
                 scale = 1
 
-            z_m_recon_loss = -(
-                dist.Normal(z_m_recon, scale).log_prob(first_level_z[m])
-            ).sum(-1)* self.gammas[m]
+            z_m_recon_loss = (
+                -(dist.Normal(z_m_recon, scale).log_prob(first_level_z[m])).sum(-1)
+                * self.gammas[m]
+            )
 
             # Partial dataset, we don't reconstruct the missing modalities
-            if hasattr(inputs, 'masks'):
+            if hasattr(inputs, "masks"):
                 z_m_recon_loss = z_m_recon_loss * inputs.masks[m]
 
             z_recon_loss += z_m_recon_loss
-            metrics['recon_z_'+m] = z_m_recon_loss.mean() # save metrics for monitoring
+            metrics["recon_z_" + m] = (
+                z_m_recon_loss.mean()
+            )  # save metrics for monitoring
 
         # Compute KL(q(z_sigma|z1::M) | p(z_sigma)). The prior p(z_sigma) is standard gaussian
         joint_KLD = -0.5 * torch.sum(
-            1 + joint_output.log_covariance - joint_output.embedding.pow(2) - joint_output.log_covariance.exp(), dim=1
+            1
+            + joint_output.log_covariance
+            - joint_output.embedding.pow(2)
+            - joint_output.log_covariance.exp(),
+            dim=1,
         )
         epoch = kwargs.pop("epoch", 1)
         annealing = min(epoch / self.model_config.warmup, 1.0)
 
         # Compute top loss and total loss
-        top_loss =z_recon_loss + self.model_config.top_beta * joint_KLD * annealing
+        top_loss = z_recon_loss + self.model_config.top_beta * joint_KLD * annealing
         total_loss = top_loss + bottom_loss
 
-
-        metrics.update({
+        metrics.update(
+            {
                 "annealing": annealing,
-                "bottom_loss":bottom_loss.mean(0),
+                "bottom_loss": bottom_loss.mean(0),
                 "top_loss": top_loss.mean(0),
-                "joint_KLD": joint_KLD.mean(0)
+                "joint_KLD": joint_KLD.mean(0),
             }
-
         )
         # Return the mean averaged on the batch.
         return ModelOutput(
@@ -226,17 +244,19 @@ class Nexus(BaseMultiVAE):
 
             # With a complete dataset, we apply Forced Perceptual Dropout during training
             else:
-                # before stack , we have n_modalities tensor of shape n_data, msg_dim. 
+                # before stack , we have n_modalities tensor of shape n_data, msg_dim.
                 # After we have one single tensor of shape n_data, n_modalities, msg_dim
                 tensor_modalities_msg = torch.stack(
                     list(modalities_msg.values()), dim=1
-                ) 
+                )
                 batch_msgs = []
 
                 # we iter over the batch samples
                 for msgs in tensor_modalities_msg:
-                     #msgs shape : n_modalities, msg_dim
-                    bernoulli_drop = dist.Bernoulli(self.model_config.dropout_rate).sample().item()
+                    # msgs shape : n_modalities, msg_dim
+                    bernoulli_drop = (
+                        dist.Bernoulli(self.model_config.dropout_rate).sample().item()
+                    )
 
                     if bernoulli_drop == 1:
                         # choose a random subset to keep
@@ -250,11 +270,7 @@ class Nexus(BaseMultiVAE):
 
             return aggregated_msg
 
-        else:
-            raise AttributeError(
-                f"The aggregator function {self.model_config.aggregator}"
-                "is not supported at the moment for the nexus model."
-            )
+        return
 
     def encode(
         self,
@@ -262,13 +278,13 @@ class Nexus(BaseMultiVAE):
         cond_mod: Union[list, str] = "all",
         N: int = 1,
         **kwargs,
-    ):  
+    ):
         """
         Compute latent variables conditioning on all modalities or a subset of modalities.
 
         Returns:
-            ModelOutput : contains field 'z' for the shared latent, 
-                'modalities_z' for the modalities specific latents, 
+            ModelOutput : contains field 'z' for the shared latent,
+                'modalities_z' for the modalities specific latents,
                 'one_latent_space' = True # for decoding purposes.
         """
         cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
@@ -283,12 +299,9 @@ class Nexus(BaseMultiVAE):
             modalities_msg[m] = self.top_encoders[m](self._sample(output_m)).embedding
 
         # Compute aggregated msg
+        aggregated_msg = None
         if self.model_config.aggregator == "mean":
             aggregated_msg = torch.stack(list(modalities_msg.values()), dim=0).mean(0)
-        else:
-            raise AttributeError(
-                f"aggregator_function {self.model_config.aggregator} is not available."
-            )
 
         z = self._sample(self.joint_encoder(aggregated_msg), N=N, flatten=flatten)
 
@@ -296,8 +309,8 @@ class Nexus(BaseMultiVAE):
 
     def decode(
         self, embedding: ModelOutput, modalities: Union[list, str] = "all", **kwargs
-    ):  
-        """Decodes the embeddings given by the latent function. """
+    ):
+        """Decodes the embeddings given by the latent function."""
 
         if modalities == "all":
             modalities = list(self.encoders.keys())
@@ -306,7 +319,7 @@ class Nexus(BaseMultiVAE):
 
         # For self reconstruction, we use the bottom encodings.
         use_bottom_z_for_reconstruction = kwargs.pop("use_bottom_z_for_recon", True)
-        if not hasattr(embedding, 'modalities_z'):
+        if not hasattr(embedding, "modalities_z"):
             use_bottom_z_for_reconstruction = False
 
         outputs = ModelOutput()
@@ -336,13 +349,12 @@ class Nexus(BaseMultiVAE):
             outputs[m] = recon
 
         return outputs
-    
 
     def _set_top_decoder_variance(self, config):
         """Returns a list of the modalities for which the variance needs to be adapted."""
         if config.adapt_top_decoder_variance is None:
             return []
-        
+
         for m in config.adapt_top_decoder_variance:
             if m not in self.modalities_name:
                 raise AttributeError(
@@ -356,19 +368,18 @@ class Nexus(BaseMultiVAE):
 
         if bottom_betas.keys() != self.encoders.keys():
             raise AttributeError(
-                "The bottom_betas keys do not match the modalities"
-                "names in encoders."
+                "The bottom_betas keys do not match the modalities" "names in encoders."
             )
-        
+
         self.bottom_betas = bottom_betas
 
     def _set_gammas(self, gammas):
         if gammas is None:
             self.gammas = {m: 1.0 for m in self.encoders}
         elif gammas.keys() != self.encoders.keys():
-                raise AttributeError(
-                    "The gammas keys do not match the modalities" "names in encoders."
-                )
+            raise AttributeError(
+                "The gammas keys do not match the modalities" "names in encoders."
+            )
         else:
             self.gammas = gammas
 
@@ -398,7 +409,7 @@ class Nexus(BaseMultiVAE):
             or model_config.modalities_specific_dim is None
         ):
             raise AttributeError(
-                "Please provide encoders architectures or "
+                "Please provide decoders architectures or "
                 "valid input_dims and modalities_specific_dim in the"
                 "model configuration"
             )
@@ -415,7 +426,7 @@ class Nexus(BaseMultiVAE):
     def _default_top_encoders(self, model_config: NexusConfig):
         if model_config.modalities_specific_dim is None:
             raise AttributeError(
-                "Please provide encoders architectures or "
+                "Please provide top_encoders architectures or "
                 "valid modalities_specific_dim in the"
                 "model configuration"
             )
@@ -430,12 +441,9 @@ class Nexus(BaseMultiVAE):
         return encoders
 
     def _default_top_decoders(self, model_config: NexusConfig):
-        if (
-            model_config.input_dims is None
-            or model_config.modalities_specific_dim is None
-        ):
+        if model_config.modalities_specific_dim is None:
             raise AttributeError(
-                "Please provide encoders architectures or "
+                "Please provide top_decoders architectures or "
                 "valid modalities_specific_dim in the"
                 "model configuration"
             )
@@ -478,7 +486,7 @@ class Nexus(BaseMultiVAE):
             top_decoders = self._default_top_decoders(model_config)
         else:
             self.model_config.custom_architectures.append("top_decoders")
-        
+
         # Check the decoders type and set the attribute
         self.top_decoders = nn.ModuleDict()
         for k in top_decoders:
@@ -494,7 +502,7 @@ class Nexus(BaseMultiVAE):
             joint_encoder = self._default_joint_encoder(model_config)
         else:
             self.model_config.custom_architectures.append("joint_encoder")
-        
+
         # Check encoder type and set the attribute
         if not isinstance(joint_encoder, BaseEncoder):
             raise AttributeError(
@@ -502,4 +510,8 @@ class Nexus(BaseMultiVAE):
             )
         self.joint_encoder = joint_encoder
 
-    
+    def check_aggregator(self, model_config):
+        if model_config.aggregator not in ["mean"]:
+            raise AttributeError(
+                f"This aggregator {model_config.aggregator} is not supported at the moment"
+            )

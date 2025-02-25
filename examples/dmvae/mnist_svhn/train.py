@@ -1,23 +1,32 @@
 """In this file, we reproduce the results of the DMVAE model on Mnist-SVHN"""
 
+from architectures import (
+    DecoderMNIST,
+    DecoderSVHN,
+    EncoderMNIST,
+    EncoderSVHN,
+    load_mnist_svhn_classifiers,
+)
+
 from multivae.data.datasets import MnistSvhn
+from multivae.metrics import CoherenceEvaluator, CoherenceEvaluatorConfig
 from multivae.models import DMVAE, DMVAEConfig
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 from multivae.trainers.base.callbacks import WandbCallback
-from multivae.metrics import CoherenceEvaluator, CoherenceEvaluatorConfig
-
-from architectures import load_mnist_svhn_classifiers, EncoderMNIST, EncoderSVHN, DecoderMNIST, DecoderSVHN
-
 
 # Define the paths for loading the data and saving the model
-DATA_PATH = '/home/asenella/data'
-SAVE_PATH = '/home/asenella/experiments'
-CLASSIFIERS_PATH = '/home/asenella/classifiers' # Path to trained classifiers for MNIST-SVHN. Trained models can be downloaded from 
-                                                # https://mybox.inria.fr/d/39d47446eaf9437fbb61/
+DATA_PATH = "/home/asenella/data"
+SAVE_PATH = "/home/asenella/experiments"
+CLASSIFIERS_PATH = "/home/asenella/classifiers"  # Path to trained classifiers for MNIST-SVHN. Trained models can be downloaded from
+# https://mybox.inria.fr/d/39d47446eaf9437fbb61/
 
 # Load the dataset
-train_set = MnistSvhn(data_path=DATA_PATH,split="train", data_multiplication=30, download=True)
-test_set = MnistSvhn(data_path=DATA_PATH,split="test", data_multiplication=30, download=True)
+train_set = MnistSvhn(
+    data_path=DATA_PATH, split="train", data_multiplication=30, download=True
+)
+test_set = MnistSvhn(
+    data_path=DATA_PATH, split="test", data_multiplication=30, download=True
+)
 
 print(f"train : {len(train_set)}, test : {len(test_set)}")
 
@@ -25,21 +34,35 @@ print(f"train : {len(train_set)}, test : {len(test_set)}")
 model_config = DMVAEConfig(
     n_modalities=2,
     latent_dim=10,
-    modalities_specific_dim={'mnist':1, 'svhn':4},
-    rescale_factors={'mnist':50, 'svhn':1},
-    uses_likelihood_rescaling=True
+    modalities_specific_dim={"mnist": 1, "svhn": 4},
+    rescale_factors={"mnist": 50, "svhn": 1},
+    uses_likelihood_rescaling=True,
 )
 
 
 model = DMVAE(
     model_config,
     encoders={
-        "mnist": EncoderMNIST(256,1,model_config.latent_dim, model_config.modalities_specific_dim['mnist']),
-        "svhn": EncoderSVHN(model_config.latent_dim,model_config.modalities_specific_dim['svhn'])
+        "mnist": EncoderMNIST(
+            256,
+            1,
+            model_config.latent_dim,
+            model_config.modalities_specific_dim["mnist"],
+        ),
+        "svhn": EncoderSVHN(
+            model_config.latent_dim, model_config.modalities_specific_dim["svhn"]
+        ),
     },
     decoders={
-        "mnist": DecoderMNIST(256, 1,model_config.latent_dim, model_config.modalities_specific_dim['mnist']),
-        "svhn": DecoderSVHN(model_config.latent_dim, model_config.modalities_specific_dim['svhn'])
+        "mnist": DecoderMNIST(
+            256,
+            1,
+            model_config.latent_dim,
+            model_config.modalities_specific_dim["mnist"],
+        ),
+        "svhn": DecoderSVHN(
+            model_config.latent_dim, model_config.modalities_specific_dim["svhn"]
+        ),
     },
 )
 
@@ -76,11 +99,11 @@ trainer.train()
 # load the classifiers
 classifiers = load_mnist_svhn_classifiers(CLASSIFIERS_PATH)
 
-eval_config = CoherenceEvaluatorConfig(batch_size=128,wandb_path=wandb_cb.run.path)
-eval_module = CoherenceEvaluator(model,classifiers,test_set,trainer.training_dir,eval_config)
+eval_config = CoherenceEvaluatorConfig(batch_size=128, wandb_path=wandb_cb.run.path)
+eval_module = CoherenceEvaluator(
+    model, classifiers, test_set, trainer.training_dir, eval_config
+)
 
 eval_module.eval()
 eval_module.log_to_wandb()
 eval_module.finish()
-
-

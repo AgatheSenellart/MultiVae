@@ -1,19 +1,18 @@
-"""In this file, we reproduce the results of the CMVAE model on the PolyMNIST dataset. """
+"""In this file, we reproduce the results of the CMVAE model on the PolyMNIST dataset."""
 
 import torch
-
+from architectures import Dec, Enc, load_mmnist_classifiers
 from torch import nn
+
 from multivae.data.datasets.mmnist import MMNISTDataset
-from multivae.trainers.base.callbacks import ProgressBarCallback, WandbCallback
+from multivae.metrics.coherences import CoherenceEvaluator, CoherenceEvaluatorConfig
 from multivae.models.cmvae import CMVAE, CMVAEConfig
 from multivae.trainers.base import BaseTrainer, BaseTrainerConfig
-from multivae.metrics.coherences import CoherenceEvaluator, CoherenceEvaluatorConfig
-
-from architectures import Enc, Dec, load_mmnist_classifiers
+from multivae.trainers.base.callbacks import ProgressBarCallback, WandbCallback
 
 ###### Set the paths for loading and saving ######
-DATA_PATH = '/home/asenella/data'
-SAVE_PATH = '/home/asenella/experiments'
+DATA_PATH = "/home/asenella/data"
+SAVE_PATH = "/home/asenella/experiments"
 
 ###### Define model configuration ########
 modalities = ["m0", "m1", "m2", "m3", "m4"]
@@ -30,7 +29,7 @@ model_config = CMVAEConfig(
     input_dims={m: (3, 28, 28) for m in modalities},
     learn_modality_prior=True,
     number_of_clusters=40,
-    loss='iwae_looser'
+    loss="iwae_looser",
 )
 
 encoders = {
@@ -60,7 +59,7 @@ training_config = BaseTrainerConfig(
     steps_predict=5,
     optimizer_cls="Adam",
     optimizer_params=dict(amsgrad=True),
-    seed=0
+    seed=0,
 )
 
 # Set up callbacks
@@ -88,8 +87,9 @@ config = CoherenceEvaluatorConfig(batch_size=512, wandb_path=wandb_cb.run.path)
 CoherenceEvaluator(
     model=model,
     test_dataset=test_data,
-    classifiers=load_mmnist_classifiers(data_path = DATA_PATH+ '/clf', device=model.device),
+    classifiers=load_mmnist_classifiers(
+        data_path=DATA_PATH + "/clf", device=model.device
+    ),
     output=trainer.training_dir,
     eval_config=config,
 ).eval()
-

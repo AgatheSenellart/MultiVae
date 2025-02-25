@@ -5,9 +5,9 @@ import torch.distributions as dist
 from pythae.models.base.base_utils import ModelOutput
 from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
 
-from ..nn.base_architectures import BaseJointEncoder
 from ...data.datasets.base import MultimodalBaseDataset
 from ..joint_models import BaseJointModel
+from ..nn.base_architectures import BaseJointEncoder
 from .telbo_config import TELBOConfig
 
 

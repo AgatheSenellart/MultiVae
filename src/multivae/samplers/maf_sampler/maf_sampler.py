@@ -87,59 +87,35 @@ class MAFSampler(BaseSampler):
         train_loader = DataLoader(dataset=train_data, batch_size=100, shuffle=True)
 
         zs = {m: [] for m in self.flows_models}
+        # Get all the latent codes and detach them to form the training set of the flow model.
+        for _, inputs in enumerate(train_loader):
+            inputs = set_inputs_to_device(inputs, self.device)
+            encoder_output = self.model.encode(inputs)
+            zs["shared"].append(
+                encoder_output.z.detach()
+            )  # the result of the detach does not require grad.
 
-        try:
-            with torch.no_grad():
-                for _, inputs in enumerate(train_loader):
-                    inputs = set_inputs_to_device(inputs, self.device)
-                    encoder_output = self.model.encode(inputs)
-                    zs["shared"].append(encoder_output.z)
-
-                    if self.model.multiple_latent_spaces:
-                        for m in encoder_output.modalities_z:
-                            zs[m].append(encoder_output.modalities_z[m])
-
-        except RuntimeError:
-            for _, inputs in enumerate(train_loader):
-                inputs = set_inputs_to_device(inputs, self.device)
-                encoder_output = self.model.encode(inputs)
-                zs["shared"].append(encoder_output.z.detach())
-
-                if self.model.multiple_latent_spaces:
-                    for m in encoder_output.modalities_z:
-                        zs[m].append(encoder_output.modalities_z[m].detach())
+            if self.model.multiple_latent_spaces:
+                for m in encoder_output.modalities_z:
+                    zs[m].append(encoder_output.modalities_z[m].detach())
 
         train_data = {m: torch.cat(zs[m], dim=0) for m in zs}
 
-        # Eval dataset
-
+        # Do the same for the eval dataset
         if eval_data is not None:
             eval_loader = DataLoader(dataset=eval_data, batch_size=100, shuffle=False)
 
             zs = {m: [] for m in self.flows_models}
 
-            try:
-                with torch.no_grad():
-                    for _, inputs in enumerate(eval_loader):
-                        inputs = set_inputs_to_device(inputs, self.device)
-                        encoder_output = self.model.encode(inputs)
-                        zs["shared"].append(encoder_output.z)
-                        if self.model.multiple_latent_spaces:
-                            for m in encoder_output.modalities_z:
-                                zs[m].append(encoder_output.modalities_z[m])
-
-            except RuntimeError:
-                for _, inputs in enumerate(train_loader):
-                    inputs = set_inputs_to_device(inputs, self.device)
-                    encoder_output = self.model.encode(inputs)
-                    zs["shared"].append(encoder_output.z.detach())
-                    if self.model.multiple_latent_spaces:
-                        for m in encoder_output.modalities_z:
-                            zs[m].append(encoder_output.modalities_z[m].detach())
+            for _, inputs in enumerate(eval_loader):
+                inputs = set_inputs_to_device(inputs, self.device)
+                encoder_output = self.model.encode(inputs)
+                zs["shared"].append(encoder_output.z.detach())
+                if self.model.multiple_latent_spaces:
+                    for m in encoder_output.modalities_z:
+                        zs[m].append(encoder_output.modalities_z[m].detach())
 
             eval_data = {m: torch.cat(zs[m]) for m in zs}
-
-        self.maf_models = torch.nn.ModuleDict()
 
         for m in train_data:  # number of latent_spaces
             train_dataset = BaseDataset(
@@ -162,7 +138,8 @@ class MAFSampler(BaseSampler):
 
             trainer.train()
 
-            self.maf_models[m] = MAF.load_from_folder(
+            # Update the flow_model with the result of training
+            self.flows_models[m] = MAF.load_from_folder(
                 os.path.join(trainer.training_dir, "final_model")
             ).to(self.device)
 
@@ -178,7 +155,7 @@ class MAFSampler(BaseSampler):
         Args:
             num_samples (int): The number of samples to generate
             batch_size (int): The batch size to use during sampling
-            
+
 
         Returns:
             ~torch.Tensor: The generated images
@@ -196,12 +173,12 @@ class MAFSampler(BaseSampler):
         if last_batch_samples_nbr != 0:
             batches = batches + [last_batch_samples_nbr]
 
-        z_gen = {m: [] for m in self.maf_models}
+        z_gen = {m: [] for m in self.flows_models}
 
         for batch in batches:
-            for m in self.maf_models:
+            for m in self.flows_models:
                 u = self.priors[m].sample((batch,))
-                z = self.maf_models[m].inverse(u).out
+                z = self.flows_models[m].inverse(u).out
                 z_gen[m].append(z)
 
         # Output with the same format as the output of encode or generate_from_prior functions
@@ -213,11 +190,11 @@ class MAFSampler(BaseSampler):
             output["modalities_z"] = {m: torch.cat(z_gen[m]) for m in z_gen}
 
         return output
-    
+
     def save(self, dir_path):
         """
         Save the config and trained models
-        """     
+        """
 
         super().save(dir_path=dir_path)
 
@@ -226,31 +203,32 @@ class MAFSampler(BaseSampler):
                 "The sampler needs to be fitted by calling sampler.fit() method"
                 "before sampling."
             )
-        
+
         # Save the state_dicts for the flow models
-        for m, model in self.maf_models.items():
+        for m, model in self.flows_models.items():
             path = os.path.join(dir_path, m)
-            os.makedirs(path,exist_ok=True)
+            os.makedirs(path, exist_ok=True)
             model.save(path)
 
-    
-    def load_flows_from_folder(self,dir_path):
-
+    def load_flows_from_folder(self, dir_path):
         """Instead of calling fit, you can reload weights from a previous training.
-        
+
         .. code-block:: python
-        
+
             >>> sampler.save(dir_path)
             >>> new_sampler = MAFSampler(model, sampler_config) # must be the same model and config
             >>> new_sampler.load_flows_from_folder(dir_path)
         """
 
-        self.maf_models = torch.nn.ModuleDict()
         for m in self.flows_models:
             try:
-                self.maf_models[m] = MAF.load_from_folder(os.path.join(dir_path,m)).to(self.device)
+                self.flows_models[m] = MAF.load_from_folder(
+                    os.path.join(dir_path, m)
+                ).to(self.device)
             except Exception as exc:
-                raise AttributeError(f'Error when trying to load the flows from the folder.',
-                                     f'Check that you provided the right path. Exception raised: {exc}')
+                raise AttributeError(
+                    f"Error when trying to load the flows from the folder.",
+                    f"Check that you provided the right path. Exception raised: {exc}",
+                )
 
         self.is_fitted = True

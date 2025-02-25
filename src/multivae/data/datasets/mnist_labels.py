@@ -12,7 +12,7 @@ from .base import DatasetOutput, MultimodalBaseDataset
 
 
 class MnistLabels(MultimodalBaseDataset):  # pragma: no cover
-    """Mnist-Labels dataset. The first modality is the image and the second modality is the label. """
+    """Mnist-Labels dataset. The first modality is the image and the second modality is the label."""
 
     def __init__(
         self,

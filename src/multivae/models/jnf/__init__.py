@@ -1,10 +1,10 @@
 r"""
 Joint Normalizing Flows (JNF) from https://arxiv.org/abs/2502.03952
 
-JNF uses a joint encoder to model :math:`q_{\phi}(z|X)` and surrogate unimodal encoders :math:`q_{\phi_j}(z|x_j)` for :math:`1\leq j\leq M`. 
+JNF uses a joint encoder to model :math:`q_{\phi}(z|X)` and surrogate unimodal encoders :math:`q_{\phi_j}(z|x_j)` for :math:`1\leq j\leq M`.
 
 The loss used is the same as the JMVAE (with :math:`\alpha = 1`) but the unimodal encoders
-:math:`q_{\phi_j}(z|x_j)` are modelled with Masked Autoregressive Flows. 
+:math:`q_{\phi_j}(z|x_j)` are modelled with Masked Autoregressive Flows.
 
 .. math::
     \mathcal{L}_{JNF}(X) = \mathbb E_{q_{\phi}(z|X)}\left[ \frac{p_{\theta}(z,X)}{q_{\phi}(z|X)} \right] - \sum_{j=1}^{M} KL(q_{\phi}(z|X) || q_{\phi_j}(z|x_j) )

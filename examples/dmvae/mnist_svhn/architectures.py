@@ -1,18 +1,23 @@
 """In this file, we define all the architectures that we need for training the DMVAE model."""
 
+from math import prod
+
 import torch
 import torch.nn.functional as F
-
 from torch import nn
-from math import prod
-from multivae.models.nn.base_architectures import BaseMultilatentEncoder, BaseDecoder, ModelOutput
+
+from multivae.models.nn.base_architectures import (
+    BaseDecoder,
+    BaseMultilatentEncoder,
+    ModelOutput,
+)
 
 ############ Define the architectures ##############
 
 
 class EncoderMNIST(BaseMultilatentEncoder):
-
     """Encoder with shared and private latent spaces."""
+
     def __init__(self, hidden_dim, num_hidden_layers, latent_dim, style_dim):
         super().__init__()
         # Constants
@@ -30,7 +35,7 @@ class EncoderMNIST(BaseMultilatentEncoder):
         self.enc = nn.Sequential(*modules)
         self.fc21 = nn.Linear(self.hidden_dim, latent_dim)
         self.fc22 = nn.Linear(self.hidden_dim, latent_dim)
-        
+
         self.fc21_style = nn.Linear(self.hidden_dim, style_dim)
         self.fc22_style = nn.Linear(self.hidden_dim, style_dim)
 
@@ -39,21 +44,27 @@ class EncoderMNIST(BaseMultilatentEncoder):
 
     def forward(self, x):
         h = self.enc(x.view(*x.size()[:-3], -1))  # flatten data
-        return ModelOutput(embedding=self.fc21(h), log_covariance=self.fc22(h),
-                           style_embedding=self.fc21_style(h), style_log_covariance=self.fc22_style(h))
+        return ModelOutput(
+            embedding=self.fc21(h),
+            log_covariance=self.fc22(h),
+            style_embedding=self.fc21_style(h),
+            style_log_covariance=self.fc22_style(h),
+        )
 
 
 class DecoderMNIST(BaseDecoder):
     """Generate an MNIST image given a sample from the latent space."""
 
-    def __init__(self, hidden_dim,num_hidden_layers, latent_dim, style_dim):
+    def __init__(self, hidden_dim, num_hidden_layers, latent_dim, style_dim):
         super().__init__()
         modules = []
         self.hidden_dim = hidden_dim
         self.dataSize = torch.Size([1, 28, 28])
         data_dim = int(prod(self.dataSize))
         modules.append(
-            nn.Sequential(nn.Linear(latent_dim+style_dim, self.hidden_dim), nn.ReLU(True))
+            nn.Sequential(
+                nn.Linear(latent_dim + style_dim, self.hidden_dim), nn.ReLU(True)
+            )
         )
         modules.extend(
             [self.extra_hidden_layer() for _ in range(num_hidden_layers - 1)]
@@ -89,28 +100,26 @@ class EncoderSVHN(BaseMultilatentEncoder):
             nn.Conv2d(64, 128, 4, 2, 1, bias=False),
             nn.ReLU(),
             nn.Conv2d(128, 256, 4, 2, 1, bias=False),
-            nn.ReLU()
+            nn.ReLU(),
         )
 
-        self.fc = nn.Sequential(
-            nn.Linear(256 * 2 * 2, 512),
-            nn.ReLU(),
-            nn.Dropout(0.1))
-        
+        self.fc = nn.Sequential(nn.Linear(256 * 2 * 2, 512), nn.ReLU(), nn.Dropout(0.1))
+
         self.c1 = nn.Linear(512, latent_dim)
         self.c2 = nn.Linear(512, latent_dim)
-        
+
         self.c1_style = nn.Linear(512, style_dim)
         self.c2_style = nn.Linear(512, style_dim)
-
 
     def forward(self, x):
         e = self.enc_hidden(x)
         e = e.view(e.shape[0], -1)
         e = self.fc(e)
         return ModelOutput(
-            embedding=self.c1(e), log_covariance=self.c2(e),
-            style_embedding=self.c1_style(e), style_log_covariance = self.c2_style(e)
+            embedding=self.c1(e),
+            log_covariance=self.c2(e),
+            style_embedding=self.c1_style(e),
+            style_log_covariance=self.c2_style(e),
         )
 
 
@@ -123,8 +132,8 @@ class DecoderSVHN(BaseDecoder):
         imgChans = dataSize[0]
         fBase = 32  # base size of filter channels
         self.dec_hidden = nn.Sequential(
-            nn.Linear(latent_dim+style_dim, 256 * 2 * 2),
-            nn.ReLU())
+            nn.Linear(latent_dim + style_dim, 256 * 2 * 2), nn.ReLU()
+        )
         self.dec_image = nn.Sequential(
             nn.ConvTranspose2d(256, 128, 4, 2, 1, bias=False),
             nn.ReLU(),
@@ -133,13 +142,15 @@ class DecoderSVHN(BaseDecoder):
             nn.ConvTranspose2d(64, 32, 4, 2, 1, bias=False),
             nn.ReLU(),
             nn.ConvTranspose2d(32, 3, 4, 2, 1, bias=False),
-            nn.Sigmoid())
+            nn.Sigmoid(),
+        )
 
     def forward(self, z):
         hiddens = self.dec_hidden(z)
         hiddens = hiddens.view(-1, 256, 2, 2)
         images_mean = self.dec_image(hiddens)
         return ModelOutput(reconstruction=images_mean)
+
 
 #########################################################################
 ############## Classifiers for validation ###############################
@@ -189,4 +200,3 @@ def load_mnist_svhn_classifiers(data_path, device="cuda"):
     c2 = SVHN_Classifier()
     c2.load_state_dict(torch.load(f"{data_path}/svhn_model.pt", map_location=device))
     return {"mnist": c1.to(device).eval(), "svhn": c2.to(device).eval()}
-

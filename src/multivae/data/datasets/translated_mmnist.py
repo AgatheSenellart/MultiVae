@@ -31,7 +31,7 @@ class TranslatedMMNIST(MultimodalBaseDataset):  # pragma: no cover
     To use the ExtendedPolyMNIST dataset (10 modalities) introduced in "Score-Based Multimodal Autoencoder" (Wesego 2024),
     download the background images from https://github.com/rooshenasgroup/sbmae/tree/main/poly_background.
 
-    
+
 
     .. code-block:: python
 

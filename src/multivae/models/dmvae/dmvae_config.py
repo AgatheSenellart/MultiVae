@@ -1,5 +1,6 @@
+from typing import Dict, Union
+
 from pydantic.dataclasses import dataclass
-from typing import Union, Dict
 
 from ..base import BaseMultiVAEConfig
 

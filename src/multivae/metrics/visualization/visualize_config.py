@@ -1,4 +1,5 @@
 from pydantic.dataclasses import dataclass
+
 from ..base.evaluator_config import EvaluatorConfig
 
 

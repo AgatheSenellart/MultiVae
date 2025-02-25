@@ -1,6 +1,6 @@
 """In this file, we reproduce the MoPoE results on PolyMNIST"""
 
-
+from architectures import DecoderImg, EncoderImg, load_mmnist_classifiers
 from pythae.models.base.base_config import BaseAEConfig
 
 from multivae.data.datasets.mmnist import MMNISTDataset
@@ -9,11 +9,9 @@ from multivae.models import MoPoE, MoPoEConfig
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 from multivae.trainers.base.callbacks import WandbCallback
 
-from architectures import EncoderImg, DecoderImg, load_mmnist_classifiers
-
-# Define paths 
-DATA_PATH = '/home/asenella/data'
-SAVE_PATH = '/home/asenella/experiments'
+# Define paths
+DATA_PATH = "/home/asenella/data"
+SAVE_PATH = "/home/asenella/experiments"
 
 train_data = MMNISTDataset(data_path=DATA_PATH, split="train")
 test_data = MMNISTDataset(data_path=DATA_PATH, split="test")
@@ -54,7 +52,7 @@ trainer_config = BaseTrainerConfig(
     per_device_train_batch_size=256,
     drop_last=True,
     seed=0,
-    output_dir=SAVE_PATH
+    output_dir=SAVE_PATH,
 )
 
 # Set up callbacks
@@ -76,6 +74,5 @@ model = trainer._best_model
 #####################################################################################
 ##### Validation : Compute the coherences
 
-clfs = load_mmnist_classifiers(data_path=DATA_PATH + '/clf')
+clfs = load_mmnist_classifiers(data_path=DATA_PATH + "/clf")
 coherences = CoherenceEvaluator(model, clfs, test_data, trainer.training_dir).eval()
-

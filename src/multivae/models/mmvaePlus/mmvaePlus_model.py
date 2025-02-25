@@ -178,7 +178,8 @@ class MMVAEPlus(BaseMultiVAE):
                         [self.mean_priors[recon_mod]] * len(mu), axis=0
                     )
                     sigma_prior_mod = torch.cat(
-                        [self._log_var_to_std(self.logvars_priors[recon_mod])] * len(mu),
+                        [self._log_var_to_std(self.logvars_priors[recon_mod])]
+                        * len(mu),
                         axis=0,
                     )
 
@@ -387,7 +388,7 @@ class MMVAEPlus(BaseMultiVAE):
             N (int) : The number of encodings to sample for each datapoint. Default to 1.
 
         Returns:
-            ModelOutput : contains fields 
+            ModelOutput : contains fields
                 'z' (torch.Tensor (n_data, N, latent_dim))
                 'one_latent_space' (bool) = False
                 'modalities_z' (Dict[str,torch.Tensor (n_data, N, latent_dim) ])
