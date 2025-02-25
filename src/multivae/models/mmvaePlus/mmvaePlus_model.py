@@ -217,7 +217,7 @@ class MMVAEPlus(BaseMultiVAE):
                 self._compute_posteriors_and_embeddings(inputs, detach=False)
             )
             return self._iwae_looser(posteriors, embeddings, reconstructions, inputs)
-        raise NotImplemented()
+        raise NotImplementedError
 
     @property
     def pz_params(self):
