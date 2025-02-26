@@ -71,7 +71,7 @@ $$\mathcal{L}(X) =  \mathbb{E}_{q_\phi(z|X)}\left( \sum_i \ln(p_{\theta}(x_i|z))
 A simple interpretation of this objective is to see that the first term is a reconstruction loss and the second term is a regularization term that avoids overfitting. A typical training of a multimodal VAE consists in encoding the data with the encoder, reconstructing each modality with the decoders and take a gradient step to optimize the loss $L(X)$. 
 
 Most multimodal VAEs differ in how they construct the encoder $q_{\phi}(z|X)$. In Figure \autoref{types_vae}, we summarize several approaches:
-Aggregated models [@wu:2018, @shi:2019, @sutter:2021] use a mean or a product operation to aggregate the information coming from all modalities, where joint models [@suzuki2016, @vedantam:2018, @senellart:2023] uses a neural network taking all modalities as input. Finally coordinated [@dvcca, @tian:2019] models uses different latent spaces but add a constraint term in the loss to force them to be similar. 
+Aggregated models [@wu:2018; @shi:2019; @sutter:2021] use a mean or a product operation to aggregate the information coming from all modalities, where joint models [@suzuki2016; @vedantam:2018; @senellart:2023] uses a neural network taking all modalities as input. Finally coordinated [@dvcca; @tian:2019] models uses different latent spaces but add a constraint term in the loss to force them to be similar. 
 ![Different types of multimodal VAEs \label{types_vae}](mvae_models_diagrams.png){width=80%}
 Recent extensions of multimodal VAEs include additional terms to the loss, multiple or hierarchical latent spaces to more comprehensively describe the multimodal data. Aggregated models have a natural way of learning on incomplete datasets: for an incomplete sample $X$, we use only the available modalities to encode the data and compute the loss $l(X)$. However, except in MultiVae, there doesn't exist an implementation of these models that can be used on incomplete datasets in a straightforward manner. 
 
@@ -103,23 +103,40 @@ visualizations.
 
 # List of models and features
 
+|Model or Feature|MultiVae|multi-view-ae|
+|--|--|--|
+|JMVAE| 	&#x2713;* |	&#x2713;|
+|MVAE| 	&#x2713;*|	&#x2713;|
+|MMVAE|	&#x2713;*|	&#x2713;|
+|MoPoE|	&#x2713;*|	&#x2713;|
+|DMVAE|	&#x2713;|	&#x2713;|
+|MVTCAE|	&#x2713;|	&#x2713;|
+|MMVAE+|	&#x2713;*|	&#x2713;|
+|CMVAE|	&#x2713;||
+|Nexus|	&#x2713;||
+|CVAE|	&#x2713;||
+|MHVAE|	&#x2713;||
+|TELBO|	&#x2713;||
+|JNF|	&#x2713;||
+|MCVAE||	&#x2713;|
+|mAAE||	&#x2713;|
+|DVCCA||	&#x2713;|
+|mWAE||	&#x2713;|
+|mmJSD||	&#x2713;|
+|gPoE||	&#x2713;|
+|Support of Incomplete datasets|	&#x2713;||
+|GMM Sampler|	&#x2713;||
+|MAF Sampler, IAF Sampler|	&#x2713;||
+|Metrics : Likelihoods, Coherences, FIDs, Reconstruction, Clustering|	&#x2713;||
+|Inline Datasets| 	&#x2713;||
+|Model sharing via Hugging Face |	&#x2713;||
+
+
 # Documentation
 The main features are illustrated through tutorials made available either
 as notebooks or scripts allowing users to get started easily. An online documentation is also made
 available at https://multivae.readthedocs.io/en/latest.
-# Citations
 
-Citations to entries in paper.bib should be in
-[rMarkdown](http://rmarkdown.rstudio.com/authoring_bibliographies_and_citations.html)
-format.
-
-If you want to cite a software repository URL (e.g. something on GitHub without a preferred
-citation) then you can do it with the example BibTeX entry below for @fidgit.
-
-For a quick reference, the following citation commands can be used:
-- `@author:2001`  ->  "Author et al. (2001)"
-- `[@author:2001]` -> "(Author et al., 2001)"
-- `[@author1:2001; @author2:2001]` -> "(Author1 et al., 2001; Author2 et al., 2002)"
 
 
 # Acknowledgements
