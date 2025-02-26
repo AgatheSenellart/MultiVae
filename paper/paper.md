@@ -17,15 +17,14 @@ authors:
     affiliation: 2
   
 affiliations:
- - name: Lyman Spitzer, Jr. Fellow, Princeton University, United States
+ - name: Université de Paris-Cité
    index: 1
-   ror: 00hx57361
- - name: Institution Name, Country
+ - name: Inria
    index: 2
- - name: Independent Researcher, Country
+ - name: Inserm
    index: 3
 date: 13 August 2017
-bibliography: paper.bib
+bibliography: [./test.bib]
 
 # Optional fields if submitting to a AAS journal too, see this blog post:
 # https://blog.joss.theoj.org/2018/12/a-new-collaboration-with-aas-publishing
@@ -38,16 +37,15 @@ aas-journal: Astrophysical Journal <- The name of the AAS journal.
 In recent years, there has been a major boom in the development of multimodal
 machine learning models. Among open topics, representation (fusion) and genera-
 tion of multimodal data are very active fields of research. Recently, Multimodal
-Variational Autoencoders have been attracting growing interest for both tasks, thanks
+Variational Autoencoders (VAEs) have been attracting growing interest for both tasks, thanks
 to their versatility, scalability, and interpretability as probabilistic latent variable
 models. They are also particularly interesting models in the partially observed
 setting, as most of them can learn even with missing data. 
-This last point makes them particularly interesting for research fields where missing data are commonplace: 
-in medical research for example.
+This last point makes them particularly interesting for research fields such as the medical field, where missing data are commonplace.
 
 In this article, we present
-MultiVae, an open-source Python library designed to bring together unified imple-
-mentations of multimodal variational autoencoders models. It has been designed
+MultiVae, an open-source Python library for bringing together unified imple-
+mentations of multimodal VAEs. It has been designed
 for easy, customizable use of these models on fully or partially observed data. This
 library also facilitates the development and benchmarking of new algorithms by integrating
 several popular datasets, variety of evaluation metrics and tools for monitoring and
@@ -56,7 +54,7 @@ sharing models.
 # Multimodal Variational Autoencoders
 In Multimodal Machine Learning, two goals are generally targeted:
 (1) Learn a shared representation from multiple modalities;
-(2) Learn to generate one missing modality given available modalities.
+(2) Learn to generate one missing modality given the ones that are available.
 
 Multimodal Variational Autoencoders \cite{suzuki_survey_2022} aim at solving both issues at the same time. These models learn a latent representation $z$ of all modalities in a lower dimensional common space and learn to *decode* $z$ to generate any modality.  
 Let $X = (x_1, x_2, ... x_M)$ contain $M$ modalities. In the VAE setting, we suppose that the generative process behind the observed data is the following:
@@ -64,25 +62,20 @@ Let $X = (x_1, x_2, ... x_M)$ contain $M$ modalities. In the VAE setting, we sup
 &z \sim p(z)
 & \forall 1 \leq i \leq M, x_i|z \sim p_{\theta}(x_i|z)
 \end{align}
-where $p(z)$ is a prior distribution that is often fixed, and $p_{\theta}(x_i|z)$ are called decoders and are parameterized by Neural Networks. 
+where $p(z)$ is a prior distribution that is often fixed, and $p_{\theta}(x_i|z)$ are called *decoders* and are parameterized by neural network. 
 Typically, $p_{\theta}(x_i|z) = \mathcal{N}(x_i, \mu_{\theta}(z), \sigma_{\theta}(z))$ where $\mu_{\theta}, \sigma_{\theta}$ are neural networks.
 We aim to learn these *decoders* that translate $z$ into the high dimensional data $x_i$. At the same time, we aim to learn an *encoder* $q_{\phi}(z|X)$ that map the multimodal observation to the latent space. $q_{\phi}(z|X)$ is also parameterized by a neural network. 
 Derived from variational inference theory, the VAE objective writes:
-$$ \mathcal{l}(X) =  \mathbb{E}_{q_\phi(z|X)}\left( \sum_i \ln(p_{\theta}(x_i|z)) \right) - KL(q_{\phi}(z|X)|p(z))$$
+$$\mathcal{l}(X) =  \mathbb{E}_{q_\phi(z|X)}\left( \sum_i \ln(p_{\theta}(x_i|z)) \right) - KL(q_{\phi}(z|X)|p(z))$$
 
 A simple interpretation of this objective is to see that the first term is a reconstruction loss and the second term is a regularization term that avoids overfitting. A typical training of a multimodal VAE consists in encoding the data with the encoder, reconstructing each modality with the decoders and take a gradient step to optimize the loss $l(X)$. 
 
-Most multimodal VAEs differ in how they construct the encoder $q_{\phi}(z|x_1,..,x_M)$. In Figure \ref, we summarize several approaches:
+Most multimodal VAEs differ in how they construct the encoder $q_{\phi}(z|X)$. In Figure \autoref{types_vae}, we summarize several approaches:
 Aggregated models use a mean or a product operation to aggregate the information coming from all modalities, where joint models uses a neural network taking all modalities as input. Finally coordinated models uses different latent spaces but add a constraint term in the loss to force them to be similar. 
+![Different types of multimodal VAEs \label{types_vae}](mvae_models_diagrams.png){width=80%}
+Recent extensions of multimodal VAEs include additional terms to the loss, multiple or hierarchical latent spaces to more comprehensively describe the multimodal data. Aggregated models have a natural way of learning on incomplete datasets: for an incomplete sample $X$, we use only the available modalities to encode the data and compute the loss $l(X)$. However, except in MultiVae, there doesn't exist an implementation of these models that can be used on incomplete datasets in a straightforward manner. 
 
-![Caption for example figure.\label{fig:example}](mvae_models_diagram.png)
-
-
-Aggregated models have a natural way of learning on incomplete datasets: for an incomplete sample $X$, we use only the available modalities to encode the data and compute the loss $l(X)$. However, except in MultiVae, there doesn't exist an implementation of these models that can be used on incomplete datasets in a straightforward manner. 
-
-Recent extensions of multimodal VAEs include additional terms to the loss, multiple or hierarchical latent spaces to more comprehensively describe the multimodal data. 
-
-Another application of these models is data augmentation: from sampling latent codes $z$ and decoding them, new synthetic multimodal samples can be generated. Data augmentation has been proven useful in many deep learning applications. In MultiVae we propose different ways of sampling latent codes $z$ to further explore the generative abilities of these models. 
+Another application of these models is data augmentation: from sampling latent codes $z$ and decoding them, fully synthetic multimodal samples can be generated. Data augmentation has been proven useful in many deep learning applications. In MultiVae we propose different ways of sampling latent codes $z$ to further explore the generative abilities of these models. 
 
 # Statement of need
 
@@ -94,21 +87,24 @@ In this way, our work complements existing work and addresses different needs.
 # Description of the software
 
 
- Our implementation is based on PyTorch [37] and is inspired by the architecture
-of [8] and [53]. The implementations of the models
-are collected in the module multivae.models. For each of the models, the actual implementation
-of the model is accompanied by a configuration as a dataclass gathering the collection of any relevant
-hyperparameter which enables them to be saved and loaded straightforwardly. The models are
-implemented in a unified way, so that they can be easily integrated within the multivae.trainers.
-Like the models, the trainers are also accompanied by a training configuration dataclass used
+ Our implementation is based on PyTorch and is inspired by the architecture
+of . The implementations of the models
+are collected in the module `multivae.models`. Each model class is accompanied by a configuration dataclass gathering the collection of any relevant hyperparameter which enables them to be saved and loaded straightforwardly. The models are
+implemented in a unified way, so that they can be easily integrated within the `multivae.trainers`.
+Trainers are also accompanied by a training configuration dataclass used
 to specify any training-related hyperparameters (number of epochs, optimizers, schedulers, etc..).
 Models that have a multistage training [50, 40] benefit from their dedicated trainer that makes
-them as straightforward to use as other models. MultiVae also supports distributed training, allowing
-users to train their models on multiple GPUs straightforwardly. Partially observed datasets can be
-conveniently handled using the IncompleteDataset class that contains masks informing on missing
+them as straightforward to use as other models. Partially observed datasets can be
+conveniently handled using the `IncompleteDataset` class that contains masks informing on missing
 or corrupted modalities in each sample. Finally, the MultiVae library also integrates an evaluation
-pipeline for all models where common metrics such as likelihoods, coherences, FID scores [18] and
-visualizations can be computed in a unified and reliable way
+pipeline for all models with common metrics such as likelihoods, coherences, FID scores [18] and
+visualizations. 
+![Code structure](code_structure.png){width=80%}
+
+# List of models and features
+
+# Documentation
+
 
 # Citations
 
@@ -124,14 +120,6 @@ For a quick reference, the following citation commands can be used:
 - `[@author:2001]` -> "(Author et al., 2001)"
 - `[@author1:2001; @author2:2001]` -> "(Author1 et al., 2001; Author2 et al., 2002)"
 
-# Figures
-
-Figures can be included like this:
-![Caption for example figure.\label{fig:example}](figure.png)
-and referenced from text using \autoref{fig:example}.
-
-Figure sizes can be customized by adding an optional second parameter:
-![Caption for example figure.](figure.png){ width=20% }
 
 # Acknowledgements
 
@@ -139,3 +127,4 @@ We acknowledge contributions from Brigitta Sipocz, Syrtis Major, and Semyeong
 Oh, and support from Kathryn Johnston during the genesis of this project.
 
 # References
+
