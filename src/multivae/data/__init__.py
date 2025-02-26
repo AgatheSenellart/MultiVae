@@ -1,3 +1,4 @@
-from .datasets import MultimodalBaseDataset
+from .datasets import MultimodalBaseDataset, IncompleteDataset
 
-__all__ = ["MultimodalBaseDataset"]
+__all__ = ["MultimodalBaseDataset",
+           "IncompleteDataset"]

@@ -47,40 +47,52 @@ DMVAE| [Private-Shared Disentangled Multimodal VAE for Learning of Latent Repres
 |CMVAE| [Deep Generative Clustering with Multimodal Diffusion Variational Autoencoders](https://openreview.net/forum?id=k5THrhXDV3)| [link](https://github.com/epalu/CMVAE)|
 |MHVAE| [Unified Brain MR-Ultrasound Synthesis using  Multi-Modal Hierarchical Representations](https://arxiv.org/abs/2309.08747) |[link](https://github.com/ReubenDo/MHVAE)|
 
-# Quickstart
+# Table of Contents
 
-Install the library by running:
+- [Models available](#implemented-models)
+- [Installation](#installation)
+- [Quickstart](#quickstart)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Contribute](#contribute)
+- [Reproducibility statement](#reproducibility-statement)
+- [Citation](#citation)
+
+
+# Installation
+To get the latest stable release run:
 
 ```shell
 pip install multivae
 ```
-or by cloning the repository:
+
+To get the latest updates from the github repository run: 
 
 ```shell
 git clone https://github.com/AgatheSenellart/MultiVae.git
 cd MultiVae
 pip install .
 ```
-Cloning the repository gives you access to tutorial notebooks and scripts in the 'example' folder.
+Cloning the repository also gives you access to the tutorial notebooks and scripts in the 'example' folder.
 
-Load a dataset easily:
+# Quickstart
+
+Here is a very simple code to illustrate how you can use MultiVae:
 ```python
+# Load a dataset 
 from multivae.data.datasets import MnistSvhn
 train_set = MnistSvhn(data_path='your_data_path', split="train", download=True)
 
-```
-Instantiate your favorite model:
-```python
+
+# Instantiate your favorite model:
 from multivae.models import MVTCAE, MVTCAEConfig
 model_config = MVTCAEConfig(
     latent_dim=20, 
     input_dims = {'mnist' : (1,28,28),'svhn' : (3,32,32)})
 model = MVTCAE(model_config)
 
-```
-Define a trainer and train the model !
 
-```python
+# Define a trainer and train the model !
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 training_config = BaseTrainerConfig(
     learning_rate=1e-3,
@@ -95,45 +107,18 @@ trainer = BaseTrainer(
 trainer.train()
 ```
 
-# Documentation and Examples
-
-See https://multivae.readthedocs.io
-
-Several examples are provided in `examples/` - as well as tutorial notebooks on how to use the main features of MultiVae(training, metrics, samplers) in the folder `examples/tutorial_notebooks`. As an introduction to the package, see the `getting_started.ipynb` notebook.
-
-# Table of Contents
-
-- [Models available](#implemented-models)
-- [Quickstart](#quickstart)
-- [Table of Contents](#table-of-contents)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Contribute](#contribute)
-- [Reproducibility statement](#reproducibility-statement)
-- [Citation](#citation)
-
-# Installation
-[(Back to top)](#table-of-contents)
-
-
-```shell
-git clone https://github.com/AgatheSenellart/MultiVae.git
-cd MultiVae
-pip install .
-```
-
-# Usage
+# Getting your hands in the code
 [(Back to top)](#table-of-contents)
 
 Our library allows you to use any of the models with custom configuration, encoders and decoders architectures and datasets easily. To learn how to use MultiVae's features we propose different tutorial notebooks:
 
-- [Getting started](examples/tutorial_notebooks/getting_started.ipynb)
-- [Computing Metrics](examples/tutorial_notebooks/computing_visualization_and_metrics.ipynb)
-- [Learning with partial datasets](examples/tutorial_notebooks/learning_with_partial_data.ipynb)
-- [Using samplers to improve joint generation](examples/tutorial_notebooks/using_samplers.ipynb)
+- [Getting started](examples/tutorial_notebooks/getting_started.ipynb) : Learn how to provide your own architectures and train a model.
+- [Computing Metrics](examples/tutorial_notebooks/computing_visualization_and_metrics.ipynb) : Learn how to evaluate your model using MultiVae's metrics modules.
+- [Learning with partial datasets](examples/tutorial_notebooks/learning_with_partial_data.ipynb) : Learn how to use the IncompleteDataset class and to train a model on an incomplete dataset.
+- [Using samplers](examples/tutorial_notebooks/using_samplers.ipynb): Learn how to train and use sampler to improve the joint generation of synthetic data.
 
 
-## Training on incomplete datasets
+# Training on incomplete datasets
 
 Many models implemented in the library can be trained on incomplete datasets. To do so, you will need to define a dataset that inherits from MultiVae's IncompleteDataset class. 
 
@@ -172,6 +157,40 @@ To ease the development of new methods on incomplete datasets, we propose two ea
 - Missing not at Random: The MHD dataset with missing ratios that depend on the label. 
 
 See the documentation for more information on those datasets. 
+
+# Sharing your models with the HuggingFace Hub 🤗
+MultiVae allows you to share your models on the [HuggingFace Hub](https://huggingface.co/models). To do so you need:
+- a valid HuggingFace account
+- the package `huggingface_hub` installed in your virtual env. If not you can install it with 
+```
+$ python -m pip install huggingface_hub
+```
+- to be logged in to your HuggingFace account using
+```
+$ huggingface-cli login
+```
+
+### Uploading a model to the Hub
+Any MultiVae model can be easily uploaded using the method `push_to_hf_hub`
+```python
+>>> my_model.push_to_hf_hub(hf_hub_path="your_hf_username/your_hf_hub_repo")
+```
+**Note:** If `your_hf_hub_repo` already exists and is not empty, files will be overridden. In case, 
+the repo `your_hf_hub_repo` does not exist, a folder having the same name will be created.
+
+### Downloading models from the Hub
+Equivalently, you can download or reload any MultiVae model directly from the Hub using the method `load_from_hf_hub`
+```python
+>>> from multivae.models import AutoModel
+>>> my_downloaded_vae = AutoModel.load_from_hf_hub(hf_hub_path="path_to_hf_repo")
+```
+
+# Documentation, Examples and Case Studies
+
+See https://multivae.readthedocs.io
+
+Several examples are provided in `examples/` - as well as tutorial notebooks on how to use the main features of MultiVae(training, metrics, samplers) in the folder `examples/tutorial_notebooks`.
+
 
 # Contribute
 [(Back to top)](#table-of-contents)
