@@ -56,7 +56,7 @@ In Multimodal Machine Learning, two goals are generally targeted:
 (1) Learn a shared representation from multiple modalities;
 (2) Learn to generate one missing modality given the ones that are available.
 
-Multimodal Variational Autoencoders \cite{suzuki_survey_2022} aim at solving both issues at the same time. These models learn a latent representation $z$ of all modalities in a lower dimensional common space and learn to *decode* $z$ to generate any modality.  
+Multimodal Variational Autoencoders aim at solving both issues at the same time. These models learn a latent representation $z$ of all modalities in a lower dimensional common space and learn to *decode* $z$ to generate any modality.  
 Let $X = (x_1, x_2, ... x_M)$ contain $M$ modalities. In the VAE setting, we suppose that the generative process behind the observed data is the following:
 \begin{align}
 &z \sim p(z)
@@ -88,7 +88,7 @@ In this way, our work complements existing work and addresses different needs.
 
 
  Our implementation is based on PyTorch and is inspired by the architecture
-of . The implementations of the models
+of @pythae. The implementations of the models
 are collected in the module `multivae.models`. Each model class is accompanied by a configuration dataclass gathering the collection of any relevant hyperparameter which enables them to be saved and loaded straightforwardly. The models are
 implemented in a unified way, so that they can be easily integrated within the `multivae.trainers`.
 Trainers are also accompanied by a training configuration dataclass used
