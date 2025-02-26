@@ -96,7 +96,8 @@ to specify any training-related hyperparameters (number of epochs, optimizers, s
 Models that have a multistage training [50, 40] benefit from their dedicated trainer that makes
 them as straightforward to use as other models. Partially observed datasets can be
 conveniently handled using the `IncompleteDataset` class that contains masks informing on missing
-or corrupted modalities in each sample. Finally, the MultiVae library also integrates an evaluation
+or corrupted modalities in each sample. For Data Augmentation purposes the module `multivae.samplers` regroups different ways generating fully synthetic data. 
+Finally, the MultiVae library also integrates an evaluation
 pipeline for all models with common metrics such as likelihoods, coherences, FID scores [18] and
 visualizations. 
 ![Code structure](code_structure.png){width=80%}
@@ -140,9 +141,6 @@ available at https://multivae.readthedocs.io/en/latest.
 
 
 # Acknowledgements
-
-We acknowledge contributions from Brigitta Sipocz, Syrtis Major, and Semyeong
-Oh, and support from Kathryn Johnston during the genesis of this project.
 
 # References
 
