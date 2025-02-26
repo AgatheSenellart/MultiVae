@@ -1,4 +1,4 @@
-@inproceedings{wu_multimodal_2018,
+@inproceedings{wu:2018,
 	title = {Multimodal {Generative} {Models} for {Scalable} {Weakly}-{Supervised} {Learning}},
 	volume = {31},
 	url = {https://proceedings.neurips.cc/paper/2018/hash/1102a326d5f7c9e04fc3c89d0ede88c9-Abstract.html},
@@ -11,7 +11,7 @@
 	file = {Full Text PDF:/Users/agathe/Zotero/storage/MWRQ9XZ3/Wu et Goodman - 2018 - Multimodal Generative Models for Scalable Weakly-S.pdf:application/pdf},
 }
 
-@article{suzuki_joint_2016,
+@article{suzuki:2016,
 	title = {Joint {Multimodal} {Learning} with {Deep} {Generative} {Models}},
 	url = {http://arxiv.org/abs/1611.01891},
 	abstract = {We investigate deep generative models that can exchange multiple modalities bi-directionally, e.g., generating images from corresponding texts and vice versa. Recently, some studies handle multiple modalities on deep generative models, such as variational autoencoders (VAEs). However, these models typically assume that modalities are forced to have a conditioned relation, i.e., we can only generate modalities in one direction. To achieve our objective, we should extract a joint representation that captures high-level concepts among all modalities and through which we can exchange them bi-directionally. As described herein, we propose a joint multimodal variational autoencoder (JMVAE), in which all modalities are independently conditioned on joint representation. In other words, it models a joint distribution of modalities. Furthermore, to be able to generate missing modalities from the remaining modalities properly, we develop an additional method, JMVAE-kl, that is trained by reducing the divergence between JMVAE's encoder and prepared networks of respective modalities. Our experiments show that our proposed method can obtain appropriate joint representation from multiple modalities and that it can generate and reconstruct them more properly than conventional VAEs. We further demonstrate that JMVAE can generate multiple modalities bi-directionally.},
@@ -44,7 +44,7 @@
 }
 
 
-@article{vedantam_generative_2018,
+@article{vedantam:2018,
 	title = {Generative {Models} of {Visually} {Grounded} {Imagination}},
 	url = {http://arxiv.org/abs/1705.10762},
 	abstract = {It is easy for people to imagine what a man with pink hair looks like, even if they have never seen such a person before. We call the ability to create images of novel semantic concepts visually grounded imagination. In this paper, we show how we can modify variational auto-encoders to perform this task. Our method uses a novel training objective, and a novel product-of-experts inference network, which can handle partially speciﬁed (abstract) concepts in a principled and efﬁcient way. We also propose a set of easy-to-compute evaluation metrics that capture our intuitive notions of what it means to have good visual imagination, namely correctness, coverage, and compositionality (the 3 C’s). Finally, we perform a detailed comparison of our method with two existing joint image-attribute VAE methods (the JMVAE method of Suzuki et al. (2017) and the BiVCCA method of Wang et al. (2016b)) by applying them to two datasets: the MNIST-with-attributes dataset (which we introduce here), and the CelebA dataset (Liu et al., 2015).},
@@ -69,7 +69,7 @@
 	year = {2022},
 	pages = {21575--21589},
 }
-@misc{kingma_auto-encoding_2014,
+@misc{kingma,
 	title = {Auto-{Encoding} {Variational} {Bayes}},
 	url = {http://arxiv.org/abs/1312.6114},
 	abstract = {How can we perform efﬁcient inference and learning in directed probabilistic models, in the presence of continuous latent variables with intractable posterior distributions, and large datasets? We introduce a stochastic variational inference and learning algorithm that scales to large datasets and, under some mild differentiability conditions, even works in the intractable case. Our contributions is two-fold. First, we show that a reparameterization of the variational lower bound yields a lower bound estimator that can be straightforwardly optimized using standard stochastic gradient methods. Second, we show that for i.i.d. datasets with continuous latent variables per datapoint, posterior inference can be made especially efﬁcient by ﬁtting an approximate inference model (also called a recognition model) to the intractable posterior using the proposed lower bound estimator. Theoretical advantages are reﬂected in experimental results.},
@@ -84,7 +84,7 @@
 	file = {Kingma and Welling - 2014 - Auto-Encoding Variational Bayes.pdf:/Users/agathe/Zotero/storage/9YS7YFSU/Kingma and Welling - 2014 - Auto-Encoding Variational Bayes.pdf:application/pdf},
 }
 
-@article{sutter_generalized_2021,
+@article{sutter:2021,
 	title = {Generalized {Multimodal} {ELBO}},
 	abstract = {This work proposes a new, generalized ELBO formulation for multimodal data that overcomes limitations of existing self-supervised generative models approximating an ELBO and demonstrates the advantage of the proposed method compared to state-of-the-art models in selfsupervised, generative learning tasks. Multiple data types naturally co-occur when describing real-world phenomena and learning from them is a long-standing goal in machine learning research. However, existing self-supervised generative models approximating an ELBO are not able to fulfill all desired requirements of multimodal models: their posterior approximation functions lead to a trade-off between the semantic coherence and the ability to learn the joint data distribution. We propose a new, generalized ELBO formulation for multimodal data that overcomes these limitations. The new objective encompasses two previous methods as special cases and combines their benefits without compromises. In extensive experiments, we demonstrate the advantage of the proposed method compared to state-of-the-art models in selfsupervised, generative learning tasks.},
 	journal = {ICLR},
@@ -92,7 +92,7 @@
 	year = {2021},
 	file = {Full Text PDF:/Users/agathe/Zotero/storage/BW7EBFA7/Sutter et al. - 2021 - Generalized Multimodal ELBO.pdf:application/pdf},
 }
-@article{shi_variational_2019,
+@article{shi:2019,
 	title = {Variational {Mixture}-of-{Experts} {Autoencoders} for {Multi}-{Modal} {Deep} {Generative} {Models}},
 	url = {http://arxiv.org/abs/1911.03393},
 	abstract = {Learning generative models that span multiple data modalities, such as vision and language, is often motivated by the desire to learn more useful, generalisable representations that faithfully capture common underlying factors between the modalities. In this work, we characterise successful learning of such models as the fulfillment of four criteria: i) implicit latent decomposition into shared and private subspaces, ii) coherent joint generation over all modalities, iii) coherent cross-generation across individual modalities, and iv) improved model learning for individual modalities through multi-modal integration. Here, we propose a mixture-of-experts multimodal variational autoencoder (MMVAE) to learn generative models on different sets of modalities, including a challenging image-language dataset, and demonstrate its ability to satisfy all four criteria, both qualitatively and quantitatively.},
@@ -161,7 +161,7 @@ author = {Biewald, Lukas},
   year={2021}
 }
 
-@article{senellart2023improving,
+@article{senellart:2023,
   title={Improving Multimodal Joint Variational Autoencoders through Normalizing Flows and Correlation Analysis},
   author={Senellart, Agathe and Chadebec, Cl{\'e}ment and Allassonni{\`e}re, St{\'e}phanie},
   journal={arXiv preprint arXiv:2305.11832},
@@ -185,3 +185,47 @@ url = {https://doi.org/10.21105/joss.05093},
   url = {https://huggingface.co/docs/hub/index}
 }
 
+@article{suzuki_survey_2022,
+	title = {A survey of multimodal deep generative models},
+	volume = {36},
+	issn = {0169-1864, 1568-5535},
+	url = {http://arxiv.org/abs/2207.02127},
+	doi = {10.1080/01691864.2022.2035253},
+	abstract = {Multimodal learning is a framework for building models that make predictions based on diﬀerent types of modalities. Important challenges in multimodal learning are the inference of shared representations from arbitrary modalities and cross-modal generation via these representations; however, achieving this requires taking the heterogeneous nature of multimodal data into account. In recent years, deep generative models, i.e., generative models in which distributions are parameterized by deep neural networks, have attracted much attention, especially variational autoencoders, which are suitable for accomplishing the above challenges because they can consider heterogeneity and infer good representations of data. Therefore, various multimodal generative models based on variational autoencoders, called multimodal deep generative models, have been proposed in recent years. In this paper, we provide a categorized survey of studies on multimodal deep generative models.},
+	language = {en},
+	number = {5-6},
+	urldate = {2022-12-09},
+	journal = {Advanced Robotics},
+	author = {Suzuki, Masahiro and Matsuo, Yutaka},
+	month = mar,
+	year = {2022},
+	note = {arXiv:2207.02127 [cs, stat]},
+	keywords = {Computer Science - Machine Learning, Statistics - Machine Learning},
+	pages = {261--278},
+	file = {Suzuki and Matsuo - 2022 - A survey of multimodal deep generative models.pdf:/Users/agathe/Zotero/storage/BNFUZAWU/Suzuki and Matsuo - 2022 - A survey of multimodal deep generative models.pdf:application/pdf},
+}
+
+@article{tian:2019,
+	title = {Latent {Translation}: {Crossing} {Modalities} by {Bridging} {Generative} {Models}},
+	shorttitle = {Latent {Translation}},
+	abstract = {This work takes inspiration from neural machine translation, and cast the challenging problem of cross-modal domain transfer as unsupervised translation between the latent spaces of pretrained deep generative models as a post-hoc interface between two existing models to solve a new task. End-to-end optimization has achieved state-of-the-art performance on many specific problems, but there is no straight-forward way to combine pretrained models for new problems. Here, we explore improving modularity by learning a post-hoc interface between two existing models to solve a new task. Specifically, we take inspiration from neural machine translation, and cast the challenging problem of cross-modal domain transfer as unsupervised translation between the latent spaces of pretrained deep generative models. By abstracting away the data representation, we demonstrate that it is possible to transfer across different modalities (e.g., image-to-audio) and even different types of generative models (e.g., VAE-to-GAN). We compare to state-of-the-art techniques and find that a straight-forward variational autoencoder is able to best bridge the two generative models through learning a shared latent space. We can further impose supervised alignment of attributes in both domains with a classifier in the shared latent space. Through qualitative and quantitative evaluations, we demonstrate that locality and semantic alignment are preserved through the transfer process, as indicated by high transfer accuracies and smooth interpolations within a class. Finally, we show this modular structure speeds up training of new interface models by several orders of magnitude by decoupling it from expensive retraining of base generative models.},
+	journal = {ArXiv},
+	author = {Tian, Yingtao and Engel, Jesse},
+	year = {2019},
+	file = {Full Text PDF:/Users/agathe/Zotero/storage/LAW4V8IV/Tian et Engel - 2019 - Latent Translation Crossing Modalities by Bridgin.pdf:application/pdf},
+}
+
+@misc{dvcca,
+	title = {Deep {Variational} {Canonical} {Correlation} {Analysis}},
+	url = {http://arxiv.org/abs/1610.03454},
+	doi = {10.48550/arXiv.1610.03454},
+	abstract = {We present deep variational canonical correlation analysis (VCCA), a deep multi-view learning model that extends the latent variable model interpretation of linear CCA to nonlinear observation models parameterized by deep neural networks. We derive variational lower bounds of the data likelihood by parameterizing the posterior probability of the latent variables from the view that is available at test time. We also propose a variant of VCCA called VCCA-private that can, in addition to the "common variables" underlying both views, extract the "private variables" within each view, and disentangles the shared and private information for multi-view data without hard supervision. Experimental results on real-world datasets show that our methods are competitive across domains.},
+	urldate = {2023-01-18},
+	publisher = {arXiv},
+	author = {Wang, Weiran and Yan, Xinchen and Lee, Honglak and Livescu, Karen},
+	month = feb,
+	year = {2017},
+	note = {arXiv:1610.03454 [cs]},
+	keywords = {Computer Science - Machine Learning},
+	file = {arXiv Fulltext PDF:/Users/agathe/Zotero/storage/JRM6NYA2/Wang et al. - 2017 - Deep Variational Canonical Correlation Analysis.pdf:application/pdf;arXiv.org Snapshot:/Users/agathe/Zotero/storage/FZVF7VGH/1610.html:text/html},
+}
