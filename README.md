@@ -30,7 +30,7 @@ and the most used metrics : Coherences, Likelihoods and FID.
 It integrates model monitoring with [Wandb](https://wandb.ai) and a quick way to save/load model from [HuggingFaceHub](https://huggingface.co/)🤗.
 
 
-# Implemented models
+# Implemented models 
 
 |Model|Paper|Official Implementation|
 |:---:|:----:|:---------------------:|
@@ -47,15 +47,19 @@ DMVAE| [Private-Shared Disentangled Multimodal VAE for Learning of Latent Repres
 |CMVAE| [Deep Generative Clustering with Multimodal Diffusion Variational Autoencoders](https://openreview.net/forum?id=k5THrhXDV3)| [link](https://github.com/epalu/CMVAE)|
 |MHVAE| [Unified Brain MR-Ultrasound Synthesis using  Multi-Modal Hierarchical Representations](https://arxiv.org/abs/2309.08747) |[link](https://github.com/ReubenDo/MHVAE)|
 
+
 # Table of Contents
 
 - [Models available](#implemented-models)
 - [Installation](#installation)
-- [Quickstart](#quickstart)
-- [Installation](#installation)
-- [Usage](#usage)
+- [Training a Model](#quickstart)
+- [Tutorials](#getting-your-hands-in-the-code)
+- [Training on an incomplete dataset](#training-on-incomplete-datasets)
+- [Monitor training with Wandb](#monitoring-your-training-with-wandb) / [Model sharing with HuggingFaceHub](#sharing-your-models-with-the-huggingface-hub-)
+- [Using samplers for improved joint generation](#using-samplers)
+- [Documentation and Case-Studies](#documentation-examples-and-case-studies)
+- [Reproducibility](#reproducibility-statement) 
 - [Contribute](#contribute)
-- [Reproducibility statement](#reproducibility-statement)
 - [Citation](#citation)
 
 
@@ -120,7 +124,8 @@ Our library allows you to use any of the models with custom configuration, encod
 
 # Training on incomplete datasets
 
-Many models implemented in the library can be trained on incomplete datasets. To do so, you will need to define a dataset that inherits from MultiVae's IncompleteDataset class. 
+Many models implemented in the library can be trained on incomplete datasets.
+To do so, you will need to define a dataset that inherits from MultiVae's [IncompleteDataset class](https://multivae.readthedocs.io/en/latest/datasets/incomplete.html#multivae.data.datasets.IncompleteDataset). 
 
 For a step-by-step tutorial on training on incomplete datasets, see this [notebook](examples/tutorial_notebooks/learning_with_partial_data.ipynb).
 
@@ -158,6 +163,77 @@ To ease the development of new methods on incomplete datasets, we propose two ea
 
 See the documentation for more information on those datasets. 
 
+# Monitoring your training with Wandb 
+
+MultiVae allows easy monitoring with [Wandb](https://wandb.ai/). 
+To use this feature, you will need to install and configure Wandb with the few steps below:
+
+### Install Wandb
+1. Install wandb ```$ pip install wandb==0.18.7```
+2. Create a wandb account [online](https://wandb.ai/)
+3. Once you are logged in, go to this page https://wandb.ai/authorize and copy the API key. 
+4. In your terminal, enter ```$ wandb login``` and then copy your API key when prompted.
+
+Once this is done, you can use wandb features in MultiVae.
+### Monitor training with Wandb
+
+Below is a minimal example on how to use the WandbCallback to monitor your training. We suppose that you have already defined a model and a train_dataset in that example. 
+
+By default, the train loss, eval loss and metrics specific to the model will be logged to wandb. If you set the `steps_predict` in the trainer config, images of generation will also 
+be logged to wandb. 
+
+``` python 
+
+from multivae.trainers import BaseTrainer, BaseTrainerConfig
+from multivae.trainers.base.callbacks import WandbCallback
+
+# Define training configuration
+your_training_config = BaseTrainerConfig(
+    learning_rate=1e-2, 
+    steps_predict=5 # generate samples every 5 steps. Images will be logged to wandb.
+    )
+
+# Define the wandb callback
+wandb_cb = WandbCallback()
+wandb_cb.setup(
+    training_config=your_training_config, # will be saved to wandb
+    model_config=your_model_config, #will be saved to wandb
+    project_name='your_project_name'
+)
+
+# Pass the wandb callback to trainer to enable metrics and images logging to wandb
+trainer = BaseTrainer(
+    model=your_model, 
+    train_dataset=train_data,
+    callbacks=[wandb_cb] 
+)
+
+```
+
+### Logging evaluation metrics to Wandb
+
+The metrics modules of MultiVae can also be used with Wandb, to save all your results in one place. 
+
+If you have a trained model, and you want to compute some metrics for that model, you can pass a `wandb_path` to the metric module to tell him where to log the metrics. If there is already a wandb run that was created during training, you can reuse the same wandb_path to log metrics to that same place. See this [documentation](https://multivae.readthedocs.io/en/latest/metrics/info_wandb.html) to learn how to find your wandb_path or re-create one. 
+
+Below is a minimal example with the LikelihoodEvaluator Module but it works the same for all Evaluator classes. 
+
+``` python 
+
+from multivae.metrics import LikelihoodsEvaluator, LikelihoodsEvaluatorConfig
+
+ll_config = LikelihoodsEvaluatorConfig(
+    batch_size=128,
+    num_samples=3, 
+    wandb_path= 'your_wandb_path' # Pass your wandb_path here
+)
+
+ll_module = LikelihoodsEvaluator(model=your_model,
+                                 output='./metrics',# where to log the metrics
+                                 test_dataset=test_set,
+                                 eval_config=ll_config)
+```
+
 # Sharing your models with the HuggingFace Hub 🤗
 MultiVae allows you to share your models on the [HuggingFace Hub](https://huggingface.co/models). To do so you need:
 - a valid HuggingFace account
@@ -185,11 +261,42 @@ Equivalently, you can download or reload any MultiVae model directly from the Hu
 >>> my_downloaded_vae = AutoModel.load_from_hf_hub(hf_hub_path="path_to_hf_repo")
 ```
 
+# Using samplers
+
+All MultiVae's models have a natural way of generating fully synthetic multimodal samples by sampling latent codes from the prior distribution of the model. But it is well known for unimodal VAEs (and the same applies to multimodal VAEs) that generation can be improved by using a more fitting distribution to sample encodings the latent space. 
+
+Once you have a trained MultiVae model, you can fit a multivae.sampler to approximate the *a posteriori* distribution of encodings in the latent space and then use it to produce new samples. 
+
+We provide a minimal example on how to fit a GMM sampler but we invite you to check out our 
+tutorial notebook [here](./examples/tutorial_notebooks/using_samplers.ipynb) for a more in-depth explanation on how to use samplers and how to combine them with MultiVae metrics modules. 
+
+``` python 
+from multivae.samplers import GaussianMixtureSampler, GaussianMixtureSamplerConfig
+
+config = GaussianMixtureSamplerConfig(
+    n_components=10 # number of components to use in the mixture
+)
+
+gmm_sampler = GaussianMixtureSampler(model=your_model,
+                                 sampler_config=config)
+
+gmm_sampler.fit(train_data) # train_data is the Multimodal Dataset used for training the model.
+```
+
+Note that samplers can be used with all MultiVae models and that they can really improve joint generation. For a taste of what it can do, see the joint generations below for a MVTCAE model trained on PolyMNIST:
+![alt text](./static/taste_samplers.png)
+
 # Documentation, Examples and Case Studies
 
-See https://multivae.readthedocs.io
+We provide a full online documentation at https://multivae.readthedocs.io. 
 
 Several examples are provided in `examples/` - as well as tutorial notebooks on how to use the main features of MultiVae(training, metrics, samplers) in the folder `examples/tutorial_notebooks`.
+
+For advanced examples on how to use MultiVae we provide small case-studies with code and results:
+
+- [How does the MMVAE+ perform on a incomplete dataset ?](./examples/case_studies/mmvaePlus_on_partial_data/results.md)
+
+
 
 
 # Contribute
