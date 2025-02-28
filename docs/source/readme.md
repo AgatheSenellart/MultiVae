@@ -9,8 +9,8 @@
 	<a href='https://multivae.readthedocs.io/en/latest/?badge=latest'>
     	<img src='https://readthedocs.org/projects/multivae/badge/?version=latest' alt='Documentation Status' />
 	</a>
-    <!-- <a href='https://opensource.org/licenses/Apache-2.0'>
-	    <img src='https://img.shields.io/github/license/clementchadebec/benchmark_VAE?color=blue' /> -->
+    <a href='https://opensource.org/licenses/Apache-2.0'>
+	    <img src='https://img.shields.io/github/license/clementchadebec/benchmark_VAE?color=blue' />
 	</a>
     <a>
 	    <img src='https://img.shields.io/badge/code%20style-black-black' />
@@ -44,7 +44,7 @@ DMVAE| [Private-Shared Disentangled Multimodal VAE for Learning of Latent Repres
 |MHVAE| [Unified Brain MR-Ultrasound Synthesis using  Multi-Modal Hierarchical Representations](https://arxiv.org/abs/2309.08747) |[link](https://github.com/ReubenDo/MHVAE)|
 
 
-# Table of Contents
+<!-- # Table of Contents
 
 - [Models available](#implemented-models)
 - [Installation](#installation)
@@ -57,7 +57,7 @@ DMVAE| [Private-Shared Disentangled Multimodal VAE for Learning of Latent Repres
 - [Documentation and Case-Studies](#documentation-examples-and-case-studies)
 - [Reproducibility](#reproducibility-statement) 
 - [Contribute](#contribute)
-- [Citation](#citation)
+- [Citation](#citation) -->
 
 
 # Installation
@@ -109,14 +109,14 @@ trainer.train()
 ```
 
 # Getting your hands on the code
-[(Back to top)](#table-of-contents)
+
 
 Our library allows you to use any of the models with custom configuration, encoders and decoders architectures and datasets easily. To learn how to use MultiVae's features we propose different tutorial notebooks:
 
-- [Getting started](examples/tutorial_notebooks/getting_started.ipynb) : Learn how to provide your own architectures and train a model.
-- [Computing Metrics](examples/tutorial_notebooks/computing_visualization_and_metrics.ipynb) : Learn how to evaluate your model using MultiVae's metrics modules.
-- [Learning with partial datasets](examples/tutorial_notebooks/learning_with_partial_data.ipynb) : Learn how to use the IncompleteDataset class and to train a model on an incomplete dataset.
-- [Using samplers](examples/tutorial_notebooks/using_samplers.ipynb): Learn how to train and use sampler to improve the joint generation of synthetic data.
+- [Getting started](https://github.com/AgatheSenellart/MultiVae/tree/main/examples/tutorial_notebooks/getting_started.ipynb) : Learn how to provide your own architectures and train a model.
+- [Computing Metrics](https://github.com/AgatheSenellart/MultiVae/tree/main/examples/tutorial_notebooks/computing_visualization_and_metrics.ipynb) : Learn how to evaluate your model using MultiVae's metrics modules.
+- [Learning with partial datasets](https://github.com/AgatheSenellart/MultiVae/tree/main/examples/tutorial_notebooks/learning_with_partial_data.ipynb) : Learn how to use the IncompleteDataset class and to train a model on an incomplete dataset.
+- [Using samplers](https://github.com/AgatheSenellart/MultiVae/tree/main/examples/tutorial_notebooks/using_samplers.ipynb): Learn how to train and use sampler to improve the joint generation of synthetic data.
 
 
 # Training on incomplete datasets
@@ -124,7 +124,7 @@ Our library allows you to use any of the models with custom configuration, encod
 Many models implemented in the library can be trained on incomplete datasets.
 To do so, you will need to define a dataset that inherits from MultiVae's [IncompleteDataset class](https://multivae.readthedocs.io/en/latest/datasets/incomplete.html#multivae.data.datasets.IncompleteDataset). 
 
-For a step-by-step tutorial on training on incomplete datasets, see this [notebook](examples/tutorial_notebooks/learning_with_partial_data.ipynb).
+For a step-by-step tutorial on training on incomplete datasets, see this [notebook](https://github.com/AgatheSenellart/MultiVae/tree/main/examples/tutorial_notebooks/learning_with_partial_data.ipynb).
 
 **How does MultiVae handles partial data ?**
 We handle partial data by sampling random batchs, artificially filling the missing modalities, and using the mask to compute the final loss. 
@@ -139,17 +139,17 @@ Below is the list of models that can be used on Incomplete datasets:
 
 |Model|Can be used on Incomplete Datasets|Details|
 |:---:|:----:|:--:|
-|CVAE|:x:  |
-|JMVAE|:x:|
-|MVAE| :white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mvae.html)|
-|MMVAE|:white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mmvae.html)
-|MoPoE| :white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mopoe.html)
-|MVTCAE |:white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mvtcae.html)
-DMVAE| :white_check_mark: | [see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/dmvae.html)
-|JNF| :x:|
-|MMVAE + |:white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mmvae_plus.html)
-|Nexus | :white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/nexus.html)
-|CMVAE| :white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/cmvae.html)
+|CVAE|❌   |
+|JMVAE|❌ |
+|MVAE| ✅|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mvae.html)|
+|MMVAE|✅|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mmvae.html)
+|MoPoE| ✅|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mopoe.html)
+|MVTCAE |✅|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mvtcae.html)
+DMVAE| ✅ | [see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/dmvae.html)
+|JNF| ❌ |
+|MMVAE + |✅|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mmvae_plus.html)
+|Nexus | ✅|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/nexus.html)
+|CMVAE| ✅|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/cmvae.html)
 |MHVAE| not yet|
 
 ### Toy datasets with missing values
@@ -161,7 +161,7 @@ To ease the development of new methods on incomplete datasets, we propose two ea
 See the documentation for more information on those datasets. 
 
 # Metrics
-We provide metrics modules that can be used on any MultiVae model for evaluation. See the documentation for minimal code examples and see this [notebook](./examples/tutorial_notebooks/computing_visualization_and_metrics.ipynb) for a hands-on tutorial.
+We provide metrics modules that can be used on any MultiVae model for evaluation. See the documentation for minimal code examples and see this [notebook](https://github.com/AgatheSenellart/MultiVae/tree/main/examples/tutorial_notebooks/computing_visualization_and_metrics.ipynb) for a hands-on tutorial.
 
 - [Likelihoods](https://multivae.readthedocs.io/en/latest/metrics/likelihoods.html#multivae.metrics.LikelihoodsEvaluator)
 - [Coherences](https://multivae.readthedocs.io/en/latest/metrics/coherences.html)
@@ -171,6 +171,7 @@ We provide metrics modules that can be used on any MultiVae model for evaluation
 - [Reconstruction metrics](https://multivae.readthedocs.io/en/latest/metrics/reconstruction.html)
 
 # Datasets
+
 At the time, we provide 7 ready-to-use multimodal datasets with an automatic download option. 
 Click [here](file:///home/asenella/dev/MultiVae/docs/build/datasets/multivae.datasets.html) to see the options. 
 
@@ -225,7 +226,7 @@ trainer = BaseTrainer(
 
 The metrics modules of MultiVae can also be used with Wandb, to save all your results in one place. 
 
-If you have a trained model, and you want to compute some metrics for that model, you can pass a `wandb_path` to the metric module to tell it where to log the metrics. If there is already a wandb run that was created during training, you can reuse the same wandb_path to log metrics to that same place. See this [documentation](https://multivae.readthedocs.io/en/latest/metrics/info_wandb.html) to learn how to find your wandb_path or re-create one. 
+If you have a trained model, and you want to compute some metrics for that model, you can pass a `wandb_path` to the metric module to tell him where to log the metrics. If there is already a wandb run that was created during training, you can reuse the same wandb_path to log metrics to that same place. See this [documentation](https://multivae.readthedocs.io/en/latest/metrics/info_wandb.html) to learn how to find your wandb_path or re-create one. 
 
 Below is a minimal example with the LikelihoodEvaluator Module but it works the same for all metrics. 
 
@@ -279,7 +280,7 @@ All MultiVae's models have a natural way of generating fully synthetic multimoda
 Once you have a trained MultiVae model, you can fit a multivae.sampler to approximate the *a posteriori* distribution of encodings in the latent space and then use it to produce new samples. 
 
 We provide a minimal example on how to fit a GMM sampler but we invite you to check out our 
-tutorial notebook [here](./examples/tutorial_notebooks/using_samplers.ipynb) for a more in-depth explanation on how to use samplers and how to combine them with MultiVae metrics modules. 
+tutorial notebook [here](https://github.com/AgatheSenellart/MultiVae/tree/main/examples/tutorial_notebooks/using_samplers.ipynb) for a more in-depth explanation on how to use samplers and how to combine them with MultiVae metrics modules. 
 
 ``` python 
 from multivae.samplers import GaussianMixtureSampler, GaussianMixtureSamplerConfig
@@ -299,26 +300,26 @@ Note that samplers can be used with all MultiVae models and that they can really
 
 # Documentation, Examples and Case Studies
 
-We provide a full online documentation at https://multivae.readthedocs.io. 
+<!-- We provide a full online documentation at https://multivae.readthedocs.io.  -->
 
-Several examples are provided in `examples/` - as well as tutorial notebooks on how to use the main features of MultiVae(training, metrics, samplers) in the folder `examples/tutorial_notebooks`.
+Several examples are provided in the github repository [here](https://github.com/AgatheSenellart/MultiVae/tree/main/examples) - as well as tutorial notebooks on how to use the main features of MultiVae(training, metrics, samplers) [`tutorial_notebooks`](https://github.com/AgatheSenellart/MultiVae/tree/main/examples/tutorial_notebooks).
 
 For more advanced examples on how to use MultiVae we provide small case-studies with code and results:
 
-- [How does the MMVAE+ perform on a incomplete dataset ?](./examples/case_studies/mmvaePlus_on_partial_data/results.md)
+- [How does the MMVAE+ perform on a incomplete dataset ?](https://github.com/AgatheSenellart/MultiVae/tree/main/examples/case_studies/mmvaePlus_on_partial_data/results.md)
 
-- [Benchmarking models on the incomplete PolyMNIST dataset.](./examples/case_studies/benchmarking_on_partial_polymnist/results.md) We compare several models on a incomplete version of PolyMNIST and analyse the results thoroughly with coherences, FIDs, clustering metrics and different samplers. Check out the results to get an intuition about the different models !
+- [Benchmarking models on the incomplete PolyMNIST dataset.](https://github.com/AgatheSenellart/MultiVae/tree/main/examples/case_studies/benchmarking_on_partial_polymnist/results.md) We compare several models on a incomplete version of PolyMNIST and analyse the results thoroughly with coherences, FIDs, clustering metrics and different samplers. Check out the results to get an intuition about the different models !
 
 
 
 # Contribute
-[(Back to top)](#table-of-contents)
+
 
 If you want to contribute to the project, for instance by adding models to the library: clone the repository and install it in editable mode by using the -e option
 ```shell
 pip install -e .
 ```
-We propose contributing guidelines [here](CONTRIBUTING.md) with tutorials on how to implement a new model, sampler, metrics or dataset.
+We propose contributing guidelines [here](https://github.com/AgatheSenellart/MultiVae/blob/main/CONTRIBUTING.md) with tutorials on how to implement a new model, sampler, metrics or dataset.
 
 # Reproducibility statement
 
@@ -340,8 +341,6 @@ Here we provide details on the results we managed to reproduce.
 Note that we also tried to reproduce results for the Nexus model, but didn't obtain similar results as the ones presented in the original paper. If you spot a difference between our implementation and theirs, please reach out to us. 
 
 # Citation
-
-[(Back to top)](#table-of-contents)
 
 If you have used our package in your research, please consider citing our paper presenting the package : 
 

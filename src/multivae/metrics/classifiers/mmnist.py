@@ -44,7 +44,7 @@ class ClassifierPolyMNIST(nn.Module):
         return h
 
 
-def load_mmnist_classifiers(data_path = '.data/clf', device="cuda"):
+def load_mmnist_classifiers(data_path = '.data/clf', device="cpu"):
 
     """
     Utility function to load all trained PolyMNISTClassifier for the five modalities.

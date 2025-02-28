@@ -4,6 +4,11 @@
 #
 import os
 import sys
+# At top on conf.py (with other import statements)
+import recommonmark
+from recommonmark.transform import AutoStructify
+
+
 
 # Configuration file for the Sphinx documentation builder.
 #
@@ -40,6 +45,10 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.autosectionlabel",
     "sphinx_rtd_theme",
+    # 'myst_parser',
+    # 'sphinx_mdinclude',
+    "recommonmark",
+    "sphinx_markdown_tables",
 ]
 
 
@@ -75,3 +84,5 @@ autodoc_typehints = "none"
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
+
+

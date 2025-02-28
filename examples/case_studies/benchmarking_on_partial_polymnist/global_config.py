@@ -20,7 +20,7 @@ from torch.utils.data import random_split
 # Set your paths
 DATA_PATH = '/home/asenella/data'
 SAVE_PATH = '/home/asenella/experiments/benchmark_on_partial_mmnist'
-FID_PATH = DATA_PATH + 'pt_inception-2015-12-05-6726825d.pth'
+FID_PATH = DATA_PATH + '/pt_inception-2015-12-05-6726825d.pth'
 CLASSIFIER_PATH = DATA_PATH + '/clf'
 
 WANDB_PROJECT = "benchmark_on_partial_polymnist"
@@ -109,8 +109,11 @@ def argument_parser():
     return parser
 
 
-def get_datasets(args):
+def get_datasets(args=None):
     """Return the dataset with the right missing_ratio and the keep_incomplete corresponding to args"""
+    if args is None:
+        args = argparse.Namespace(missing_ratio=0,keep_incomplete=True)
+
     train_data = MMNISTDataset(
     data_path=DATA_PATH,
     split="train",
@@ -130,3 +133,13 @@ def get_datasets(args):
 def model_save_path(model, args):
     """path manufacturer for saving models in a structured way"""
     return f"{SAVE_PATH}/{model.model_name}/keep_incomplete_{args.keep_incomplete}/missing_ratio_{args.missing_ratio}/seed_{args.seed}"
+
+def get_hf_path_from_arguments(args):
+    """Return the hf path corresponding to the arguments in args."""
+    missing_ratio = "".join(str(args.missing_ratio).split("."))
+    incomplete = "i" if args.keep_incomplete else "c"
+    if missing_ratio == 0 :
+        incomplete = "c"
+    if args.model_name in ['JMVAE', 'JNF']:
+        incomplete = "c"
+    return f"asenella/mmnist_{args.model_name}config2_seed_{args.seed}_ratio_{missing_ratio}_{incomplete}"

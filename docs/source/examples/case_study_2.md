@@ -1,13 +1,15 @@
-# Case Study: Benchmark model on the Incomplete PolyMNIST dataset
+# Case Study 2
+
+## Benchmark models on the Incomplete PolyMNIST dataset
 
 In this case study, we demonstrate how MultiVae can be used to perform a benchmark of models on a complex scenario. 
 
 We evaluate 6 models on the Incomplete PolyMNIST dataset with three levels of missing data: 
-- $\eta$ = 1 : no missing data
-- $\eta$ = 0.8 : 20% of missing data
-- $\eta$ = 0.5 : 50% of missing data
+- η = 1 : no missing data
+- η = 0.8 : 20% of missing data
+- η = 0.5 : 50% of missing data
 
-To reproduce this case study, all you need is to have MultiVae installed and the scripts in this [folder](../benchmarking_on_partial_polymnist/). 
+To reproduce this case study, all you need is to have MultiVae installed and the scripts in this [folder](https://github.com/AgatheSenellart/MultiVae/tree/main/examples/case_studies/benchmarking_on_partial_polymnist/). 
 
 Note on the structure of the code: in `global_config.py`, we define all the shared parameters, architectures and datasets that we use as well as the evaluation pipeline using MultiVae metrics modules. 
 
@@ -91,6 +93,6 @@ With this script, we can explore how the joint coherence/FID varies when we chan
 
 ![samplers](./samplers.png)
 
-# Questions ?
+## Questions ?
 We hope you enjoyed this example and don't hesitate to reach out to us if you have any issue/question !
 contact : agathe.senellart@inria.fr

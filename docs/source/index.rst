@@ -10,10 +10,17 @@ Welcome to MultiVae's documentation!
 This library gathers some of the most common multi-modal Variational AutoEncoder (VAE)
 implementations in PyTorch. 
 
+.. toctree::
+   :maxdepth:1
+   :caption: Basics
+   :titlesonly:
+   
+   readme
+
 
 .. toctree::
    :maxdepth: 1
-   :caption: multivae
+   :caption: Documentation
    :titlesonly:
 
    models/multivae.models
@@ -21,6 +28,7 @@ implementations in PyTorch.
    metrics/multivae.metrics
    trainers/multivae.trainers
    samplers/multivae.samplers
+   examples/multivae.examples
 
 Setup
 ~~~~~~~~~~~~~
@@ -54,5 +62,5 @@ If you clone the MultiVae's repository you will access to  the following:
 
 - ``docs``: The folder in which the documentation can be retrieved.
 - ``tests``: multivae's unit-testing using pytest.
-- ``examples``: A list of ``ipynb`` tutorials and script describing the main functionalities of multivae.
+- ``examples``: A list of ``ipynb`` tutorials and scripts describing the main functionalities of multivae.
 - ``src/multivae``: The main library which can be installed with ``pip``.

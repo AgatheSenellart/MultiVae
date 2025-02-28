@@ -8,8 +8,9 @@ Metrics
     multivae.metrics
 
 .. toctree::
-    :hidden:
     :maxdepth: 1
+    :caption: Available metrics
+    :titlesonly:
 
     coherences
     fids
@@ -19,15 +20,4 @@ Metrics
     reconstruction
     info_wandb
     
-Available Metrics
--------------------------------------------
 
-.. autosummary::
-    ~multivae.metrics.CoherenceEvaluator
-    ~multivae.metrics.FIDEvaluator
-    ~multivae.metrics.LikelihoodsEvaluator
-    ~multivae.metrics.Clustering
-    ~multivae.metrics.Visualization
-    ~multivae.metrics.Reconstruction
-
-    :nosignatures:
