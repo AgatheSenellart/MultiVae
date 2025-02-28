@@ -4,10 +4,6 @@
 #
 import os
 import sys
-# At top on conf.py (with other import statements)
-import recommonmark
-from recommonmark.transform import AutoStructify
-
 
 
 # Configuration file for the Sphinx documentation builder.
