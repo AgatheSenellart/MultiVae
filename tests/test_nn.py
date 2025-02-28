@@ -11,9 +11,9 @@ from multivae.models.nn.cub import (
     ModelOutput,
 )
 from multivae.models.nn.mmnist import (
-    Decoder_ResNet_AE_MMNIST,
+    EncoderResnetMMNIST,
     DecoderConvMMNIST,
-    Encoder_ResNet_VAE_MMNIST,
+    DecoderResnetMMNIST,
     EncoderConvMMNIST,
 )
 from multivae.models.nn.svhn import Decoder_VAE_SVHN, Encoder_VAE_SVHN
@@ -111,8 +111,8 @@ class TestMMNISTNets:
 
         assert dec_out.reconstruction.shape == mmnist_like_data.shape
 
-        encoder = Encoder_ResNet_VAE_MMNIST(ae_mmnist_config).to(device)
-        decoder = Decoder_ResNet_AE_MMNIST(ae_mmnist_config).to(device)
+        encoder = EncoderResnetMMNIST(private_latent_dim=0,shared_latent_dim=ae_mmnist_config.latent_dim).to(device)
+        decoder = DecoderResnetMMNIST(latent_dim=ae_mmnist_config.latent_dim).to(device)
 
         enc_out = encoder(mmnist_like_data)
 

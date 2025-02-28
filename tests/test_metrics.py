@@ -145,7 +145,7 @@ class TestCoherences:
             subset_dict,
             mean_acc,
             mean_acc_per_class,
-        ) = evaluator.all_accuracies_from_subset(["mnist"])
+        ) = evaluator.coherence_from_subset(["mnist"])
 
         assert 0 <= mean_acc <= 1
         assert type(mean_acc_per_class) == np.ndarray
