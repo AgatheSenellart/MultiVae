@@ -2,13 +2,6 @@ name: Codecov coverage computation
 on: 
   push:
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Remove unused Docker images
-        run: docker system prune -af
-      - name: Clean up temporary files
-        run: sudo rm -rf /tmp/*
   run:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -18,6 +11,10 @@ jobs:
       OS: ${{ matrix.os }}
       PYTHON: '3.8'
     steps:
+    - name: Remove unused Docker images
+      run: docker system prune -af
+    - name: Clean up temporary files
+      run: sudo rm -rf /tmp/*
     - uses: actions/checkout@main
     - name: Setup Python
       uses: actions/setup-python@main
