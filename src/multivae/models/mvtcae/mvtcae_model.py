@@ -143,25 +143,6 @@ class MVTCAE(BaseMultiVAE):
         mu_poe, logvar_poe = self.poe(mus, logvars)
         return [mu_poe, logvar_poe]
 
-    def _filter_inputs_with_masks(
-        self, inputs: IncompleteDataset, subset: Union[list, tuple]
-    ):
-        """
-        Returns a filtered dataset containing only the samples that are available
-        in all the modalities contained in subset.
-        The dataset that is returned only contains the modalities in subset.
-        """
-
-        filter = torch.tensor(
-            True,
-        ).to(inputs.masks[subset[0]].device)
-        for mod in subset:
-            filter = torch.logical_and(filter, inputs.masks[mod])
-
-        filtered_inputs = MultimodalBaseDataset(
-            data={k: inputs.data[k][filter] for k in subset},
-        )
-        return filtered_inputs, filter
 
     def inference(self, inputs: MultimodalBaseDataset, **kwargs):
         """
