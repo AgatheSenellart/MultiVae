@@ -137,7 +137,7 @@ Finally, the MultiVae library also integrates an evaluation
 pipeline for all models with common metrics such as likelihoods, coherences, FID scores [18] and
 visualizations. 
 
-![Code structure](code_structure.png){width=200%}
+![Code structure](code_structure.png){width=90%}
 
 
 
