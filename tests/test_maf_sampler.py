@@ -119,7 +119,6 @@ class Test_MAFSampler:
     def test_fit(self, maf_sampler_config, model, dataset, tmp_path):
         sampler = MAFSampler(model, maf_sampler_config)
 
-        
         dir_path = tmp_path / "dummy_folder"
         dir_path.mkdir()
         # Test that trying to sample before fit raises an error:

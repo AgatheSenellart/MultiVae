@@ -212,7 +212,7 @@ class TestTraining:
 
     @pytest.fixture
     def training_config(self, tmp_path_factory):
-        
+
         dir_path = tmp_path_factory.mktemp("dummy_folder")
 
         yield BaseTrainerConfig(

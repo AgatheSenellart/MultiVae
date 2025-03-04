@@ -41,7 +41,7 @@ trainer = MultistageTrainer(
 # Train the model
 trainer.train()
 
-# Get best model and perform evaluation 
+# Get best model and perform evaluation
 model = trainer._best_model
 
 eval_model(model, trainer.training_dir, test_data, wandb_cb.run.path)

@@ -7,7 +7,6 @@ from pythae.models.base.base_utils import ModelOutput
 from scipy import linalg
 from torchvision.transforms import Resize
 
-
 from multivae.data.utils import set_inputs_to_device
 from multivae.models.base import BaseMultiVAE
 from multivae.samplers import BaseSampler
@@ -86,8 +85,8 @@ class FIDEvaluator(Evaluator):
         output=None,
         eval_config=FIDEvaluatorConfig(),
         sampler: Optional[BaseSampler] = None,
-        custom_encoders:Optional[Dict[str, torch.nn.Module]]=None,
-        transform:Optional[torch.nn.Module]=None,
+        custom_encoders: Optional[Dict[str, torch.nn.Module]] = None,
+        transform: Optional[torch.nn.Module] = None,
     ) -> None:
         super().__init__(model, test_dataset, output, eval_config, sampler)
 
@@ -258,15 +257,14 @@ class FIDEvaluator(Evaluator):
         Frechet distance for gen_mod.
         """
 
-        def generate_function(n_samples, inputs): 
-            return self.model.encode(
-            inputs=inputs, cond_mod=subset)
-        
+        def generate_function(n_samples, inputs):
+            return self.model.encode(inputs=inputs, cond_mod=subset)
+
         fd = self.get_frechet_distance(gen_mod, generate_function)
         self.logger.info(
-            f"The FD for modality %s computed from subset=%s is %s",gen_mod,subset,fd
+            f"The FD for modality %s computed from subset=%s is %s", gen_mod, subset, fd
         )
-        subset_name = '_'.join(subset)
+        subset_name = "_".join(subset)
         self.metrics[f"Conditional FD from {subset_name} to {gen_mod}"] = fd
         return fd
 

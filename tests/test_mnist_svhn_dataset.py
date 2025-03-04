@@ -13,7 +13,7 @@ from multivae.data.datasets.mnist_svhn import MnistSvhn
 class Test:
     @pytest.fixture
     def input_dataset_test(self, tmp_path):
-        data_path = tmp_path /'data'
+        data_path = tmp_path / "data"
         split = "test"
 
         return dict(data_path=data_path, split=split)

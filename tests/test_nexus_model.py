@@ -1,6 +1,6 @@
 import os
-from copy import deepcopy
 import shutil
+from copy import deepcopy
 
 import numpy as np
 import pytest
@@ -604,10 +604,10 @@ class Test_training:
             return Nexus(**custom_config_archi)
         else:
             return Nexus(model_config=custom_config_archi["model_config"])
-        
+
     @pytest.fixture
     def training_config(self, tmp_path_factory):
-        
+
         dir_path = tmp_path_factory.mktemp("dummy_folder")
 
         yield BaseTrainerConfig(

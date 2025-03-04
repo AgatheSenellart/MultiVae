@@ -33,7 +33,7 @@ def dataset():
 
 @pytest.fixture
 def output_logger_file(tmp_path):
-    d = tmp_path / 'logger_metrics'
+    d = tmp_path / "logger_metrics"
     d.mkdir()
     return d
 

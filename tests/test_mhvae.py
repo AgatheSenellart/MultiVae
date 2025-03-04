@@ -1,7 +1,7 @@
 import os
+import shutil
 import tempfile
 from copy import deepcopy
-import shutil
 
 import pytest
 import torch
@@ -458,7 +458,6 @@ class Test_MHVAE:
         assert output.m0.shape == samples.data["m0"].shape
 
         return
-
 
     def test_predict(self, model, dataset):
 

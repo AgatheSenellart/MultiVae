@@ -1,4 +1,3 @@
-
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
@@ -35,8 +34,7 @@ class Clustering(Evaluator):
         test_dataset: MultimodalBaseDataset,
         train_dataset: MultimodalBaseDataset,
         output: str = None,
-        eval_config=ClusteringConfig()
-        
+        eval_config=ClusteringConfig(),
     ) -> None:
         super().__init__(model, test_dataset, output, eval_config)
 

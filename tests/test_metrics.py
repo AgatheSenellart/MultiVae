@@ -56,7 +56,7 @@ def dataset2():
 
 @pytest.fixture
 def output_logger_file(tmp_path):
-    d = tmp_path/ "logger_metrics"
+    d = tmp_path / "logger_metrics"
     d.mkdir()
     return str(d)
 
@@ -337,18 +337,22 @@ from multivae.models.base import ModelOutput
 class Test_Visualization:
     def test_saving_samples(self, jmvae_model, dataset, dataset2, tmp_path):
         # Test that the generation are sampled and saved in the right place
-        module = Visualization(model=jmvae_model, output=str(tmp_path), test_dataset=dataset)
+        module = Visualization(
+            model=jmvae_model, output=str(tmp_path), test_dataset=dataset
+        )
 
         output = module.eval()
         assert isinstance(output, ModelOutput)
         assert hasattr(output, "unconditional_generation")
-        assert os.path.exists(tmp_path/ "unconditional.png")
+        assert os.path.exists(tmp_path / "unconditional.png")
 
         output_cond = module.conditional_samples_subset(["mnist"])
         assert isinstance(output_cond, Image.Image)
 
         # Test that the transform_for_plotting function is used
-        module2 = Visualization(model=jmvae_model, output=str(tmp_path), test_dataset=dataset2)
+        module2 = Visualization(
+            model=jmvae_model, output=str(tmp_path), test_dataset=dataset2
+        )
 
         output2 = module2.eval()
         assert (
@@ -360,7 +364,9 @@ class Test_Visualization:
         from torch.utils.data import random_split
 
         data1, data2 = random_split(dataset2, [0.5, 0.5])
-        module3 = Visualization(model=jmvae_model, output=str(tmp_path), test_dataset=data1)
+        module3 = Visualization(
+            model=jmvae_model, output=str(tmp_path), test_dataset=data1
+        )
 
         output3 = module3.eval()
         assert isinstance(output3, ModelOutput)
@@ -371,7 +377,6 @@ from multivae.metrics import Clustering, ClusteringConfig
 
 class Test_clustering:
     def test(self, jmvae_model, dataset, tmp_path):
-       
 
         module = Clustering(
             model=jmvae_model,

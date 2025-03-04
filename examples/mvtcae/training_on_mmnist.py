@@ -5,10 +5,7 @@ from torch.utils.data import random_split
 
 from multivae.data.datasets.mmnist import MMNISTDataset
 from multivae.models import MVTCAE, MVTCAEConfig
-from multivae.models.nn.mmnist import (
-    DecoderResnetMMNIST,
-    EncoderResnetMMNIST,
-)
+from multivae.models.nn.mmnist import DecoderResnetMMNIST, EncoderResnetMMNIST
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 from multivae.trainers.base.callbacks import WandbCallback
 
@@ -35,16 +32,14 @@ model_config = MVTCAEConfig(
 
 # Set up encoders and decoders
 encoders = {
-    k: EncoderResnetMMNIST(private_latent_dim=0, shared_latent_dim=model_config.latent_dim
+    k: EncoderResnetMMNIST(
+        private_latent_dim=0, shared_latent_dim=model_config.latent_dim
     )
     for k in modalities
 }
 
 decoders = {
-    k: DecoderResnetMMNIST(
-        latent_dim=model_config.latent_dim
-    )
-    for k in modalities
+    k: DecoderResnetMMNIST(latent_dim=model_config.latent_dim) for k in modalities
 }
 
 # Define model

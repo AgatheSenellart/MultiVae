@@ -9,17 +9,17 @@ class MultimodalBaseDataset(Dataset):
     """
     This class is the Base class for datasets. A ``__getitem__`` is redefined and outputs a
     python dictionnary with the keys corresponding to `data` and `labels`. You can use this
-    class to define new datasets. 
+    class to define new datasets.
 
-    If you want, you can also create your own dataset class, inheriting from 
-    MultimodalBaseDataset and overwriting the __getitem__ function. (Just make sure the output 
-    format stays the same). 
-    For instance: 
+    If you want, you can also create your own dataset class, inheriting from
+    MultimodalBaseDataset and overwriting the __getitem__ function. (Just make sure the output
+    format stays the same).
+    For instance:
 
     .. code-block:: python
 
         >>> from multivae.data.datasets import MultimodalBaseDataset, DatasetOutput
-        >>> 
+        >>>
         >>> class MyDataset(MultimodalBaseDataset):
         ...     def __init__(self, my_arguments):
         ...         # your code
@@ -72,14 +72,14 @@ class MultimodalBaseDataset(Dataset):
 
     def transform_for_plotting(self, tensor, modality):
         """
-        A function that to override in subclasses if you want to transform 
-        a tensor data for plotting. This function is called by the BaseTrainer 
-        to visualize generations during training and by the Visualization Module. 
-        
+        A function that to override in subclasses if you want to transform
+        a tensor data for plotting. This function is called by the BaseTrainer
+        to visualize generations during training and by the Visualization Module.
 
-        For instance: if you have a 3D dimensional images, you might want 
+
+        For instance: if you have a 3D dimensional images, you might want
         to visualize generations during training but only 2D images can be
-        logged to wandb. 
+        logged to wandb.
         In that case, you can override this function in your dataset class. For instance with;
 
         .. code-block:: python
@@ -87,7 +87,7 @@ class MultimodalBaseDataset(Dataset):
             >>> def transform_for_plotting(self, tensor, modality):
             ...     if modality == '3Dimage':
             ...         return tensor[:, 0, :, :] # select a slice
-            ...     return tensor 
+            ...     return tensor
 
 
 
@@ -105,16 +105,16 @@ class IncompleteDataset(MultimodalBaseDataset):
     A ``__getitem__`` is redefined and outputs a python dictionnary with the keys
     corresponding to `data` and `labels`. This Class should be used for any new incomplete datasets.
 
-    If you want, you can also create your own dataset class, inheriting from 
-    IncompleteDataset and overwriting the __getitem__ function. (Just make sure the output 
-    format stays the same). 
+    If you want, you can also create your own dataset class, inheriting from
+    IncompleteDataset and overwriting the __getitem__ function. (Just make sure the output
+    format stays the same).
 
     For instance:
 
     .. code-block:: python
 
         >>> from multivae.data.datasets import IncompleteDataset, DatasetOutput
-        >>> 
+        >>>
         >>> class MyDataset(IncompleteDataset):
         ...     def __init__(self, my_arguments):
         ...         # your code
@@ -126,14 +126,14 @@ class IncompleteDataset(MultimodalBaseDataset):
         ...             'modality_name_2' : ...
         ...             }
         ...         # Warning : if 'modality_name_2' is unavailable for this index
-        ...         # Artificially fill the value data['modality_name_2'] with 
+        ...         # Artificially fill the value data['modality_name_2'] with
         ...         # a zero-tensor (or any value you want, it doesn't matter) OF THE RIGHT SHAPE.
         ...         # Otherwise MultiVae models won't work.
         ...
-        ...         your_masks = { 'modality_name_1' : True, 
+        ...         your_masks = { 'modality_name_1' : True,
         ...                         'modality_name_2' : False # set to False is the modality is unavailable.
         ...             }
-        ...          
+        ...
         ...
         ...         return DatasetOutput(
         ...                     data = your_data # must be a Dict[str, Tensor],
@@ -141,8 +141,8 @@ class IncompleteDataset(MultimodalBaseDataset):
         ...                     labels = your_labels # optional : don't add this field if you don't have labels
         ...     )
 
-        
-    .. warning:: 
+
+    .. warning::
 
         If you intend to define your own IncompleteDataset subclass, please take a close look at the code
         snippet before doing so.

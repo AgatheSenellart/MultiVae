@@ -125,7 +125,6 @@ class Test_IAFSampler:
 
         sampler = IAFSampler(model, iaf_sampler_config)
 
-        
         dir_path = tmp_path / "dummy_folder"
         dir_path.mkdir()
 

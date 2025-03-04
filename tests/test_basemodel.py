@@ -303,7 +303,9 @@ class TestIntegrateAutoConfig:
         training_config = BaseTrainerConfig()
         training_config.save_json(tmp_path, "training_config")
         with pytest.raises(NameError):
-            _ = AutoConfig.from_json_file(os.path.join(tmp_path, "training_config.json"))
+            _ = AutoConfig.from_json_file(
+                os.path.join(tmp_path, "training_config.json")
+            )
 
 
 class TestIntegrateAutoModel:

@@ -299,7 +299,7 @@ class TestTraining:
 
     @pytest.fixture
     def training_config(self, tmp_path_factory):
-        
+
         dir_path = tmp_path_factory.mktemp("dummy_folder")
 
         yield BaseTrainerConfig(
@@ -312,7 +312,7 @@ class TestTraining:
             no_cuda=True,
         )
         shutil.rmtree(dir_path)
-    
+
     @pytest.fixture
     def trainer(self, model, training_config, dataset):
         trainer = BaseTrainer(
@@ -341,8 +341,6 @@ class TestTraining:
             ]
         )
         assert trainer.optimizer == start_optimizer
-
-
 
     def test_eval_step(self, trainer):
         start_model_state_dict = deepcopy(trainer.model.state_dict())
@@ -373,7 +371,6 @@ class TestTraining:
                 for key in start_model_state_dict.keys()
             ]
         )
-
 
     def test_checkpoint_saving(self, model, trainer, training_config):
         dir_path = training_config.output_dir
@@ -448,7 +445,6 @@ class TestTraining:
                 )
             ]
         )
-         
 
     def test_checkpoint_saving_during_training(self, model, trainer, training_config):
         #
@@ -492,7 +488,6 @@ class TestTraining:
                 for key in model.state_dict().keys()
             ]
         )
-        
 
     def test_final_model_saving(self, model, trainer, training_config):
         dir_path = training_config.output_dir
@@ -533,7 +528,6 @@ class TestTraining:
 
         assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
         assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
-        
 
     def test_compute_nll(self, model, dataset):
         nll = model.compute_joint_nll(dataset, K=10, batch_size_K=2)

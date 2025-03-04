@@ -1,11 +1,11 @@
 """
-This module allow to easily compute FID metrics on a MultiVae model. 
+This module allow to easily compute FID metrics on a MultiVae model.
 
-We are grateful to https://github.com/mseitzer/pytorch-fid, on which our code is heavily based. 
+We are grateful to https://github.com/mseitzer/pytorch-fid, on which our code is heavily based.
 
 A simple example:
 
-.. code-block:: python 
+.. code-block:: python
 
     from multivae.metrics import FIDEvaluator, FIDEvaluatorConfig
 
@@ -26,7 +26,7 @@ A simple example:
     fid_module.eval()
 
     # Compute FID for conditional generation
-    fid_module.compute_all_conditional_fids(gen_mod = 'modality_to_generate') 
+    fid_module.compute_all_conditional_fids(gen_mod = 'modality_to_generate')
 
 
 """

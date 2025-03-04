@@ -1,30 +1,34 @@
 """
-This is the main file for training the MMVAE +  model on PolyMNIST with missing data. 
+This is the main file for training the MMVAE +  model on PolyMNIST with missing data.
 
 """
 
 import argparse
-import torch
 
+import torch
 from torch.utils.data import random_split
+
 from multivae.data.datasets.mmnist import MMNISTDataset
+from multivae.metrics import (
+    CoherenceEvaluator,
+    CoherenceEvaluatorConfig,
+    Visualization,
+    VisualizationConfig,
+)
+from multivae.metrics.classifiers.mmnist import load_mmnist_classifiers
+from multivae.models import MMVAEPlus, MMVAEPlusConfig
+from multivae.models.nn.mmnist import DecoderResnetMMNIST, EncoderResnetMMNIST
 from multivae.trainers import BaseTrainerConfig
 from multivae.trainers.base.base_trainer import BaseTrainer
 from multivae.trainers.base.callbacks import WandbCallback
-from multivae.models import MMVAEPlus, MMVAEPlusConfig
-from multivae.metrics import CoherenceEvaluator, CoherenceEvaluatorConfig, Visualization, VisualizationConfig
-from multivae.metrics.classifiers.mmnist import load_mmnist_classifiers
-
-from multivae.models.nn.mmnist import EncoderResnetMMNIST, DecoderResnetMMNIST
-
 
 DATA_PATH = "/home/asenella/data"
 SAVE_PATH = "/home/asenella/experiments/mmvaePlus_on_partial"
-    
+
 # Parser to define missing ratio and seed
 parser = argparse.ArgumentParser()
 parser.add_argument("--missing_ratio", type=float, default=0)
-parser.add_argument("--keep_incomplete", action='store_true')
+parser.add_argument("--keep_incomplete", action="store_true")
 parser.add_argument("--seed", type=int, default=0)
 args = parser.parse_args()
 
@@ -35,7 +39,7 @@ train_data = MMNISTDataset(
     split="train",
     missing_ratio=args.missing_ratio,
     keep_incomplete=args.keep_incomplete,
-    download=True
+    download=True,
 )
 
 test_data = MMNISTDataset(data_path=DATA_PATH, split="test", download=True)
@@ -45,7 +49,7 @@ train_data, eval_data = random_split(
 )
 
 # Define model
-modalities = ['m0', 'm1', 'm2', 'm3', 'm4']
+modalities = ["m0", "m1", "m2", "m3", "m4"]
 model_config = MMVAEPlusConfig(
     latent_dim=32,
     n_modalities=5,
@@ -53,7 +57,7 @@ model_config = MMVAEPlusConfig(
     decoders_dist={k: "laplace" for k in modalities},
     decoder_dist_params={k: {"scale": 0.75} for k in modalities},
     K=1,
-    prior_and_posterior_dist='laplace_with_softmax',
+    prior_and_posterior_dist="laplace_with_softmax",
     learn_shared_prior=False,
     learn_modality_prior=True,
     beta=2.5,
@@ -62,13 +66,17 @@ model_config = MMVAEPlusConfig(
 )
 
 
-
 encoders = {
-    m: EncoderResnetMMNIST(private_latent_dim=model_config.modalities_specific_dim, shared_latent_dim=model_config.latent_dim)
+    m: EncoderResnetMMNIST(
+        private_latent_dim=model_config.modalities_specific_dim,
+        shared_latent_dim=model_config.latent_dim,
+    )
     for m in modalities
 }
 decoders = {
-    m: DecoderResnetMMNIST(model_config.latent_dim + model_config.modalities_specific_dim)
+    m: DecoderResnetMMNIST(
+        model_config.latent_dim + model_config.modalities_specific_dim
+    )
     for m in modalities
 }
 
@@ -90,7 +98,7 @@ trainer_config = BaseTrainerConfig(
 
 ##### Set up callbacks: Uncomment the following lines to use wandb
 wandb_cb = WandbCallback()
-wandb_cb.setup(trainer_config, model_config, project_name='mmvae_plus_on_partial')
+wandb_cb.setup(trainer_config, model_config, project_name="mmvae_plus_on_partial")
 wandb_cb.run.config.update(args.__dict__)
 
 ### Train the model
@@ -112,7 +120,7 @@ config = CoherenceEvaluatorConfig(batch_size=128, wandb_path=wandb_cb.run.path)
 mod = CoherenceEvaluator(
     model=model,
     test_dataset=test_data,
-    classifiers=load_mmnist_classifiers(DATA_PATH+ '/clf',device=model.device),
+    classifiers=load_mmnist_classifiers(DATA_PATH + "/clf", device=model.device),
     output=trainer.training_dir,
     eval_config=config,
 )
@@ -120,15 +128,17 @@ mod.eval()
 mod.finish()
 
 # Visualize some generated samples
-vis_config = VisualizationConfig(wandb_path = wandb_cb.run.path,n_samples=8, n_data_cond=10)
-vis_module = Visualization(model, test_data,eval_config=vis_config,output = trainer.training_dir)
+vis_config = VisualizationConfig(
+    wandb_path=wandb_cb.run.path, n_samples=8, n_data_cond=10
+)
+vis_module = Visualization(
+    model, test_data, eval_config=vis_config, output=trainer.training_dir
+)
 vis_module.eval()
 
 # And some conditional samples too
-for i in range(2,5):
-    subset = modalities[1:1+i]
+for i in range(2, 5):
+    subset = modalities[1 : 1 + i]
     vis_module.conditional_samples_subset(subset)
 
 vis_module.finish()
-    
-    

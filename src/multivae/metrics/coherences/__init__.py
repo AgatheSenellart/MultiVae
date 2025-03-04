@@ -1,4 +1,4 @@
-"""To compute generative coherence of your model. 
+"""To compute generative coherence of your model.
 
 A simple usage example:
 

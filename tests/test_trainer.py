@@ -22,10 +22,10 @@ from multivae.trainers.base.callbacks import rename_logs
 PATH = os.path.dirname(os.path.abspath(__file__))
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def training_config(tmp_path_factory):
-    d = tmp_path_factory.mktemp('dummy_folder')
-    
+    d = tmp_path_factory.mktemp("dummy_folder")
+
     return BaseTrainerConfig(output_dir=str(d))
 
 
@@ -109,12 +109,13 @@ class Test_Set_Training_config:
                 scheduler_cls="ExponentialLR",
                 scheduler_params={"gamma": 0.321},
             ),
-        ], scope='class'
+        ],
+        scope="class",
     )
     def training_configs(self, request, tmp_path_factory):
         if request.param is not None:
-            d = tmp_path_factory.mktemp('dummy_folder')
-           
+            d = tmp_path_factory.mktemp("dummy_folder")
+
             request.param.output_dir = str(d)
             return request.param
         else:
@@ -148,10 +149,13 @@ class Test_Build_Optimizer:
                 optimizer_cls="Adam", optimizer_params={"wrong_config": 1}
             )
 
-    @pytest.fixture(params=[BaseTrainerConfig(), BaseTrainerConfig(learning_rate=1e-5)],scope='class')
+    @pytest.fixture(
+        params=[BaseTrainerConfig(), BaseTrainerConfig(learning_rate=1e-5)],
+        scope="class",
+    )
     def training_configs_learning_rate(self, tmp_path_factory, request):
-        d = tmp_path_factory.mktemp('dummy_folder')
-        request.param.output_dir = str(d) 
+        d = tmp_path_factory.mktemp("dummy_folder")
+        request.param.output_dir = str(d)
         return request.param
 
     @pytest.fixture(
@@ -233,10 +237,13 @@ class Test_Build_Scheduler:
                 scheduler_cls="ReduceLROnPlateau", scheduler_params={"wrong_config": 1}
             )
 
-    @pytest.fixture(params=[BaseTrainerConfig(), BaseTrainerConfig(learning_rate=1e-5)],scope='module')
+    @pytest.fixture(
+        params=[BaseTrainerConfig(), BaseTrainerConfig(learning_rate=1e-5)],
+        scope="module",
+    )
     def training_configs_learning_rate(self, tmp_path_factory, request):
-        d = tmp_path_factory.mktemp('dummy_folder')
-        request.param.output_dir =str(d)
+        d = tmp_path_factory.mktemp("dummy_folder")
+        request.param.output_dir = str(d)
         return request.param
 
     @pytest.fixture(
@@ -344,11 +351,12 @@ class Test_Device_Checks:
     @pytest.fixture(
         params=[
             BaseTrainerConfig(num_epochs=3, no_cuda=True),
-        ], scope='module'
+        ],
+        scope="module",
     )
     def training_configs(self, tmp_path_factory, request):
-        d = tmp_path_factory.mktemp('dummy_folder')
-        
+        d = tmp_path_factory.mktemp("dummy_folder")
+
         request.param.output_dir = str(d)
         return request.param
 
@@ -430,8 +438,8 @@ class TestSaving:
         ]
     )
     def training_configs(self, tmp_path, request):
-        d = tmp_path / 'test_output_dir'
-        
+        d = tmp_path / "test_output_dir"
+
         request.param.output_dir = str(d)
         return request.param
 
