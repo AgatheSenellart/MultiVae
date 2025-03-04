@@ -56,8 +56,9 @@ def dataset2():
 
 @pytest.fixture
 def output_logger_file(tmp_path):
-    os.mkdir(tmp_path/ "logger_metrics")
-    return tmp_path/'logger_metrics'
+    d = tmp_path/ "logger_metrics"
+    d.mkdir()
+    return str(d)
 
 
 class TestBaseMetric:

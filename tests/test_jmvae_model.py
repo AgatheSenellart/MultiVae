@@ -219,7 +219,7 @@ class TestTraining:
             learning_rate=1e-4,
             optimizer_cls="AdamW",
             optimizer_params={"betas": (0.91, 0.995)},
-            output_dir=dir_path,
+            output_dir=str(dir_path),
             no_cuda=True,
         )
 
