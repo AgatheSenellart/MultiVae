@@ -1,13 +1,12 @@
 from itertools import combinations
+from typing import Dict, Optional
 
 import numpy as np
 import torch
 from pythae.models.base.base_utils import ModelOutput
 from scipy import linalg
-from torch.utils.data import DataLoader, TensorDataset
 from torchvision.transforms import Resize
 
-from multivae.data import MultimodalBaseDataset
 from multivae.data.utils import set_inputs_to_device
 from multivae.models.base import BaseMultiVAE
 from multivae.samplers import BaseSampler
@@ -22,7 +21,7 @@ except:
     tqdm = lambda x: x
 
 
-class adapt_shape_for_fid(torch.nn.Module):
+class AdaptShapeFID(torch.nn.Module):
     """
     Transform an input so that each sample has three dimensions with three channels.
     (batch_size, 2,h,w). The input is assumed to be batched.
@@ -36,6 +35,7 @@ class adapt_shape_for_fid(torch.nn.Module):
             self.resize = None
 
     def forward(self, x):
+        """Adapt the shape of x"""
         if len(x.shape) == 1:  # (n_data,)
             x = x.unsqueeze(1)
         if len(x.shape) == 2:  # (n_data, n)
@@ -66,15 +66,14 @@ class FIDEvaluator(Evaluator):
 
     Args:
         model (BaseMultiVAE) : The model to evaluate.
-        classifiers (dict) : A dictionary containing the pretrained classifiers to use for the coherence evaluation.
         test_dataset (MultimodalBaseDataset) : The dataset to use for computing the metrics.
         output (str) : The folder path to save metrics. The metrics will be saved in a metrics.txt file.
-        eval_config (EvaluatorConfig) : The configuration class to specify parameters for the evaluation.
+        eval_config (FIDEvaluatorConfig) : The configuration class to specify parameters for the evaluation.
         sampler (Basesampler) : The sampler used to generate from the latent space.
             If None is provided, the latent codes are generated from prior. Default to None.
-        custom_encoder (torch.nn.Module) : If you desire, you can provide our own embedding architecture to use
+        custom_encoders (Dict[str,torch.nn.Module]) : If you desire, you can provide our own embedding architectures to use
             instead of the InceptionV3 model to compute Fréchet Distances.
-            By default, the pretrained InceptionV3 network is used. Default to None.
+            By default, the pretrained InceptionV3 network is used for all modalities. Default to None.
         transform (torchvision.Transforms) : To apply to the images before computing the embeddings. If None is provided
             a default resizing to (3,299,299) is applied. Default to None.
     """
@@ -85,9 +84,9 @@ class FIDEvaluator(Evaluator):
         test_dataset,
         output=None,
         eval_config=FIDEvaluatorConfig(),
-        sampler: BaseSampler = None,
-        custom_encoders=None,
-        transform=None,
+        sampler: Optional[BaseSampler] = None,
+        custom_encoders: Optional[Dict[str, torch.nn.Module]] = None,
+        transform: Optional[torch.nn.Module] = None,
     ) -> None:
         super().__init__(model, test_dataset, output, eval_config, sampler)
 
@@ -108,7 +107,7 @@ class FIDEvaluator(Evaluator):
             self.inception_transform = transform
         elif transform is None and custom_encoders is None:
             # reshape for FID
-            self.inception_transform = adapt_shape_for_fid()
+            self.inception_transform = AdaptShapeFID()
         else:
             self.inception_transform = None
 
@@ -258,15 +257,15 @@ class FIDEvaluator(Evaluator):
         Frechet distance for gen_mod.
         """
 
-        generate_function = lambda n_samples, inputs: self.model.encode(
-            inputs=inputs, cond_mod=subset
-        )
+        def generate_function(n_samples, inputs):
+            return self.model.encode(inputs=inputs, cond_mod=subset)
+
         fd = self.get_frechet_distance(gen_mod, generate_function)
         self.logger.info(
-            f"The FD for modality {gen_mod} computed from subset={subset} is {fd}"
+            f"The FD for modality %s computed from subset=%s is %s", gen_mod, subset, fd
         )
-
-        self.metrics[f"Conditional FD from {subset} to {gen_mod}"] = fd
+        subset_name = "_".join(subset)
+        self.metrics[f"Conditional FD from {subset_name} to {gen_mod}"] = fd
         return fd
 
     def compute_all_conditional_fids(self, gen_mod):

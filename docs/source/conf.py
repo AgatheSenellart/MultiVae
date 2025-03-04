@@ -40,6 +40,10 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.autosectionlabel",
     "sphinx_rtd_theme",
+    # 'myst_parser',
+    # 'sphinx_mdinclude',
+    "recommonmark",
+    "sphinx_markdown_tables",
 ]
 
 

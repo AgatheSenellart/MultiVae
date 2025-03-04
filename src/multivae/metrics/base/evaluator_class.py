@@ -71,7 +71,7 @@ class Evaluator:
 
         # the second handler is a file handler
         if output is not None:
-            self.file_handler = logging.FileHandler(output + "/metrics.log")
+            self.file_handler = logging.FileHandler(str(output) + "/metrics.log")
             logger.addHandler(self.file_handler)
 
         self.logger = logger

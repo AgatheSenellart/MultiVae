@@ -266,42 +266,46 @@ class Test_BaseMultiVAE:
         output = model.generate_from_prior(11)
         assert output.z.shape == (11, input_model1["model_config"].latent_dim)
 
-    def test_dummy_model_saving(self, input_model1, tmpdir):
+    def test_dummy_model_saving(self, input_model1, tmp_path):
+
+        path = tmp_path / "model_save"
         model = BaseMultiVAE(**input_model1)
 
-        assert not os.path.exists(os.path.join(tmpdir, "model_save"))
-        model.save(os.path.join(tmpdir, "model_save"))
-        assert os.path.exists(os.path.join(tmpdir, "model_save"))
+        assert not os.path.exists(path)
+        model.save(path)
+        assert os.path.exists(path)
 
         with pytest.raises(FileNotFoundError):
-            model._load_model_config_from_folder(tmpdir)
+            model._load_model_config_from_folder(tmp_path)
 
         with pytest.raises(FileNotFoundError):
-            model._load_model_weights_from_folder(tmpdir)
+            model._load_model_weights_from_folder(tmp_path)
 
-        torch.save({"wrong_key": torch.ones(2)}, os.path.join(tmpdir, "model.pt"))
+        torch.save({"wrong_key": torch.ones(2)}, os.path.join(tmp_path, "model.pt"))
         with pytest.raises(KeyError):
-            model._load_model_weights_from_folder(tmpdir)
+            model._load_model_weights_from_folder(tmp_path)
 
         with pytest.raises(FileNotFoundError):
-            model._load_custom_archi_from_folder(tmpdir, "encoders")
+            model._load_custom_archi_from_folder(tmp_path, "encoders")
 
 
 class TestIntegrateAutoConfig:
-    def test_autoconfig(self, tmpdir):
+    def test_autoconfig(self, tmp_path):
         model_config = BaseMultiVAEConfig(n_modalities=14, latent_dim=3)
-        model_config.save_json(tmpdir, "model_config")
+        model_config.save_json(tmp_path, "model_config")
         reloaded_config = AutoConfig.from_json_file(
-            os.path.join(tmpdir, "model_config.json")
+            os.path.join(tmp_path, "model_config.json")
         )
 
         assert model_config == reloaded_config
 
-    def test_raises_not_handled(self, tmpdir):
+    def test_raises_not_handled(self, tmp_path):
         training_config = BaseTrainerConfig()
-        training_config.save_json(tmpdir, "training_config")
+        training_config.save_json(tmp_path, "training_config")
         with pytest.raises(NameError):
-            _ = AutoConfig.from_json_file(os.path.join(tmpdir, "training_config.json"))
+            _ = AutoConfig.from_json_file(
+                os.path.join(tmp_path, "training_config.json")
+            )
 
 
 class TestIntegrateAutoModel:

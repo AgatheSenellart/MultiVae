@@ -32,9 +32,10 @@ def dataset():
 
 
 @pytest.fixture
-def output_logger_file(tmpdir):
-    os.mkdir(os.path.join(tmpdir, "logger_metrics"))
-    return os.path.join(tmpdir, "logger_metrics")
+def output_logger_file(tmp_path):
+    d = tmp_path / "logger_metrics"
+    d.mkdir()
+    return d
 
 
 class TestReconstruction:

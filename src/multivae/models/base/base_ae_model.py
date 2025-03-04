@@ -221,34 +221,35 @@ class BaseMultiVAE(BaseModel):
             ModelOutput : containing a tensor per modality name.
         """
         self.eval()
-        if modalities == "all":
-            modalities = list(self.decoders.keys())
-        elif type(modalities) == str:
-            modalities = [modalities]
+        with torch.no_grad():
+            if modalities == "all":
+                modalities = list(self.decoders.keys())
+            elif type(modalities) == str:
+                modalities = [modalities]
 
-        try:
-            if embedding.one_latent_space:
-                z = embedding.z
-                outputs = ModelOutput()
-                for m in modalities:
-                    outputs[m] = self.decoders[m](z).reconstruction
-                return outputs
-            else:
-                z_content = embedding.z
-                outputs = ModelOutput()
-                for m in modalities:
-                    z = torch.cat([z_content, embedding.modalities_z[m]], dim=-1)
-                    outputs[m] = self.decoders[m](z).reconstruction
-                return outputs
-        except:
-            raise ValueError(
-                "There was an error during decode. "
-                " Check that the format for the embedding is correct:"
-                "it must be a ModelOuput instance and "
-                "embedding.z must be a Tensor of shape (batch_size, *latent_shape)"
-                "If you used the encode function with N>1 to generate the embedding,"
-                " you need to pass flatten=True to have the right format for decoding."
-            )
+            try:
+                if embedding.one_latent_space:
+                    z = embedding.z
+                    outputs = ModelOutput()
+                    for m in modalities:
+                        outputs[m] = self.decoders[m](z).reconstruction
+                    return outputs
+                else:
+                    z_content = embedding.z
+                    outputs = ModelOutput()
+                    for m in modalities:
+                        z = torch.cat([z_content, embedding.modalities_z[m]], dim=-1)
+                        outputs[m] = self.decoders[m](z).reconstruction
+                    return outputs
+            except:
+                raise ValueError(
+                    "There was an error during decode. "
+                    " Check that the format for the embedding is correct:"
+                    "it must be a ModelOuput instance and "
+                    "embedding.z must be a Tensor of shape (batch_size, *latent_shape)"
+                    "If you used the encode function with N>1 to generate the embedding,"
+                    " you need to pass flatten=True to have the right format for decoding."
+                )
 
     def predict(
         self,

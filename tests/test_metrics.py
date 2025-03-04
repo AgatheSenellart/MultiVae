@@ -55,9 +55,10 @@ def dataset2():
 
 
 @pytest.fixture
-def output_logger_file(tmpdir):
-    os.mkdir(os.path.join(tmpdir, "logger_metrics"))
-    return os.path.join(tmpdir, "logger_metrics")
+def output_logger_file(tmp_path):
+    d = tmp_path / "logger_metrics"
+    d.mkdir()
+    return str(d)
 
 
 class TestBaseMetric:
@@ -145,7 +146,7 @@ class TestCoherences:
             subset_dict,
             mean_acc,
             mean_acc_per_class,
-        ) = evaluator.all_accuracies_from_subset(["mnist"])
+        ) = evaluator.coherence_from_subset(["mnist"])
 
         assert 0 <= mean_acc <= 1
         assert type(mean_acc_per_class) == np.ndarray
@@ -334,22 +335,24 @@ from multivae.models.base import ModelOutput
 
 
 class Test_Visualization:
-    def test_saving_samples(self, jmvae_model, dataset, dataset2):
+    def test_saving_samples(self, jmvae_model, dataset, dataset2, tmp_path):
         # Test that the generation are sampled and saved in the right place
-        tmpdir = tempfile.mkdtemp()
-        module = Visualization(model=jmvae_model, output=tmpdir, test_dataset=dataset)
+        module = Visualization(
+            model=jmvae_model, output=str(tmp_path), test_dataset=dataset
+        )
 
         output = module.eval()
         assert isinstance(output, ModelOutput)
         assert hasattr(output, "unconditional_generation")
-        assert os.path.exists(os.path.join(tmpdir, "unconditional.png"))
+        assert os.path.exists(tmp_path / "unconditional.png")
 
         output_cond = module.conditional_samples_subset(["mnist"])
         assert isinstance(output_cond, Image.Image)
 
         # Test that the transform_for_plotting function is used
-        tmpdir = tempfile.mkdtemp()
-        module2 = Visualization(model=jmvae_model, output=tmpdir, test_dataset=dataset2)
+        module2 = Visualization(
+            model=jmvae_model, output=str(tmp_path), test_dataset=dataset2
+        )
 
         output2 = module2.eval()
         assert (
@@ -361,7 +364,9 @@ class Test_Visualization:
         from torch.utils.data import random_split
 
         data1, data2 = random_split(dataset2, [0.5, 0.5])
-        module3 = Visualization(model=jmvae_model, output=tmpdir, test_dataset=data1)
+        module3 = Visualization(
+            model=jmvae_model, output=str(tmp_path), test_dataset=data1
+        )
 
         output3 = module3.eval()
         assert isinstance(output3, ModelOutput)
@@ -371,12 +376,11 @@ from multivae.metrics import Clustering, ClusteringConfig
 
 
 class Test_clustering:
-    def test(self, jmvae_model, dataset):
-        tmpdir = tempfile.mkdtemp()
+    def test(self, jmvae_model, dataset, tmp_path):
 
         module = Clustering(
             model=jmvae_model,
-            output=tmpdir,
+            output=str(tmp_path),
             test_dataset=dataset,
             train_dataset=dataset,
         )

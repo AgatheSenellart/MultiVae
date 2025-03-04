@@ -1,4 +1,5 @@
 import os
+import shutil
 import tempfile
 from copy import deepcopy
 
@@ -458,30 +459,6 @@ class Test_MHVAE:
 
         return
 
-    # def test_generate_from_prior(self, model, dataset):
-
-    #     samples = dataset[:10]
-
-    #     output = model.generate_from_prior(cond_mod_data=samples.data["label"])
-    #     assert isinstance(output, ModelOutput)
-    #     assert output.z.shape == (10, model.latent_dim)
-    #     assert hasattr(output, "cond_mod_data")
-    #     assert torch.all(output.cond_mod_data == samples.data["label"])
-
-    #     output = model.generate_from_prior(cond_mod_data=samples.data["label"], N=4)
-    #     assert isinstance(output, ModelOutput)
-    #     assert output.z.shape == (4, 10, model.latent_dim)
-    #     assert hasattr(output, "cond_mod_data")
-    #     assert output.cond_mod_data.shape == (4, *samples.data["label"].shape)
-
-    #     output = model.encode(samples, N=4, flatten=True)
-    #     assert isinstance(output, ModelOutput)
-    #     assert output.z.shape == (4 * 10, model.latent_dim)
-    #     assert hasattr(output, "cond_mod_data")
-    #     assert torch.all(output.cond_mod_data == torch.cat([samples.data["label"]] * 4))
-
-    #     return
-
     def test_predict(self, model, dataset):
 
         samples = dataset[:10]
@@ -517,7 +494,7 @@ class Test_MHVAE:
 
         tmp = tempfile.mkdtemp()
 
-        return BaseTrainerConfig(
+        yield BaseTrainerConfig(
             output_dir=tmp,
             per_device_eval_batch_size=request.param[0],
             per_device_train_batch_size=request.param[1],
@@ -526,6 +503,7 @@ class Test_MHVAE:
             learning_rate=1e-4,
             steps_saving=2,
         )
+        shutil.rmtree(tmp)
 
     @fixture
     def trainer(self, trainer_config, model, dataset):
