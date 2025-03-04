@@ -23,10 +23,11 @@ PATH = os.path.dirname(os.path.abspath(__file__))
 
 
 @pytest.fixture
-def training_config(tmpdir):
-    tmpdir.mkdir("dummy_folder")
-    dir_path = os.path.join(tmpdir, "dummy_folder")
-    return BaseTrainerConfig(output_dir=dir_path)
+def training_config(tmp_path):
+    d = tmp_path / 'dummy_folder'
+    d.mkdir()
+    
+    return BaseTrainerConfig(output_dir=str(d))
 
 
 @pytest.fixture(params=[0, 20])
@@ -111,11 +112,12 @@ class Test_Set_Training_config:
             ),
         ]
     )
-    def training_configs(self, request, tmpdir):
+    def training_configs(self, request, tmp_path):
         if request.param is not None:
-            tmpdir.mkdir("dummy_folder")
-            dir_path = os.path.join(tmpdir, "dummy_folder")
-            request.param.output_dir = dir_path
+            d = tmp_path / "dummy_folder"
+            d.mkdir()
+           
+            request.param.output_dir = str(d)
             return request.param
         else:
             return None
@@ -149,8 +151,10 @@ class Test_Build_Optimizer:
             )
 
     @pytest.fixture(params=[BaseTrainerConfig(), BaseTrainerConfig(learning_rate=1e-5)])
-    def training_configs_learning_rate(self, tmpdir, request):
-        request.param.output_dir = tmpdir.mkdir("dummy_folder")
+    def training_configs_learning_rate(self, tmp_path, request):
+        d = tmp_path / "dummy_folder"
+        d.mkdir()
+        request.param.output_dir = str(d) 
         return request.param
 
     @pytest.fixture(
@@ -233,8 +237,10 @@ class Test_Build_Scheduler:
             )
 
     @pytest.fixture(params=[BaseTrainerConfig(), BaseTrainerConfig(learning_rate=1e-5)])
-    def training_configs_learning_rate(self, tmpdir, request):
-        request.param.output_dir = tmpdir.mkdir("dummy_folder")
+    def training_configs_learning_rate(self, tmp_path, request):
+        d = tmp_path / "dummy_folder"
+        d.mkdir()
+        request.param.output_dir =str(d)
         return request.param
 
     @pytest.fixture(
@@ -344,10 +350,11 @@ class Test_Device_Checks:
             BaseTrainerConfig(num_epochs=3, no_cuda=True),
         ]
     )
-    def training_configs(self, tmpdir, request):
-        tmpdir.mkdir("dummy_folder")
-        dir_path = os.path.join(tmpdir, "dummy_folder")
-        request.param.output_dir = dir_path
+    def training_configs(self, tmp_path, request):
+        d = tmp_path / "dummy_folder"
+        d.mkdir()
+        
+        request.param.output_dir = str(d)
         return request.param
 
     def test_setup_device_with_no_cuda(
@@ -427,12 +434,14 @@ class TestSaving:
             BaseTrainerConfig(num_epochs=3, no_cuda=True),
         ]
     )
-    def training_configs(self, tmpdir, request):
-        dir_path = os.path.join(tmpdir, "test_output_dir")
-        request.param.output_dir = dir_path
+    def training_configs(self, tmp_path, request):
+        d = tmp_path / "test_output_dir"
+        d.mkdir()
+        
+        request.param.output_dir = str(d)
         return request.param
 
-    def test_create_dir(self, tmpdir, model_sample, train_dataset, training_configs):
+    def test_create_dir(self, tmp_path, model_sample, train_dataset, training_configs):
         trainer = BaseTrainer(
             model=model_sample,
             train_dataset=train_dataset,
@@ -440,7 +449,7 @@ class TestSaving:
             training_config=training_configs,
         )
 
-        assert os.path.exists(os.path.join(tmpdir, "test_output_dir"))
+        assert os.path.exists(os.path.join(tmp_path, "test_output_dir"))
 
 
 class TestLogging:
@@ -449,7 +458,7 @@ class TestLogging:
         return "dummy_log_output_dir"
 
     def test_create_dir(
-        self, tmpdir, model_sample, train_dataset, training_config, log_output_dir
+        self, tmp_path, model_sample, train_dataset, training_config, log_output_dir
     ):
         trainer = BaseTrainer(
             model=model_sample,
@@ -461,13 +470,13 @@ class TestLogging:
         # create dummy training signature
         trainer._training_signature = "dummy_signature"
 
-        assert not os.path.exists(os.path.join(tmpdir, "dummy_log_output_dir"))
-        file_logger = trainer._get_file_logger(os.path.join(tmpdir, log_output_dir))
+        assert not os.path.exists(os.path.join(tmp_path, "dummy_log_output_dir"))
+        file_logger = trainer._get_file_logger(os.path.join(tmp_path, log_output_dir))
 
-        assert os.path.exists(os.path.join(tmpdir, "dummy_log_output_dir"))
+        assert os.path.exists(os.path.join(tmp_path, "dummy_log_output_dir"))
         assert os.path.exists(
             os.path.join(
-                tmpdir, "dummy_log_output_dir", f"training_logs_dummy_signature.log"
+                tmp_path, "dummy_log_output_dir", f"training_logs_dummy_signature.log"
             )
         )
 

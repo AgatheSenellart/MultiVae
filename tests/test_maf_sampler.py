@@ -116,12 +116,12 @@ class Test_MAFSampler:
         else:
             return MAFSamplerConfig(n_made_blocks=1, n_hidden_in_made=1, hidden_size=16)
 
-    def test_fit(self, maf_sampler_config, model, dataset, tmpdir):
+    def test_fit(self, maf_sampler_config, model, dataset, tmp_path):
         sampler = MAFSampler(model, maf_sampler_config)
 
-        tmpdir.mkdir("dummy_folder")
-        dir_path = os.path.join(tmpdir, "dummy_folder")
-
+        
+        dir_path = tmp_path / "dummy_folder"
+        dir_path.mkdir()
         # Test that trying to sample before fit raises an error:
         with pytest.raises(ArithmeticError):
             sampler.sample(100)

@@ -266,18 +266,19 @@ class TestTraining:
         return model
 
     @pytest.fixture
-    def training_config(self, tmpdir):
-        tmpdir.mkdir("dummy_folder")
-        dir_path = os.path.join(tmpdir, "dummy_folder")
+    def training_config(self, tmp_path):
+        
+        dir_path = tmp_path /"dummy_folder"
+        dir_path.mkdir()
         return BaseTrainerConfig(
             num_epochs=3,
             steps_saving=2,
             learning_rate=1e-4,
             optimizer_cls="AdamW",
             optimizer_params={"betas": (0.91, 0.995)},
-            output_dir=dir_path,
+            output_dir=str(dir_path),
+            no_cuda=True,
         )
-
     @pytest.fixture
     def trainer(self, model, training_config, dataset):
         trainer = BaseTrainer(

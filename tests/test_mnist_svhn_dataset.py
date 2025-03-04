@@ -12,8 +12,8 @@ from multivae.data.datasets.mnist_svhn import MnistSvhn
 @pytest.mark.slow
 class Test:
     @pytest.fixture
-    def input_dataset_test(self, tmpdir):
-        data_path = os.path.join(tmpdir, "data")
+    def input_dataset_test(self, tmp_path):
+        data_path = tmp_path /'data'
         split = "test"
 
         return dict(data_path=data_path, split=split)
