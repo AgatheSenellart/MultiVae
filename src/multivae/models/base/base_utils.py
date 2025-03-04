@@ -113,10 +113,10 @@ def kl_divergence(mean: torch.Tensor, log_var: torch.Tensor, prior_mean: torch.T
             prior_log_var
             - log_var
             - 1
-            + torch.exp(log_var - prior_log_var)
-            + (mean - prior_mean) ** 2
+            + torch.exp(log_var-prior_log_var)
+            + ((mean - prior_mean) ** 2)/torch.exp(prior_log_var)
         )
-        / torch.exp(prior_log_var)
+        
     )
 
     return kl.sum(dim=-1)

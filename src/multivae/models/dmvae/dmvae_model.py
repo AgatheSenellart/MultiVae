@@ -13,6 +13,7 @@ from multivae.models.nn.default_architectures import (
 )
 
 from ..base import BaseMultiVAE
+from ..base.base_utils import kl_divergence
 from ..nn.base_architectures import BaseMultilatentEncoder
 from .dmvae_config import DMVAEConfig
 
@@ -195,20 +196,6 @@ class DMVAE(BaseMultiVAE):
 
         return ModelOutput(loss=loss.mean(), metrics=metrics)
 
-    def _kl_divergence(self, mean, log_var, prior_mean, prior_log_var):
-        kl = (
-            0.5
-            * (
-                prior_log_var
-                - log_var
-                - 1
-                + torch.exp(log_var - prior_log_var)
-                + (mean - prior_mean) ** 2
-            )
-            / torch.exp(prior_log_var)
-        )
-
-        return kl.sum(dim=-1)
 
     def _compute_elbo(self, q_mu, q_lv, private_params, inputs):
         sigma = torch.exp(0.5 * q_lv)
@@ -238,7 +225,7 @@ class DMVAE(BaseMultiVAE):
             recon_loss += recon_mod
 
         # Compute KL divergence for shared variable
-        shared_kl = self._kl_divergence(
+        shared_kl = kl_divergence(
             q_mu, q_lv, torch.zeros_like(q_mu), torch.zeros_like(q_lv)
         )
 
@@ -246,7 +233,7 @@ class DMVAE(BaseMultiVAE):
         # Add the modality specific kls
         for mod in self.encoders:
             mu, lv = private_params[mod]
-            kl_mod = self._kl_divergence(
+            kl_mod = kl_divergence(
                 mu, lv, torch.zeros_like(mu), torch.zeros_like(lv)
             )
 

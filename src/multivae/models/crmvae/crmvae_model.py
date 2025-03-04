@@ -74,6 +74,7 @@ class CRMVAE(BaseMultiVAE):
         for gen_mod, decoder in self.decoders.items():
 
             for m in ['joint', gen_mod]:
+            # for m in ['joint']:
                 z = z_samples[m]
                 
                 recon = decoder(z).reconstruction
