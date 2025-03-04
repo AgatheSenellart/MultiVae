@@ -25,7 +25,6 @@ class CRMVAE(BaseMultiVAE):
     ):
         super().__init__(model_config, encoders, decoders)
 
-        self.beta = model_config.beta
         self.model_name = "CRMVAE"
 
     def _logits_to_scale(self, logits):
@@ -40,73 +39,68 @@ class CRMVAE(BaseMultiVAE):
 
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
-        # Compute latents parameters for all posterior distributions
+
+        # Compute latents parameters for q(z|x_i) and q(z|X)
         latents = self._infer_all_latent_parameters(inputs)
         results = {}
         z_samples = {} # for reconstruction
         
-
-        # Sample from the joint posterior
+        # Sample from q(z|X)
         joint_mu, joint_logvar, shared_embeddings = self._rsample(latents['joint'])
         z_samples['joint'] = shared_embeddings
 
-        # Compute the KL of the joint posterior to the prior
+        # Compute the KL(q(z|X)|p(z)). p(z) is a normal distribution N(0,I)
         joint_kld = kl_divergence(joint_mu, joint_logvar,torch.zeros_like(joint_mu), torch.zeros_like(joint_logvar))
         results["joint_divergence"]  = joint_kld.mean()
         divergence = joint_kld
 
-        # Sample from each unimodal posterior and compute KL with joint
+        # Sample from each unimodal posterior q(z|x_i) and compute KL(q(z|X)|q(z|x_i))
         for m, latent_params in latents["modalities_no_mask"].items():
             mu, log_var, embeddings = self._rsample(latent_params)
             z_samples[m]=embeddings
 
-            assert not torch.isnan(z_samples[m]).any()
-            # Compute KL(q(z|X) | q(z|x_m))
+            # Compute KL(q(z|X) | q(z|x_i))
             results[f'kl_{m}'] = kl_divergence(joint_mu, joint_logvar, mu, log_var)
 
             # Remove unavailable samples
             if hasattr(inputs, "masks"):
-                results[f'kl_{m}'][(1 - inputs.masks[m].int()).bool()] = 0
+                results[f'kl_{m}'] = results[f'kl_{m}'] * inputs.masks[m].float()
 
             divergence += results[f'kl_{m}']
             results[f'kl_{m}'] = results[f'kl_{m}'].mean()
 
-        # Compute joint reconstruction and unimodal reconstructions
+        # Compute E_{q(z|X)} log p(x_i|z) + E_{q(z|x_i)}(log p(x_i|z))
         loss_rec = 0
-        for m_key, decoder in self.decoders.items():
+        for gen_mod, decoder in self.decoders.items():
 
-            for m in ['joint', m_key]:
+            for m in ['joint', gen_mod]:
                 z = z_samples[m]
                 
                 recon = decoder(z).reconstruction
                 # apply rescaling factors is any are available
                 m_rec = (
-                    -self.recon_log_probs[m_key](recon, inputs.data[m_key])
-                    * self.rescale_factors[m_key]
+                    -self.recon_log_probs[gen_mod](recon, inputs.data[gen_mod])
+                    * self.rescale_factors[gen_mod]
                 )
                 m_rec = m_rec.reshape(m_rec.size(0), -1).sum(-1)
 
                 # Cancel out unavailable samples in the reconstruction
                 if hasattr(inputs, "masks") :
-                    m_rec = inputs.masks[m_key].float() * m_rec
-                    if m!= 'joint':
-                        m_rec = inputs.masks[m].float() * m_rec
+                    m_rec = inputs.masks[gen_mod].float() * m_rec
 
                 loss_rec += m_rec
-                results[f'recon_{m_key}_from_{m}'] = m_rec.mean()
-
-
-        assert not torch.isnan(loss_rec).any()
+                #Save metric for monitoring
+                results[f'recon_{gen_mod}_from_{m}'] = m_rec.mean()
 
         # Average accross the posteriors : TODO (average over available posteriors only ?)
-        loss_rec = loss_rec / (self.n_modalities + 1)
+        loss_rec = loss_rec /(2*(self.n_modalities + 1))
         divergence = divergence / (self.n_modalities + 1)
 
         total_loss = loss_rec + self.model_config.beta * divergence
         
 
         return ModelOutput(
-            loss=total_loss.sum(), loss_sum=total_loss.sum(), metrics=results
+            loss=total_loss.mean(), loss_sum=total_loss.sum(), metrics=results
         )
 
     def _modality_encode(
@@ -167,6 +161,7 @@ class CRMVAE(BaseMultiVAE):
         mus = torch.Tensor().to(device)
         logvars = torch.Tensor().to(device)
 
+        #  Concatenate all the masked params for computing the PoE
         for masked_params in masked_mods.values():
             mus_mod = masked_params.embedding
             log_vars_mod = masked_params.log_covariance
@@ -178,7 +173,8 @@ class CRMVAE(BaseMultiVAE):
         if len(mus.shape) == 2:
             mus = mus.unsqueeze(1)
             logvars = logvars.unsqueeze(1)
-
+        
+        # Compute the PoE and save the result
         joint_mu, joint_logvar = self._poe(mus, logvars)
 
         latents["joint"] = ModelOutput(embedding = joint_mu, log_covariance=joint_logvar)
@@ -215,7 +211,7 @@ class CRMVAE(BaseMultiVAE):
         cond_inputs = MultimodalBaseDataset(
             data={k: inputs.data[k] for k in cond_mod},
         )
-
+        # Compute the product of experts of the modalities in cond_mod
         latents_subsets = self._infer_all_latent_parameters(cond_inputs)
         sample_shape = [N] if N > 1 else []
 

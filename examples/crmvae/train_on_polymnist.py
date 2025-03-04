@@ -41,7 +41,7 @@ trainer_config=BaseTrainerConfig(
     per_device_eval_batch_size=256,
     num_epochs=500,
     optimizer_cls='Adam',
-    learning_rate=0.0005, 
+    learning_rate=0.0005,
     steps_predict=5 # to visualize generations during training
 
 )
@@ -50,9 +50,9 @@ wandb_cb = WandbCallback()
 wandb_cb.setup(trainer_config,model_config, project_name='crmvae_polymnist')
 
 trainer = BaseTrainer(
-    model, 
+    model= model,
     train_dataset=train_data,
-    eval_dataset=None, 
+    eval_dataset=None,
     training_config=trainer_config,
     callbacks=[wandb_cb]
 )
