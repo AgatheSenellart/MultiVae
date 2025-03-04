@@ -1,4 +1,5 @@
 import os
+import shutil
 from copy import deepcopy
 
 import numpy as np
@@ -238,11 +239,11 @@ class Test:
             assert not torch.all(param.grad == 0)
 
     @pytest.fixture
-    def training_config(self, tmp_path):
+    def training_config(self, tmp_path_factory):
         
-        dir_path = tmp_path /"dummy_folder"
-        dir_path.mkdir()
-        return BaseTrainerConfig(
+        dir_path = tmp_path_factory.mktemp("dummy_folder")
+
+        yield BaseTrainerConfig(
             num_epochs=3,
             steps_saving=2,
             learning_rate=1e-4,
@@ -251,6 +252,7 @@ class Test:
             output_dir=str(dir_path),
             no_cuda=True,
         )
+        shutil.rmtree(dir_path)
 
     @pytest.fixture
     def trainer(self, model, training_config, dataset):
