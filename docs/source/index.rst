@@ -7,11 +7,12 @@
 Welcome to MultiVae's documentation!
 **********************************
 
-This library gathers some of the most common multi-modal Variational AutoEncoder (VAE)
-implementations in PyTorch. 
+This library implements some of the most common *Multimodal Variational Autoencoders* methods in a unifying framework for effective benchmarking and development. 
+For easy benchmarking, we include ready-to-use datasets and metrics modules.
+It integrates model monitoring with [Wandb](https://wandb.ai) and a quick way to save/load model from [HuggingFaceHub](https://huggingface.co/)🤗.
+To improve joint generation of multimodal samples, we also propose *samplers* to explore the latent space of your model.
 
 .. toctree::
-   :maxdepth:1
    :caption: Basics
    :titlesonly:
    

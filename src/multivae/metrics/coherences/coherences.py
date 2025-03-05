@@ -176,7 +176,7 @@ class CoherenceEvaluator(Evaluator):
         acc = {m: acc_per_class[m].mean() for m in acc_per_class}
 
         self.logger.info("Subset %s accuracies ", subset)
-        self.logger.info(acc.__str__())
+        self.logger.info(str(acc))
         mean_pair_acc = np.mean(list(acc.values()))
         self.logger.info("Mean subset %s accuracies : %s", subset, str(mean_pair_acc))
         mean_acc_per_class = np.mean(np.stack(list(acc_per_class.values())), axis=0)

@@ -79,7 +79,7 @@ class EncoderConvMMNIST_adapted(BaseEncoder):
     def __init__(self, model_config: BaseAEConfig):
         super(EncoderConvMMNIST_adapted, self).__init__()
         self.latent_dim = model_config.latent_dim
-        self.style_dim = model_config.style_dim
+        self.style_dim = 0
         self.shared_encoder = nn.Sequential(  # input shape (3, 28, 28)
             nn.Conv2d(
                 3, 32, kernel_size=3, stride=2, padding=1, bias=True

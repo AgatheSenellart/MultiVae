@@ -17,7 +17,7 @@ class ClassifierPolyMNIST(nn.Module):
 
     .. note ::
         If you are using MultiVae MMNISTDataset and you downloaded the data
-        through this class, you have already a `clf` folder in same folder that was automatically downloaded
+        through this class, you have already a `clf` folder in same folder as your data, that was automatically downloaded
         along with the data.
 
     """
