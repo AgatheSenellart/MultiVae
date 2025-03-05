@@ -101,7 +101,7 @@ class CRMVAE(BaseMultiVAE):
         
 
         return ModelOutput(
-            loss=total_loss.mean(), loss_sum=total_loss.sum(), metrics=results
+            loss=total_loss.sum(), loss_sum=total_loss.sum(), metrics=results
         )
 
     def _modality_encode(

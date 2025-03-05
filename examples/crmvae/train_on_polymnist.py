@@ -7,10 +7,10 @@ from multivae.metrics import CoherenceEvaluator, CoherenceEvaluatorConfig, FIDEv
 from multivae.metrics.classifiers.mmnist import load_mmnist_classifiers
 from torch.utils.data import random_split
 
-DATA_PATH = '/home/asenella/data'
-SAVE_PATH = '/home/asenella/experiments/CRMVAE_on_MMNIST'
+DATA_PATH = '/scratch/asenella/data'
+SAVE_PATH = '/scratch/asenella/experiments/CRMVAE_on_MMNIST'
 CLASSIFIER_PATH = DATA_PATH + '/clf'
-FID_PATH = DATA_PATH + '/pt_inception-2015-12-05-6726825d.pth'
+FID_PATH = '/scratch/asenella/fid/pt_inception-2015-12-05-6726825d.pth'
 
 # Download data
 train_data = MMNISTDataset(DATA_PATH, download=True)
@@ -72,4 +72,11 @@ coherence_config = CoherenceEvaluatorConfig(batch_size=256,wandb_path=wandb_cb.r
 coherence_module= CoherenceEvaluator(best_model,classifiers,test_data,output=trainer.training_dir,eval_config=coherence_config)
 
 coherence_module.eval()
+coherence_module.finish()
 
+# Fid
+fid_config = FIDEvaluatorConfig(batch_size=512,wandb_path=wandb_cb.run.path,inception_weights_path=FID_PATH)
+fid_module = FIDEvaluator(best_model,test_data,output=trainer.training_dir)
+fid_module.eval()
+fid_module.compute_all_conditional_fids(gen_mod='m0')
+fid_module.finish()
