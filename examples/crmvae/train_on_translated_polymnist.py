@@ -1,6 +1,6 @@
-from multivae.data.datasets import MMNISTDataset
+from multivae.data.datasets import TranslatedMMNIST
 from multivae.models import CRMVAE, CRMVAEConfig
-from multivae.models.nn.mmnist import EncoderConvMMNIST, DecoderConvMMNIST
+from multivae.models.nn.mmnist import EncoderResnetMMNIST, DecoderResnetMMNIST
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 from multivae.trainers.base.callbacks import WandbCallback
 from multivae.metrics import CoherenceEvaluator, CoherenceEvaluatorConfig, FIDEvaluator, FIDEvaluatorConfig
@@ -8,14 +8,19 @@ from multivae.metrics.classifiers.mmnist import load_mmnist_classifiers
 from torch.utils.data import random_split
 
 DATA_PATH = '/home/asenella/data'
+MMNIST_BACKGROUND_PATH = '/home/asenella/data'
 SAVE_PATH = '/home/asenella/experiments/CRMVAE_on_MMNIST'
 CLASSIFIER_PATH = DATA_PATH + '/clf'
 FID_PATH = DATA_PATH + '/pt_inception-2015-12-05-6726825d.pth'
 
 # Download data
-train_data = MMNISTDataset(DATA_PATH, download=True)
+train_data = TranslatedMMNIST(DATA_PATH,scale=0.75,
+                              translate=True, 
+                              n_modalities=5,background_path=MMNIST_BACKGROUND_PATH,split='train')
 train_data, eval_data = random_split(train_data,[0.85,0.15])
-test_data = MMNISTDataset(DATA_PATH, split='test', download=True)
+test_data = TranslatedMMNIST(DATA_PATH,scale=0.75,
+                             translate=True, 
+                             n_modalities=5,background_path=MMNIST_BACKGROUND_PATH,split='test')
 
 modalities = ['m0', 'm1', 'm2', 'm3', 'm4']
 
@@ -26,13 +31,13 @@ model_config = CRMVAEConfig(n_modalities=5,
                             uses_likelihood_rescaling=False,
                             decoders_dist = {m:'laplace' for m in modalities},
                             decoder_dist_params={m:{'scale':0.75} for m in modalities},
-                            beta=1.0
+                            beta=0.1
                             )
 
 # Define model
 model = CRMVAE(model_config=model_config,
-               encoders={m : EncoderConvMMNIST(model_config, bias=True) for m in modalities},
-               decoders={m: DecoderConvMMNIST(model_config) for m in modalities})
+               encoders={m : EncoderResnetMMNIST(0,model_config.latent_dim) for m in modalities},
+               decoders={m: DecoderResnetMMNIST(model_config.latent_dim) for m in modalities})
 
 
 # Define training config
