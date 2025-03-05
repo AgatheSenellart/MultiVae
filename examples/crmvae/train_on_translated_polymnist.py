@@ -4,13 +4,14 @@ from multivae.models.nn.mmnist import EncoderResnetMMNIST, DecoderResnetMMNIST
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 from multivae.trainers.base.callbacks import WandbCallback
 from multivae.metrics import CoherenceEvaluator, CoherenceEvaluatorConfig, FIDEvaluator, FIDEvaluatorConfig
-from multivae.metrics.classifiers.mmnist import load_mmnist_classifiers
 from torch.utils.data import random_split
+from classifiers import load_classifiers
 
-DATA_PATH = '/home/asenella/data'
-MMNIST_BACKGROUND_PATH = '/home/asenella/data'
-SAVE_PATH = '/home/asenella/experiments/CRMVAE_on_MMNIST'
-CLASSIFIER_PATH = DATA_PATH + '/clf'
+
+DATA_PATH = '/scratch/asenella/data'
+MMNIST_BACKGROUND_PATH = DATA_PATH + '/mmnist_background'
+SAVE_PATH = '/scratch/asenella/experiments/CRMVAE_on_MMNIST'
+CLASSIFIER_PATH = "/home/asenella/scratch/data/translated_mmnist_2/classifiers"
 FID_PATH = DATA_PATH + '/pt_inception-2015-12-05-6726825d.pth'
 
 # Download data
@@ -55,7 +56,7 @@ trainer_config=BaseTrainerConfig(
 )
 
 wandb_cb = WandbCallback()
-wandb_cb.setup(trainer_config,model_config, project_name='crmvae_polymnist')
+wandb_cb.setup(trainer_config,model_config, project_name='crmvae_tpolymnist')
 
 trainer = BaseTrainer(
     model= model,
@@ -70,7 +71,7 @@ trainer.train()
 # Evaluate for coherence and FID
 best_model = trainer._best_model
 
-classifiers = load_mmnist_classifiers(CLASSIFIER_PATH)
+classifiers = load_classifiers(CLASSIFIER_PATH)
 
 # Coherence
 coherence_config = CoherenceEvaluatorConfig(batch_size=256,wandb_path=wandb_cb.run.path)

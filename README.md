@@ -42,6 +42,7 @@ DMVAE| [Private-Shared Disentangled Multimodal VAE for Learning of Latent Repres
 |Nexus | [Leveraging hierarchy in multimodal generative models for effective cross-modality inference](https://www.sciencedirect.com/science/article/abs/pii/S0893608021004470)|[link](https://github.com/miguelsvasco/nexus_pytorch)|
 |CMVAE| [Deep Generative Clustering with Multimodal Diffusion Variational Autoencoders](https://openreview.net/forum?id=k5THrhXDV3)| [link](https://github.com/epalu/CMVAE)|
 |MHVAE| [Unified Brain MR-Ultrasound Synthesis using  Multi-Modal Hierarchical Representations](https://arxiv.org/abs/2309.08747) |[link](https://github.com/ReubenDo/MHVAE)|
+|CRMVAE| [Mitigating the Limitations of Multimodal VAEs with Coordination-Based Approach](https://openreview.net/forum?id=Rn8u4MYgeNJ) | [link](https://openreview.net/forum?id=Rn8u4MYgeNJ)|
 
 
 # Table of Contents

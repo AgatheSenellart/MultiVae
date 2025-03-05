@@ -14,7 +14,7 @@ FID_PATH = '/scratch/asenella/fid/pt_inception-2015-12-05-6726825d.pth'
 
 # Download data
 train_data = MMNISTDataset(DATA_PATH, download=True)
-train_data, eval_data = random_split(train_data,[0.85,0.15])
+train_data, eval_data = random_split(train_data,[0.9,0.10])
 test_data = MMNISTDataset(DATA_PATH, split='test', download=True)
 
 modalities = ['m0', 'm1', 'm2', 'm3', 'm4']
