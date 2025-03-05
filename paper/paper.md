@@ -73,9 +73,11 @@ $$\mathcal{L}(X) =  \mathbb{E}_{q_\phi(z|X)}\left( \sum_i \ln(p_{\theta}(x_i|z))
 
 A simple interpretation of this objective is to see that the first term is a reconstruction loss and the second term is a regularization term that avoids overfitting. A typical training of a multimodal VAE consists in encoding the data with the encoder, reconstructing each modality with the decoders and take a gradient step to optimize the loss $\mathcal{L}(X)$. 
 
-Most multimodal VAEs differ in how they construct the encoder $q_{\phi}(z|X)$. In Figure \autoref{types_vae}, we summarize several approaches:
+Most multimodal VAEs differ in how they construct the encoder $q_{\phi}(z|X)$. In the figure below, we summarize several approaches:
 *Aggregated models* [@wu:2018; @shi:2019; @sutter:2021] use a mean or a product operation to aggregate the information coming from all modalities, where *Joint models* [@suzuki:2016; @vedantam:2018; @senellart:2023] uses a neural network taking all modalities as input. Finally *coordinated models* [@dvcca; @tian:2019] uses different latent spaces but add a constraint term in the loss to force them to be similar. 
-![Different types of multimodal VAEs \label{types_vae}](mvae_models_diagrams.png){width=80%}
+
+![Different types of multimodal VAEs \label{types_vae}](mvae_models_diagrams.png){width=100%}
+
 Recent extensions of multimodal VAEs include additional terms to the loss, or use multiple [@palumbo_mmvae_2023] or hierarchical [@vasco2022leveraging; @Dorent_2023] latent spaces to more comprehensively describe the multimodal data. Aggregated models have a natural way of learning on incomplete datasets: for an incomplete sample $X$, we use only the available modalities to encode the data and compute the loss $\mathcal{L}(X)$. However, except in MultiVae, there doesn't exist an implementation of these models that can be used on incomplete datasets in a straightforward manner. 
 
 ### Data Augmentation
@@ -85,40 +87,43 @@ Another application of these models is Data Augmentation (DA): from sampling lat
 
 Although multimodal VAEs have interesting applications in different fields, the lack of easy-to-use and verified implementations might hinder 
 applicative research. With MultiVae, we offer unified implementations, designed to be easy to use by non-specialists and even on incomplete data. To this end, we offer online documentation and tutorials. In order to propose reliable implementations of each method, we tried to reproduce, whenever possible, a key result from the original paper. 
-Some works similar to ours have grouped together model implementations: the [Multimodal VAE Comparison Toolkit](https://github.com/gabinsane/multimodal-vae-comparison) includes 4 models and the Pixyz library groups 2 multimodal models (https://github.com/masa-su/pixyz/blob/main/examples/jmvae.ipynb). The work closest to ours and released while we were developping our library is `multi-view-ae` [@aguila:2023], which contains a dozen of models. We compare in a summarizing table below, the different features of each work.  Our library complements what already exists: our API is quite different compared to previous work, the models implemented are not all the same, and for those we have in common, our implementation offers additional parameterization options. Indeed, for each model, we've made sure to offer great flexibility on parameters and to include all implementation details present in the original codes that boost results. What's more, our library offers many additional features: compatibility with incomplete data, which we consider essential for real-life applications, and a range of tools dedicated to the research and development of new algorithms: benchmark datasets, metrics modules and samplers, for testing and analyzing models. Our library also supports distributed training and straightforward model sharing via HuggingFace Hub. 
+Some works similar to ours have grouped together model implementations: the [Multimodal VAE Comparison Toolkit](https://github.com/gabinsane/multimodal-vae-comparison) [@sejnova:2024] includes 4 models and the [Pixyz](https://github.com/masa-su/pixyz/blob/main/examples/jmvae.ipynb)[@suzuki2023pixyz] library groups 2 multimodal models. The work closest to ours and released while we were developping our library is `multi-view-ae` [@aguila:2023], which contains a dozen of models. We compare in a summarizing table below, the different features of each work.  Our library complements what already exists: our API is quite different compared to previous work, the models implemented are not all the same, and for those we have in common, our implementation offers additional parameterization options. Indeed, for each model, we've made sure to offer great flexibility on parameters and to include all implementation details present in the original codes that boost results. What's more, our library offers many additional features: compatibility with incomplete data, which we consider essential for real-life applications, and a range of tools dedicated to the research and development of new algorithms: benchmark datasets, metrics modules and samplers, for testing and analyzing models. Our library also supports distributed training and straightforward model sharing via HuggingFace Hub. 
 Therefore our work complements existing options and addresses different needs. 
 
 # List of models and features
 In the Table below, we list available models and features, and compare to previous work. This symbol ($\checkmark$*) indicates that our implementation include additional options.
 
-|Models/ Features|MultiVae|multi-view-ae|
-|------|--------|-------------|
-|JMVAE| 	$\checkmark$* |	$\checkmark$|
-|MVAE| 	$\checkmark$*|	$\checkmark$|
-|MMVAE|	$\checkmark$*|	$\checkmark$|
-|MoPoE|	$\checkmark$*|	$\checkmark$|
-|DMVAE|	$\checkmark$|	$\checkmark$|
-|MVTCAE|	$\checkmark$|	$\checkmark$|
-|MMVAE+|	$\checkmark$*|	$\checkmark$|
-|CMVAE|	$\checkmark$||
-|Nexus|	$\checkmark$||
-|CVAE|	$\checkmark$||
-|MHVAE|	$\checkmark$||
-|TELBO|	$\checkmark$||
-|JNF|	$\checkmark$||
-|MCVAE||	$\checkmark$|
-|mAAE||	$\checkmark$|
-|DVCCA||	$\checkmark$|
-|mWAE||	$\checkmark$|
-|mmJSD||	$\checkmark$|
-|gPoE||	$\checkmark$|
-|Support of Incomplete datasets|	$\checkmark$||
-|GMM Sampler|	$\checkmark$||
-|MAF Sampler, IAF Sampler|	$\checkmark$||
-|**Metric**: Likelihood, Coherences, FIDs, Reconstruction, Clustering|	$\checkmark$||
-|Inline Datasets| 	$\checkmark$||
-|Model sharing via Hugging Face |	$\checkmark$||
 
+|Models/ Features|Ours |[@aguila:2023]|[@sejnova:2024]| 
+|------|--------|-------------|----|
+|JMVAE| 	$\checkmark$* |	$\checkmark$| |
+|MVAE| 	$\checkmark$*|	$\checkmark$|$\checkmark$|
+|MMVAE|	$\checkmark$*|	$\checkmark$|$\checkmark$|
+|MoPoE|	$\checkmark$*|	$\checkmark$|$\checkmark$|
+|DMVAE|	$\checkmark$|	$\checkmark$|$\checkmark$|
+|MVTCAE|	$\checkmark$|	$\checkmark$||
+|MMVAE+|	$\checkmark$*|	$\checkmark$||
+|CMVAE|	$\checkmark$|||
+|Nexus|	$\checkmark$|||
+|CVAE|	$\checkmark$|||
+|MHVAE|	$\checkmark$|||
+|TELBO|	$\checkmark$|||
+|JNF|	$\checkmark$|||
+|CRMVAE|$\checkmark$|||
+|MCVAE||	$\checkmark$||
+|mAAE||	$\checkmark$||
+|DVCCA||	$\checkmark$||
+|mWAE||	$\checkmark$||
+|mmJSD||	$\checkmark$||
+|gPoE||	$\checkmark$||
+|Support of Incomplete datasets|	$\checkmark$|||
+|GMM Sampler|	$\checkmark$|||
+|MAF Sampler, IAF Sampler|	$\checkmark$|||
+|**Metric**: Likelihood, Coherences, FIDs, Reconstruction, Clustering|	$\checkmark$||
+|Ready-to-use Datasets| 	$\checkmark$||$\checkmark$||
+|Model sharing via Hugging Face |	$\checkmark$|||
+
+An important difference in our user-interface, is that we handle all training and model parameters within python dataclasses while [@aguila:2023 ; @sejnova:2024] uses independant `YAML` configuration files.
 
 
 # Description of the software
@@ -149,7 +154,7 @@ available at https://multivae.readthedocs.io/en/latest.
 
 # Acknowledgements
 
-We are grateful to the authors of all the original implementations of the models included in MultiVae. 
+We are grateful to the authors of all the initial implementations of the models included in MultiVae. 
 
 # References
 
