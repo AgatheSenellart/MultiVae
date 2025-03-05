@@ -10,7 +10,7 @@ from classifiers import load_classifiers
 
 DATA_PATH = '/scratch/asenella/data'
 MMNIST_BACKGROUND_PATH = DATA_PATH + '/mmnist_background'
-SAVE_PATH = '/scratch/asenella/experiments/CRMVAE_on_MMNIST'
+SAVE_PATH = '/scratch/asenella/experiments/CRMVAE_on_TMMNIST'
 CLASSIFIER_PATH = "/home/asenella/scratch/data/translated_mmnist_2/classifiers"
 FID_PATH = DATA_PATH + '/pt_inception-2015-12-05-6726825d.pth'
 
@@ -75,7 +75,8 @@ classifiers = load_classifiers(CLASSIFIER_PATH)
 
 # Coherence
 coherence_config = CoherenceEvaluatorConfig(batch_size=256,wandb_path=wandb_cb.run.path)
-coherence_module= CoherenceEvaluator(best_model,classifiers,test_data,output=trainer.training_dir,eval_config=coherence_config)
+coherence_module = CoherenceEvaluator(best_model,classifiers,test_data,
+                                      output=trainer.training_dir,eval_config=coherence_config)
 
 coherence_module.eval()
 
