@@ -24,7 +24,7 @@
 This library implements some of the most common *Multimodal Variational Autoencoders* methods in a unifying framework for effective benchmarking and development. You can find the list of implemented models below.
 For easy benchmarking, we include ready-to-use datasets like MnistSvhn 🔢, CelebA 😎 and PolyMNIST, and metrics modules for computing: Coherences, Likelihoods and FID, Reconstruction metrics and Clustering Metrics. 
 It integrates model monitoring with [Wandb](https://wandb.ai) and a quick way to save/load model from [HuggingFaceHub](https://huggingface.co/)🤗.
-To improve joint generation of multimodal samples, we also propose [samplers](#using-samplers) to explore the latent space of your model
+To improve joint generation of multimodal samples, we also propose [samplers](#using-samplers) to explore the latent space of your model.
 
 # Implemented models 
 

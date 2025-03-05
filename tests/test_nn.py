@@ -11,10 +11,11 @@ from multivae.models.nn.cub import (
     ModelOutput,
 )
 from multivae.models.nn.mmnist import (
-    EncoderResnetMMNIST,
     DecoderConvMMNIST,
     DecoderResnetMMNIST,
     EncoderConvMMNIST,
+    EncoderResnetMMNIST,
+    EncoderConvMMNIST_adapted
 )
 from multivae.models.nn.svhn import Decoder_VAE_SVHN, Encoder_VAE_SVHN
 
@@ -37,7 +38,7 @@ def mmnist_like_data():
     return torch.rand(3, 3, 28, 28).to(device)
 
 
-#### CIFAR configs ####
+#### SVHN configs ####
 @pytest.fixture(
     params=[
         BaseAEConfig(input_dim=(3, 32, 32), latent_dim=10),
@@ -91,8 +92,17 @@ def cubimage_like_data():
     return torch.randn((20, 3, 64, 64)).to(device)
 
 
+@pytest.fixture(params=[0, 4])
+def encoder_resnet_mmnist(request, ae_mmnist_config):
+    return EncoderResnetMMNIST(
+        private_latent_dim=request.param, shared_latent_dim=ae_mmnist_config.latent_dim
+    ).to(device)
+
+
 class TestMMNISTNets:
-    def test_forward(self, ae_mmnist_config, mmnist_like_data):
+    def test_forward(self, ae_mmnist_config, mmnist_like_data, encoder_resnet_mmnist):
+
+        # Test convolutional networks
         encoder = EncoderConvMMNIST(ae_mmnist_config).to(device)
         decoder = DecoderConvMMNIST(ae_mmnist_config).to(device)
 
@@ -111,7 +121,22 @@ class TestMMNISTNets:
 
         assert dec_out.reconstruction.shape == mmnist_like_data.shape
 
-        encoder = EncoderResnetMMNIST(private_latent_dim=0,shared_latent_dim=ae_mmnist_config.latent_dim).to(device)
+        # Test adapted convolutional network (no linear layer)
+        encoder = EncoderConvMMNIST_adapted(ae_mmnist_config).to(device)
+        enc_out = encoder(mmnist_like_data)
+
+        assert enc_out.embedding.shape == (
+            mmnist_like_data.shape[0],
+            ae_mmnist_config.latent_dim,
+        )
+        assert enc_out.log_covariance.shape == (
+            mmnist_like_data.shape[0],
+            ae_mmnist_config.latent_dim,
+        )
+
+
+        # Test Resnet networks
+        encoder = encoder_resnet_mmnist
         decoder = DecoderResnetMMNIST(latent_dim=ae_mmnist_config.latent_dim).to(device)
 
         enc_out = encoder(mmnist_like_data)

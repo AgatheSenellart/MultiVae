@@ -7,9 +7,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-    env:
-      OS: ${{ matrix.os }}
-      PYTHON: '3.8'
+        python-version: ["3.10"]
     steps:
     - name: Remove unused Docker images
       run: docker system prune -af
@@ -19,7 +17,8 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@main
       with:
-        python-version: 3.8
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip' # caching pip dependencies
     - name: Generate coverage report
       run: |
         pip install .

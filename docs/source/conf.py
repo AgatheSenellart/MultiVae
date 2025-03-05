@@ -5,7 +5,6 @@
 import os
 import sys
 
-
 # Configuration file for the Sphinx documentation builder.
 #
 # This file only contains a selection of the most common options. For a full
@@ -41,8 +40,6 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.autosectionlabel",
     "sphinx_rtd_theme",
-    # 'myst_parser',
-    # 'sphinx_mdinclude',
     "recommonmark",
     "sphinx_markdown_tables",
 ]
@@ -80,5 +77,3 @@ autodoc_typehints = "none"
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
-
-

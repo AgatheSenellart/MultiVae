@@ -21,9 +21,7 @@ model = MVAE(model_config, encoders=encoders, decoders=decoders)
 
 # Define the training configuration
 trainer_config = BaseTrainerConfig(
-    **base_training_config,
-    seed=args.seed,
-    output_dir=model_save_path(model, args)
+    **base_training_config, seed=args.seed, output_dir=model_save_path(model, args)
 )
 # change parameters to avoid crashing
 trainer_config.num_epochs = 500
@@ -46,7 +44,7 @@ trainer = BaseTrainer(
 # Train the model
 trainer.train()
 
-# Get best model and perform evaluation 
+# Get best model and perform evaluation
 model = trainer._best_model
 
 eval_model(model, trainer.training_dir, test_data, wandb_cb.run.path)

@@ -43,24 +43,29 @@ class TestFIDMetrics:
             sampler = GaussianMixtureSampler(model, sampler_config)
             sampler.fit(dataset)
             return sampler
-        
+
     @pytest.fixture(params=[True, False])
     def transform(self, request):
-        return AdaptShapeFID(resize = request.param)
-    
+        return AdaptShapeFID(resize=request.param)
+
     def test_adapt_shape(self, transform):
         """Test the AdaptShapeFID transform for different input sizes"""
-        for x in [torch.randn(10),torch.randn(10,2), torch.randn(10,20,3), torch.randn(5,6,7,8)]:
+        for x in [
+            torch.randn(10),
+            torch.randn(10, 2),
+            torch.randn(10, 20, 3),
+            torch.randn(5, 6, 7, 8),
+        ]:
             t_x = transform(x)
             assert len(t_x.shape) == 4
             if transform.resize:
-                assert t_x.shape[-2:]==(299,299)
+                assert t_x.shape[-2:] == (299, 299)
 
         # Test that an exception is raised if the data as more than 3 dimensions (+1 batch dimension)
-        x = torch.randn(3,4,5,6,7)
+        x = torch.randn(3, 4, 5, 6, 7)
         with pytest.raises(AttributeError):
             t_x = transform(x)
-            
+
     @pytest.fixture(params=["custom", "default"])
     def encoders_and_config(self, request, transform):
         if request.param == "default":
@@ -99,16 +104,18 @@ class TestFIDMetrics:
         assert len(fid_model.test_loader) > 0
         assert fid_model.batch_size == encoders_and_config["eval_config"].batch_size
 
-        # Test unconditional FID 
+        # Test unconditional FID
         output = fid_model.eval()
         assert isinstance(output, ModelOutput)
 
         # Test conditional FID
-        output = fid_model.compute_fid_from_conditional_generation(subset = ['m0'], gen_mod = 'm1')
+        output = fid_model.compute_fid_from_conditional_generation(
+            subset=["m0"], gen_mod="m1"
+        )
         assert isinstance(output, float)
 
         # Test all conditional FID
-        output = fid_model.compute_all_conditional_fids(gen_mod = 'm1')
+        output = fid_model.compute_all_conditional_fids(gen_mod="m1")
         assert isinstance(output, ModelOutput)
 
         assert "Conditional FD from m0 to m1" in output.__dict__.keys()

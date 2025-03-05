@@ -1,6 +1,6 @@
 """This module computes likelihood for any multivae model.
 
-.. code-block:: python 
+.. code-block:: python
 
     from multivae.metrics import LikelihoodsEvaluator, LikelihoodsEvaluatorConfig
 

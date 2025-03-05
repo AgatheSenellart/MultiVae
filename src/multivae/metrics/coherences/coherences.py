@@ -1,5 +1,5 @@
 from itertools import combinations
-from typing import Optional, Dict, List
+from typing import Dict, List, Optional
 
 import numpy as np
 import torch
@@ -8,8 +8,8 @@ from torchmetrics.classification import MulticlassAccuracy
 
 from multivae.data import MultimodalBaseDataset
 from multivae.data.utils import set_inputs_to_device
-from multivae.samplers.base import BaseSampler
 from multivae.models.base import BaseMultiVAE
+from multivae.samplers.base import BaseSampler
 
 from ..base.evaluator_class import Evaluator
 from .coherences_config import CoherenceEvaluatorConfig
@@ -32,10 +32,10 @@ class CoherenceEvaluator(Evaluator):
 
     def __init__(
         self,
-        model:BaseMultiVAE,
-        classifiers:Dict[str, torch.nn.Module],
-        test_dataset:MultimodalBaseDataset,
-        output:Optional[str]=None,
+        model: BaseMultiVAE,
+        classifiers: Dict[str, torch.nn.Module],
+        test_dataset: MultimodalBaseDataset,
+        output: Optional[str] = None,
         eval_config=CoherenceEvaluatorConfig(),
         sampler: BaseSampler = None,
     ) -> None:
@@ -83,9 +83,9 @@ class CoherenceEvaluator(Evaluator):
         std_accs = [np.std(l) for l in accs]
         mean_accs_per_class = [np.mean(np.stack(l), axis=0) for l in accs_per_class]
 
-        for i, (m,s) in enumerate(zip(mean_accs, std_accs)):
+        for i, (m, s) in enumerate(zip(mean_accs, std_accs)):
             self.logger.info(
-                "Conditional accuracies for %s modalities : %s +- %s", i+1,m, s
+                "Conditional accuracies for %s modalities : %s +- %s", i + 1, m, s
             )
             self.metrics.update(
                 {
@@ -97,7 +97,10 @@ class CoherenceEvaluator(Evaluator):
             if self.give_details_per_classes:
                 for c in range(self.num_classes):
                     self.logger.info(
-                        "Conditional accuracies for %s modalities in class %s: %s", i+1,c,mean_accs_per_class[i][c]
+                        "Conditional accuracies for %s modalities in class %s: %s",
+                        i + 1,
+                        c,
+                        mean_accs_per_class[i][c],
                     )
                     self.metrics.update(
                         {
@@ -172,11 +175,10 @@ class CoherenceEvaluator(Evaluator):
         }
         acc = {m: acc_per_class[m].mean() for m in acc_per_class}
 
-        
         self.logger.info("Subset %s accuracies ", subset)
-        self.logger.info(acc.__str__())
+        self.logger.info(str(acc))
         mean_pair_acc = np.mean(list(acc.values()))
-        self.logger.info("Mean subset %s accuracies : %s", subset , str(mean_pair_acc))
+        self.logger.info("Mean subset %s accuracies : %s", subset, str(mean_pair_acc))
         mean_acc_per_class = np.mean(np.stack(list(acc_per_class.values())), axis=0)
 
         return acc, mean_pair_acc, mean_acc_per_class
@@ -226,7 +228,7 @@ class CoherenceEvaluator(Evaluator):
 
         sampler_name = "prior" if self.sampler is None else self.sampler.name
         self.logger.info(
-            "Joint coherence with sampler %s: %s",sampler_name,joint_coherence
+            "Joint coherence with sampler %s: %s", sampler_name, joint_coherence
         )
         self.metrics.update({f"joint_coherence_{sampler_name}": joint_coherence})
         return joint_coherence

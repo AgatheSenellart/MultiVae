@@ -1,4 +1,4 @@
-"""This module can be use to generate, visualize and save samples with any MultiVae model. 
+"""This module can be use to generate, visualize and save samples with any MultiVae model.
 
 Basic usage example:
 
@@ -23,7 +23,7 @@ Basic usage example:
     # Generate unconditional samples
     eval_module.eval()
 
-    # Generate conditional samples from a subset of modalities 
+    # Generate conditional samples from a subset of modalities
     eval_module.conditional_samples_subset(subset=['modality_1', 'modality_2'], gen_mod='all')
 
     eval_module.finish() # finishes wandb run
@@ -33,6 +33,4 @@ Basic usage example:
 from .visualization_class import Visualization
 from .visualize_config import VisualizationConfig
 
-__all__ = ['Visualization', 
-           'VisualizationConfig'
-           ]
+__all__ = ["Visualization", "VisualizationConfig"]

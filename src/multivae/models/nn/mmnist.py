@@ -2,9 +2,11 @@ import numpy as np
 import torch
 from pythae.models.base.base_utils import ModelOutput
 from pythae.models.nn.benchmarks.utils import ResBlock
-from multivae.models.base.base_config import BaseAEConfig
 from torch import nn
-from .base_architectures import BaseMultilatentEncoder, BaseDecoder, BaseEncoder
+
+from multivae.models.base.base_config import BaseAEConfig
+
+from .base_architectures import BaseDecoder, BaseEncoder, BaseMultilatentEncoder
 
 
 class Flatten(torch.nn.Module):
@@ -22,13 +24,13 @@ class Unflatten(torch.nn.Module):
 
 
 ###############################################################################
-### Convolutional architectures 
+### Convolutional architectures
 ###############################################################################
 
 
 class EncoderConvMMNIST(BaseEncoder):
     """
-    Convolutional encoder for the PolyMNIST dataset. 
+    Convolutional encoder for the PolyMNIST dataset.
 
     Adapted from:
     https://www.cs.toronto.edu/~lczhang/360/lec/w05/autoencoder.html
@@ -77,7 +79,7 @@ class EncoderConvMMNIST_adapted(BaseEncoder):
     def __init__(self, model_config: BaseAEConfig):
         super(EncoderConvMMNIST_adapted, self).__init__()
         self.latent_dim = model_config.latent_dim
-        self.style_dim = model_config.style_dim
+        self.style_dim = 0
         self.shared_encoder = nn.Sequential(  # input shape (3, 28, 28)
             nn.Conv2d(
                 3, 32, kernel_size=3, stride=2, padding=1, bias=True
@@ -202,34 +204,39 @@ class DecoderConvMMNIST(BaseDecoder):
         x_hat = self.decoder(z.view(-1, z.size(-1)))
         # x_hat = torch.sigmoid(x_hat)
         x_hat = x_hat.view(*z.size()[:-1], *x_hat.size()[1:])
-        return ModelOutput(
-            reconstruction=x_hat
-        ) 
+        return ModelOutput(reconstruction=x_hat)
+
 
 #######################################################################################
 ### Resnet architectures : adapted from https://github.com/epalu/mmvaeplus
 #######################################################################################
 
+
 class ResnetBlock(nn.Module):
     """
-    Resnet block for the PolyMNIST dataset. 
+    Resnet block for the PolyMNIST dataset.
     Adapted from https://github.com/epalu/mmvaeplus
     """
 
-    def __init__(self, nb_channels_in, nb_channels_out, nb_channels_hidden=None, bias=True):
+    def __init__(
+        self, nb_channels_in, nb_channels_out, nb_channels_hidden=None, bias=True
+    ):
         super().__init__()
         # Attributes
-        self.learn_shortcut = (nb_channels_in != nb_channels_out) 
+        self.learn_shortcut = nb_channels_in != nb_channels_out
         if nb_channels_hidden is None:
             nb_channels_hidden = min(nb_channels_in, nb_channels_out)
-       
+
         # Submodules
         self.conv_layers = nn.Sequential(
             nn.Conv2d(nb_channels_in, nb_channels_hidden, 3, stride=1, padding=1),
             nn.LeakyReLU(2e-1),
-            nn.Conv2d(nb_channels_hidden, nb_channels_out, 3, stride=1, padding=1, bias=bias),
-            nn.LeakyReLU(2e-1))
-        
+            nn.Conv2d(
+                nb_channels_hidden, nb_channels_out, 3, stride=1, padding=1, bias=bias
+            ),
+            nn.LeakyReLU(2e-1),
+        )
+
         if self.learn_shortcut:
             self.shortcut_layer = nn.Conv2d(
                 nb_channels_in, nb_channels_out, 1, stride=1, padding=0, bias=False
@@ -246,9 +253,8 @@ class ResnetBlock(nn.Module):
         return x
 
 
-
 class EncoderResnetMMNIST(BaseEncoder):
-    """Resnet encoder for PolyMNIST adapted from https://github.com/epalu/mmvaeplus """
+    """Resnet encoder for PolyMNIST adapted from https://github.com/epalu/mmvaeplus"""
 
     def __init__(self, private_latent_dim, shared_latent_dim):
         super().__init__()
@@ -258,7 +264,7 @@ class EncoderResnetMMNIST(BaseEncoder):
         nf_max = self.nf_max = 1024  # nfilter_max
         size = 28
         self.multiple_latent = private_latent_dim > 0
-        
+
         # Submodules
         nlayers = int(np.log2(size / s0))
         self.nf0 = min(nf_max, nf * 2**nlayers)
@@ -291,35 +297,33 @@ class EncoderResnetMMNIST(BaseEncoder):
         self.fc_lv_u = nn.Linear(self.nf0 * s0 * s0, shared_latent_dim)
 
     def forward(self, x):
-        
+
         out_u = self.conv_img_u(x)
         out_u = self.resnet_u(out_u)
         out_u = out_u.view(out_u.size()[0], self.nf0 * self.s0 * self.s0)
         lv_u = self.fc_lv_u(out_u)
-        
+
         output = ModelOutput(
             embedding=self.fc_mu_u(out_u),
             log_covariance=lv_u,
         )
-        
+
         # batch_size = x.size(0)
-        if self.multiple_latent : 
+        if self.multiple_latent:
             out_w = self.conv_img_w(x)
             out_w = self.resnet_w(out_w)
             out_w = out_w.view(out_w.size()[0], self.nf0 * self.s0 * self.s0)
             lv_w = self.fc_lv_w(out_w)
 
-
-            output['style_embedding'] = self.fc_mu_w(out_w)
-            output['style_log_covariance'] = lv_w
-
+            output["style_embedding"] = self.fc_mu_w(out_w)
+            output["style_log_covariance"] = lv_w
 
         return output
 
 
 class DecoderResnetMMNIST(BaseDecoder):
     """
-    Resnet decoder for PolyMNIST from https://github.com/epalu/mmvaeplus 
+    Resnet decoder for PolyMNIST from https://github.com/epalu/mmvaeplus
     """
 
     def __init__(self, latent_dim):
@@ -351,10 +355,12 @@ class DecoderResnetMMNIST(BaseDecoder):
         ]
 
         self.resnet = nn.Sequential(*blocks)
-        self.conv_img = nn.Sequential(nn.Conv2d(nf, 3, 3, padding=1), nn.LeakyReLU(2e-1))
+        self.conv_img = nn.Sequential(
+            nn.Conv2d(nf, 3, 3, padding=1), nn.LeakyReLU(2e-1)
+        )
 
     def forward(self, z):
-        
+
         out = self.fc(z).view(-1, self.nf0, self.s0, self.s0)
         out = self.resnet(out)
         out = self.conv_img(out)
@@ -365,4 +371,3 @@ class DecoderResnetMMNIST(BaseDecoder):
             out = out.view(*z.size()[:2], *out.size()[1:])
 
         return ModelOutput(reconstruction=out)
-

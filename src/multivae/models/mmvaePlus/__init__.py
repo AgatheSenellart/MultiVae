@@ -47,7 +47,7 @@ For crossmodal generation, the shared semantic content flows through the shared 
     .. math::
     D^{\beta}_{\Phi,\Theta}(X,z^k, \tilde{w}_1^k, \tilde{w}_2^k,.., w_m^k, .., \tilde{w}_M^k) = \frac{p_{\theta_m}(x_m|z^k, w_m^k)(p(z^k)p(w_m^k))^{\beta}}{(q_{\phi_z}(z^k|X)q_{\phi_{w_m}}(w_m^k|x_m))^{\beta}}\prod_{n in S_{obs}(X), n\neq m}p_{\theta_n}(x_n|z^k,\tilde{w}_n^k)
 
-    In simpler terms; we reconstruct only available modalities and compute the joint posterior with available modalities only. 
+    In simpler terms; we reconstruct only available modalities and compute the joint posterior with available modalities only.
 
     .. math::
         q_{\phi_z}(z|X) = \frac{1}{|S_{obs}(X)|} \sum_{m \in S_{obs}(X)} q_{\phi_{z_m}}(z|x_m)
