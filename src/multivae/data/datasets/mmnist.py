@@ -116,7 +116,7 @@ class MMNISTDataset(MultimodalBaseDataset):  # pragma: no cover
 
             self.masks["m0"] = torch.ones(
                 (self.num_files,)
-            )  # ensure there is at least one modality
+            ).bool()  # ensure there is at least one modality
             # available for all samples
 
             # To be sure, also erase the content of the masked samples
@@ -131,7 +131,7 @@ class MMNISTDataset(MultimodalBaseDataset):  # pragma: no cover
                 self.images_dict[k] = self.images_dict[k].permute(*reverse_dim_order)
 
     def __check_or_download_data__(self, data_path, unimodal_datapaths):
-        # TODO : test this function
+
         if not os.path.exists(unimodal_datapaths[0]) and self.download:
             tempdir = tempfile.mkdtemp()
             logger.info(

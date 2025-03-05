@@ -311,44 +311,45 @@ class Nexus(BaseMultiVAE):
         self, embedding: ModelOutput, modalities: Union[list, str] = "all", **kwargs
     ):
         """Decodes the embeddings given by the latent function."""
+        self.eval()
+        with torch.no_grad():
+            if modalities == "all":
+                modalities = list(self.encoders.keys())
+            elif isinstance(modalities, str):
+                modalities = [modalities]
 
-        if modalities == "all":
-            modalities = list(self.encoders.keys())
-        elif isinstance(modalities, str):
-            modalities = [modalities]
+            # For self reconstruction, we use the bottom encodings.
+            use_bottom_z_for_reconstruction = kwargs.pop("use_bottom_z_for_recon", True)
+            if not hasattr(embedding, "modalities_z"):
+                use_bottom_z_for_reconstruction = False
 
-        # For self reconstruction, we use the bottom encodings.
-        use_bottom_z_for_reconstruction = kwargs.pop("use_bottom_z_for_recon", True)
-        if not hasattr(embedding, "modalities_z"):
-            use_bottom_z_for_reconstruction = False
+            outputs = ModelOutput()
 
-        outputs = ModelOutput()
+            # If the embedding has three dimensions, we flatten it and then reshape it at the end.
+            reshape = False
+            if len(embedding.z.shape) == 3:
+                N, bs, _ = embedding.z.shape
+                reshape = True
 
-        # If the embedding has three dimensions, we flatten it and then reshape it at the end.
-        reshape = False
-        if len(embedding.z.shape) == 3:
-            N, bs, _ = embedding.z.shape
-            reshape = True
+            for m in modalities:
+                if (use_bottom_z_for_reconstruction) and (
+                    m in embedding.modalities_z.keys()
+                ):
+                    z_m = embedding.modalities_z[m]
+                    if reshape:
+                        z_m = z_m.view(N * bs, -1)
+                else:
+                    z = embedding.z
+                    if reshape:
+                        z = z.view(N * bs, -1)
+                    z_m = self.top_decoders[m](z).reconstruction
 
-        for m in modalities:
-            if (use_bottom_z_for_reconstruction) and (
-                m in embedding.modalities_z.keys()
-            ):
-                z_m = embedding.modalities_z[m]
+                recon = self.decoders[m](z_m).reconstruction
                 if reshape:
-                    z_m = z_m.view(N * bs, -1)
-            else:
-                z = embedding.z
-                if reshape:
-                    z = z.view(N * bs, -1)
-                z_m = self.top_decoders[m](z).reconstruction
+                    recon = recon.reshape(N, bs, *recon.shape[1:])
+                outputs[m] = recon
 
-            recon = self.decoders[m](z_m).reconstruction
-            if reshape:
-                recon = recon.reshape(N, bs, *recon.shape[1:])
-            outputs[m] = recon
-
-        return outputs
+            return outputs
 
     def _set_top_decoder_variance(self, config):
         """Returns a list of the modalities for which the variance needs to be adapted."""

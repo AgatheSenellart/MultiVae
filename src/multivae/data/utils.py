@@ -4,7 +4,9 @@ import torch
 from pythae.data.datasets import DatasetOutput
 
 
-def set_inputs_to_device(inputs: Dict[str, Any], device: str = "cpu"): # pragma: no cover
+def set_inputs_to_device(
+    inputs: Dict[str, Any], device: str = "cpu"
+):  # pragma: no cover
     """Set an dict input to device. It covers the case where the input is a
     Dict[str, tensor], Dict[str, dict[str, tensor]], Dict[str, dict[str, dict[str, Tensor]]]
     """
@@ -60,5 +62,3 @@ def drop_unused_modalities(inputs: Dict[str, Any]):
                 inputs.data.pop(m)
                 inputs.masks.pop(m)
         return inputs
-
-
