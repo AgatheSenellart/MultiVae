@@ -101,7 +101,7 @@ In the Table below, we list available models and features, and compare to previo
 |MVAE[@wu:2018]             | 	$\checkmark$*|	$\checkmark$|$\checkmark$|
 |MMVAE[@shi:2019]           |	$\checkmark$*|	$\checkmark$|$\checkmark$|
 |MoPoE[@sutter:2021]        |	$\checkmark$*|	$\checkmark$|$\checkmark$|
-|DMVAE[@lee:2021]           |	$\checkmark$|	$\checkmark$|$\checkmark$*|
+|DMVAE[@lee:2021]           |	$\checkmark$|	$\checkmark$*|$\checkmark$|
 |MVTCAE[@hwang2021multi]    |	$\checkmark$|	$\checkmark$||
 |MMVAE+[@palumbo_mmvae_2023]|	$\checkmark$*|	$\checkmark$||
 |CMVAE[@palumbo2024deep]    |	$\checkmark$|||
@@ -120,7 +120,7 @@ In the Table below, we list available models and features, and compare to previo
 |Support of Incomplete datasets|	$\checkmark$|||
 |GMM Sampler|	$\checkmark$|||
 |MAF Sampler, IAF Sampler|	$\checkmark$|||
-|**Metric**: Likelihood, Coherences, FIDs, Reconstruction, Clustering|	$\checkmark$||
+|**Metrics**: Likelihood, Coherences, FIDs, Reconstruction, Clustering|	$\checkmark$||
 |Ready-to-use Datasets| 	$\checkmark$||$\checkmark$||
 |Model sharing via Hugging Face |	$\checkmark$|||
 
