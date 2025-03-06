@@ -159,8 +159,8 @@ DMVAE| ✅ | [see here](https://multivae.readthedocs.io/en/latest/models/multimo
 ### Toy datasets with missing values
 
 To ease the development of new methods on incomplete datasets, we propose two easy-to-import toy datasets with missing values:
-- Missing at Random: The PolyMNIST dataset with missing values. 
-- Missing not at Random: The MHD dataset with missing ratios that depend on the label. 
+- Missing at Random: The [PolyMNIST](https://multivae.readthedocs.io/en/latest/datasets/mmnist.html) dataset with missing values. 
+- Missing not at Random: The [MHD](https://multivae.readthedocs.io/en/latest/datasets/mhd.html) dataset with missing ratios that depend on the label. 
 
 See the documentation for more information on those datasets. 
 

@@ -1,6 +1,6 @@
-*************************************
-Conditional Variational Autoencoder
-*************************************
+******************************************
+CVAE: Conditional Variational Autoencoder
+******************************************
 
 
 .. automodule::
