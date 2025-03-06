@@ -12,13 +12,19 @@ from .mvtcae_config import MVTCAEConfig
 
 
 class MVTCAE(BaseMultiVAE):
-    """
+    """MVTCAE model.
 
-    Implementation for 'Multi-View Representation Learning via Total Correlation Objective'.
-    Hwang et al, 2021.
+    Args:
+        model_config (MVTCAEConfig): An instance of MVTCAEConfig in which any model's
+            parameters is made available.
 
-    This code is heavily based on the official implementation that can be found here :
-    https://github.com/gr8joo/MVTCAE.
+        encoders (Dict[str, ~pythae.models.nn.base_architectures.BaseEncoder]): A dictionary containing
+            the modalities names and the encoders for each modality. Each encoder is an instance of
+            Pythae's BaseEncoder. Default: None.
+
+        decoders (Dict[str, ~pythae.models.nn.base_architectures.BaseDecoder]): A dictionary containing
+            the modalities names and the decoders for each modality. Each decoder is an instance of
+            Pythae's BaseDecoder.
 
 
     """
@@ -26,25 +32,28 @@ class MVTCAE(BaseMultiVAE):
     def __init__(
         self, model_config: MVTCAEConfig, encoders: dict = None, decoders: dict = None
     ):
+        
         super().__init__(model_config, encoders, decoders)
 
         self.alpha = model_config.alpha
         self.beta = model_config.beta
         self.model_name = "MVTCAE"
 
-    def reparameterize(self, mu, logvar):
+    def _reparameterize(self, mu, logvar):
         std = logvar.mul(0.5).exp_()
         z = dist.Normal(mu, std).rsample()
         return z
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
+        """Forward pass of the model that returns the loss."""
+
         # Compute latents parameters for all subsets
-        latents = self.inference(inputs)
+        latents = self._inference(inputs)
         results = dict()
 
         # Sample from the joint posterior
         joint_mu, joint_logvar = latents["joint"][0], latents["joint"][1]
-        shared_embeddings = self.reparameterize(joint_mu, joint_logvar)
+        shared_embeddings = self._reparameterize(joint_mu, joint_logvar)
         ndata = len(shared_embeddings)
         joint_kld = -0.5 * torch.sum(
             1 - joint_logvar.exp() - joint_mu.pow(2) + joint_logvar
@@ -104,7 +113,7 @@ class MVTCAE(BaseMultiVAE):
             loss=total_loss / ndata, loss_sum=total_loss, metrics=results
         )
 
-    def modality_encode(
+    def _modality_encode(
         self, inputs: Union[MultimodalBaseDataset, IncompleteDataset], **kwargs
     ):
         """Computes for each modality, the parameters mu and logvar of the
@@ -130,7 +139,7 @@ class MVTCAE(BaseMultiVAE):
 
         return encoders_outputs
 
-    def poe(self, mu, logvar, eps=1e-8):
+    def _poe(self, mu, logvar, eps=1e-8):
         var = torch.exp(logvar) + eps
         # precision of i-th Gaussian expert at point x
         T = 1.0 / var
@@ -139,31 +148,12 @@ class MVTCAE(BaseMultiVAE):
         pd_logvar = torch.log(pd_var)
         return pd_mu, pd_logvar
 
-    def ivw_fusion(self, mus: torch.Tensor, logvars: torch.Tensor, weights=None):
-        mu_poe, logvar_poe = self.poe(mus, logvars)
+    def _ivw_fusion(self, mus: torch.Tensor, logvars: torch.Tensor, weights=None):
+        mu_poe, logvar_poe = self._poe(mus, logvars)
         return [mu_poe, logvar_poe]
 
-    def _filter_inputs_with_masks(
-        self, inputs: IncompleteDataset, subset: Union[list, tuple]
-    ):
-        """
-        Returns a filtered dataset containing only the samples that are available
-        in all the modalities contained in subset.
-        The dataset that is returned only contains the modalities in subset.
-        """
 
-        filter = torch.tensor(
-            True,
-        ).to(inputs.masks[subset[0]].device)
-        for mod in subset:
-            filter = torch.logical_and(filter, inputs.masks[mod])
-
-        filtered_inputs = MultimodalBaseDataset(
-            data={k: inputs.data[k][filter] for k in subset},
-        )
-        return filtered_inputs, filter
-
-    def inference(self, inputs: MultimodalBaseDataset, **kwargs):
+    def _inference(self, inputs: MultimodalBaseDataset, **kwargs):
         """
         This function takes all the modalities contained in inputs
         and compute the product of experts of the modalities encoders.
@@ -176,7 +166,7 @@ class MVTCAE(BaseMultiVAE):
         """
 
         latents = dict()
-        enc_mods = self.modality_encode(inputs)
+        enc_mods = self._modality_encode(inputs)
         latents["modalities"] = enc_mods
 
         device = enc_mods[list(inputs.data.keys())[0]].embedding.device
@@ -197,7 +187,7 @@ class MVTCAE(BaseMultiVAE):
             mus = mus.unsqueeze(1)
             logvars = logvars.unsqueeze(1)
 
-        joint_mu, joint_logvar = self.ivw_fusion(mus, logvars)
+        joint_mu, joint_logvar = self._ivw_fusion(mus, logvars)
 
         latents["joint"] = [joint_mu, joint_logvar]
         return latents
@@ -234,7 +224,7 @@ class MVTCAE(BaseMultiVAE):
             data={k: inputs.data[k] for k in cond_mod},
         )
 
-        latents_subsets = self.inference(cond_inputs)
+        latents_subsets = self._inference(cond_inputs)
         mu, log_var = latents_subsets["joint"]
         sample_shape = [N] if N > 1 else []
 
@@ -258,7 +248,7 @@ class MVTCAE(BaseMultiVAE):
         self.eval()
 
         # Compute the parameters of the joint posterior
-        mu, log_var = self.inference(inputs)["joint"]
+        mu, log_var = self._inference(inputs)["joint"]
 
         sigma = torch.exp(0.5 * log_var)
         qz_xy = dist.Normal(mu, sigma)

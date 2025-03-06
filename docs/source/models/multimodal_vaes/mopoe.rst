@@ -1,6 +1,6 @@
-**********************************
-Mixture of Product of Experts
-**********************************
+*************************************
+MoPoE: Mixture of Product of Experts
+*************************************
 
 .. automodule::
    multivae.models.mopoe

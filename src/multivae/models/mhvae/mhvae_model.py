@@ -20,10 +20,9 @@ logger.setLevel(logging.INFO)
 
 class MHVAE(BaseMultiVAE):
     """MHVAE model.
-    .. image:: mhvae_architectures.png
 
-    Parameters :
 
+    Args:
         model_config (MHVAEConfig) : the model configuration.
 
         encoders (Dict[str,BaseEncoder]) : contains the first layer encoder per modality.

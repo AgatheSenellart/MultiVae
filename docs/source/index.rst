@@ -3,9 +3,9 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-**********************************
+*************************************
 Welcome to MultiVae's documentation!
-**********************************
+*************************************
 
 This library implements some of the most common *Multimodal Variational Autoencoders* methods in a unifying framework for effective benchmarking and development. 
 For easy benchmarking, we include ready-to-use datasets and metrics modules.
@@ -24,12 +24,14 @@ To improve joint generation of multimodal samples, we also propose *samplers* to
    :caption: Documentation
    :titlesonly:
 
+   api_description
    models/multivae.models
    datasets/multivae.datasets
    metrics/multivae.metrics
    trainers/multivae.trainers
    samplers/multivae.samplers
    examples/multivae.examples
+   
 
 Setup
 ~~~~~~~~~~~~~

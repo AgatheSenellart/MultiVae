@@ -1,3 +1,4 @@
+
 ![logo](./static/multivae_logog.png)
 
 
@@ -24,9 +25,12 @@
 This library implements some of the most common *Multimodal Variational Autoencoders* methods in a unifying framework for effective benchmarking and development. You can find the list of implemented models below.
 For easy benchmarking, we include ready-to-use datasets like MnistSvhn 🔢, CelebA 😎 and PolyMNIST, and metrics modules for computing: Coherences, Likelihoods and FID, Reconstruction metrics and Clustering Metrics. 
 It integrates model monitoring with [Wandb](https://wandb.ai) and a quick way to save/load model from [HuggingFaceHub](https://huggingface.co/)🤗.
-To improve joint generation of multimodal samples, we also propose [samplers](#using-samplers) to explore the latent space of your model
+To improve joint generation of multimodal samples, we also propose [samplers](#using-samplers) to explore the latent space of your model.
 
-# Implemented models 
+![diagram](./static/diagram2.png)
+
+
+<!-- # Implemented models 
 
 |Model|Paper|Official Implementation|
 |:---:|:----:|:---------------------:|
@@ -41,7 +45,7 @@ DMVAE| [Private-Shared Disentangled Multimodal VAE for Learning of Latent Repres
 |MMVAE + |[MMVAE+: ENHANCING THE GENERATIVE QUALITY OF MULTIMODAL VAES WITHOUT COMPROMISES](https://openreview.net/forum?id=sdQGxouELX) | [link](https://openreview.net/forum?id=sdQGxouELX)|
 |Nexus | [Leveraging hierarchy in multimodal generative models for effective cross-modality inference](https://www.sciencedirect.com/science/article/abs/pii/S0893608021004470)|[link](https://github.com/miguelsvasco/nexus_pytorch)|
 |CMVAE| [Deep Generative Clustering with Multimodal Diffusion Variational Autoencoders](https://openreview.net/forum?id=k5THrhXDV3)| [link](https://github.com/epalu/CMVAE)|
-|MHVAE| [Unified Brain MR-Ultrasound Synthesis using  Multi-Modal Hierarchical Representations](https://arxiv.org/abs/2309.08747) |[link](https://github.com/ReubenDo/MHVAE)|
+|MHVAE| [Unified Brain MR-Ultrasound Synthesis using  Multi-Modal Hierarchical Representations](https://arxiv.org/abs/2309.08747) |[link](https://github.com/ReubenDo/MHVAE)| -->
 
 
 <!-- # Table of Contents
@@ -108,7 +112,7 @@ trainer = BaseTrainer(
 trainer.train()
 ```
 
-# Getting your hands on the code
+# Tutorials
 
 
 Our library allows you to use any of the models with custom configuration, encoders and decoders architectures and datasets easily. To learn how to use MultiVae's features we propose different tutorial notebooks:
@@ -160,7 +164,7 @@ To ease the development of new methods on incomplete datasets, we propose two ea
 
 See the documentation for more information on those datasets. 
 
-# Metrics
+<!-- # Metrics
 We provide metrics modules that can be used on any MultiVae model for evaluation. See the documentation for minimal code examples and see this [notebook](https://github.com/AgatheSenellart/MultiVae/tree/main/examples/tutorial_notebooks/computing_visualization_and_metrics.ipynb) for a hands-on tutorial.
 
 - [Likelihoods](https://multivae.readthedocs.io/en/latest/metrics/likelihoods.html#multivae.metrics.LikelihoodsEvaluator)
@@ -168,12 +172,12 @@ We provide metrics modules that can be used on any MultiVae model for evaluation
 - [FID](https://multivae.readthedocs.io/en/latest/metrics/fids.html)
 - [Clustering](https://multivae.readthedocs.io/en/latest/metrics/clustering.html)
 - [Visualization](https://multivae.readthedocs.io/en/latest/metrics/visualization.html)
-- [Reconstruction metrics](https://multivae.readthedocs.io/en/latest/metrics/reconstruction.html)
+- [Reconstruction metrics](https://multivae.readthedocs.io/en/latest/metrics/reconstruction.html) -->
 
-# Datasets
+<!-- # Datasets
 
 At the time, we provide 7 ready-to-use multimodal datasets with an automatic download option. 
-Click [here](file:///home/asenella/dev/MultiVae/docs/build/datasets/multivae.datasets.html) to see the options. 
+Click [here](file:///home/asenella/dev/MultiVae/docs/build/datasets/multivae.datasets.html) to see the options.  -->
 
 # Monitoring your training with Wandb 
 
@@ -298,7 +302,7 @@ gmm_sampler.fit(train_data) # train_data is the Multimodal Dataset used for trai
 Note that samplers can be used with all MultiVae models and that they can really improve joint generation. For a taste of what it can do, see the joint generations below for a MVTCAE model trained on PolyMNIST:
 ![alt text](./static/taste_samplers.png)
 
-# Documentation, Examples and Case Studies
+# Examples and Case Studies
 
 <!-- We provide a full online documentation at https://multivae.readthedocs.io.  -->
 

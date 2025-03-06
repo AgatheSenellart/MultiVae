@@ -8,32 +8,7 @@ In here you will find implementations of **Multimodal Generative Autoencoders mo
 
 
 .. toctree::
-    :hidden:
-    :maxdepth: 1
+    :maxdepth: 2
 
     multimodal_vaes/models
     nn/nn
-
-.. automodule::
-    multivae.models
-
-Available Multimodal VAEs
--------------------------------------------
-
-.. autosummary::
-    CVAE
-    BaseMultiVAE
-    AutoModel
-    JMVAE
-    TELBO
-    MVAE
-    MMVAE
-    MoPoE
-    MVTCAE
-    DMVAE
-    Nexus
-    JNF
-    MMVAEPlus
-    CMVAE
-    MHVAE
-    :nosignatures:
