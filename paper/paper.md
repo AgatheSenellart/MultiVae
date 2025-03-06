@@ -43,9 +43,9 @@ Variational Autoencoders (VAEs) have been attracting growing interest for both t
 to their versatility, scalability, and interpretability as probabilistic latent variable
 models. They are also particularly interesting models in the *partially observed*
 setting, as most of them can learn even with missing data. 
-This last point makes them particularly interesting for research fields such as the medical field, where missing data are commonplace[@antelmi:2019, @aguila:poe].
+This last point makes them particularly interesting for research fields such as the medical field, where missing data are commonplace [@antelmi:2019; @aguila:poe].
 
-In this article, we present
+We present
 MultiVae, an open-source Python library for bringing together unified implementations of multimodal VAEs. It has been designed
 for easy, customizable use of these models on fully or partially observed data. This
 library also facilitates the development and benchmarking of new algorithms by integrating
@@ -83,7 +83,7 @@ In our library, we implement all these approaches in an unified and modular way.
 Aggregated models offer a natural way of learning on incomplete datasets: for an incomplete sample $X$, we use only the available modalities to encode the data and compute the loss. However, except in MultiVae, there doesn't exist an implementation of these models that can be used on incomplete datasets in a straightforward manner. 
 
 ## Data Augmentation
-Another application of these models is Data Augmentation (DA): from sampling latent codes $z$ and decoding them, *fully synthetic multimodal* samples can be generated to augment a dataset. Data augmentation has been proven useful in many data-intensive deep learning applications [@chadebec_DA]. In a dedicated module `multivae.samplers`, we propose different ways of sampling latent codes $z$ to further explore the generative abilities of these models. 
+Another application of these models is Data Augmentation (DA): from sampling latent codes $z$ and decoding them, *fully synthetic multimodal* samples can be generated to augment a dataset. DA has been proven useful in many data-intensive deep learning applications [@chadebec_DA]. In a dedicated module `multivae.samplers`, we propose different ways of sampling latent codes $z$ to further explore the generative abilities of these models. 
 
 # Statement of need
 
