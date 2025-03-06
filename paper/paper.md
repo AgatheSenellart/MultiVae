@@ -95,21 +95,21 @@ Some works similar to ours have grouped together model implementations: the [Mul
 In the Table below, we list available models and features, and compare to previous work. This symbol ($\checkmark$*) indicates that the implementation include additional options.
 
 
-|Models/ Features|Ours |[@Aguila2023]|[@sejnova:2024]| 
-|------|--------|-------------|----|
-|JMVAE [@suzuki:2016]| 	$\checkmark$* |	$\checkmark$| |
-|MVAE[@wu:2018]| 	$\checkmark$*|	$\checkmark$|$\checkmark$|
-|MMVAE[@shi:2019]|	$\checkmark$*|	$\checkmark$|$\checkmark$|
-|MoPoE[@sutter:2021]|	$\checkmark$*|	$\checkmark$|$\checkmark$|
-|DMVAE[@lee:2021]|	$\checkmark$|	$\checkmark$|$\checkmark$*|
-|MVTCAE[@hwang2021multi]|	$\checkmark$|	$\checkmark$||
+|Models/ Features           |Ours     |[@Aguila2023]|[@sejnova:2024]| 
+|---------------------------|---------|---------|---------|
+|JMVAE [@suzuki:2016]       | 	$\checkmark$* |	$\checkmark$| |
+|MVAE[@wu:2018]             | 	$\checkmark$*|	$\checkmark$|$\checkmark$|
+|MMVAE[@shi:2019]           |	$\checkmark$*|	$\checkmark$|$\checkmark$|
+|MoPoE[@sutter:2021]        |	$\checkmark$*|	$\checkmark$|$\checkmark$|
+|DMVAE[@lee:2021]           |	$\checkmark$|	$\checkmark$|$\checkmark$*|
+|MVTCAE[@hwang2021multi]    |	$\checkmark$|	$\checkmark$||
 |MMVAE+[@palumbo_mmvae_2023]|	$\checkmark$*|	$\checkmark$||
-|CMVAE[@palumbo2024deep]|	$\checkmark$|||
+|CMVAE[@palumbo2024deep]    |	$\checkmark$|||
 |Nexus[@vasco2022leveraging]|	$\checkmark$|||
-|CVAE[@kingma]|	$\checkmark$|||
-|MHVAE[@dorent:2023]|	$\checkmark$|||
-|TELBO[@vedantam:2018]|	$\checkmark$|||
-|JNF[@senellart:2023]|	$\checkmark$|||
+|CVAE[@kingma]              |	$\checkmark$|||
+|MHVAE[@dorent:2023]        |	$\checkmark$|||
+|TELBO[@vedantam:2018]      |	$\checkmark$|||
+|JNF[@senellart:2023]       |	$\checkmark$|||
 |CRMVAE[@suzuki:2023:mitigating]|$\checkmark$|||
 |MCVAE[@antelmi:2019]||	$\checkmark$||
 |mAAE||	$\checkmark$||
