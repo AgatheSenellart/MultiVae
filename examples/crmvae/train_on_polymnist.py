@@ -7,8 +7,8 @@ from multivae.metrics import CoherenceEvaluator, CoherenceEvaluatorConfig, FIDEv
 from multivae.metrics.classifiers.mmnist import load_mmnist_classifiers
 from torch.utils.data import random_split
 
-DATA_PATH = '/scratch/asenella/data'
-SAVE_PATH = '/scratch/asenella/experiments/CRMVAE_on_MMNIST'
+DATA_PATH = '/home/asenella/data'
+SAVE_PATH = '/home/asenella/experiments/CRMVAE_on_MMNIST'
 CLASSIFIER_PATH = DATA_PATH + '/clf'
 FID_PATH = '/scratch/asenella/fid/pt_inception-2015-12-05-6726825d.pth'
 
@@ -33,6 +33,7 @@ model_config = CRMVAEConfig(n_modalities=5,
 model = CRMVAE(model_config=model_config,
                encoders={m : EncoderConvMMNIST(model_config, bias=True) for m in modalities},
                decoders={m: DecoderConvMMNIST(model_config) for m in modalities})
+
 
 
 # Define training config
