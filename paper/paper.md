@@ -91,31 +91,31 @@ Some works similar to ours have grouped together model implementations: the [Mul
 Therefore our work complements existing options and addresses different needs. 
 
 # List of models and features
-In the Table below, we list available models and features, and compare to previous work. This symbol ($\checkmark$*) indicates that our implementation include additional options.
+In the Table below, we list available models and features, and compare to previous work. This symbol ($\checkmark$*) indicates that the implementation include additional options.
 
 
 |Models/ Features|Ours |[@aguila:2023]|[@sejnova:2024]| 
 |------|--------|-------------|----|
-|JMVAE| 	$\checkmark$* |	$\checkmark$| |
-|MVAE| 	$\checkmark$*|	$\checkmark$|$\checkmark$|
-|MMVAE|	$\checkmark$*|	$\checkmark$|$\checkmark$|
-|MoPoE|	$\checkmark$*|	$\checkmark$|$\checkmark$|
-|DMVAE|	$\checkmark$|	$\checkmark$|$\checkmark$|
-|MVTCAE|	$\checkmark$|	$\checkmark$||
-|MMVAE+|	$\checkmark$*|	$\checkmark$||
-|CMVAE|	$\checkmark$|||
-|Nexus|	$\checkmark$|||
-|CVAE|	$\checkmark$|||
-|MHVAE|	$\checkmark$|||
-|TELBO|	$\checkmark$|||
-|JNF|	$\checkmark$|||
-|CRMVAE|$\checkmark$|||
-|MCVAE||	$\checkmark$||
+|JMVAE [@suzuki:2016]| 	$\checkmark$* |	$\checkmark$| |
+|MVAE[@wu:2018]| 	$\checkmark$*|	$\checkmark$|$\checkmark$|
+|MMVAE[@shi:2019]|	$\checkmark$*|	$\checkmark$|$\checkmark$|
+|MoPoE[@sutter:2021]|	$\checkmark$*|	$\checkmark$|$\checkmark$|
+|DMVAE[@lee:2021]|	$\checkmark$|	$\checkmark$|$\checkmark$*|
+|MVTCAE[@hwang2021multi]|	$\checkmark$|	$\checkmark$||
+|MMVAE+[@palumbo_mmvae_2023]|	$\checkmark$*|	$\checkmark$||
+|CMVAE[@palumbo2024deep]|	$\checkmark$|||
+|Nexus[@vasco2022leveraging]|	$\checkmark$|||
+|CVAE[@kingma]|	$\checkmark$|||
+|MHVAE[@dorent:2023]|	$\checkmark$|||
+|TELBO[@vedantam:2018]|	$\checkmark$|||
+|JNF[@senellart:2023]|	$\checkmark$|||
+|CRMVAE[@suzuki:2023:mitigating]|$\checkmark$|||
+|MCVAE[@antelmi:2019]||	$\checkmark$||
 |mAAE||	$\checkmark$||
-|DVCCA||	$\checkmark$||
+|DVCCA[@wang_deep_2017]||	$\checkmark$||
 |mWAE||	$\checkmark$||
-|mmJSD||	$\checkmark$||
-|gPoE||	$\checkmark$||
+|mmJSD[@sutter:mmjsd]||	$\checkmark$||
+|gPoE[@aguila:poe]||	$\checkmark$||
 |Support of Incomplete datasets|	$\checkmark$|||
 |GMM Sampler|	$\checkmark$|||
 |MAF Sampler, IAF Sampler|	$\checkmark$|||
