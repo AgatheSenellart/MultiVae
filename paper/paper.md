@@ -65,7 +65,7 @@ Multimodal Variational Autoencoders aim at solving both issues at the same time.
 Let $X = (x_1, x_2, ... x_M)$ contain $M$ modalities. In the VAE setting, we suppose that the generative process behind the observed data is the following:
 \begin{align}
 &z \sim p(z) 
-& \text{and}
+& \text{   and   }
 & \forall 1 \leq i \leq M, x_i|z \sim p_{\theta}(x_i|z)\,,
 \end{align}
 where $p(z)$ is a prior distribution that is often fixed, and $p_{\theta}(x_i|z)$ are called *decoders* and are parameterized by neural network. 
