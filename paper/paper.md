@@ -11,10 +11,13 @@ authors:
     orcid: 0000-0000-0000-0000
     corresponding: true
     equal-contrib: true
-    affiliation: "1, 2" # (Multiple affiliations must be quoted)
+    affiliation: "1, 2, 3" # (Multiple affiliations must be quoted)
+  - name: Clément Chadebec
+    equal-contrib: false # (This is how you can denote equal contributions between multiple authors)
+    affiliation: "1, 2, 3"
   - name: Stéphanie Allassonnière
     equal-contrib: false # (This is how you can denote equal contributions between multiple authors)
-    affiliation: 2
+    affiliation: "1, 2, 3"
   
 affiliations:
  - name: Université de Paris-Cité
@@ -59,7 +62,19 @@ In Multimodal Machine Learning, two goals are generally targeted:
 (2) Learn to generate one missing modality given the ones that are available.
 
 Multimodal Variational Autoencoders aim at solving both issues at the same time. These models learn a latent representation $z$ of all modalities in a lower dimensional common space and learn to *decode* $z$ to generate any modality.  
-Let $X = (x_1, x_2, ... x_M)$ contain $M$ modalities. In the VAE setting, we define an *encoder* distribution $q_{\phi}(z|X)$ projecting the observations to the latent space, and decoders distributions $(p_{\theta}(x_i|z))_{1 \leq i \leq M}$ translating the latent code $z$ back to the observations. Those distributions are parameterized by neural networks that we train using variational inference. See [@kingma] to learn more about the VAE framework and [@suzuki_survey_2022] for a survey on multimodal VAEs. 
+Let $X = (x_1, x_2, ... x_M)$ contain $M$ modalities. In the VAE setting, we suppose that the generative process behind the observed data is the following:
+\begin{align}
+&z \sim p(z) 
+& \text{and}
+& \forall 1 \leq i \leq M, x_i|z \sim p_{\theta}(x_i|z)\,,
+\end{align}
+where $p(z)$ is a prior distribution that is often fixed, and $p_{\theta}(x_i|z)$ are called *decoders* and are parameterized by neural network. 
+Typically, $p_{\theta}(x_i|z) = \mathcal{N}(x_i; \mu_{\theta}(z), \sigma_{\theta}(z))$ where $\mu_{\theta}, \sigma_{\theta}$ are neural networks.
+We aim to learn these *decoders* that translate $z$ into the high dimensional data $x_i$. At the same time, we aim to learn an *encoder* $q_{\phi}(z|X)$ that map observations to the latent space. $q_{\phi}(z|X)$ is also parameterized by a neural network. 
+Derived from variational inference [@kingma], the VAE objective writes:
+$$\mathcal{L}(X) =  \mathbb{E}_{q_\phi(z|X)}\left( \sum_i \ln(p_{\theta}(x_i|z)) \right) - KL(q_{\phi}(z|X)|p(z))$$.
+
+The first term is a reconstruction loss and the second term can be seen as a regularization term that avoids overfitting. A typical training step of a multimodal VAE consists in encoding the data with the encoder, reconstructing each modality with the decoders and taking a gradient step to optimize the loss $\mathcal{L}(X)$. 
 
 Most multimodal VAEs differ in how they construct the encoder $q_{\phi}(z|X)$. In the figure below, we summarize several approaches:
 *Aggregated models* [@wu:2018; @shi:2019; @sutter:2021] use a mean or a product operation to aggregate the information coming from all modalities, where *Joint models* [@suzuki:2016; @vedantam:2018; @senellart:2023] use a neural network taking all modalities as input. Finally *coordinated models* [@dvcca; @tian:2019] use different latent spaces but add a constraint term in the loss to force them to be similar. 
