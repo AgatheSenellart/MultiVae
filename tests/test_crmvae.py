@@ -9,7 +9,7 @@ from pythae.models.base.base_utils import ModelOutput
 
 from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
 from multivae.models.auto_model.auto_model import AutoModel
-from multivae.models.crmvae import CRMVAEConfig, CRMVAE
+from multivae.models.crmvae import CRMVAE, CRMVAEConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
 from multivae.trainers.base.base_trainer import BaseTrainer
 from multivae.trainers.base.base_trainer_config import BaseTrainerConfig
@@ -129,11 +129,9 @@ class Test_model:
         assert Y.mod1.shape == (len(dataset) * 10, 2)
         assert Y.mod2.shape == (len(dataset) * 10, 3)
 
-
-
     def test_backward_with_missing(self, model, dataset):
         """Check that the grad with regard to missing modalities is null"""
-        if hasattr(dataset, 'masks'):
+        if hasattr(dataset, "masks"):
 
             output = model(dataset[-3:], epoch=2)
             loss = output.loss
@@ -146,8 +144,6 @@ class Test_model:
             loss.backward()
             for param in model.encoders["mod1"].parameters():
                 assert not torch.all(param.grad == 0)
-
-           
 
 
 @pytest.mark.slow

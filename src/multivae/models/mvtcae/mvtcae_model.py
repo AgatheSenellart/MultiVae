@@ -123,9 +123,7 @@ class MVTCAE(BaseMultiVAE):
             # For unavailable samples, set the log-variance to infty so that they don't contribute to the
             # product of experts
             if hasattr(inputs, "masks"):
-                output.log_covariance[~inputs.masks[m_key].bool()] = (
-                    torch.inf
-                )
+                output.log_covariance[~inputs.masks[m_key].bool()] = torch.inf
             encoders_outputs[m_key] = output
 
         return encoders_outputs
@@ -142,7 +140,6 @@ class MVTCAE(BaseMultiVAE):
     def ivw_fusion(self, mus: torch.Tensor, logvars: torch.Tensor, weights=None):
         mu_poe, logvar_poe = self.poe(mus, logvars)
         return [mu_poe, logvar_poe]
-
 
     def inference(self, inputs: MultimodalBaseDataset, **kwargs):
         """
@@ -238,18 +235,20 @@ class MVTCAE(BaseMultiVAE):
         batch_size_K: int = 100,
     ):
         self.eval()
-        if hasattr(inputs, 'masks'):
+        if hasattr(inputs, "masks"):
             raise AttributeError(
-                "The compute_joint_nll method is not yet implemented for incomplete datasets.")
-        
+                "The compute_joint_nll method is not yet implemented for incomplete datasets."
+            )
 
         # Compute the parameters of the joint posterior
         mu, log_var = self.inference(inputs)["joint"]
         sigma = torch.exp(0.5 * log_var)
         qz_xy = dist.Normal(mu, sigma)
-        
+
         # Sample K latents from the joint posterior
-        z_joint = qz_xy.rsample([K]).permute(1, 0, 2)  # shape :  n_data x K x latent_dim
+        z_joint = qz_xy.rsample([K]).permute(
+            1, 0, 2
+        )  # shape :  n_data x K x latent_dim
         n_data, _, _ = z_joint.shape
 
         # Then iter on each datapoint to compute the iwae estimate of ln(p(x))
@@ -262,7 +261,7 @@ class MVTCAE(BaseMultiVAE):
                 latents = z_joint[i][start_idx:stop_idx]
 
                 # Compute p(x_m|z) for z in latents and for each modality m
-                lpx_zs = 0  
+                lpx_zs = 0
                 for mod in inputs.data:
                     decoder = self.decoders[mod]
                     recon = decoder(latents)[

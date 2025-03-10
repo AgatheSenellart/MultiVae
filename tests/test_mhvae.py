@@ -8,7 +8,7 @@ import torch
 from pytest import fixture, mark
 from torch import nn
 
-from multivae.data import MultimodalBaseDataset, IncompleteDataset
+from multivae.data import IncompleteDataset, MultimodalBaseDataset
 from multivae.models.auto_model import AutoModel
 from multivae.models.base import BaseDecoder, BaseEncoder, ModelOutput
 from multivae.models.mhvae import MHVAE, MHVAEConfig
@@ -219,22 +219,23 @@ class posterior_block(BaseEncoder):
 
 class Test_MHVAE:
 
-    @fixture(params=['complete', 'incomplete'])
+    @fixture(params=["complete", "incomplete"])
     def dataset(self, request):
-        if request.param == 'complete':
+        if request.param == "complete":
             return MultimodalBaseDataset(
-            data=dict(
-                m1=torch.randn((100, 3, 28, 28)), m0=torch.randn((100, 3, 28, 28))
+                data=dict(
+                    m1=torch.randn((100, 3, 28, 28)), m0=torch.randn((100, 3, 28, 28))
+                )
             )
-        )
         else:
             return IncompleteDataset(
-            data=dict(
-                m1=torch.randn((100, 3, 28, 28)), m0=torch.randn((100, 3, 28, 28))
-            ), 
-            masks = {'m1': torch.Tensor([True]*50 + [False]*50), 
-                     'm0': torch.Tensor([True]*100)
-            }
+                data=dict(
+                    m1=torch.randn((100, 3, 28, 28)), m0=torch.randn((100, 3, 28, 28))
+                ),
+                masks={
+                    "m1": torch.Tensor([True] * 50 + [False] * 50),
+                    "m0": torch.Tensor([True] * 100),
+                },
             )
 
     @fixture(
@@ -498,31 +499,44 @@ class Test_MHVAE:
         assert output.m1.shape == samples.data["m1"].shape
 
         return
-    
-   
+
     def test_no_gradient_towards_missing_mods(self, model, dataset):
-        if hasattr(dataset, 'masks'):
+        if hasattr(dataset, "masks"):
             # Compute loss on incomplete data
             loss = model(dataset[50:]).loss.sum()
 
             loss.backward()
 
-            assert  all([torch.all(parameter.grad == 0) for parameter in model.encoders['m1'].parameters()])
-            assert  all([torch.all(parameter.grad == 0) for parameter in model.decoders['m1'].parameters()])
+            assert all(
+                [
+                    torch.all(parameter.grad == 0)
+                    for parameter in model.encoders["m1"].parameters()
+                ]
+            )
+            assert all(
+                [
+                    torch.all(parameter.grad == 0)
+                    for parameter in model.decoders["m1"].parameters()
+                ]
+            )
 
-            
             # Compute loss on complete data
             loss = model(dataset[:50]).loss.sum()
 
             loss.backward()
 
-            assert not all([torch.all(parameter.grad == 0) for parameter in model.encoders['m1'].parameters()])
-            assert not all([torch.all(parameter.grad == 0) for parameter in model.decoders['m1'].parameters()])
-
-            
-
-        
-
+            assert not all(
+                [
+                    torch.all(parameter.grad == 0)
+                    for parameter in model.encoders["m1"].parameters()
+                ]
+            )
+            assert not all(
+                [
+                    torch.all(parameter.grad == 0)
+                    for parameter in model.decoders["m1"].parameters()
+                ]
+            )
 
     @fixture(params=[[32, 64, 3, "Adagrad"], [16, 16, 4, "Adam"]])
     def trainer_config(self, request):
@@ -549,7 +563,6 @@ class Test_MHVAE:
             eval_dataset=dataset,
             training_config=trainer_config,
         )
-    
 
     @mark.slow
     def test_train_step(self, trainer):

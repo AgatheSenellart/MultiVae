@@ -79,10 +79,11 @@ class BaseJointModel(BaseMultiVAE):
         Args:
             inputs : the data to compute the joint likelihood"""
         self.eval()
-        if hasattr(inputs, 'masks'):
+        if hasattr(inputs, "masks"):
             raise AttributeError(
-                "The compute_joint_nll method is not yet implemented for incomplete datasets.")
-        
+                "The compute_joint_nll method is not yet implemented for incomplete datasets."
+            )
+
         # Compute the parameters of the joint posterior
         joint_output = self.joint_encoder(inputs.data)
         mu, log_var = joint_output.embedding, joint_output.log_covariance
@@ -103,7 +104,7 @@ class BaseJointModel(BaseMultiVAE):
                 latents = z_joint[i][start_idx:stop_idx]
 
                 # Compute ln p(x_m|z) for z in latents and for each modality m
-                lpx_zs = 0  
+                lpx_zs = 0
                 for mod in inputs.data:
                     decoder = self.decoders[mod]
                     recon = decoder(latents)[

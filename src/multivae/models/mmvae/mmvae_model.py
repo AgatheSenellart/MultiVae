@@ -371,7 +371,7 @@ class MMVAE(BaseMultiVAE):
                 z = z.reshape(-1, self.latent_dim)
 
             return ModelOutput(z=z, one_latent_space=True)
-        
+
     @torch.no_grad()
     def compute_joint_nll(
         self, inputs: MultimodalBaseDataset, K: int = 1000, batch_size_K: int = 100
@@ -386,10 +386,10 @@ class MMVAE(BaseMultiVAE):
         """
 
         self.eval()
-        if hasattr(inputs, 'masks'):
+        if hasattr(inputs, "masks"):
             raise AttributeError(
-                "The compute_joint_nll method is not yet implemented for incomplete datasets.")
-        
+                "The compute_joint_nll method is not yet implemented for incomplete datasets."
+            )
 
         # Compute all the parameters of the joint posterior q(z|x_1), q(z|x_2), ...
         post_params = []
@@ -413,7 +413,7 @@ class MMVAE(BaseMultiVAE):
                 latents = z_joint[i][start_idx:stop_idx]
 
                 # Compute ln p(x_m|z) for z in latents and for each modality m
-                lpx_zs = 0  
+                lpx_zs = 0
                 for mod in inputs.data:
                     decoder = self.decoders[mod]
                     recon = decoder(latents)[

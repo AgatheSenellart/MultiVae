@@ -101,7 +101,7 @@ class AutoModel(nn.Module):
             from ..cmvae import CMVAE
 
             model = CMVAE.load_from_folder(dir_path)
-        
+
         elif model_name == "CRMVAEConfig":
             from ..crmvae import CRMVAE
 
@@ -218,7 +218,7 @@ class AutoModel(nn.Module):
             from ..mhvae import MHVAE
 
             model = MHVAE.load_from_hf_hub(hf_hub_path, allow_pickle)
-        
+
         elif model_name == "CRMVAEConfig":
             from ..crmvae import CRMVAE
 

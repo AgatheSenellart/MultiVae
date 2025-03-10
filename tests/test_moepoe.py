@@ -322,7 +322,7 @@ class TestTraining:
             encoders=encoders,
             decoders=decoders,
         )
-    
+
     @pytest.fixture(params=[None, dict(mod1=1, mod2=2, mod3=3, mod4=3)])
     def modalities_specific_dims(self, request):
         return request.param
@@ -334,8 +334,7 @@ class TestTraining:
             latent_dim=5,
             input_dims=dict(mod1=(2,), mod2=(3,), mod3=(4,), mod4=(4,)),
             beta=request.param,
-            modalities_specific_dim=modalities_specific_dims
-
+            modalities_specific_dim=modalities_specific_dims,
         )
 
         return model_config
@@ -583,7 +582,7 @@ class TestTraining:
 
     def test_compute_nll(self, model, dataset):
 
-        if hasattr(dataset,'masks'):
+        if hasattr(dataset, "masks"):
             with pytest.raises(AttributeError):
                 nll = model.compute_joint_nll(dataset, K=10, batch_size_K=6)
         else:
@@ -593,7 +592,7 @@ class TestTraining:
             assert nll.size() == torch.Size([])
 
     def test_compute_joint_nll_from_subset_encoding(self, model, dataset):
-        
+
         nll = model._compute_joint_nll_from_subset_encoding(
             ["mod1", "mod2"], dataset, K=10, batch_size_K=6
         )

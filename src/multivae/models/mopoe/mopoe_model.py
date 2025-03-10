@@ -152,9 +152,7 @@ class MoPoE(BaseMultiVAE):
         results = dict()
 
         # Get the embeddings for shared latent space
-        shared_embeddings = self._rsample(
-            latents["joint"][0], latents["joint"][1]
-        )
+        shared_embeddings = self._rsample(latents["joint"][0], latents["joint"][1])
         len_batch = shared_embeddings.shape[0]
 
         # Compute the divergence to the prior
@@ -377,7 +375,7 @@ class MoPoE(BaseMultiVAE):
     ) -> ModelOutput:
         """
         Generate encodings conditioning on all modalities or a subset of modalities.
-        We use the product of experts on the conditioning modalities. 
+        We use the product of experts on the conditioning modalities.
 
         Args:
             inputs (MultimodalBaseDataset): The dataset to use for the conditional generation.
@@ -519,29 +517,31 @@ class MoPoE(BaseMultiVAE):
         """
 
         self.eval()
-        if hasattr(inputs, 'masks'):
+        if hasattr(inputs, "masks"):
             raise AttributeError(
-                "The compute_joint_nll method is not yet implemented for incomplete datasets.")
-        
+                "The compute_joint_nll method is not yet implemented for incomplete datasets."
+            )
 
         # Compute the parameters of each subset posterior
         infer = self.inference(inputs)
-        mu, log_var = infer["joint"] # a random subset is selected for each sample
+        mu, log_var = infer["joint"]  # a random subset is selected for each sample
         mus_subset = infer["mus"]
         log_vars_subset = infer["logvars"]
-        
+
         # And sample from the posterior
         z_joint = self._rsample(mu, log_var, K)  # shape K x n_data x latent_dim
         z_joint = z_joint.permute(1, 0, 2)
         n_data, _, _ = z_joint.shape
 
         # If using multiple latent spaces, sample from the private latent spaces as well
-        private_params={}
+        private_params = {}
         private_zs = {}
         if self.multiple_latent_spaces:
             for mod in inputs.data:
-                private_params[mod] = (infer["modalities"][mod].style_embedding,
-                infer["modalities"][mod].style_log_covariance)
+                private_params[mod] = (
+                    infer["modalities"][mod].style_embedding,
+                    infer["modalities"][mod].style_log_covariance,
+                )
                 style_embeddings = self._rsample(*private_params[mod], K)
                 private_zs[mod] = style_embeddings
 
@@ -555,12 +555,10 @@ class MoPoE(BaseMultiVAE):
                 latents = z_joint[i][start_idx:stop_idx]
 
                 # Compute ln p(x_m|z) for z in latents and for each modality m
-                lpx_zs = 0  
+                lpx_zs = 0
                 for mod in inputs.data:
                     if self.multiple_latent_spaces:
-                        full_embedding = torch.cat(
-                            [latents, private_zs[mod]], dim=-1
-                        )
+                        full_embedding = torch.cat([latents, private_zs[mod]], dim=-1)
                     else:
                         full_embedding = latents
                     decoder = self.decoders[mod]
@@ -583,8 +581,8 @@ class MoPoE(BaseMultiVAE):
 
                 # If we are using modalities specific latent spaces add the modalities priors
                 if self.multiple_latent_spaces:
-                    for mod in inputs.data: 
-                        lpz += dist.Normal(0,1).log_prob(private_zs[mod]).sum(dim=-1)
+                    for mod in inputs.data:
+                        lpz += dist.Normal(0, 1).log_prob(private_zs[mod]).sum(dim=-1)
 
                 # Compute posteriors -ln(q(z|x,y) = -ln (1/S \sum q(z|x_s))
                 qz_xs = [
@@ -650,12 +648,14 @@ class MoPoE(BaseMultiVAE):
         n_data, _, _ = z_joint.shape
 
         # If using multiple latent spaces, sample from the private latent spaces as well
-        private_params={}
+        private_params = {}
         private_zs = {}
         if self.multiple_latent_spaces:
             for mod in inputs.data:
-                private_params[mod] = (infer["modalities"][mod].style_embedding,
-                infer["modalities"][mod].style_log_covariance)
+                private_params[mod] = (
+                    infer["modalities"][mod].style_embedding,
+                    infer["modalities"][mod].style_log_covariance,
+                )
                 style_embeddings = self._rsample(*private_params[mod], K)
                 private_zs[mod] = style_embeddings
 
@@ -692,12 +692,11 @@ class MoPoE(BaseMultiVAE):
 
                 # If we are using modalities specific latent spaces add the modalities priors
                 if self.multiple_latent_spaces:
-                    for mod in inputs.data: 
-                        lpz += dist.Normal(0,1).log_prob(private_zs[mod]).sum(dim=-1)
-
+                    for mod in inputs.data:
+                        lpz += dist.Normal(0, 1).log_prob(private_zs[mod]).sum(dim=-1)
 
                 # Compute posteriors -ln(q(z|x,y))
-                qz_xy = dist.Normal(mu[i], torch.exp(0.5*log_var[i]))
+                qz_xy = dist.Normal(mu[i], torch.exp(0.5 * log_var[i]))
                 lqz_xy = qz_xy.log_prob(latents).sum(dim=-1)
 
                 # If using multiple latent spaces, add the modalities specific posteriors
@@ -725,7 +724,7 @@ class MoPoE(BaseMultiVAE):
     ):
         """Estimates the negative joint likelihood using the PoE posterior as importance sampling distribution.
         The result is summed over the input batch.
-        
+
         This is the method used in the original paper implementation."""
         entire_subset = list(self.encoders.keys())
         return self._compute_joint_nll_from_subset_encoding(

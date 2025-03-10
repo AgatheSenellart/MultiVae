@@ -28,55 +28,59 @@ class CRMVAE(BaseMultiVAE):
         self.model_name = "CRMVAE"
 
     def _logits_to_scale(self, logits):
-        return torch.exp(0.5*logits), logits
+        return torch.exp(0.5 * logits), logits
 
-    def _rsample(self,latent_params: ModelOutput, size=None):
+    def _rsample(self, latent_params: ModelOutput, size=None):
         mean = latent_params.embedding
         scale, log_var = self._logits_to_scale(latent_params.log_covariance)
         if size is None:
             return mean, log_var, dist.Normal(mean, scale).rsample()
         return mean, log_var, dist.Normal(mean, scale).rsample(size)
 
-
     def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
 
         # Compute latents parameters for q(z|x_i) and q(z|X)
         latents = self._infer_all_latent_parameters(inputs)
         results = {}
-        z_samples = {} # for reconstruction
-        
+        z_samples = {}  # for reconstruction
+
         # Sample from q(z|X)
-        joint_mu, joint_logvar, shared_embeddings = self._rsample(latents['joint'])
-        z_samples['joint'] = shared_embeddings
+        joint_mu, joint_logvar, shared_embeddings = self._rsample(latents["joint"])
+        z_samples["joint"] = shared_embeddings
 
         # Compute the KL(q(z|X)|p(z)). p(z) is a normal distribution N(0,I)
-        joint_kld = kl_divergence(joint_mu, joint_logvar,torch.zeros_like(joint_mu), torch.zeros_like(joint_logvar))
-        results["joint_divergence"]  = joint_kld.mean()
+        joint_kld = kl_divergence(
+            joint_mu,
+            joint_logvar,
+            torch.zeros_like(joint_mu),
+            torch.zeros_like(joint_logvar),
+        )
+        results["joint_divergence"] = joint_kld.mean()
         divergence = joint_kld
 
         # Sample from each unimodal posterior q(z|x_i) and compute KL(q(z|X)|q(z|x_i))
         for m, latent_params in latents["modalities_no_mask"].items():
             mu, log_var, embeddings = self._rsample(latent_params)
-            z_samples[m]=embeddings
+            z_samples[m] = embeddings
 
             # Compute KL(q(z|X) | q(z|x_i))
-            results[f'kl_{m}'] = kl_divergence(joint_mu, joint_logvar, mu, log_var)
+            results[f"kl_{m}"] = kl_divergence(joint_mu, joint_logvar, mu, log_var)
 
             # Remove unavailable samples
             if hasattr(inputs, "masks"):
-                results[f'kl_{m}'] = results[f'kl_{m}'] * inputs.masks[m].float()
+                results[f"kl_{m}"] = results[f"kl_{m}"] * inputs.masks[m].float()
 
-            divergence += results[f'kl_{m}']
-            results[f'kl_{m}'] = results[f'kl_{m}'].mean()
+            divergence += results[f"kl_{m}"]
+            results[f"kl_{m}"] = results[f"kl_{m}"].mean()
 
         # Compute E_{q(z|X)} log p(x_i|z) + E_{q(z|x_i)}(log p(x_i|z))
         loss_rec = 0
         for gen_mod, decoder in self.decoders.items():
 
-            for m in ['joint', gen_mod]:
-            # for m in ['joint']:
+            for m in ["joint", gen_mod]:
+                # for m in ['joint']:
                 z = z_samples[m]
-                
+
                 recon = decoder(z).reconstruction
                 # apply rescaling factors is any are available
                 m_rec = (
@@ -86,19 +90,18 @@ class CRMVAE(BaseMultiVAE):
                 m_rec = m_rec.reshape(m_rec.size(0), -1).sum(-1)
 
                 # Cancel out unavailable samples in the reconstruction
-                if hasattr(inputs, "masks") :
+                if hasattr(inputs, "masks"):
                     m_rec = inputs.masks[gen_mod].float() * m_rec
 
                 loss_rec += m_rec
-                #Save metric for monitoring
-                results[f'recon_{gen_mod}_from_{m}'] = m_rec.mean()
+                # Save metric for monitoring
+                results[f"recon_{gen_mod}_from_{m}"] = m_rec.mean()
 
         # Average accross the posteriors : TODO (average over available posteriors only ?)
-        loss_rec = loss_rec /(2*(self.n_modalities + 1))
+        loss_rec = loss_rec / (2 * (self.n_modalities + 1))
         divergence = divergence / (self.n_modalities + 1)
 
         total_loss = loss_rec + self.model_config.beta * divergence
-        
 
         return ModelOutput(
             loss=total_loss.sum(), loss_sum=total_loss.sum(), metrics=results
@@ -122,12 +125,14 @@ class CRMVAE(BaseMultiVAE):
             output = self.encoders[m](data_m)
             # For unavailable samples, set the log-variance to infty so that they don't contribute to the
             # product of experts
-            encoders_outputs[m]= output
-            masked_outputs[m] = ModelOutput(embedding = output.embedding, log_covariance = output.log_covariance.clone())
+            encoders_outputs[m] = output
+            masked_outputs[m] = ModelOutput(
+                embedding=output.embedding, log_covariance=output.log_covariance.clone()
+            )
             if hasattr(inputs, "masks"):
-                masked_outputs[m].log_covariance[(1 - inputs.masks[m].int()).bool()] = (
-                    torch.inf
-                )
+                masked_outputs[m].log_covariance[
+                    (1 - inputs.masks[m].int()).bool()
+                ] = torch.inf
         return encoders_outputs, masked_outputs
 
     def _poe(self, mu, logvar, eps=1e-8):
@@ -139,7 +144,6 @@ class CRMVAE(BaseMultiVAE):
         pd_var = 1.0 / torch.sum(T, dim=0)
         pd_logvar = torch.log(pd_var)
         return pd_mu, pd_logvar
-
 
     def _infer_all_latent_parameters(self, inputs: MultimodalBaseDataset, **kwargs):
         """
@@ -174,11 +178,11 @@ class CRMVAE(BaseMultiVAE):
         if len(mus.shape) == 2:
             mus = mus.unsqueeze(1)
             logvars = logvars.unsqueeze(1)
-        
+
         # Compute the PoE and save the result
         joint_mu, joint_logvar = self._poe(mus, logvars)
 
-        latents["joint"] = ModelOutput(embedding = joint_mu, log_covariance=joint_logvar)
+        latents["joint"] = ModelOutput(embedding=joint_mu, log_covariance=joint_logvar)
         return latents
 
     def encode(
@@ -216,12 +220,12 @@ class CRMVAE(BaseMultiVAE):
         latents_subsets = self._infer_all_latent_parameters(cond_inputs)
         sample_shape = [N] if N > 1 else []
 
-        mu, log_var, z = self._rsample(latents_subsets['joint'], size=sample_shape)
+        mu, log_var, z = self._rsample(latents_subsets["joint"], size=sample_shape)
 
         return_mean = kwargs.pop("return_mean", False)
         if return_mean:
             z = torch.stack([mu] * N) if N > 1 else mu
-        
+
         flatten = kwargs.pop("flatten", False)
         if flatten:
             z = z.reshape(-1, self.latent_dim)
@@ -234,21 +238,21 @@ class CRMVAE(BaseMultiVAE):
         inputs: Union[MultimodalBaseDataset, IncompleteDataset],
         K: int = 1000,
         batch_size_K: int = 100,
-    ):  
+    ):
         """
         Return the estimated negative log-likelihood summed over the input batch.
         """
         self.eval()
-        if hasattr(inputs, 'masks'):
+        if hasattr(inputs, "masks"):
             raise AttributeError(
-                "The compute_joint_nll method is not yet implemented for incomplete datasets.")
+                "The compute_joint_nll method is not yet implemented for incomplete datasets."
+            )
         # Compute the parameters of the joint posterior
         joint_params = self._infer_all_latent_parameters(inputs)["joint"]
-        
-        
+
         # Sample K latents from the joint posterior
-        mu, logvar, z_joint = self._rsample(joint_params,size=[K])
-        z_joint = z_joint.permute(1,0,2)  # shape :  n_data x K x latent_dim
+        mu, logvar, z_joint = self._rsample(joint_params, size=[K])
+        z_joint = z_joint.permute(1, 0, 2)  # shape :  n_data x K x latent_dim
         n_data, _, _ = z_joint.shape
 
         # Then iter on each datapoint to compute the iwae estimate of ln(p(x))
@@ -261,7 +265,7 @@ class CRMVAE(BaseMultiVAE):
                 latents = z_joint[i][start_idx:stop_idx]
 
                 # Compute p(x_m|z) for z in latents and for each modality m
-                lpx_zs = 0  
+                lpx_zs = 0
                 for mod in inputs.data:
                     decoder = self.decoders[mod]
                     recon = decoder(latents)[
@@ -282,7 +286,7 @@ class CRMVAE(BaseMultiVAE):
                 lpz = prior.log_prob(latents).sum(dim=-1)
 
                 # Compute posteriors -ln(q(z|X))
-                qz_xy = dist.Normal(mu[i], torch.exp(logvar[i]*0.5))
+                qz_xy = dist.Normal(mu[i], torch.exp(logvar[i] * 0.5))
                 lqz_xy = qz_xy.log_prob(latents).sum(dim=-1)
 
                 ln_px = torch.logsumexp(lpx_zs + lpz - lqz_xy, dim=0)

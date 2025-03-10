@@ -92,7 +92,13 @@ def set_decoder_dist(dist_name, dist_params):
 
     return log_prob
 
-def kl_divergence(mean: torch.Tensor, log_var: torch.Tensor, prior_mean: torch.Tensor, prior_log_var:torch.Tensor):
+
+def kl_divergence(
+    mean: torch.Tensor,
+    log_var: torch.Tensor,
+    prior_mean: torch.Tensor,
+    prior_log_var: torch.Tensor,
+):
     """Compute the Kullback-Leibler between two gaussians.
 
     Args:
@@ -101,22 +107,18 @@ def kl_divergence(mean: torch.Tensor, log_var: torch.Tensor, prior_mean: torch.T
         log_var (torch.Tensor) : log_covariance of the first gaussian
         prior_mean (torch.Tensor) : mean of the second gaussian
         prior_log_var (torch.Tensor) : log_covariance of the second gaussian
-    
+
     Returns:
 
         torch.Tensor
-        """
+    """
 
-    kl = (
-        0.5
-        * (
-            prior_log_var
-            - log_var
-            - 1
-            + torch.exp(log_var-prior_log_var)
-            + ((mean - prior_mean) ** 2)/torch.exp(prior_log_var)
-        )
-        
+    kl = 0.5 * (
+        prior_log_var
+        - log_var
+        - 1
+        + torch.exp(log_var - prior_log_var)
+        + ((mean - prior_mean) ** 2) / torch.exp(prior_log_var)
     )
 
     return kl.sum(dim=-1)

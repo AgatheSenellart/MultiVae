@@ -113,16 +113,16 @@ class MHVAE(BaseMultiVAE):
         for i in range(1, self.n_modalities + 1):
             subsets += combinations(list(self.encoders.keys()), r=i)
         return subsets
-    
-    def _adapt_log_var_to_missing_data(self,dict_params, inputs):
+
+    def _adapt_log_var_to_missing_data(self, dict_params, inputs):
         """
-        For incomplete datasets, we set the variance of missing modalities posterior to infinity 
+        For incomplete datasets, we set the variance of missing modalities posterior to infinity
         so that it doesn't contribute to the PoE.
         Returns:
             list of mean
             list of variance
         """
-        if hasattr(inputs, 'masks') :
+        if hasattr(inputs, "masks"):
             for m, item in dict_params.items():
                 item.log_covariance[~inputs.masks[m].bool()] = torch.inf
         list_means = [dict_params[m].embedding for m in dict_params]
@@ -144,10 +144,12 @@ class MHVAE(BaseMultiVAE):
             z_dict (Dict[str, torch.Tensor]): dictionary containing all the latent variables at each level.
             kl_dict (Dict[str, torch.Tensor]): dictionary containing all the KL divergences at each level.
         """
-        # Only keep the modalities in subset 
-        z_deepest_params_subset = {m:z_deepest_params[m] for m in subset}
-        # For missing modalities in the dataset, we set the variance to infty 
-        list_mus, list_log_vars = self._adapt_log_var_to_missing_data(z_deepest_params_subset, inputs)
+        # Only keep the modalities in subset
+        z_deepest_params_subset = {m: z_deepest_params[m] for m in subset}
+        # For missing modalities in the dataset, we set the variance to infty
+        list_mus, list_log_vars = self._adapt_log_var_to_missing_data(
+            z_deepest_params_subset, inputs
+        )
 
         list_mus.append(torch.zeros_like(list_mus[0]))  # add the prior p(z_L) mean = 0
 
@@ -187,9 +189,11 @@ class MHVAE(BaseMultiVAE):
                 concat = torch.cat([h, d], dim=1)  # concatenate on the channels
 
                 zl_params[mod] = self._get_posterior_block(mod, i - 1)(concat)
-            
+
             # For missing modalities, we set variance to infty
-            list_mus, list_log_vars = self._adapt_log_var_to_missing_data(zl_params, inputs)
+            list_mus, list_log_vars = self._adapt_log_var_to_missing_data(
+                zl_params, inputs
+            )
             # Add the prior to the product of experts
             list_mus.append(prior_params.embedding)
             list_log_vars.append(prior_params.log_covariance)
@@ -203,7 +207,7 @@ class MHVAE(BaseMultiVAE):
 
             # Compute KL(q(z_l | x, z>l)|p(z_l|z>l))
             kl_dict[f"kl_{i}"] = kl_divergence(
-                joint_mu, joint_lv,prior_params.embedding, prior_params.log_covariance
+                joint_mu, joint_lv, prior_params.embedding, prior_params.log_covariance
             ).sum()
 
         return z_dict, kl_dict
@@ -235,7 +239,7 @@ class MHVAE(BaseMultiVAE):
         """
 
         # get all the latent variables and KLs in the hierarchy
-        z_dict, kl_dict = self.subset_encode(z_l_deepest_params, skips, subset,inputs)
+        z_dict, kl_dict = self.subset_encode(z_l_deepest_params, skips, subset, inputs)
 
         # Reconstruct all modalities using z_1
         recon_loss = 0
@@ -250,8 +254,8 @@ class MHVAE(BaseMultiVAE):
             mod_loss = mod_loss.reshape(mod_loss.shape[0], -1).sum(-1)
 
             # We don't reconstruct missing modalities
-            if hasattr(inputs, 'masks'):
-                mod_loss = mod_loss*inputs.masks[mod]
+            if hasattr(inputs, "masks"):
+                mod_loss = mod_loss * inputs.masks[mod]
 
             recon_loss += mod_loss.sum()
 
@@ -317,10 +321,10 @@ class MHVAE(BaseMultiVAE):
 
                 skips[mod] = [torch.cat([t] * N, dim=0) for t in skips[mod]]
 
-        if hasattr(inputs, 'masks') and N>1:
+        if hasattr(inputs, "masks") and N > 1:
             masks = inputs.masks.copy()
-            inputs.masks = {m: torch.cat([masks[m]]*N,dim=0) for m in masks}
-        
+            inputs.masks = {m: torch.cat([masks[m]] * N, dim=0) for m in masks}
+
         z_dict, _ = self.subset_encode(z_ls_params, skips, cond_mod, inputs)
 
         flatten = kwargs.pop("flatten", False)
@@ -329,8 +333,8 @@ class MHVAE(BaseMultiVAE):
             for k in z_dict:
 
                 z_dict[k] = z_dict[k].reshape(N, n_data, *z_dict[k].shape[1:])
-        
-        if hasattr(inputs, 'masks') and N>1:
+
+        if hasattr(inputs, "masks") and N > 1:
             inputs.masks = masks
 
         return ModelOutput(z=z_dict["z_1"], all_z=z_dict, one_latent_space=True)

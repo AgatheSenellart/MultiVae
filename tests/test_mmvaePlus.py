@@ -500,7 +500,7 @@ class TestTraining:
 
     def test_compute_nll(self, model, dataset):
 
-        if not hasattr(dataset,'masks'):
+        if not hasattr(dataset, "masks"):
             nll = model.compute_joint_nll(dataset, K=10, batch_size_K=6)
             assert nll >= 0
             assert type(nll) == torch.Tensor

@@ -196,7 +196,6 @@ class DMVAE(BaseMultiVAE):
 
         return ModelOutput(loss=loss.mean(), metrics=metrics)
 
-
     def _compute_elbo(self, q_mu, q_lv, private_params, inputs):
         sigma = torch.exp(0.5 * q_lv)
         shared_z = dist.Normal(q_mu, sigma).rsample()
@@ -233,9 +232,7 @@ class DMVAE(BaseMultiVAE):
         # Add the modality specific kls
         for mod in self.encoders:
             mu, lv = private_params[mod]
-            kl_mod = kl_divergence(
-                mu, lv, torch.zeros_like(mu), torch.zeros_like(lv)
-            )
+            kl_mod = kl_divergence(mu, lv, torch.zeros_like(mu), torch.zeros_like(lv))
 
             kl_mod = kl_mod.reshape(kl_mod.size(0), -1).sum(-1)
 

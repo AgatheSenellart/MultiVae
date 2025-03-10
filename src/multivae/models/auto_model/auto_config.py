@@ -87,7 +87,7 @@ class AutoConfig(BaseConfig):
             from ..cmvae import CMVAEConfig
 
             model_config = CMVAEConfig.from_json_file(json_path)
-        
+
         elif config_name == "CRMVAEConfig":
             from ..crmvae import CRMVAEConfig
 
