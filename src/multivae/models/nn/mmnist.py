@@ -158,14 +158,14 @@ class EncoderConvMMNIST_multilatents(BaseEncoder):
         output = ModelOutput()
         # content branch
         h_class = self.encoder_class(x)
-        output["embedding"] = self.class_mu(h_class).squeeze()
-        output["log_covariance"] = self.class_logvar(h_class).squeeze()
+        output["embedding"] = self.class_mu(h_class).squeeze(-1, -2)
+        output["log_covariance"] = self.class_logvar(h_class).squeeze(-1,-2)
 
         if self.style_dim > 0:
             # style branch
             h_style = self.encoder_style(x)
-            output["style_embedding"] = self.style_mu(h_style).squeeze()
-            output["style_log_covariance"] = self.style_logvar(h_style).squeeze()
+            output["style_embedding"] = self.style_mu(h_style).squeeze(-1,-2)
+            output["style_log_covariance"] = self.style_logvar(h_style).squeeze(-1,-2)
 
         return output
 

@@ -731,3 +731,41 @@ class CMVAE(BaseMultiVAE):
                 m: model_config.modalities_specific_dim for m in model_config.input_dims
             },
         )
+    @torch.no_grad()
+    def compute_joint_nll(self, inputs, K = 1000, batch_size_K = 100):
+        """Estimate the negative joint likelihood. """
+        
+        self.eval()
+        if hasattr(inputs, 'masks'):
+            raise AttributeError(
+                "The compute_joint_nll method is not yet implemented for incomplete datasets.")
+        
+        n_data = len(inputs.data.popitem()[1]) # number of samples in the dataset
+
+        # set the rescale factors to one and beta to one while computing the joint likelihood
+        rescale_factors, self.rescale_factors = self.rescale_factors.copy(),{m: 1 for m in self.rescale_factors}
+        beta,self.model_config.beta = self.model_config.beta, 1
+
+        ll = 0
+        for i in range(n_data):
+            inputs_i = MultimodalBaseDataset(data={m: inputs.data[m][i].unsqueeze(0) for m in inputs.data})
+            k_iwae = K // self.n_modalities # number of samples per modality
+            posteriors, embeddings, reconstructions =  self._compute_posteriors_and_embeddings(inputs_i, detach=False, K=k_iwae)
+            
+            lws, embeddings, _ = self._compute_k_lws(posteriors, embeddings, reconstructions, inputs_i)
+
+            # aggregate by taking the logsumexp on all lws element
+            lws = torch.cat(list(lws.values()), dim=0)  # n_modalities*K, n_batch
+
+            # Take log_mean_exp on all samples
+            ll+= torch.logsumexp(lws, dim=0) - math.log(
+                lws.size(0)
+            )  # n_batch
+
+        # revert the changes made for the rescale factors and beta
+        self.rescale_factors = rescale_factors
+        self.model_config.beta = beta
+
+        return -ll.sum()
+
+            

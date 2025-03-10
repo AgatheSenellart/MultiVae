@@ -322,14 +322,20 @@ class TestTraining:
             encoders=encoders,
             decoders=decoders,
         )
+    
+    @pytest.fixture(params=[None, dict(mod1=1, mod2=2, mod3=3, mod4=3)])
+    def modalities_specific_dims(self, request):
+        return request.param
 
     @pytest.fixture(params=[0.5, 1.0, 2.0])
-    def model_config(self, request):
+    def model_config(self, request, modalities_specific_dims):
         model_config = MoPoEConfig(
             n_modalities=4,
             latent_dim=5,
             input_dims=dict(mod1=(2,), mod2=(3,), mod3=(4,), mod4=(4,)),
             beta=request.param,
+            modalities_specific_dim=modalities_specific_dims
+
         )
 
         return model_config
@@ -576,13 +582,19 @@ class TestTraining:
         assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
 
     def test_compute_nll(self, model, dataset):
-        nll = model.compute_joint_nll(dataset, K=10, batch_size_K=6)
-        assert nll >= 0
-        assert type(nll) == torch.Tensor
-        assert nll.size() == torch.Size([])
+
+        if hasattr(dataset,'masks'):
+            with pytest.raises(AttributeError):
+                nll = model.compute_joint_nll(dataset, K=10, batch_size_K=6)
+        else:
+            nll = model.compute_joint_nll(dataset, K=10, batch_size_K=6)
+            assert nll >= 0
+            assert type(nll) == torch.Tensor
+            assert nll.size() == torch.Size([])
 
     def test_compute_joint_nll_from_subset_encoding(self, model, dataset):
-        nll = model.compute_joint_nll_from_subset_encoding(
+        
+        nll = model._compute_joint_nll_from_subset_encoding(
             ["mod1", "mod2"], dataset, K=10, batch_size_K=6
         )
         assert nll >= 0

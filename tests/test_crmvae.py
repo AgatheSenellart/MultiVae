@@ -90,7 +90,7 @@ class Test_model:
     def test(self, model, dataset, model_config):
 
         # test setup
-        assert model.beta == model_config.beta
+        assert model.model_config == model_config
 
         # test forward
         output = model(dataset, epoch=2)
@@ -485,3 +485,15 @@ class TestTraining:
         assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
         assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
 
+    def test_compute_nll(self, model, dataset):
+        if not hasattr(dataset, "masks"):
+            nll = model.compute_joint_nll(dataset, K=10, batch_size_K=2)
+            assert nll >= 0
+            assert type(nll) == torch.Tensor
+            assert nll.size() == torch.Size([])
+
+            cnll = model.compute_cond_nll(
+                dataset, ["mod1", "mod2"], ["mod3"], k_iwae=10
+            )
+            assert type(cnll) == dict
+            assert "mod3" in cnll.keys()

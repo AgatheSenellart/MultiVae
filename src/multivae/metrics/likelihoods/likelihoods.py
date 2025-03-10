@@ -55,17 +55,18 @@ class LikelihoodsEvaluator(Evaluator):
                 )
 
         joint_nll = ll / len(self.test_loader.dataset)
-        self.logger.info(f"Joint likelihood : {str(joint_nll)}")
+        self.logger.info(f"Mean Joint likelihood : {str(joint_nll)}")
         self.metrics["joint_likelihood"] = joint_nll
         return joint_nll
 
     def joint_nll_from_subset(self, subset):
-        if hasattr(self.model, "compute_joint_nll_from_subset_encoding"):
+        """Only available for the MoPoE model for now."""
+        if hasattr(self.model, "_compute_joint_nll_from_subset_encoding"):
             ll = 0
             nb_batch = 0
             for batch in self.test_loader:
                 batch = set_inputs_to_device(batch, self.device)
-                ll += self.model.compute_joint_nll_from_subset_encoding(
+                ll += self.model._compute_joint_nll_from_subset_encoding(
                     subset, batch, self.num_samples, self.batch_size_k
                 )
                 nb_batch += 1

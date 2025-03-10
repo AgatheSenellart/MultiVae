@@ -7,16 +7,10 @@ import pytest
 import torch
 from pythae.models.base import BaseAEConfig
 from pythae.models.base.base_utils import ModelOutput
-from pythae.models.nn.benchmarks.mnist.convnets import (
-    Decoder_Conv_AE_MNIST,
-    Encoder_Conv_AE_MNIST,
-)
-from pythae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
-from torch import nn
 
-from multivae.data.datasets import MnistSvhn
+from pythae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
+
 from multivae.data.datasets.base import MultimodalBaseDataset
-from multivae.data.utils import set_inputs_to_device
 from multivae.models import JMVAE, AutoModel, JMVAEConfig
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 

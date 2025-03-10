@@ -78,18 +78,20 @@ class BaseJointModel(BaseMultiVAE):
 
         Args:
             inputs : the data to compute the joint likelihood"""
-
-        # First compute all the parameters of the joint posterior q(z|x,y)
-
+        self.eval()
+        if hasattr(inputs, 'masks'):
+            raise AttributeError(
+                "The compute_joint_nll method is not yet implemented for incomplete datasets.")
+        
+        # Compute the parameters of the joint posterior
         joint_output = self.joint_encoder(inputs.data)
         mu, log_var = joint_output.embedding, joint_output.log_covariance
-
         sigma = torch.exp(0.5 * log_var)
+
+        # Sample K latents from the joint posterior
         qz_xy = dist.Normal(mu, sigma)
-        # And sample from the posterior
-        z_joint = qz_xy.rsample([K])  # shape K x n_data x latent_dim
-        z_joint = z_joint.permute(1, 0, 2)
-        n_data, _, latent_dim = z_joint.shape
+        z_joint = qz_xy.rsample([K]).permute(1, 0, 2)  # n_data x K x latent_dim
+        n_data, _, _ = z_joint.shape
 
         # Then iter on each datapoint to compute the iwae estimate of ln(p(x))
         ll = 0
@@ -100,8 +102,8 @@ class BaseJointModel(BaseMultiVAE):
             while start_idx < stop_idx:
                 latents = z_joint[i][start_idx:stop_idx]
 
-                # Compute p(x_m|z) for z in latents and for each modality m
-                lpx_zs = 0  # ln(p(x,y|z))
+                # Compute ln p(x_m|z) for z in latents and for each modality m
+                lpx_zs = 0  
                 for mod in inputs.data:
                     decoder = self.decoders[mod]
                     recon = decoder(latents)[
@@ -109,7 +111,9 @@ class BaseJointModel(BaseMultiVAE):
                     ]  # (batch_size_K, *decoder_output_shape)
                     x_m = inputs.data[mod][i]  # (*input_shape)
                     lpx_zs += (
-                        self.recon_log_probs[mod](recon, x_m)
+                        self.recon_log_probs[mod](
+                            recon, torch.stack([x_m] * len(recon))
+                        )
                         .reshape(recon.size(0), -1)
                         .sum(-1)
                     )
@@ -118,7 +122,7 @@ class BaseJointModel(BaseMultiVAE):
                 prior = dist.Normal(0, 1)
                 lpz = prior.log_prob(latents).sum(dim=-1)
 
-                # Compute posteriors -ln(q(z|x,y))
+                # Compute posteriors -ln(q(z|X))
                 qz_xy = dist.Normal(mu[i], sigma[i])
                 lqz_xy = qz_xy.log_prob(latents).sum(dim=-1)
 

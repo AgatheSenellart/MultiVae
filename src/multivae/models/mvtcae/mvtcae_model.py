@@ -123,7 +123,7 @@ class MVTCAE(BaseMultiVAE):
             # For unavailable samples, set the log-variance to infty so that they don't contribute to the
             # product of experts
             if hasattr(inputs, "masks"):
-                output.log_covariance[~inputs.masks[m_key]] = (
+                output.log_covariance[~inputs.masks[m_key].bool()] = (
                     torch.inf
                 )
             encoders_outputs[m_key] = output
@@ -230,6 +230,7 @@ class MVTCAE(BaseMultiVAE):
 
         return ModelOutput(z=z, one_latent_space=True)
 
+    @torch.no_grad()
     def compute_joint_nll(
         self,
         inputs: Union[MultimodalBaseDataset, IncompleteDataset],
@@ -237,16 +238,19 @@ class MVTCAE(BaseMultiVAE):
         batch_size_K: int = 100,
     ):
         self.eval()
+        if hasattr(inputs, 'masks'):
+            raise AttributeError(
+                "The compute_joint_nll method is not yet implemented for incomplete datasets.")
+        
 
         # Compute the parameters of the joint posterior
         mu, log_var = self.inference(inputs)["joint"]
-
         sigma = torch.exp(0.5 * log_var)
         qz_xy = dist.Normal(mu, sigma)
-        # And sample from the posterior
-        z_joint = qz_xy.rsample([K])  # shape K x n_data x latent_dim
-        z_joint = z_joint.permute(1, 0, 2)
-        n_data, _, latent_dim = z_joint.shape
+        
+        # Sample K latents from the joint posterior
+        z_joint = qz_xy.rsample([K]).permute(1, 0, 2)  # shape :  n_data x K x latent_dim
+        n_data, _, _ = z_joint.shape
 
         # Then iter on each datapoint to compute the iwae estimate of ln(p(x))
         ll = 0
@@ -258,7 +262,7 @@ class MVTCAE(BaseMultiVAE):
                 latents = z_joint[i][start_idx:stop_idx]
 
                 # Compute p(x_m|z) for z in latents and for each modality m
-                lpx_zs = 0  # ln(p(x,y|z))
+                lpx_zs = 0  
                 for mod in inputs.data:
                     decoder = self.decoders[mod]
                     recon = decoder(latents)[
@@ -278,14 +282,14 @@ class MVTCAE(BaseMultiVAE):
                 prior = dist.Normal(0, 1)
                 lpz = prior.log_prob(latents).sum(dim=-1)
 
-                # Compute posteriors -ln(q(z|x,y))
+                # Compute posteriors -ln(q(z|X))
                 qz_xy = dist.Normal(mu[i], sigma[i])
                 lqz_xy = qz_xy.log_prob(latents).sum(dim=-1)
 
                 ln_px = torch.logsumexp(lpx_zs + lpz - lqz_xy, dim=0)
                 lnpxs.append(ln_px)
 
-                # next batch
+                # next batch of samples K
                 start_idx += batch_size_K
                 stop_idx = min(stop_idx + batch_size_K, K)
 

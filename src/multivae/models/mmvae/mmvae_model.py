@@ -371,7 +371,8 @@ class MMVAE(BaseMultiVAE):
                 z = z.reshape(-1, self.latent_dim)
 
             return ModelOutput(z=z, one_latent_space=True)
-
+        
+    @torch.no_grad()
     def compute_joint_nll(
         self, inputs: MultimodalBaseDataset, K: int = 1000, batch_size_K: int = 100
     ):
@@ -385,8 +386,12 @@ class MMVAE(BaseMultiVAE):
         """
 
         self.eval()
+        if hasattr(inputs, 'masks'):
+            raise AttributeError(
+                "The compute_joint_nll method is not yet implemented for incomplete datasets.")
+        
 
-        # First compute all the parameters of the joint posterior q(z|x,y)
+        # Compute all the parameters of the joint posterior q(z|x_1), q(z|x_2), ...
         post_params = []
         for cond_mod in self.encoders:
             output = self.encoders[cond_mod](inputs.data[cond_mod])
@@ -394,9 +399,9 @@ class MMVAE(BaseMultiVAE):
             sigma = self.log_var_to_std(log_var)
             post_params.append((mu, sigma))
 
-        z_joint = self.encode(inputs, N=K).z
-        z_joint = z_joint.permute(1, 0, 2)
-        n_data, _, latent_dim = z_joint.shape
+        # Sample K latents from the joint posterior
+        z_joint = self.encode(inputs, N=K).z.permute(1, 0, 2)  # n_data x K x latent_dim
+        n_data, _, _ = z_joint.shape
 
         # Then iter on each datapoint to compute the iwae estimate of ln(p(x))
         ll = 0
@@ -407,8 +412,8 @@ class MMVAE(BaseMultiVAE):
             while start_idx < stop_idx:
                 latents = z_joint[i][start_idx:stop_idx]
 
-                # Compute p(x_m|z) for z in latents and for each modality m
-                lpx_zs = 0  # ln(p(x,y|z))
+                # Compute ln p(x_m|z) for z in latents and for each modality m
+                lpx_zs = 0  
                 for mod in inputs.data:
                     decoder = self.decoders[mod]
                     recon = decoder(latents)[
@@ -417,7 +422,9 @@ class MMVAE(BaseMultiVAE):
                     x_m = inputs.data[mod][i]  # (nb_channels, w, h)
 
                     lpx_zs += (
-                        self.recon_log_probs[mod](recon, x_m)
+                        self.recon_log_probs[mod](
+                            recon, torch.stack([x_m] * len(recon))
+                        )
                         .reshape(recon.size(0), -1)
                         .sum(-1)
                     )
@@ -426,7 +433,7 @@ class MMVAE(BaseMultiVAE):
                 prior = self.prior_dist(*self.pz_params)
                 lpz = prior.log_prob(latents).sum(dim=-1)
 
-                # Compute posteriors -ln(q(z|x,y))
+                # Compute posteriors ln(q(z|X)) = ln(1/M \sum_m q(z|x_m))
                 qz_xs = [self.post_dist(p[0][i], p[1][i]) for p in post_params]
                 lqz_xy = torch.logsumexp(
                     torch.stack([q.log_prob(latents).sum(-1) for q in qz_xs]), dim=0

@@ -10,7 +10,7 @@ import torch.nn.functional as F
 from pythae.models.base.base_utils import ModelOutput
 from torch.distributions import Laplace, Normal
 
-from multivae.data.datasets.base import MultimodalBaseDataset
+from multivae.data.datasets.base import MultimodalBaseDataset, IncompleteDataset
 from multivae.data.utils import drop_unused_modalities
 from multivae.models.nn.default_architectures import (
     BaseDictDecodersMultiLatents,
@@ -467,3 +467,42 @@ class MMVAEPlus(BaseMultiVAE):
                 m: model_config.modalities_specific_dim for m in model_config.input_dims
             },
         )
+
+    @torch.no_grad()
+    def compute_joint_nll(self, inputs, K = 1000, batch_size_K = 100):
+        """Estimate the negative joint likelihood. """
+        self.eval()
+        if hasattr(inputs, 'masks'):
+            raise AttributeError(
+                "The compute_joint_nll method is not yet implemented for incomplete datasets.")
+        
+        n_data = len(inputs.data.popitem()[1]) # number of samples in the dataset
+
+        ll = 0
+
+        # Set the rescale factors and beta to 1 for the computation of the likelihood
+        rescale_factors, self.rescale_factors = self.rescale_factors.copy(),{m: 1 for m in self.rescale_factors}
+        beta,self.beta = self.model_config.beta, 1
+
+        for i in range(n_data):
+            inputs_i = MultimodalBaseDataset(data={m: inputs.data[m][i].unsqueeze(0) for m in inputs.data})
+            k_iwae = K // self.n_modalities # number of samples per modality
+            embeddings,posteriors, reconstructions =  self._compute_posteriors_and_embeddings(inputs_i, detach=False, K=k_iwae)
+            
+            lws, _ = self._compute_k_lws(posteriors, embeddings, reconstructions, inputs_i)
+
+            # aggregate by taking the logsumexp on all lws element
+            lws = torch.cat(list(lws.values()), dim=0)  # n_modalities*K, n_batch
+
+            # Take log_mean_exp on all samples
+            ll+= torch.logsumexp(lws, dim=0) - math.log(
+                lws.size(0)
+            )  # n_batch
+
+        # revert changes made on rescale factors and beta
+        self.rescale_factors = rescale_factors
+        self.beta = beta
+        
+        return -ll.sum()
+
+        

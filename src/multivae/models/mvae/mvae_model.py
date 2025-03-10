@@ -250,7 +250,8 @@ class MVAE(BaseMultiVAE):
             z = z.reshape(-1, self.latent_dim)
 
         return ModelOutput(z=z, one_latent_space=True)
-
+    
+    @torch.no_grad()
     def compute_joint_nll(
         self,
         inputs: Union[MultimodalBaseDataset, IncompleteDataset],
@@ -258,34 +259,34 @@ class MVAE(BaseMultiVAE):
         batch_size_K: int = 100,
     ):
         """Computes the joint_negative_nll for a batch of inputs."""
+        self.eval()
+        if hasattr(inputs, 'masks'):
+            raise AttributeError(
+                "The compute_joint_nll method is not yet implemented for incomplete datasets.")
+        
+        # Compute the parameters of the joint posterior
+        mu, log_var = self.compute_mu_log_var_subset(
+            inputs, list(self.encoders.keys())
+        )
+        sigma = torch.exp(0.5 * log_var)
+        qz_xy = dist.Normal(mu, sigma)
+
+        # Sample K latents from the joint posterior
+        z_joint = qz_xy.rsample([K]).permute(1, 0, 2)  # shape :  n_data x K x latent_dim
+        n_data, _, _ = z_joint.shape
 
         # iter on each datapoint to compute the iwae estimate of ln(p(x))
         ll = 0
-        n_data = len(inputs.data[list(inputs.data.keys())[0]])
         for i in range(n_data):
             start_idx = 0
             stop_idx = min(start_idx + batch_size_K, K)
             lnpxs = []
-
-            # Compute the parameters of the joint posterior
-            mu, log_var = self.compute_mu_log_var_subset(
-                MultimodalBaseDataset(
-                    data={k: inputs.data[k][i].unsqueeze(0) for k in inputs.data}
-                ),
-                list(self.encoders.keys()),
-            )
-
-            sigma = torch.exp(0.5 * log_var)
-            qz_xy = dist.Normal(mu, sigma)
-
-            # And sample from the posterior
-            z_joint = qz_xy.rsample([K]).squeeze()  # shape K x latent_dim
-
+            # iterate over the mini-batch for the K samples
             while start_idx < stop_idx:
-                latents = z_joint[start_idx:stop_idx]
+                latents = z_joint[i][start_idx:stop_idx]
 
-                # Compute p(x_m|z) for z in latents and for each modality m
-                lpx_zs = 0  # ln(p(x,y|z))
+                # Compute ln p(x_m|z) for z in latents and for each modality m
+                lpx_zs = 0  
                 for mod in inputs.data:
                     decoder = self.decoders[mod]
                     recon = decoder(latents)[
@@ -306,7 +307,7 @@ class MVAE(BaseMultiVAE):
                 lpz = prior.log_prob(latents).sum(dim=-1)
 
                 # Compute posteriors -ln(q(z|x,y))
-                qz_xy = dist.Normal(mu.squeeze(), sigma.squeeze())
+                qz_xy = dist.Normal(mu[i], sigma[i])
                 lqz_xy = qz_xy.log_prob(latents).sum(dim=-1)
 
                 ln_px = torch.logsumexp(lpx_zs + lpz - lqz_xy, dim=0)
