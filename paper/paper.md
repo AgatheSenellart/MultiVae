@@ -124,6 +124,10 @@ as notebooks or scripts allowing users to get started easily. To further showcas
 # Acknowledgements
 
 We are grateful to the authors of all the initial implementations of the models included in MultiVae. 
+This work benefited from state grant managed by the Agence Nationale de la Recherche under the France 2030 program,
+AN\-23-IACL-0008.
+This research has been partly supported by the European Union under the (2023-2030) ERC Synergy Grant 101071601. 
+
 
 # References
 
