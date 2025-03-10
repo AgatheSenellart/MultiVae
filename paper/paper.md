@@ -1,20 +1,23 @@
 ---
-title: 'MultiVae: A Python package for Multimodal Variational Autoencoders on Partial Datasets '
+title: 'MultiVae: A Python package for Multimodal Variational Autoencoders on Partial Datasets.'
 tags:
   - Python
   - Pytorch
   - Variational Autoencoders
-  - multimodality
-  - missing data
+  - Multimodality
+  - Missing data
 authors:
   - name: Agathe Senellart
     orcid: 0000-0000-0000-0000
     corresponding: true
     equal-contrib: true
-    affiliation: "1, 2" # (Multiple affiliations must be quoted)
+    affiliation: "1, 2, 3" # (Multiple affiliations must be quoted)
+  - name: Clément Chadebec
+    equal-contrib: false # (This is how you can denote equal contributions between multiple authors)
+    affiliation: "1, 2, 3"
   - name: Stéphanie Allassonnière
     equal-contrib: false # (This is how you can denote equal contributions between multiple authors)
-    affiliation: 2
+    affiliation: "1, 2, 3"
   
 affiliations:
  - name: Université de Paris-Cité
@@ -28,8 +31,8 @@ bibliography: [./paper.bib]
 
 # Optional fields if submitting to a AAS journal too, see this blog post:
 # https://blog.joss.theoj.org/2018/12/a-new-collaboration-with-aas-publishing
-aas-doi: 10.3847/xxxxx <- update this with the DOI from AAS once you know it.
-aas-journal: Astrophysical Journal <- The name of the AAS journal.
+# aas-doi: 10.3847/xxxxx <- update this with the DOI from AAS once you know it.
+# aas-journal: Astrophysical Journal <- The name of the AAS journal.
 
 header-includes:
   - \usepackage{tikz}
