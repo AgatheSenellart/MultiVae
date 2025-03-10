@@ -1,7 +1,10 @@
+"""Define and train classifiers for the translated PolyMNIST"""
+
+import torch
+
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-
 
 def actvn(x):
     out = F.leaky_relu(x, 2e-1)
@@ -80,6 +83,8 @@ class ResnetBlock(nn.Module):
         return x_s
     
 def load_classifiers(data_path, device="cpu"):
+    '''Function to load all pretrained classifiers. '''
+
     clfs = {}
     for i in range(5):
         fp = data_path + f"/m{i}/classifier.pt" 
@@ -99,30 +104,28 @@ if __name__ == "__main__" :
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mod", type=int)
+    parser.add_argument("--mod", type=int) # The modality to train
     args = parser.parse_args()
     
-    import torch
-    from torch.utils.data import Dataset, DataLoader
-    from torchvision.datasets import DatasetFolder
-    from dataset import MMNISTDataset
+    from torch.utils.data import  DataLoader
     import torch.optim as optim
-    from torchvision.transforms import ToTensor
+    from multivae.data.datasets import TranslatedMMNIST
     from tqdm import tqdm
     import os
     
-    mod = f'm{args.mod}'
-    num_epochs = 100
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    output_path = f'/home/asenella/scratch/data/translated_mmnist_2/classifiers/m{args.mod}'
+    DATA_PATH = '/scratch/asenella/data'
+    MMNIST_BACKGROUND_PATH = DATA_PATH + '/mmnist_background'
+    MOD = f'm{args.mod}'
+    NUM_EPOCHS = 100
+    DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+    SAVE_PATH = f'/home/asenella/scratch/test/translated_mmnist_2/classifiers/m{args.mod}'
     
     # Define classifier :
     
-    classifier = DigitClassifier().to(device)
+    classifier = DigitClassifier().to(DEVICE)
     
-    unimodal_paths = ['/home/asenella/scratch/data/translated_mmnist_2/train/m'+str(i) for i in range(5)]
 
-    trainset = MMNISTDataset(unimodal_paths, transform=ToTensor() )
+    trainset = TranslatedMMNIST(DATA_PATH,scale=0.75, translate=True,n_modalities=5,background_path=MMNIST_BACKGROUND_PATH)
     
     loss = torch.nn.CrossEntropyLoss()
     
@@ -130,35 +133,15 @@ if __name__ == "__main__" :
     
     optimizer = optim.Adam(classifier.parameters(), lr=1e-3)
     
-    import logging
-    # Create a logger object
-    logger = logging.getLogger('my_logger')
-    logger.setLevel(logging.DEBUG)
 
-    # Create a file handler to log messages to a file
-    handler = logging.FileHandler(output_path + '/training.log')
-    handler.setLevel(logging.DEBUG)
-    
-    # Define the log message format
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    handler.setFormatter(formatter)
-
-    # Attach the handler to the logger
-    logger.addHandler(handler)
-
-    # Log some messages
-    logger.debug('This is a debug message')
-    logger.info('This is an info message')
-
-    
-    for i in tqdm(range(num_epochs)):
+    for i in tqdm(range(NUM_EPOCHS)):
         epoch_loss = 0
         for batch in tqdm(train_loader):
             
             optimizer.zero_grad()
             
-            data = batch.data[mod].to(device)
-            labels = batch.labels.to(device)
+            data = batch.data[MOD].to(DEVICE)
+            labels = batch.labels.to(DEVICE)
             
             outputs = classifier(data)
             
@@ -170,15 +153,15 @@ if __name__ == "__main__" :
             
             epoch_loss+= loss_batch.item()
             
-        logger.info('Epoch loss :', epoch_loss)
+        print('Epoch loss :%s', epoch_loss)
         
-    logger.info('Finished training.')
+    print('Finished training.')
     
     # Test
     
     unimodal_paths = ['/home/asenella/scratch/data/translated_mmnist_2/test/m'+str(i) for i in range(5)]
 
-    testset = MMNISTDataset(unimodal_paths, transform=ToTensor() )
+    testset = TranslatedMMNIST(SAVE_PATH,scale=0.75, translate=True, n_modalities=5, background_path=MMNIST_BACKGROUND_PATH, split='test')
         
     test_loader = DataLoader(testset,32)
     total=0
@@ -186,8 +169,8 @@ if __name__ == "__main__" :
     for batch in test_loader:
             
            
-            data = batch.data[mod].to(device)
-            labels = batch.labels.to(device)
+            data = batch.data[MOD].to(DEVICE)
+            labels = batch.labels.to(DEVICE)
             
             outputs = classifier(data)
             
@@ -197,9 +180,9 @@ if __name__ == "__main__" :
             correct += (predicted == labels).sum().item()
                 
                 
-    logger.info('Test accuracy :', correct/total)
+    print('Test accuracy :%s', correct/total)
     
     # Save the model
-    torch.save(classifier.state_dict(),os.path.join(output_path, 'classifier.pt'))
+    torch.save(classifier.state_dict(),os.path.join(SAVE_PATH, 'classifier.pt'))
 
             

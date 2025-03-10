@@ -340,6 +340,8 @@ Here we provide details on the results we managed to reproduce.
 |MVTCAE|PolyMNIST|Coherences|69/77/83/86|64/82/88/91|
 |MMVAE+|PolyMNIST|Coherences/FID|86.9/92.81|88.6 +-0;8/ 93+-5|
 |CMVAE|PolyMNIST|Coherences|89.7/78.1|88.6/76.4|
+|CRMVAE| Translated PolyMNIST|Coherences| 0.145/0.172/0.192/0.21 |0.16/0.19/0.205/0.21|
+
 
 Note that we also tried to reproduce results for the Nexus model, but didn't obtain similar results as the ones presented in the original paper. If you spot a difference between our implementation and theirs, please reach out to us. 
 

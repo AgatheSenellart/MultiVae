@@ -186,7 +186,7 @@ class MHVAE(BaseMultiVAE):
 
                 concat = torch.cat([h, d], dim=1)  # concatenate on the channels
 
-                zl_params[mod] = self.get_posterior_block(mod, i - 1)(concat)
+                zl_params[mod] = self._get_posterior_block(mod, i - 1)(concat)
             
             # For missing modalities, we set variance to infty
             list_mus, list_log_vars = self._adapt_log_var_to_missing_data(zl_params, inputs)
@@ -208,7 +208,7 @@ class MHVAE(BaseMultiVAE):
 
         return z_dict, kl_dict
 
-    def get_posterior_block(self, mod, i):
+    def _get_posterior_block(self, mod, i):
         """Returns the posterior block for a given modality and level.
         Handles the case where the weights are shared between modalities."""
         if self.share_posterior_weights:
@@ -216,7 +216,7 @@ class MHVAE(BaseMultiVAE):
 
         return self.posterior_blocks[mod][i]
 
-    def loss_subset(self, inputs, z_l_deepest_params, skips, subset):
+    def _loss_subset(self, inputs, z_l_deepest_params, skips, subset):
         """
 
         Compute the negative ELBO loss using a subset of modalities for the posterior.
@@ -282,7 +282,7 @@ class MHVAE(BaseMultiVAE):
 
         losses = []
         for subset in subsets:
-            loss, kl_dict = self.loss_subset(inputs, z_l_deepest_params, skips, subset)
+            loss, kl_dict = self._loss_subset(inputs, z_l_deepest_params, skips, subset)
             losses.append(loss)
 
         loss = torch.stack(losses).mean()  # average on all subsets
