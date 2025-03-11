@@ -12,14 +12,7 @@ from multivae.data import IncompleteDataset, MultimodalBaseDataset
 from multivae.models.auto_model import AutoModel
 from multivae.models.base import BaseDecoder, BaseEncoder, ModelOutput
 from multivae.models.mhvae import MHVAE, MHVAEConfig
-from multivae.models.nn.default_architectures import (
-    BaseAEConfig,
-    BaseDictEncoders,
-    ConditionalDecoder_MLP,
-    Encoder_VAE_MLP,
-    ModelOutput,
-    MultipleHeadJointEncoder,
-)
+from multivae.models.nn.default_architectures import ModelOutput
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 
 # Architectures for testing

@@ -415,9 +415,9 @@ class CUB(MultimodalBaseDataset):  # pragma: no cover
         fig.tight_layout()
         # Draw the canvas and retrieve the image as a NumPy array
         fig.canvas.draw()
-        image = PIL.Image.frombytes(
-            "RGB", fig.canvas.get_width_height(), fig.canvas.tostring_rgb()
-        )
+        img_buf = io.BytesIO()
+        plt.savefig(img_buf, format="png")
+        image = PIL.Image.open(img_buf)
 
         image = np.array(image).transpose(2, 0, 1) / 255
         plt.close(fig=fig)

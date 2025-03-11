@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import Union, Dict
 
 import torch
 import torch.distributions as dist
@@ -14,9 +14,10 @@ from multivae.models.nn.base_architectures import (
 )
 from multivae.models.nn.default_architectures import (
     BaseDictEncoders,
-    ConditionalDecoder_MLP,
+    ConditionalDecoderMLP,
     MultipleHeadJointEncoder,
 )
+from multivae.models.base.base_utils import kl_divergence
 
 from .cvae_config import CVAEConfig
 
@@ -30,25 +31,24 @@ class CVAE(BaseModel):
     def __init__(
         self,
         model_config: CVAEConfig,
-        encoder: Union[BaseEncoder, None] = None,
+        encoder: Union[BaseJointEncoder, None] = None,
         decoder: Union[BaseConditionalDecoder, None] = None,
-        prior_network: Union[BaseEncoder, None] = None,
+        prior_network: Union[BaseJointEncoder, None] = None,
     ):
         super().__init__(model_config)
 
         self.latent_dim = model_config.latent_dim
-        self.beta = model_config.beta
         self.model_name = "CVAE"
 
         if model_config.decoder_dist_params is None:
             model_config.decoder_dist_params = {}
 
-        self.set_decoder_dist(
+        self._set_decoder_dist(
             model_config.decoder_dist, model_config.decoder_dist_params
         )
 
         self.main_modality = model_config.main_modality
-        self.conditioning_modality = model_config.conditioning_modality
+        self.conditioning_modalities = model_config.conditioning_modalities
         self.model_config = model_config
 
         self._set_encoder(encoder, model_config)
@@ -57,7 +57,7 @@ class CVAE(BaseModel):
 
     def _set_encoder(self, encoder, model_config):
         if encoder is None:
-            encoder = self.default_encoder(model_config)
+            encoder = self._default_encoder(model_config)
         else:
             self.model_config.custom_architectures.append("encoder")
 
@@ -68,7 +68,7 @@ class CVAE(BaseModel):
 
     def _set_decoder(self, decoder, model_config):
         if decoder is None:
-            decoder = self.default_decoder(model_config)
+            decoder = self._default_decoder(model_config)
 
         else:
             self.model_config.custom_architectures.append("decoder")
@@ -86,17 +86,17 @@ class CVAE(BaseModel):
                 None  # the prior will be fixed to a standard normal distribution
             )
 
-        elif not isinstance(prior_network, BaseEncoder):
-            raise ValueError("The prior network must be an instance of BaseEncoder")
+        elif not isinstance(prior_network, BaseJointEncoder):
+            raise ValueError("The prior network must be an instance of BaseJointEncoder")
 
         else:
             self.prior_network = prior_network
             self.model_config.custom_architectures.append("prior_network")
 
-    def set_decoder_dist(self, dist, dist_params):
-        self.recon_log_prob = set_decoder_dist(dist, dist_params)
+    def _set_decoder_dist(self, dist_name:str, dist_params):
+        self.recon_log_prob = set_decoder_dist(dist_name, dist_params)
 
-    def default_encoder(self, model_config):
+    def _default_encoder(self, model_config):
         if model_config.input_dims is None:
             raise AttributeError(
                 "No encoder was provided but model_config.input_dims is None",
@@ -112,19 +112,19 @@ class CVAE(BaseModel):
             n_hidden_layers=2,
         )
 
-    def default_decoder(self, model_config):
+    def _default_decoder(self, model_config):
         if model_config.input_dims is None:
             raise AttributeError(
                 "No decoder was provided but model_config.input_dims is None",
                 "Please provide the input_dims of the model or a decoder architecture",
             )
 
-        return ConditionalDecoder_MLP(
+        return ConditionalDecoderMLP(
             latent_dim=model_config.latent_dim,
             data_dim=model_config.input_dims[model_config.main_modality],
-            conditioning_data_dim=model_config.input_dims[
-                model_config.conditioning_modality
-            ],
+            cond_data_dims={
+                mod: model_config.input_dims[mod]
+                for mod in model_config.conditioning_modalities},
         )
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
@@ -146,17 +146,18 @@ class CVAE(BaseModel):
         z = dist.Normal(embedding, torch.exp(0.5 * log_var)).rsample()
 
         # Compute parameters of the prior p(z|conditioning_modality)
+        cond_mod_data = {mod: inputs.data[mod] for mod in self.conditioning_modalities}
 
         if self.prior_network is None:
             prior_mean = torch.zeros_like(embedding)
             prior_log_var = torch.zeros_like(log_var)
 
         else:
-            output = self.prior_network(inputs.data[self.conditioning_modality])
+            output = self.prior_network(cond_mod_data)
             prior_mean, prior_log_var = output.embedding, output.log_covariance
 
         # Compute the reconstruction loss of the main modality
-        output = self.decoder(z, inputs.data[self.conditioning_modality])
+        output = self.decoder(z, cond_mod_data)
         recon = output.reconstruction
 
         recon_loss = (
@@ -165,33 +166,17 @@ class CVAE(BaseModel):
 
         # Compute the KL divergence between the posterior and the prior
         kl_div = (
-            self.kl_divergence(embedding, log_var, prior_mean, prior_log_var)
+            kl_divergence(embedding, log_var, prior_mean, prior_log_var)
             .mean(0)
-            .sum()
         )
 
         # Compute the total loss
 
-        loss = recon_loss + kl_div * self.beta
+        loss = recon_loss + kl_div * self.model_config.beta
 
-        metrics = dict(kl=kl_div, recon_loss=recon_loss)
+        metrics = {'kl': kl_div, 'recon_loss': recon_loss}
 
         return ModelOutput(loss=loss, metrics=metrics)
-
-    def kl_divergence(self, mean, log_var, prior_mean, prior_log_var):
-        kl = (
-            0.5
-            * (
-                prior_log_var
-                - log_var
-                - 1
-                + torch.exp(log_var - prior_log_var)
-                + (mean - prior_mean) ** 2
-            )
-            / torch.exp(prior_log_var)
-        )
-
-        return kl.sum(dim=-1)
 
     def encode(
         self, inputs: MultimodalBaseDataset, N: int = 1, **kwargs
@@ -226,15 +211,14 @@ class CVAE(BaseModel):
         else:
             z = dist.Normal(mean, scale).rsample(sample_shape)
 
-        if N > 1:
-            cond_mod_data = torch.stack([inputs.data[self.conditioning_modality]] * N)
-            if flatten:
-                N, l, d = z.shape
-                z = z.reshape(l * N, d)
-                N, bs = cond_mod_data.shape[0], cond_mod_data.shape[1]
-                cond_mod_data = cond_mod_data.reshape(N * bs, *cond_mod_data.shape[2:])
+        if N > 1 and not flatten:
+            cond_mod_data ={m: torch.stack([inputs.data[m]] * N) for m in self.conditioning_modalities}
+
+        elif N > 1 and flatten:
+            cond_mod_data = {m: torch.cat([inputs.data[m]] * N) for m in self.conditioning_modalities}
+            z = z.reshape(N * mean.shape[0], mean.shape[1])
         else:
-            cond_mod_data = inputs.data[self.conditioning_modality]
+            cond_mod_data = {m: inputs.data[m] for m in self.conditioning_modalities}
 
         return ModelOutput(z=z, cond_mod_data=cond_mod_data)
 
@@ -258,7 +242,7 @@ class CVAE(BaseModel):
             if len(z.shape) == 3:
                 N, l, d = z.shape
                 z = z.reshape(l * N, d)
-                cond_mod_data = cond_mod_data.reshape(N * l, *cond_mod_data.shape[2:])
+                cond_mod_data = {m: cond_mod_data[m].reshape(N * l, *cond_mod_data[m].shape[2:]) for m in cond_mod_data}
 
                 output = self.decoder(z, cond_mod_data)
                 output.reconstruction = output.reconstruction.reshape(
@@ -269,12 +253,12 @@ class CVAE(BaseModel):
                 return self.decoder(z, cond_mod_data)
 
     def generate_from_prior(
-        self, cond_mod_data: torch.Tensor, N: int = 1, **kwargs
+        self, cond_mod_data: Dict[str, torch.Tensor], N: int = 1, **kwargs
     ) -> ModelOutput:
         """Generates latent variables from the prior, conditioning on cond_mod_data.
 
         Args :
-            cond_mod_data (torch.Tensor) : Data from the conditioning modality.
+            cond_mod_data (Dict[str,torch.Tensor]) : Data from the conditioning modality.
             N (int) : number of latent codes to sample from the prior per datapoint
 
 
@@ -284,9 +268,13 @@ class CVAE(BaseModel):
 
         flatten = kwargs.pop("flatten", False)
 
+        # Look up the batch size and the device of the input data
+        batch_size = list(cond_mod_data.values())[0].shape[0]
+        device = list(cond_mod_data.values())[0].device
+
         if self.prior_network is None:
-            prior_mean = torch.zeros((cond_mod_data.shape[0], self.latent_dim))
-            prior_log_var = torch.zeros((cond_mod_data.shape[0], self.latent_dim))
+            prior_mean = torch.zeros((batch_size, self.latent_dim))
+            prior_log_var = torch.zeros((batch_size, self.latent_dim))
         else:
             output = self.prior_network(cond_mod_data)
             prior_mean, prior_log_var = output.embedding, output.log_covariance
@@ -296,20 +284,23 @@ class CVAE(BaseModel):
             sample_shape
         )
 
-        if N > 1:
-            cond_mod_data = torch.stack([cond_mod_data] * N)
-            if flatten:
-                N, l, d = z.shape
-                z = z.reshape(l * N, d)
-                N, bs = cond_mod_data.shape[0], cond_mod_data.shape[1]
-                cond_mod_data = cond_mod_data.reshape(N * bs, *cond_mod_data.shape[2:])
+        if N > 1 and not flatten:
+            cond_mod_data ={m: torch.stack([cond_mod_data[m]] * N) for m in self.conditioning_modalities}
+
+        elif N > 1 and flatten:
+            cond_mod_data = {m: torch.cat([cond_mod_data[m]] * N) for m in self.conditioning_modalities}
+            z = z.reshape(N * prior_mean.shape[0], prior_mean.shape[1])
+        else:
+            cond_mod_data = {m: cond_mod_data[m] for m in self.conditioning_modalities}
+
+        z = z.to(device)
 
         return ModelOutput(z=z, cond_mod_data=cond_mod_data)
 
     def predict(
         self,
         inputs: MultimodalBaseDataset,
-        cond_mod: Union[list, str] = "all",
+        cond_mod: Union[str, list]= 'all',
         N=1,
         **kwargs,
     ) -> ModelOutput:
@@ -318,8 +309,8 @@ class CVAE(BaseModel):
 
         Args:
             inputs (MultimodalBaseDataset) : The data to use for prediction.
-            cond_mod (list or str) : Either 'all' to perform reconstruction or the name of the conditioning modality to
-                sample from the prior using the conditioning modality.
+            cond_mod (Union[str, list]) : Either 'all' to perform reconstruction or the list of conditioning modalities to generate from the prior.
+            N (int) : number of samples per datapoint to sample from the posterior or prior.
         Returns:
             ModelOutput : A ModelOutput instance containing the reconstruction / generation.
 
@@ -333,40 +324,18 @@ class CVAE(BaseModel):
 
 
         """
-
-        if type(cond_mod) == str:
-            if cond_mod == "all":
-                cond_mod = [self.main_modality, self.conditioning_modality]
-            else:
-                cond_mod = [cond_mod]
-
-        if len(cond_mod) == 1:
-            if cond_mod[0] == self.conditioning_modality:
-                embeddings = self.generate_from_prior(
-                    cond_mod_data=inputs.data[self.conditioning_modality], N=N, **kwargs
-                )
-            elif cond_mod[0] == self.main_modality:
-                embeddings = self.encode(inputs, N, **kwargs)
-            else:
-                raise ValueError(
-                    "The conditioning modality must be one of the modalities of the model"
-                    ". You provided {}".format(cond_mod[0])
-                )
-        elif len(cond_mod) == 2:
-            if (
-                self.conditioning_modality not in cond_mod
-                or self.main_modality not in cond_mod
-            ):
-                raise ValueError(
-                    "One of the modalities in cond_mod is not part of the model"
-                    "cond_mod : {}".format(cond_mod)
-                )
+        if cond_mod=='all' or set(cond_mod)==set([self.main_modality]) or set(cond_mod)==set([self.main_modality] + self.conditioning_modalities):
             embeddings = self.encode(inputs, N, **kwargs)
 
+        elif set(cond_mod) == set(self.conditioning_modalities):
+            cond_mod_data = {m: inputs.data[m] for m in self.conditioning_modalities}
+            embeddings = self.generate_from_prior(cond_mod_data, N,**kwargs)
+        
         else:
-            raise ValueError(
-                "The length of cond_mod must be 1 or 2 since the model is a CVAE"
-            )
+            raise ValueError("The conditioning modalities must be either 'all' or the list of conditioning modalities")
+            
 
         output = self.decode(embeddings)
+
+
         return output
