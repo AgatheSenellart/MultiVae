@@ -1,11 +1,11 @@
 ---
-title: 'MultiVae: A Python package for Multimodal Variational Autoencoders on Partial Datasets '
+title: 'MultiVae: A Python package for Multimodal Variational Autoencoders on Partial Datasets.'
 tags:
   - Python
   - Pytorch
   - Variational Autoencoders
-  - multimodality
-  - missing data
+  - Multimodality
+  - Missing data
 authors:
   - name: Agathe Senellart
     orcid: 0000-0000-0000-0000
@@ -31,8 +31,8 @@ bibliography: [./paper.bib]
 
 # Optional fields if submitting to a AAS journal too, see this blog post:
 # https://blog.joss.theoj.org/2018/12/a-new-collaboration-with-aas-publishing
-aas-doi: 10.3847/xxxxx <- update this with the DOI from AAS once you know it.
-aas-journal: Astrophysical Journal <- The name of the AAS journal.
+# aas-doi: 10.3847/xxxxx <- update this with the DOI from AAS once you know it.
+# aas-journal: Astrophysical Journal <- The name of the AAS journal.
 
 header-includes:
   - \usepackage{tikz}
@@ -139,6 +139,10 @@ as notebooks or scripts allowing users to get started easily. To further showcas
 # Acknowledgements
 
 We are grateful to the authors of all the initial implementations of the models included in MultiVae. 
+This work benefited from state grant managed by the Agence Nationale de la Recherche under the France 2030 program,
+AN\-23-IACL-0008.
+This research has been partly supported by the European Union under the (2023-2030) ERC Synergy Grant 101071601. 
+
 
 # References
 
