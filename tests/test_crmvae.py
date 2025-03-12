@@ -92,7 +92,12 @@ class Test_model:
         # test setup
         assert model.model_config == model_config
 
-        # test forward
+        # Test forward with one sample
+        output=model(dataset[0])
+        loss = output.loss
+        assert type(loss) == torch.Tensor
+        
+        # Test forward with multiple samples
         output = model(dataset, epoch=2)
         loss = output.loss
         assert type(loss) == torch.Tensor
@@ -113,6 +118,12 @@ class Test_model:
         assert embeddings.shape == (10, len(dataset), 5)
         embeddings = model.encode(dataset, cond_mod=["mod2", "mod4"]).z
         assert embeddings.shape == (len(dataset), 5)
+
+        # Try encoding with return_mean option
+        outputs = model.encode(dataset[0], return_mean=True)
+        embeddings = outputs.z
+        assert isinstance(outputs, ModelOutput)
+        assert embeddings.shape == (1, 5)
 
         Y = model.predict(dataset, cond_mod="mod2")
         assert isinstance(Y, ModelOutput)
@@ -482,7 +493,10 @@ class TestTraining:
         assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
 
     def test_compute_nll(self, model, dataset):
-        if not hasattr(dataset, "masks"):
+        if hasattr(dataset, "masks"):
+            with pytest.raises(AttributeError):
+                nll = model.compute_joint_nll(dataset, K=10, batch_size_K=2)
+        else:
             nll = model.compute_joint_nll(dataset, K=10, batch_size_K=2)
             assert nll >= 0
             assert type(nll) == torch.Tensor
