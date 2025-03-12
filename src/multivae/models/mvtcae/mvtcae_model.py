@@ -8,6 +8,7 @@ from pythae.models.base.base_utils import ModelOutput
 from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
 
 from ..base import BaseMultiVAE
+from ..base.base_utils import poe
 from .mvtcae_config import MVTCAEConfig
 
 
@@ -128,19 +129,6 @@ class MVTCAE(BaseMultiVAE):
 
         return encoders_outputs
 
-    def poe(self, mu, logvar, eps=1e-8):
-        var = torch.exp(logvar) + eps
-        # precision of i-th Gaussian expert at point x
-        T = 1.0 / var
-        pd_mu = torch.sum(mu * T, dim=0) / torch.sum(T, dim=0)
-        pd_var = 1.0 / torch.sum(T, dim=0)
-        pd_logvar = torch.log(pd_var)
-        return pd_mu, pd_logvar
-
-    def ivw_fusion(self, mus: torch.Tensor, logvars: torch.Tensor, weights=None):
-        mu_poe, logvar_poe = self.poe(mus, logvars)
-        return [mu_poe, logvar_poe]
-
     def inference(self, inputs: MultimodalBaseDataset, **kwargs):
         """
         This function takes all the modalities contained in inputs
@@ -175,7 +163,7 @@ class MVTCAE(BaseMultiVAE):
             mus = mus.unsqueeze(1)
             logvars = logvars.unsqueeze(1)
 
-        joint_mu, joint_logvar = self.ivw_fusion(mus, logvars)
+        joint_mu, joint_logvar = poe(mus, logvars)
 
         latents["joint"] = [joint_mu, joint_logvar]
         return latents

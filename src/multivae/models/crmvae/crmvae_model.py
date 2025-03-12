@@ -8,7 +8,7 @@ from pythae.models.base.base_utils import ModelOutput
 from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
 
 from ..base import BaseMultiVAE
-from ..base.base_utils import kl_divergence
+from ..base.base_utils import kl_divergence, poe
 from .crmvae_config import CRMVAEConfig
 
 
@@ -139,15 +139,6 @@ class CRMVAE(BaseMultiVAE):
                 ] = torch.inf
         return encoders_outputs, masked_outputs
 
-    def _poe(self, mu, logvar, eps=1e-8):
-        """Compute the Product of experts of the gaussian distributions."""
-        var = torch.exp(logvar) + eps
-        # precision of i-th Gaussian expert at point x
-        T = 1.0 / var
-        pd_mu = torch.sum(mu * T, dim=0) / torch.sum(T, dim=0)
-        pd_var = 1.0 / torch.sum(T, dim=0)
-        pd_logvar = torch.log(pd_var)
-        return pd_mu, pd_logvar
 
     def _infer_all_latent_parameters(self, inputs: MultimodalBaseDataset, **kwargs):
         """
@@ -184,7 +175,7 @@ class CRMVAE(BaseMultiVAE):
             logvars = logvars.unsqueeze(1)
 
         # Compute the PoE and save the result
-        joint_mu, joint_logvar = self._poe(mus, logvars)
+        joint_mu, joint_logvar = poe(mus, logvars)
 
         latents["joint"] = ModelOutput(embedding=joint_mu, log_covariance=joint_logvar)
         return latents

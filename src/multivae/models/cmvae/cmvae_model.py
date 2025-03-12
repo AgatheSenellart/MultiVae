@@ -754,7 +754,7 @@ class CMVAE(BaseMultiVAE):
             )
 
         # Get the batch size from the input
-        n_data = len(list(inputs.values())[0])  
+        n_data = len(list(inputs.data.values())[0])  
 
         # Set the rescale factors and beta to one while computing the joint likelihood
         rescale_factors, self.rescale_factors = self.rescale_factors.copy(), {

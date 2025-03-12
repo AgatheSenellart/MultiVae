@@ -10,6 +10,7 @@ from pythae.models.base.base_utils import ModelOutput
 from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
 
 from ..base import BaseMultiVAE
+from ..base.base_utils import stable_poe
 from .mvae_config import MVAEConfig
 
 
@@ -39,32 +40,16 @@ class MVAE(BaseMultiVAE):
         self.k = model_config.k
         if self.n_modalities <= 2:
             self.k = 0
-        self.set_subsets()
+        self._set_subsets()
         self.warmup = model_config.warmup
         self.start_keep_best_epoch = model_config.warmup + 1
         self.beta = model_config.beta
         self.model_name = "MVAE"
 
-    def set_subsets(self):
+    def _set_subsets(self):
         self.subsets = []
         for i in range(2, self.n_modalities):
             self.subsets += combinations(list(self.encoders.keys()), r=i)
-
-    def poe(self, mus_list, log_vars_list):
-        mus = mus_list.copy()
-        log_vars = log_vars_list.copy()
-
-        # Add the prior to the product of experts
-        mus.append(torch.zeros_like(mus[0]))
-        log_vars.append(torch.zeros_like(log_vars[0]))
-
-        # Compute the joint posterior
-        lnT = torch.stack([-l for l in log_vars])  # Compute the inverse of variances
-        lnV = -torch.logsumexp(lnT, dim=0)  # variances of the product of expert
-        mus = torch.stack(mus)
-        joint_mu = (torch.exp(lnT) * mus).sum(dim=0) * torch.exp(lnV)
-
-        return joint_mu, lnV
 
     def compute_mu_log_var_subset(self, inputs: MultimodalBaseDataset, subset: list):
         """Computes the parameters of the posterior when conditioning on
@@ -86,7 +71,12 @@ class MVAE(BaseMultiVAE):
 
                 mus_sub.append(mu_mod)
                 log_vars_sub.append(log_var_mod)
-        sub_mu, sub_logvar = self.poe(mus_sub, log_vars_sub)
+
+        # Add the prior to the product of experts
+        mus_sub.append(torch.zeros_like(mus_sub[0]))
+        log_vars_sub.append(torch.zeros_like(log_vars_sub[0]))
+        # Compute the Product of Experts
+        sub_mu, sub_logvar = stable_poe(torch.stack(mus_sub), torch.stack(log_vars_sub))
         return sub_mu, sub_logvar
 
     def _compute_elbo_subset(

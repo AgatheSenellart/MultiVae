@@ -101,6 +101,10 @@ def kl_divergence(
 ):
     """Compute the explicit Kullback-Leibler divergence between two gaussians.
 
+    .. math::
+
+        KL(p,q) = \frac{1}{2}(\log(\frac{\sigma_2²}{\sigma_1²} + \frac{\sigma_1² + (\mu_1 - \mu_2)²}{\sigma_2²} - 1)
+
     Args:
 
         mean (torch.Tensor) : mean of the first gaussian
@@ -116,9 +120,40 @@ def kl_divergence(
     kl = 0.5 * (
         prior_log_var
         - log_var
-        - 1
         + torch.exp(log_var - prior_log_var)
         + ((mean - prior_mean) ** 2) / torch.exp(prior_log_var)
+        - 1
     )
 
     return kl.sum(dim=-1)
+
+
+def poe(mus, logvars, eps=1e-8):
+        """
+        Compute the Product of Experts (PoE) for a list of Gaussian experts.
+        """
+        var = torch.exp(logvars) + eps
+        # precision of i-th Gaussian expert at point x
+        T = 1.0 / var
+        pd_mu = torch.sum(mus * T, dim=0) / torch.sum(T, dim=0)
+        pd_var = 1.0 / torch.sum(T, dim=0)
+        pd_logvar = torch.log(pd_var)
+        return pd_mu, pd_logvar
+
+
+def stable_poe(mus, logvars):
+        
+        """Compute the Product of Experts (PoE) for a list of Gaussian experts.
+        This version is more numerically stable than the naive implementation.
+        """
+        # If only one expert, return it
+        if len(mus) == 1:
+            return mus[0], logvars[0]
+
+        # Compute ln (1/var) for each expert
+        ln_inv_vars = torch.stack([-l for l in logvars])  # Compute the inverse of variances
+        # ln(var_joint) = ln(1/sum(1/var)) = -ln(sum(1/var))
+        ln_var = -torch.logsumexp(ln_inv_vars, dim=0)  # variances of the product of experts
+        joint_mu = (torch.exp(ln_inv_vars) * mus).sum(dim=0) * torch.exp(ln_var)
+
+        return joint_mu, ln_var

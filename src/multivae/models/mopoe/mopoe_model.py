@@ -13,6 +13,7 @@ from multivae.models.nn.default_architectures import (
 )
 
 from ..base import BaseMultiVAE
+from ..base.base_utils import poe
 from .mopoe_config import MoPoEConfig
 
 
@@ -248,16 +249,9 @@ class MoPoE(BaseMultiVAE):
 
         return encoders_outputs
 
-    def poe(self, mu, logvar, eps=1e-8):
-        var = torch.exp(logvar) + eps
-        # precision of i-th Gaussian expert at point x
-        T = 1.0 / var
-        pd_mu = torch.sum(mu * T, dim=0) / torch.sum(T, dim=0)
-        pd_var = 1.0 / torch.sum(T, dim=0)
-        pd_logvar = torch.log(pd_var)
-        return pd_mu, pd_logvar
+    
 
-    def poe_fusion(self, mus: torch.Tensor, logvars: torch.Tensor, weights=None):
+    def _poe_fusion(self, mus: torch.Tensor, logvars: torch.Tensor):
         # Following the original implementation : add the prior when we consider the
         # subset that contains all the modalities
         if mus.shape[0] == len(self.encoders.keys()):
@@ -270,8 +264,8 @@ class MoPoE(BaseMultiVAE):
                 (logvars, torch.zeros(1, num_samples, self.latent_dim).to(device)),
                 dim=0,
             )
-        mu_poe, logvar_poe = self.poe(mus, logvars)
-        return [mu_poe, logvar_poe]
+        return poe(mus, logvars)
+        
 
     def subset_mask(self, inputs: IncompleteDataset, subset: Union[list, tuple]):
         """
@@ -330,7 +324,7 @@ class MoPoE(BaseMultiVAE):
                     mus_subset = mus_subset.unsqueeze(1)
                     logvars_subset = logvars_subset.unsqueeze(1)
 
-                s_mu, s_logvar = self.poe_fusion(mus_subset, logvars_subset)
+                s_mu, s_logvar = self._poe_fusion(mus_subset, logvars_subset)
 
                 distr_subsets[s_key] = [s_mu, s_logvar]
 

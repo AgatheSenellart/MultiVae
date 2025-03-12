@@ -7,6 +7,7 @@ from pythae.models.base.base_utils import ModelOutput
 
 from ...data.datasets.base import MultimodalBaseDataset
 from ..joint_models import BaseJointModel
+from ..base.base_utils import stable_poe
 from ..nn.base_architectures import BaseJointEncoder
 from .jmvae_config import JMVAEConfig
 
@@ -205,35 +206,22 @@ class JMVAE(BaseJointModel):
 
         return output
 
-    def _poe(self, mus_list, log_vars_list):
-        mus = mus_list.copy()
-        log_vars = log_vars_list.copy()
 
-        # Add the prior to the product of experts
-        mus.append(torch.zeros_like(mus[0]))
-        log_vars.append(torch.zeros_like(log_vars[0]))
-
-        # Compute the joint posterior
-        lnT = torch.stack([-l for l in log_vars])  # Compute the inverse of variances
-        lnV = -torch.logsumexp(lnT, dim=0)  # variances of the product of expert
-        mus = torch.stack(mus)
-        joint_mu = (torch.exp(lnT) * mus).sum(dim=0) * torch.exp(lnV)
-
-        return joint_mu, lnV
-
-    def _sample_from_poe_subset_exact(self, subset: list, data: dict, sample_shape=[]):
+    def _sample_from_poe_subset_exact(self, subset: list, data: dict, sample_shape=None):
         """
         Sample from the product of experts for infering from a subset of modalities.
         """
+        if sample_shape is None:
+            sample_shape = []
 
+        # Get all the experts' means and logvars
         mus, logvars = [], []
-
         for mod in subset:
             vae_output = self.encoders[mod](data[mod])
-            mu, log_var = vae_output.embedding, vae_output.log_covariance
             mus.append(vae_output.embedding)
             logvars.append(vae_output.log_covariance)
-
-        joint_mu, joint_logvar = self._poe(mus, logvars)
+        
+        # Compute the product of experts
+        joint_mu, joint_logvar = stable_poe(torch.stack(mus), torch.stack(logvars))
         z = dist.Normal(joint_mu, torch.exp(0.5 * joint_logvar)).rsample(sample_shape)
         return z

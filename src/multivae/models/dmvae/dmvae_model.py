@@ -13,7 +13,7 @@ from multivae.models.nn.default_architectures import (
 )
 
 from ..base import BaseMultiVAE
-from ..base.base_utils import kl_divergence
+from ..base.base_utils import kl_divergence, stable_poe
 from ..nn.base_architectures import BaseMultilatentEncoder
 from .dmvae_config import DMVAEConfig
 
@@ -91,24 +91,6 @@ class DMVAE(BaseMultiVAE):
             modality_dims=model_config.modalities_specific_dim,
         )
 
-    def _poe(self, mus_list, log_vars_list):
-        if len(mus_list) == 1:
-            return mus_list[0], log_vars_list[0]
-
-        mus = mus_list.copy()
-        log_vars = log_vars_list.copy()
-
-        # Add the prior to the product of experts
-        mus.append(torch.zeros_like(mus[0]))
-        log_vars.append(torch.zeros_like(log_vars[0]))
-
-        # Compute the joint posterior
-        lnT = torch.stack([-l for l in log_vars])  # Compute the inverse of variances
-        lnV = -torch.logsumexp(lnT, dim=0)  # variances of the product of expert
-        mus = torch.stack(mus)
-        joint_mu = (torch.exp(lnT) * mus).sum(dim=0) * torch.exp(lnV)
-
-        return joint_mu, lnV
 
     def _infer_latent_parameters(self, inputs, subset=None):
         # if no subset is provided, use all available modalities
@@ -149,10 +131,13 @@ class DMVAE(BaseMultiVAE):
                 log_var_mod[(1 - inputs.masks[mod].int()).bool().flatten()] = torch.inf
             list_lvs.append(log_var_mod)
 
-        joint_mu, joint_lv = self._poe(
-            list_mu, list_lvs
-        )  # N(0,I) prior is added in the function
+        # Add N(0,I) prior to the product of experts
+        list_mu.append(torch.zeros_like(list_mu[0]))
+        list_lvs.append(torch.zeros_like(list_lvs[0]))
 
+        joint_mu, joint_lv = stable_poe(
+            torch.stack(list_mu), torch.stack(list_lvs)
+        )  
         return joint_mu, joint_lv, shared_params, private_params
 
     def forward(

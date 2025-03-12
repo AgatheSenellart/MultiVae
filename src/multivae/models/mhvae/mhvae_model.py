@@ -10,7 +10,7 @@ from multivae.models.base import BaseMultiVAE
 from multivae.models.base.base_model import ModelOutput
 from multivae.models.nn.base_architectures import BaseEncoder
 
-from ..base.base_utils import kl_divergence
+from ..base.base_utils import kl_divergence, poe
 from .mhvae_config import MHVAEConfig
 
 logger = logging.getLogger(__name__)
@@ -81,28 +81,6 @@ class MHVAE(BaseMultiVAE):
             ["bottom_up_blocks", "top_down_blocks", "prior_blocks", "posterior_blocks"]
         )
 
-    def poe(self, mus_list, log_vars_list):
-        """Compute the product of experts given means and logvars
-
-        Args:
-            mus_list (List[torch.Tensor]): list of means of the experts
-            log_vars_list (List[torch.Tensor]): list of logvars of the experts
-        Returns:
-            joint_mu (torch.Tensor): mean of the product of experts
-            joint_logvar (torch.Tensor): logvar of the product of experts
-        """
-
-        log_inverse_cov = torch.stack(
-            [-l for l in log_vars_list]
-        )  # Compute the inverse of variances
-        log_var = -torch.logsumexp(
-            log_inverse_cov, dim=0
-        )  # variances of the product of expert
-        mus = torch.stack(mus_list)
-        joint_mu = (torch.exp(log_inverse_cov) * mus).sum(dim=0) * torch.exp(log_var)
-
-        return joint_mu, log_var
-
     def _subsets(self):
         """
         Returns :
@@ -158,7 +136,7 @@ class MHVAE(BaseMultiVAE):
         )  # add the prior p(z_L) std = 1, logstd = 0
 
         # Compute the joint posterior q(z_L | x) = p(z_L) * \prod_i q(z_L | x_i )
-        joint_mu, joint_lv = self.poe(list_mus, list_log_vars)
+        joint_mu, joint_lv = poe(torch.stack(list_mus), torch.stack(list_log_vars))
 
         # Sample z_L
         z_l_deepest = dist.Normal(joint_mu, torch.exp(0.5 * joint_lv)).rsample()
@@ -198,7 +176,7 @@ class MHVAE(BaseMultiVAE):
             list_mus.append(prior_params.embedding)
             list_log_vars.append(prior_params.log_covariance)
 
-            joint_mu, joint_lv = self.poe(list_mus, list_log_vars)
+            joint_mu, joint_lv = poe(torch.stack(list_mus), torch.stack(list_log_vars))
 
             # Sample z_l
             z_dict[f"z_{i}"] = dist.Normal(
