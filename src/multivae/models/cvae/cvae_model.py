@@ -8,8 +8,7 @@ from multivae.models.base import BaseModel
 from multivae.models.base.base_model import ModelOutput
 from multivae.models.base.base_utils import set_decoder_dist
 from multivae.models.nn.base_architectures import (
-    BaseConditionalDecoder,
-    BaseEncoder,
+    BaseConditionalDecoder,BaseEncoder,
     BaseJointEncoder,
 )
 from multivae.models.nn.default_architectures import (
@@ -23,15 +22,22 @@ from .cvae_config import CVAEConfig
 
 
 class CVAE(BaseModel):
-    """Conditional Variational Autoencoder model.
+    """
+    Main class for the Conditional Variational Autoencoder. 
 
-    See https://arxiv.org/abs/1906.02691 for more information.
+    Args: 
+
+        model_config (CVAEConfig): the model configuration class. 
+        encoder (BaseEncoder): The encoder network. 
+        decoder (BaseConditionalDecoder): The conditional decoder network.
+        prior_network (BaseJointEncoder): Takes the conditional modalities and returns the 
+            parameters for the prior distribution. 
     """
 
     def __init__(
         self,
         model_config: CVAEConfig,
-        encoder: Union[BaseJointEncoder, None] = None,
+        encoder: Union[BaseEncoder, None] = None,
         decoder: Union[BaseConditionalDecoder, None] = None,
         prior_network: Union[BaseJointEncoder, None] = None,
     ):
@@ -304,7 +310,7 @@ class CVAE(BaseModel):
         N=1,
         **kwargs,
     ) -> ModelOutput:
-        """Reconstruct from the input or from the conditioning modality.
+        """Reconstruct from the input or from the conditioning modalities.
 
 
         Args:

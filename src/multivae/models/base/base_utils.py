@@ -99,7 +99,7 @@ def kl_divergence(
     prior_mean: torch.Tensor,
     prior_log_var: torch.Tensor,
 ):
-    """Compute the Kullback-Leibler between two gaussians.
+    """Compute the explicit Kullback-Leibler divergence between two gaussians.
 
     Args:
 

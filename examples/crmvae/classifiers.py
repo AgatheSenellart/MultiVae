@@ -7,11 +7,14 @@ import torch.nn.functional as F
 
 
 def actvn(x):
+    """Custom activation function"""
     out = F.leaky_relu(x, 2e-1)
     return out
 
 
 class DigitClassifier(nn.Module):
+    """Resnet Classifier for the Translated PolyMNIST dataset"""
+
     def __init__(self):
         super().__init__()
         s0 = self.s0 = 7
@@ -94,10 +97,10 @@ def load_classifiers(data_path, device="cpu"):
         model_clf = DigitClassifier()
         model_clf.load_state_dict(torch.load(fp, map_location=torch.device(device)))
         model_clf = model_clf.to(device)
-        clfs["m%d" % i] = model_clf
+        clfs[f"m{i}"] = model_clf
     for m, clf in clfs.items():
         if clf is None:
-            raise ValueError("Classifier is 'None' for modality %s" % str(i))
+            raise ValueError(f"Classifier is 'None' for modality {str(i)}")
     return clfs
 
 
@@ -168,11 +171,6 @@ if __name__ == "__main__":
     print("Finished training.")
 
     # Test
-
-    unimodal_paths = [
-        "/home/asenella/scratch/data/translated_mmnist_2/test/m" + str(i)
-        for i in range(5)
-    ]
 
     testset = TranslatedMMNIST(
         SAVE_PATH,

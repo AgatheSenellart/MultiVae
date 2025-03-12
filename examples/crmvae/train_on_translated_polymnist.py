@@ -4,15 +4,13 @@ from torch.utils.data import random_split
 from multivae.data.datasets import TranslatedMMNIST
 from multivae.metrics import (
     CoherenceEvaluator,
-    CoherenceEvaluatorConfig,
-    FIDEvaluator,
-    FIDEvaluatorConfig,
-)
+    CoherenceEvaluatorConfig)
 from multivae.models import CRMVAE, CRMVAEConfig
 from multivae.models.nn.mmnist import DecoderResnetMMNIST, EncoderResnetMMNIST
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 from multivae.trainers.base.callbacks import WandbCallback
 
+# Set all your paths
 DATA_PATH = "/scratch/asenella/data"
 MMNIST_BACKGROUND_PATH = DATA_PATH + "/mmnist_background"
 SAVE_PATH = "/scratch/asenella/experiments/CRMVAE_on_TMMNIST"
@@ -85,7 +83,7 @@ trainer = BaseTrainer(
 
 trainer.train()
 
-# Evaluate for coherence and FID
+# Evaluate the model for coherence
 best_model = trainer._best_model
 
 classifiers = load_classifiers(CLASSIFIER_PATH)

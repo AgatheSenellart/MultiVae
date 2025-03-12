@@ -72,12 +72,20 @@ class BaseJointModel(BaseMultiVAE):
     def compute_joint_nll(
         self, inputs: MultimodalBaseDataset, K: int = 1000, batch_size_K: int = 100
     ):
-        """
-        Return the estimated negative log-likelihood summed over the input batch.
-        The negative log-likelihood is estimated using importance sampling.
+        """Estimate the negative joint likelihood.
+        
+        Args: 
 
-        Args:
-            inputs : the data to compute the joint likelihood"""
+            inputs (MultimodalBaseDataset) : a batch of samples.
+            K (int) : the number of importance samples for the estimation. Default to 1000.
+            batch_size_K (int) : Default to 100. 
+        
+        Returns: 
+            
+            The negative log-likelihood summed over the batch.
+        """
+
+        # Check that the dataset is not incomplete. 
         self.eval()
         if hasattr(inputs, "masks"):
             raise AttributeError(

@@ -69,7 +69,7 @@ trainer_config = BaseTrainerConfig(
     learning_rate=1e-4,
 )
 
-# Set up wandb callback
+# Set up wandb callback (Optional )
 wandb_cb = WandbCallback()
 wandb_cb.setup(trainer_config, model_config, "mhvae_mmnist")
 

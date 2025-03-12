@@ -1,7 +1,6 @@
 import logging
 from typing import Union
 
-import numpy as np
 import torch
 import torch.distributions as dist
 from pythae.models.base.base_utils import ModelOutput
