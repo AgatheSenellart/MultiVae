@@ -470,7 +470,19 @@ class MMVAEPlus(BaseMultiVAE):
 
     @torch.no_grad()
     def compute_joint_nll(self, inputs, K=1000, batch_size_K=100):
-        """Estimate the negative joint likelihood."""
+        """Estimate the negative joint likelihood.
+        
+        Args: 
+
+            inputs (MultimodalBaseDataset) : a batch of samples.
+            K (int) : the number of importance samples for the estimation. Default to 1000.
+            batch_size_K (int) : Default to 100. 
+        
+        Returns: 
+            
+            The negative log-likelihood summed over the batch.
+        """
+        # Check that the dataset is not incomplete
         self.eval()
         if hasattr(inputs, "masks"):
             raise AttributeError(

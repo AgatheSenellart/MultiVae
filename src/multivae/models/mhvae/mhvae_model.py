@@ -299,6 +299,7 @@ class MHVAE(BaseMultiVAE):
 
                 skips[mod] = [torch.cat([t] * N, dim=0) for t in skips[mod]]
 
+        # Replicate masks if necessary (N>1)
         if hasattr(inputs, "masks") and N > 1:
             masks = inputs.masks.copy()
             inputs.masks = {m: torch.cat([masks[m]] * N, dim=0) for m in masks}
@@ -311,7 +312,7 @@ class MHVAE(BaseMultiVAE):
             for k in z_dict:
 
                 z_dict[k] = z_dict[k].reshape(N, n_data, *z_dict[k].shape[1:])
-
+        # Set the masks back to the original value (before it was replicated)
         if hasattr(inputs, "masks") and N > 1:
             inputs.masks = masks
 

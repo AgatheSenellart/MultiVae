@@ -1,5 +1,5 @@
 from typing import Dict, Union
-
+import math
 import torch
 import torch.distributions as dist
 from pythae.models.base.base_utils import ModelOutput
@@ -93,6 +93,11 @@ class DMVAE(BaseMultiVAE):
 
 
     def _infer_latent_parameters(self, inputs, subset=None):
+        """
+        Compute the latent parameters for the shared and private latent spaces, 
+        taking the product-of-experts on the subset. 
+        """
+
         # if no subset is provided, use all available modalities
         if subset is None:
             subset = list(inputs.data.keys())
@@ -297,8 +302,6 @@ class DMVAE(BaseMultiVAE):
 
         return ModelOutput(z=z, one_latent_space=False, modalities_z=modalities_z)
 
-    def compute_joint_nll(self, inputs, K=1000, batch_size_K=100):
-        raise NotImplementedError()
 
     def generate_from_prior(self, n_samples, **kwargs):
         """
@@ -327,3 +330,103 @@ class DMVAE(BaseMultiVAE):
         return ModelOutput(
             z=z_shared, one_latent_space=False, modalities_z=modalities_z
         )
+
+    @torch.no_grad()
+    def compute_joint_nll(
+        self,
+        inputs: Union[MultimodalBaseDataset, IncompleteDataset],
+        K: int = 1000,
+        batch_size_K: int = 100,
+    ):
+        """Estimate the negative joint likelihood.
+        
+        Args: 
+
+            inputs (MultimodalBaseDataset) : a batch of samples.
+            K (int) : the number of importance samples for the estimation. Default to 1000.
+            batch_size_K (int) : Default to 100. 
+        
+        Returns: 
+            
+            The negative log-likelihood summed over the batch.
+        """
+        # Check that the dataset is complete
+        self.eval()
+        if hasattr(inputs, "masks"):
+            raise AttributeError(
+                "The compute_joint_nll method is not yet implemented for incomplete datasets."
+            )
+
+        # Compute the parameters of the joint posterior for the shared latent space
+        # Compute the shared latent variable conditioning on input modalities
+        mu, log_var, _, private_params = self._infer_latent_parameters(
+            inputs
+        )
+
+        sigma = torch.exp(0.5 * log_var)
+        qz_xy = dist.Normal(mu, sigma)
+
+        # Sample K latents from the shared joint posterior
+        z_joint = qz_xy.rsample([K]).permute(
+            1, 0, 2
+        )  # shape :  n_data x K x latent_dim
+        n_data, _, _ = z_joint.shape
+
+        # iter on each datapoint to compute the iwae estimate of ln(p(x))
+        ll = 0
+        ln_prior, ln_posterior = 0, 0
+        for i in range(n_data):
+            start_idx = 0
+            stop_idx = min(start_idx + batch_size_K, K)
+            lnpxs = []
+            # iterate over the mini-batch for the K samples
+            while start_idx < stop_idx:
+                shared_latents = z_joint[i][start_idx:stop_idx]
+                # Compute ln p(x_m|z) for z in latents and for each modality m
+                lpx_zs = 0
+                for mod in inputs.data:
+                    # Sample from the modality specific latent space
+                    mu_private, logvar_private = private_params[mod]
+                    mu_private, sigma_private = mu_private[i], torch.exp(0.5 * logvar_private[i])
+                    private_latents = dist.Normal(mu_private, sigma_private).rsample([len(shared_latents)])
+
+                    latents = torch.cat([shared_latents, private_latents], dim=-1)
+
+                    decoder = self.decoders[mod]
+                    recon = decoder(latents)[
+                        "reconstruction"
+                    ]  # (batch_size_K, nb_channels, w, h)
+                    x_m = inputs.data[mod][i]  # (nb_channels, w, h)
+
+                    lpx_zs += (
+                        self.recon_log_probs[mod](
+                            recon, torch.stack([x_m] * len(recon))
+                        )
+                        .reshape(recon.size(0), -1)
+                        .sum(-1)
+                    )
+
+                    # Compute ln(p(z_private))
+                    ln_prior += dist.Normal(0, 1).log_prob(private_latents).sum(dim=-1)
+
+                    # Compute ln(q(z_private|x))
+                    ln_posterior += dist.Normal(mu_private, sigma_private).log_prob(private_latents).sum(-1)
+
+                # Compute ln(p(z_shared))
+                prior = dist.Normal(0, 1)
+                ln_prior += prior.log_prob(shared_latents).sum(dim=-1)
+
+                # Compute posteriors ln(q(z_shared|x,y))
+                qz_xy = dist.Normal(mu[i], sigma[i])
+                ln_posterior += qz_xy.log_prob(shared_latents).sum(dim=-1)
+
+                ln_px = torch.logsumexp(lpx_zs + ln_prior - ln_posterior, dim=0)
+                lnpxs.append(ln_px)
+
+                # next batch
+                start_idx += batch_size_K
+                stop_idx = min(stop_idx + batch_size_K, K)
+
+            ll += torch.logsumexp(torch.Tensor(lnpxs), dim=0) - math.log(K)
+
+        return -ll

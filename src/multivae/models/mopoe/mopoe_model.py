@@ -501,15 +501,24 @@ class MoPoE(BaseMultiVAE):
         K: int = 1000,
         batch_size_K: int = 100,
     ):
-        """
-        Computes the joint negative log-likelihood using the MoPoE posterior as importance sampling distribution.
-        The result is summed over the input batch.
-
+        """Estimate the negative joint likelihood.
         In the original code, the product of experts is used as inference distribution
         for computing the nll instead of the MoPoe, but that is less coherent with the definition of the
         MoPoE definition as the joint posterior.
-        """
+        
+        Args: 
 
+            inputs (MultimodalBaseDataset) : a batch of samples.
+            K (int) : the number of importance samples for the estimation. Default to 1000.
+            batch_size_K (int) : Default to 100. 
+        
+        Returns: 
+            
+            The negative log-likelihood summed over the batch.
+        
+        
+        """
+        # Check that the dataset is complete
         self.eval()
         if hasattr(inputs, "masks"):
             raise AttributeError(

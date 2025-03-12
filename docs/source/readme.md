@@ -153,7 +153,8 @@ DMVAE| ✅ | [see here](https://multivae.readthedocs.io/en/latest/models/multimo
 |MMVAE + |✅|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mmvae_plus.html)
 |Nexus | ✅|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/nexus.html)
 |CMVAE| ✅|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/cmvae.html)
-|MHVAE| not yet|
+|MHVAE| ✅|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mhvae.html)
+|CRMVAE|✅|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/crmvae.html)
 
 ### Toy datasets with missing values
 

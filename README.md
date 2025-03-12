@@ -151,7 +151,8 @@ DMVAE| :white_check_mark: | [see here](https://multivae.readthedocs.io/en/latest
 |MMVAE + |:white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mmvae_plus.html)
 |Nexus | :white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/nexus.html)
 |CMVAE| :white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/cmvae.html)
-|MHVAE| not yet|
+|MHVAE| :white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mhvae.html)
+|CRMVAE|:white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/crmvae.html)
 
 ### Toy datasets with missing values
 
