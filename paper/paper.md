@@ -118,6 +118,7 @@ In the Table below, we list available models and features, and compare to previo
 |MCVAE[@antelmi:2019]||	$\checkmark$||
 |mAAE||	$\checkmark$||
 |DVCCA[@wang_deep_2017]||	$\checkmark$||
+|DCCAE[@dccae]|| $\checkmark$||
 |mWAE||	$\checkmark$||
 |mmJSD[@sutter:mmjsd]||	$\checkmark$||
 |gPoE[@aguila:poe]||	$\checkmark$||

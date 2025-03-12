@@ -342,18 +342,37 @@ url={https://openreview.net/forum?id=Rn8u4MYgeNJ}
 }
 
 @article{aguila:poe,
-author = {Lawry Aguila, Ana and Chapman, James and Altmann, Andre},
-title = {Multi-modal Variational Autoencoders for&nbsp;Normative Modelling Across Multiple Imaging Modalities},
-year = {2023},
-isbn = {978-3-031-43906-3},
-publisher = {Springer-Verlag},
-address = {Berlin, Heidelberg},
-url = {https://doi.org/10.1007/978-3-031-43907-0_41},
-doi = {10.1007/978-3-031-43907-0_41},
-abstract = {One of the challenges of studying common neurological disorders is disease heterogeneity including differences in causes, neuroimaging characteristics, comorbidities, or genetic variation. Normative modelling has become a popular method for studying such cohorts where the ‘normal’ behaviour of a physiological system is modelled and can be used at subject level to detect deviations relating to disease pathology. For many heterogeneous diseases, we expect to observe abnormalities across a range of neuroimaging and biological variables. However, thus far, normative models have largely been developed for studying a single imaging modality. We aim to develop a multi-modal normative modelling framework where abnormality is aggregated across variables of multiple modalities and is better able to detect deviations than uni-modal baselines. We propose two multi-modal VAE normative models to detect subject level deviations across T1 and DTI data. Our proposed models were better able to detect diseased individuals, capture disease severity, and correlate with patient cognition than baseline approaches. We also propose a multivariate latent deviation metric, measuring deviations from the joint latent space, which outperformed feature-based metrics.},
-booktitle = {Medical Image Computing and Computer Assisted Intervention – MICCAI 2023: 26th International Conference, Vancouver, BC, Canada, October 8–12, 2023, Proceedings, Part I},
-pages = {425–434},
-numpages = {10},
-keywords = {Unsupervised learning, Normative modelling, Multimodal modelling, multi-view VAEs},
-location = {Vancouver, BC, Canada}
+	author = {Lawry Aguila, Ana and Chapman, James and Altmann, Andre},
+	title = {Multi-modal Variational Autoencoders for&nbsp;Normative Modelling Across Multiple Imaging Modalities},
+	year = {2023},
+	isbn = {978-3-031-43906-3},
+	publisher = {Springer-Verlag},
+	address = {Berlin, Heidelberg},
+	url = {https://doi.org/10.1007/978-3-031-43907-0_41},
+	doi = {10.1007/978-3-031-43907-0_41},
+	abstract = {One of the challenges of studying common neurological disorders is disease heterogeneity including differences in causes, neuroimaging characteristics, comorbidities, or genetic variation. Normative modelling has become a popular method for studying such cohorts where the ‘normal’ behaviour of a physiological system is modelled and can be used at subject level to detect deviations relating to disease pathology. For many heterogeneous diseases, we expect to observe abnormalities across a range of neuroimaging and biological variables. However, thus far, normative models have largely been developed for studying a single imaging modality. We aim to develop a multi-modal normative modelling framework where abnormality is aggregated across variables of multiple modalities and is better able to detect deviations than uni-modal baselines. We propose two multi-modal VAE normative models to detect subject level deviations across T1 and DTI data. Our proposed models were better able to detect diseased individuals, capture disease severity, and correlate with patient cognition than baseline approaches. We also propose a multivariate latent deviation metric, measuring deviations from the joint latent space, which outperformed feature-based metrics.},
+	booktitle = {Medical Image Computing and Computer Assisted Intervention – MICCAI 2023: 26th International Conference, Vancouver, BC, Canada, October 8–12, 2023, Proceedings, Part I},
+	pages = {425–434},
+	numpages = {10},
+	keywords = {Unsupervised learning, Normative modelling, Multimodal modelling, multi-view VAEs},
+	location = {Vancouver, BC, Canada}
 }
+
+
+@inproceedings{dccae,
+  title = 	 {On Deep Multi-View Representation Learning},
+  author = 	 {Wang, Weiran and Arora, Raman and Livescu, Karen and Bilmes, Jeff},
+  booktitle = 	 {Proceedings of the 32nd International Conference on Machine Learning},
+  pages = 	 {1083--1092},
+  year = 	 {2015},
+  editor = 	 {Bach, Francis and Blei, David},
+  volume = 	 {37},
+  series = 	 {Proceedings of Machine Learning Research},
+  address = 	 {Lille, France},
+  month = 	 {07--09 Jul},
+  publisher =    {PMLR},
+  pdf = 	 {http://proceedings.mlr.press/v37/wangb15.pdf},
+  url = 	 {https://proceedings.mlr.press/v37/wangb15.html},
+  abstract = 	 {We consider learning representations (features) in the setting in which we have access to multiple unlabeled views of the data for representation learning while only one view is available at test time. Previous work on this problem has proposed several techniques based on deep neural networks, typically involving either autoencoder-like networks with a reconstruction objective or paired feedforward networks with a correlation-based objective. We analyze several techniques based on prior work, as well as new variants, and compare them experimentally on visual, speech, and language domains. To our knowledge this is the first head-to-head comparison of a variety of such techniques on multiple tasks. We find an advantage for correlation-based representation learning, while the best results on most tasks are obtained with our new variant, deep canonically correlated autoencoders (DCCAE).}
+}
+
