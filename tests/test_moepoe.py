@@ -106,25 +106,34 @@ class Test_model:
         beta = request.param
 
         return beta
+    
 
     @pytest.fixture(params=[True, False])
-    def model(self, archi_and_config, request):
-        custom = request.param
+    def custom(self, request):
+        return request.param
+    
+    @pytest.fixture
+    def model(self, archi_and_config, custom):
         if custom:
             model = MoPoE(**archi_and_config)
         else:
             model = MoPoE(archi_and_config["model_config"])
         return model
 
-    def test_setup(self, model, archi_and_config):
-
+    def test_setup(self, model, custom, archi_and_config):
+        
+        # check that our custom architectures were passed to the model
         model_config = archi_and_config["model_config"]
-        if "encoders" in model.model_config.custom_architectures:
+        if custom:
+            assert "encoders" in model.model_config.custom_architectures
+            assert "decoders" in model.model_config.custom_architectures
+
             if model_config.modalities_specific_dim is not None:
                 assert isinstance(model.encoders["mod1"], Encoder_test_multilatents)
             else:
                 assert isinstance(model.encoders["mod1"], Encoder_test)
 
+        # test that the subsets were set as expected
         expected_subsets = [
             ["mod1", "mod2"],
             ["mod2", "mod3"],
@@ -134,20 +143,25 @@ class Test_model:
         ]
         for s in expected_subsets:
             assert s in list(model.subsets.values())
-
-    def test_forward(self, model, dataset, archi_and_config):
-        model_config = archi_and_config["model_config"]
-
+        
+    def test_forward(self, model, dataset):
         output = model(dataset, epoch=2)
         loss = output.loss
-        assert type(loss) == torch.Tensor
+        assert isinstance(loss, torch.Tensor)
         assert loss.size() == torch.Size([])
         assert loss.requires_grad
 
-    def test_encode_predict(self, model, dataset, archi_and_config):
+        # test that setting a wrong architectures raises an error in forward
+        if model.model_config.modalities_specific_dim is not None:
+            model.encoders['mod1'] = Encoder_test(BaseAEConfig(input_dim=(2,), latent_dim=5))
+            with pytest.raises(AttributeError):
+                output = model(dataset, epoch=2)
 
-
+    def test_encode(self, model, dataset, archi_and_config):
+        
+        latent_dim = archi_and_config['model_config'].latent_dim
         outputs = model.encode(dataset[0])
+        # Check the value of 'one_latent_space'
         if archi_and_config["model_config"].modalities_specific_dim is not None:
             assert not outputs.one_latent_space
         else:
@@ -156,22 +170,31 @@ class Test_model:
         # Test the shape of the shared embeddings
         embeddings = outputs.z
         assert isinstance(outputs, ModelOutput)
-        assert embeddings.shape == (1, 5)
+        assert embeddings.shape == (1, latent_dim)
         embeddings = model.encode(dataset[0], N=2).z
-        assert embeddings.shape == (2, 1, 5)
+        assert embeddings.shape == (2, 1, latent_dim)
         embeddings = model.encode(dataset, cond_mod=["mod2"]).z
-        assert embeddings.shape == (len(dataset), 5)
+        assert embeddings.shape == (len(dataset), latent_dim)
         embeddings = model.encode(dataset, cond_mod="mod3", N=10).z
-        assert embeddings.shape == (10, len(dataset), 5)
+        assert embeddings.shape == (10, len(dataset), latent_dim)
         embeddings = model.encode(dataset, cond_mod=["mod2", "mod4"]).z
-        assert embeddings.shape == (len(dataset), 5)
+        assert embeddings.shape == (len(dataset), latent_dim)
 
         # Test that the encode function returns the private embeddings
         if model.multiple_latent_spaces:
             output = model.encode(dataset[0], N=2)
             assert not output.one_latent_space
             assert hasattr(output, 'modalities_z')
+        
+        # Test the return_mean parameter
+        for cond_mod in ['all', ['mod2', 'mod3']]:
+            outputs = model.encode(dataset[:3],cond_mod=cond_mod, return_mean=True, N=5)
+            assert outputs.z.shape == (5,3,latent_dim)
+            # Assert that the returned embeddings contains 3 times the mean
+            assert torch.all(outputs.z[1:]==outputs.z[0])
 
+
+    def test_predict(self, model, dataset):
         # Test the shape of reconstruction
         Y = model.predict(dataset, cond_mod="mod2")
         assert isinstance(Y, ModelOutput)
@@ -472,11 +495,22 @@ class Test_model:
 
         if hasattr(dataset, "masks"):
             with pytest.raises(AttributeError):
-                nll = model.compute_joint_nll(dataset, K=10, batch_size_K=6)
+                nll = model.compute_joint_nll_from_subset_encoding(dataset, K=10, batch_size_K=6)
         else :
             nll = model._compute_joint_nll_from_subset_encoding(
                 ["mod1", "mod2"], dataset, K=10, batch_size_K=6
             )
+            assert nll >= 0
+            assert type(nll) == torch.Tensor
+            assert nll.size() == torch.Size([])
+
+    def test_compute_nll_paper(self, model, dataset):
+
+        if hasattr(dataset, "masks"):
+            with pytest.raises(AttributeError):
+                nll = model.compute_joint_nll_paper(dataset, K=10, batch_size_K=6)
+        else:
+            nll = model.compute_joint_nll_paper(dataset, K=10, batch_size_K=6)
             assert nll >= 0
             assert type(nll) == torch.Tensor
             assert nll.size() == torch.Size([])

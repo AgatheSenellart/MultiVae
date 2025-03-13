@@ -65,6 +65,10 @@ class TELBO(BaseJointModel):
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs):
         """Forward pass of the model."""
+
+        # Check that the dataset is not incomplete
+        super().forward(inputs)
+
         epoch = kwargs.pop("epoch", 1)
 
         # First compute the joint ELBO
@@ -149,30 +153,12 @@ class TELBO(BaseJointModel):
         """
 
         self.eval()
+        # Transform to list and check that dataset is complete
+        cond_mod = super().encode(inputs, cond_mod,N, **kwargs).cond_mod
 
-        if type(cond_mod) == list and len(cond_mod) == 1:
+        # If one conditioning modality, use the modality encoder
+        if len(cond_mod) == 1:
             cond_mod = cond_mod[0]
-
-        if cond_mod == "all" or (
-            type(cond_mod) == list and len(cond_mod) == self.n_modalities
-        ):
-            output = self.joint_encoder(inputs.data)
-            sample_shape = [] if N == 1 else [N]
-            z = dist.Normal(
-                output.embedding, torch.exp(0.5 * output.log_covariance)
-            ).rsample(sample_shape)
-            if N > 1 and kwargs.pop("flatten", False):
-                N, l, d = z.shape
-                z = z.reshape(l * N, d)
-            return ModelOutput(z=z, one_latent_space=True)
-
-        if type(cond_mod) == list and len(cond_mod) != 1:
-            raise AttributeError(
-                "Conditioning on a subset containing more than one modality "
-                "is not yet implemented."
-            )
-
-        if cond_mod in self.modalities_name:
             output = self.encoders[cond_mod](inputs.data[cond_mod])
             sample_shape = [] if N == 1 else [N]
 
@@ -184,8 +170,20 @@ class TELBO(BaseJointModel):
                 z = z.reshape(-1, self.latent_dim)
 
             return ModelOutput(z=z, one_latent_space=True)
-        else:
-            raise AttributeError(
-                f"Modality of name {cond_mod} not handled. The"
-                f" modalities that can be encoded are {list(self.encoders.keys())}"
+        
+        # If all conditioning modalities, use the joint encoder
+        if len(cond_mod) == self.n_modalities:
+            output = self.joint_encoder(inputs.data)
+            sample_shape = [] if N == 1 else [N]
+            z = dist.Normal(
+                output.embedding, torch.exp(0.5 * output.log_covariance)
+            ).rsample(sample_shape)
+            if N > 1 and kwargs.pop("flatten", False):
+                N, l, d = z.shape
+                z = z.reshape(l * N, d)
+            return ModelOutput(z=z, one_latent_space=True)
+
+        raise ValueError(
+                f" Conditioning on subset {cond_mod} is not handled. "
+                f" Possible subsets are  {list(self.encoders.keys())} and 'all'. "
             )

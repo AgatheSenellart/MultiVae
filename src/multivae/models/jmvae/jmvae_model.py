@@ -143,6 +143,8 @@ class JMVAE(BaseJointModel):
         Returns:
             ModelOutput
         """
+        # check that the dataset is not incomplete
+        super().forward(inputs)
 
         epoch = kwargs.pop("epoch", 1)
 

@@ -69,6 +69,15 @@ class BaseJointModel(BaseMultiVAE):
             )
         self.joint_encoder = joint_encoder
 
+    def forward(self, inputs, **kwargs):
+        if hasattr(inputs, 'masks'):
+            raise AttributeError('The inputs have masks but this model is not compatible with incomplete dataset.')
+        
+    def encode(self, inputs, cond_mod = "all", N = 1, **kwargs):
+        if hasattr(inputs, 'masks'):
+            raise AttributeError('The inputs have masks but this model is not compatible with incomplete dataset.')
+        return super().encode(inputs, cond_mod, N, **kwargs)
+
     def compute_joint_nll(
         self, inputs: MultimodalBaseDataset, K: int = 1000, batch_size_K: int = 100
     ):
@@ -89,7 +98,7 @@ class BaseJointModel(BaseMultiVAE):
         self.eval()
         if hasattr(inputs, "masks"):
             raise AttributeError(
-                "The compute_joint_nll method is not yet implemented for incomplete datasets."
+                "The inputs contains masks but this model is not compatible with incomplete dataset."
             )
 
         # Compute the parameters of the joint posterior

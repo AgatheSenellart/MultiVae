@@ -314,6 +314,7 @@ class MoPoE(BaseMultiVAE):
                     logvars_subset = torch.cat(
                         (logvars_subset, log_vars_mod.unsqueeze(0)), dim=0
                     )
+                    
                 # Case with only one sample : adapt the shape
                 if len(mus_subset.shape) == 2:
                     mus_subset = mus_subset.unsqueeze(1)

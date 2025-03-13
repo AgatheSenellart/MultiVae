@@ -9,7 +9,7 @@ from pythae.models.base import BaseAEConfig
 from pythae.models.base.base_utils import ModelOutput
 from pythae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
 
-from multivae.data.datasets.base import MultimodalBaseDataset
+from multivae.data.datasets.base import MultimodalBaseDataset, IncompleteDataset
 from multivae.models import JMVAE, AutoModel, JMVAEConfig
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 
@@ -70,7 +70,7 @@ class Test_forward_and_predict:
             decoders = None
         return dict(model_config=model_config, encoders=encoders, decoders=decoders)
 
-    def test2(self, dataset, config_and_architectures):
+    def test_base_functions(self, dataset, config_and_architectures):
         model = JMVAE(**config_and_architectures)
 
         # test model setup
@@ -136,6 +136,29 @@ class Test_forward_and_predict:
 
         with pytest.raises(AttributeError):
             model.encode(dataset, cond_mod="wrong_mod")
+
+    @pytest.fixture()
+    def incomplete_dataset(self):
+        data = dict(
+            mod1=torch.Tensor([[1.0, 2.0], [4.0, 5.0]]),
+            mod2=torch.Tensor([[67.1, 2.3, 3.0], [1.3, 2.0, 3.0]]),
+            mod3=torch.Tensor([[67.1, 2.3, 3.0, 4], [1.3, 2.0, 3.0, 4]]),
+        )
+        masks = {'mod1':torch.zeros(2,), 
+                 'mod2':torch.zeros(2,),
+                 'mod3':torch.ones(2,)}
+        labels = np.array([0, 1])
+        return IncompleteDataset(data, labels=labels, masks=masks)
+
+    def test_error_with_incomplete_datasets(self, incomplete_dataset, config_and_architectures):
+        model = JMVAE(**config_and_architectures)
+        with pytest.raises(AttributeError):
+            model(incomplete_dataset)
+        with pytest.raises(AttributeError):
+            model.encode(incomplete_dataset)
+        with pytest.raises(AttributeError):
+            model.compute_joint_nll(incomplete_dataset,K=10,batch_size_K=2)
+        
 
 
 @pytest.mark.slow
