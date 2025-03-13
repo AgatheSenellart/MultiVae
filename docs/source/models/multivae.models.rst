@@ -36,4 +36,5 @@ Available Multimodal VAEs
     MMVAEPlus
     CMVAE
     MHVAE
+    CRMVAE
     :nosignatures:

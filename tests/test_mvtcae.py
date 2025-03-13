@@ -86,15 +86,21 @@ class Test_model:
             model = MVTCAE(model_config)
         return model
 
-    def test(self, model, dataset, model_config):
+    def test_setup(self, model, model_config):
         assert model.beta == model_config.beta
 
+    def test_forward(self, model, dataset):
+        # with one sample
+        output = model(dataset, epoch=2)
+        assert isinstance(output.loss, torch.Tensor)
+        # with more samples
         output = model(dataset, epoch=2)
         loss = output.loss
         assert type(loss) == torch.Tensor
         assert loss.size() == torch.Size([])
         assert loss.requires_grad
 
+    def test_encode(self, model, dataset):
         # Try encoding and prediction
         outputs = model.encode(dataset[0])
         assert outputs.one_latent_space
@@ -109,6 +115,8 @@ class Test_model:
         assert embeddings.shape == (10, len(dataset), 5)
         embeddings = model.encode(dataset, cond_mod=["mod2", "mod4"]).z
         assert embeddings.shape == (len(dataset), 5)
+
+    def test_predict(self, model, dataset):
 
         Y = model.predict(dataset, cond_mod="mod2")
         assert isinstance(Y, ModelOutput)
@@ -550,7 +558,10 @@ class TestTraining:
         assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
 
     def test_compute_nll(self, model, dataset):
-        if not hasattr(dataset, "masks"):
+        if hasattr(dataset, "masks"):
+            with pytest.raises(AttributeError):
+                nll = model.compute_joint_nll(dataset, K=10, batch_size_K=2)
+        else:
             nll = model.compute_joint_nll(dataset, K=10, batch_size_K=2)
             assert nll >= 0
             assert type(nll) == torch.Tensor

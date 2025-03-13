@@ -42,6 +42,7 @@ DMVAE| [Private-Shared Disentangled Multimodal VAE for Learning of Latent Repres
 |Nexus | [Leveraging hierarchy in multimodal generative models for effective cross-modality inference](https://www.sciencedirect.com/science/article/abs/pii/S0893608021004470)|[link](https://github.com/miguelsvasco/nexus_pytorch)|
 |CMVAE| [Deep Generative Clustering with Multimodal Diffusion Variational Autoencoders](https://openreview.net/forum?id=k5THrhXDV3)| [link](https://github.com/epalu/CMVAE)|
 |MHVAE| [Unified Brain MR-Ultrasound Synthesis using  Multi-Modal Hierarchical Representations](https://arxiv.org/abs/2309.08747) |[link](https://github.com/ReubenDo/MHVAE)|
+|CRMVAE| [Mitigating the Limitations of Multimodal VAEs with Coordination-Based Approach](https://openreview.net/forum?id=Rn8u4MYgeNJ) | [link](https://openreview.net/forum?id=Rn8u4MYgeNJ)|
 
 
 # Table of Contents
@@ -150,7 +151,8 @@ DMVAE| :white_check_mark: | [see here](https://multivae.readthedocs.io/en/latest
 |MMVAE + |:white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mmvae_plus.html)
 |Nexus | :white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/nexus.html)
 |CMVAE| :white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/cmvae.html)
-|MHVAE| not yet|
+|MHVAE| :white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mhvae.html)
+|CRMVAE|:white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/crmvae.html)
 
 ### Toy datasets with missing values
 
@@ -336,6 +338,7 @@ Here we provide details on the results we managed to reproduce.
 |MVTCAE|PolyMNIST|Coherences|69/77/83/86|64/82/88/91|
 |MMVAE+|PolyMNIST|Coherences/FID|86.9/92.81|88.6 +-0;8/ 93+-5|
 |CMVAE|PolyMNIST|Coherences|89.7/78.1|88.6/76.4|
+|CRMVAE| Translated PolyMNIST|Coherences| 0.145/0.172/0.192/0.21 |0.16/0.19/0.205/0.21|
 
 Note that we also tried to reproduce results for the Nexus model, but didn't obtain similar results as the ones presented in the original paper. If you spot a difference between our implementation and theirs, please reach out to us. 
 

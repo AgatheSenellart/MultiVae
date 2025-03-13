@@ -1,13 +1,13 @@
 import logging
 from typing import Union
 
-import numpy as np
 import torch
 import torch.distributions as dist
 from pythae.models.base.base_utils import ModelOutput
 
 from ...data.datasets.base import MultimodalBaseDataset
 from ..joint_models import BaseJointModel
+from ..base.base_utils import stable_poe
 from ..nn.base_architectures import BaseJointEncoder
 from .jmvae_config import JMVAEConfig
 
@@ -101,7 +101,7 @@ class JMVAE(BaseJointModel):
             return ModelOutput(z=z, one_latent_space=True)
 
         elif len(cond_mod) != 1:
-            z = self.sample_from_poe_subset_exact(
+            z = self._sample_from_poe_subset_exact(
                 cond_mod, inputs.data, sample_shape=sample_shape
             )
 
@@ -143,6 +143,8 @@ class JMVAE(BaseJointModel):
         Returns:
             ModelOutput
         """
+        # check that the dataset is not incomplete
+        super().forward(inputs)
 
         epoch = kwargs.pop("epoch", 1)
 
@@ -206,100 +208,22 @@ class JMVAE(BaseJointModel):
 
         return output
 
-    def poe(self, mus_list, log_vars_list):
-        mus = mus_list.copy()
-        log_vars = log_vars_list.copy()
 
-        # Add the prior to the product of experts
-        mus.append(torch.zeros_like(mus[0]))
-        log_vars.append(torch.zeros_like(log_vars[0]))
-
-        # Compute the joint posterior
-        lnT = torch.stack([-l for l in log_vars])  # Compute the inverse of variances
-        lnV = -torch.logsumexp(lnT, dim=0)  # variances of the product of expert
-        mus = torch.stack(mus)
-        joint_mu = (torch.exp(lnT) * mus).sum(dim=0) * torch.exp(lnV)
-
-        return joint_mu, lnV
-
-    def sample_from_poe_subset_exact(self, subset: list, data: dict, sample_shape=[]):
+    def _sample_from_poe_subset_exact(self, subset: list, data: dict, sample_shape=None):
         """
         Sample from the product of experts for infering from a subset of modalities.
         """
+        if sample_shape is None:
+            sample_shape = []
 
+        # Get all the experts' means and logvars
         mus, logvars = [], []
-
         for mod in subset:
             vae_output = self.encoders[mod](data[mod])
-            mu, log_var = vae_output.embedding, vae_output.log_covariance
             mus.append(vae_output.embedding)
             logvars.append(vae_output.log_covariance)
-
-        joint_mu, joint_logvar = self.poe(mus, logvars)
+        
+        # Compute the product of experts
+        joint_mu, joint_logvar = stable_poe(torch.stack(mus), torch.stack(logvars))
         z = dist.Normal(joint_mu, torch.exp(0.5 * joint_logvar)).rsample(sample_shape)
         return z
-
-    def compute_joint_nll_paper(
-        self, inputs: MultimodalBaseDataset, K: int = 1000, batch_size_K: int = 100
-    ):
-        """
-        Return the estimated negative log-likelihood summed over the input batch.
-        The negative log-likelihood is estimated using importance sampling.
-
-        Args:
-            inputs : the data to compute the joint likelihood"""
-
-        # First compute all the parameters of the joint posterior q(z|x,y)
-
-        joint_output = self.joint_encoder(inputs.data)
-        mu, log_var = joint_output.embedding, joint_output.log_covariance
-
-        sigma = torch.exp(0.5 * log_var)
-        qz_xy = dist.Normal(mu, sigma)
-        # And sample from the posterior
-        z_joint = qz_xy.rsample([K])  # shape K x n_data x latent_dim
-        z_joint = z_joint.permute(1, 0, 2)
-        n_data, _, latent_dim = z_joint.shape
-
-        # Then iter on each datapoint to compute the iwae estimate of ln(p(x))
-        ll = 0
-
-        for i in range(n_data):
-            start_idx = 0
-            stop_idx = min(start_idx + batch_size_K, K)
-            lnpxs = []
-            while start_idx < stop_idx:
-                latents = z_joint[i][start_idx:stop_idx]
-
-                # Compute p(x_m|z) for z in latents and for each modality m
-                lpx_zs = 0  # ln(p(x,y|z))
-                for mod in ["images"]:  # only keep the images for this likelihood
-                    decoder = self.decoders[mod]
-                    recon = decoder(latents)[
-                        "reconstruction"
-                    ]  # (batch_size_K, *decoder_output_shape)
-                    x_m = inputs.data[mod][i]  # (*input_shape)
-                    lpx_zs += (
-                        self.recon_log_probs[mod](recon, x_m)
-                        .reshape(recon.size(0), -1)
-                        .sum(-1)
-                    )
-
-                # Compute ln(p(z))
-                prior = dist.Normal(0, 1)
-                lpz = prior.log_prob(latents).sum(dim=-1)
-
-                # Compute posteriors -ln(q(z|x,y))
-                qz_xy = dist.Normal(mu[i], sigma[i])
-                lqz_xy = qz_xy.log_prob(latents).sum(dim=-1)
-
-                ln_px = torch.logsumexp(lpx_zs + lpz - lqz_xy, dim=0)
-                lnpxs.append(ln_px)
-
-                # next batch
-                start_idx += batch_size_K
-                stop_idx = min(start_idx + batch_size_K, K)
-
-            ll += torch.logsumexp(torch.Tensor(lnpxs), dim=0) - np.log(K)
-
-        return -ll

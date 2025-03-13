@@ -530,7 +530,11 @@ class TestTraining:
         assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
 
     def test_compute_nll(self, model, dataset):
-        nll = model.compute_joint_nll(dataset, K=10, batch_size_K=2)
-        assert nll >= 0
-        assert type(nll) == torch.Tensor
-        assert nll.size() == torch.Size([])
+        if hasattr(dataset, 'masks'):
+            with pytest.raises(AttributeError):
+                nll = model.compute_joint_nll(dataset, K=10, batch_size_K=2)
+        else :
+            nll = model.compute_joint_nll(dataset, K=10, batch_size_K=2)
+            assert nll >= 0
+            assert isinstance(nll, torch.Tensor)
+            assert nll.size() == torch.Size([])

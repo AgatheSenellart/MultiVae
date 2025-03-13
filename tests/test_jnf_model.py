@@ -10,7 +10,7 @@ from pythae.models.base.base_utils import ModelOutput
 from pythae.models.normalizing_flows import IAF, IAFConfig
 from torch import nn
 
-from multivae.data.datasets.base import MultimodalBaseDataset
+from multivae.data.datasets.base import MultimodalBaseDataset, IncompleteDataset
 from multivae.data.utils import set_inputs_to_device
 from multivae.models import JNF, AutoModel, JNFConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
@@ -70,7 +70,7 @@ class Test:
             n_modalities=3,
             latent_dim=5,
             input_dims=dict(mod1=(2,), mod2=(3,), mod3=(4,)),
-            use_likelihood_rescaling=use_likelihood_rescaling,
+            uses_likelihood_rescaling=use_likelihood_rescaling,
         )
 
         return model_config
@@ -84,7 +84,7 @@ class Test:
             model = JNF(model_config)
         return model
 
-    def test(self, model, dataset, model_config):
+    def test_base_functions(self, model, dataset, model_config):
         # tests on model init
         assert model.warmup == model_config.warmup
 
@@ -93,7 +93,7 @@ class Test:
         assert hasattr(output, "metrics")
 
         loss = output.loss
-        assert type(loss) == torch.Tensor
+        assert isinstance(loss, torch.Tensor)
         assert loss.size() == torch.Size([])
         assert loss.requires_grad
 
@@ -102,7 +102,7 @@ class Test:
         # test model forward after warmup
         output = model(dataset, epoch=model_config.warmup + 2)
         loss = output.loss
-        assert type(loss) == torch.Tensor
+        assert isinstance(loss, torch.Tensor)
         assert loss.size() == torch.Size([])
         assert loss.requires_grad
 
@@ -138,6 +138,28 @@ class Test:
         assert isinstance(Y, ModelOutput)
         assert Y.mod1.shape == (2 * 10, 2)
         assert Y.mod2.shape == (2 * 10, 3)
+
+    @pytest.fixture()
+    def incomplete_dataset(self):
+        data = dict(
+            mod1=torch.Tensor([[1.0, 2.0], [4.0, 5.0]]),
+            mod2=torch.Tensor([[67.1, 2.3, 3.0], [1.3, 2.0, 3.0]]),
+            mod3=torch.Tensor([[67.1, 2.3, 3.0, 4], [1.3, 2.0, 3.0, 4]]),
+        )
+        masks = {'mod1':torch.zeros(2,), 
+                 'mod2':torch.zeros(2,),
+                 'mod3':torch.ones(2,)}
+        labels = np.array([0, 1])
+        return IncompleteDataset(data, labels=labels, masks=masks)
+
+    def test_error_with_incomplete_datasets(self, incomplete_dataset, model):
+        with pytest.raises(AttributeError):
+            model(incomplete_dataset)
+        with pytest.raises(AttributeError):
+            model.encode(incomplete_dataset)
+        with pytest.raises(AttributeError):
+            model.compute_joint_nll(incomplete_dataset,K=10,batch_size_K=2)
+        
 
 
 @pytest.mark.slow

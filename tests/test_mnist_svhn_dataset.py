@@ -1,4 +1,3 @@
-
 import pytest
 from pythae.data.datasets import DatasetOutput
 from torchvision.datasets import MNIST

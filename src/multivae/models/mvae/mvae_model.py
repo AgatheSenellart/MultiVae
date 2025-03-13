@@ -10,6 +10,7 @@ from pythae.models.base.base_utils import ModelOutput
 from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
 
 from ..base import BaseMultiVAE
+from ..base.base_utils import stable_poe
 from .mvae_config import MVAEConfig
 
 
@@ -39,32 +40,16 @@ class MVAE(BaseMultiVAE):
         self.k = model_config.k
         if self.n_modalities <= 2:
             self.k = 0
-        self.set_subsets()
+        self._set_subsets()
         self.warmup = model_config.warmup
         self.start_keep_best_epoch = model_config.warmup + 1
         self.beta = model_config.beta
         self.model_name = "MVAE"
 
-    def set_subsets(self):
+    def _set_subsets(self):
         self.subsets = []
         for i in range(2, self.n_modalities):
             self.subsets += combinations(list(self.encoders.keys()), r=i)
-
-    def poe(self, mus_list, log_vars_list):
-        mus = mus_list.copy()
-        log_vars = log_vars_list.copy()
-
-        # Add the prior to the product of experts
-        mus.append(torch.zeros_like(mus[0]))
-        log_vars.append(torch.zeros_like(log_vars[0]))
-
-        # Compute the joint posterior
-        lnT = torch.stack([-l for l in log_vars])  # Compute the inverse of variances
-        lnV = -torch.logsumexp(lnT, dim=0)  # variances of the product of expert
-        mus = torch.stack(mus)
-        joint_mu = (torch.exp(lnT) * mus).sum(dim=0) * torch.exp(lnV)
-
-        return joint_mu, lnV
 
     def compute_mu_log_var_subset(self, inputs: MultimodalBaseDataset, subset: list):
         """Computes the parameters of the posterior when conditioning on
@@ -86,7 +71,12 @@ class MVAE(BaseMultiVAE):
 
                 mus_sub.append(mu_mod)
                 log_vars_sub.append(log_var_mod)
-        sub_mu, sub_logvar = self.poe(mus_sub, log_vars_sub)
+
+        # Add the prior to the product of experts
+        mus_sub.append(torch.zeros_like(mus_sub[0]))
+        log_vars_sub.append(torch.zeros_like(log_vars_sub[0]))
+        # Compute the Product of Experts
+        sub_mu, sub_logvar = stable_poe(torch.stack(mus_sub), torch.stack(log_vars_sub))
         return sub_mu, sub_logvar
 
     def _compute_elbo_subset(
@@ -251,41 +241,55 @@ class MVAE(BaseMultiVAE):
 
         return ModelOutput(z=z, one_latent_space=True)
 
+    @torch.no_grad()
     def compute_joint_nll(
         self,
         inputs: Union[MultimodalBaseDataset, IncompleteDataset],
         K: int = 1000,
         batch_size_K: int = 100,
     ):
-        """Computes the joint_negative_nll for a batch of inputs."""
+        """Estimate the negative joint likelihood.
+        
+        Args: 
+
+            inputs (MultimodalBaseDataset) : a batch of samples.
+            K (int) : the number of importance samples for the estimation. Default to 1000.
+            batch_size_K (int) : Default to 100. 
+        
+        Returns: 
+            
+            The negative log-likelihood summed over the batch.
+        """
+        # Check that the dataset is complete
+        self.eval()
+        if hasattr(inputs, "masks"):
+            raise AttributeError(
+                "The compute_joint_nll method is not yet implemented for incomplete datasets."
+            )
+
+        # Compute the parameters of the joint posterior
+        mu, log_var = self.compute_mu_log_var_subset(inputs, list(self.encoders.keys()))
+        sigma = torch.exp(0.5 * log_var)
+        qz_xy = dist.Normal(mu, sigma)
+
+        # Sample K latents from the joint posterior
+        z_joint = qz_xy.rsample([K]).permute(
+            1, 0, 2
+        )  # shape :  n_data x K x latent_dim
+        n_data, _, _ = z_joint.shape
 
         # iter on each datapoint to compute the iwae estimate of ln(p(x))
         ll = 0
-        n_data = len(inputs.data[list(inputs.data.keys())[0]])
         for i in range(n_data):
             start_idx = 0
             stop_idx = min(start_idx + batch_size_K, K)
             lnpxs = []
-
-            # Compute the parameters of the joint posterior
-            mu, log_var = self.compute_mu_log_var_subset(
-                MultimodalBaseDataset(
-                    data={k: inputs.data[k][i].unsqueeze(0) for k in inputs.data}
-                ),
-                list(self.encoders.keys()),
-            )
-
-            sigma = torch.exp(0.5 * log_var)
-            qz_xy = dist.Normal(mu, sigma)
-
-            # And sample from the posterior
-            z_joint = qz_xy.rsample([K]).squeeze()  # shape K x latent_dim
-
+            # iterate over the mini-batch for the K samples
             while start_idx < stop_idx:
-                latents = z_joint[start_idx:stop_idx]
+                latents = z_joint[i][start_idx:stop_idx]
 
-                # Compute p(x_m|z) for z in latents and for each modality m
-                lpx_zs = 0  # ln(p(x,y|z))
+                # Compute ln p(x_m|z) for z in latents and for each modality m
+                lpx_zs = 0
                 for mod in inputs.data:
                     decoder = self.decoders[mod]
                     recon = decoder(latents)[
@@ -306,7 +310,7 @@ class MVAE(BaseMultiVAE):
                 lpz = prior.log_prob(latents).sum(dim=-1)
 
                 # Compute posteriors -ln(q(z|x,y))
-                qz_xy = dist.Normal(mu.squeeze(), sigma.squeeze())
+                qz_xy = dist.Normal(mu[i], sigma[i])
                 lqz_xy = qz_xy.log_prob(latents).sum(dim=-1)
 
                 ln_px = torch.logsumexp(lpx_zs + lpz - lqz_xy, dim=0)
