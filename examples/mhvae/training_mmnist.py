@@ -69,9 +69,9 @@ trainer_config = BaseTrainerConfig(
     learning_rate=1e-4,
 )
 
-# Set up wandb callback
-# wandb_cb = WandbCallback()
-# wandb_cb.setup(trainer_config,model_config,'mhvae_mmnist')
+# Set up wandb callback (Optional )
+wandb_cb = WandbCallback()
+wandb_cb.setup(trainer_config, model_config, "mhvae_mmnist")
 
 # Define trainer and train
 trainer = BaseTrainer(
@@ -79,7 +79,7 @@ trainer = BaseTrainer(
     model=model,
     train_dataset=train_set,
     eval_dataset=eval_set,
-    #   callbacks=[wandb_cb]
+    callbacks=[wandb_cb],
 )
 
 trainer.train()

@@ -111,6 +111,9 @@ class JNF(BaseJointModel):
     def forward(self, inputs: MultimodalBaseDataset, **kwargs):
         """Forward pass of the JNF model. Returns the loss and metrics."""
 
+        # Check that the dataset is not incomplete
+        super().forward(inputs)
+
         epoch = kwargs.pop("epoch", 1)
 
         # First compute the joint ELBO
@@ -220,7 +223,6 @@ class JNF(BaseJointModel):
         n_lf = kwargs.pop("n_lf", 10)
         eps_lf = kwargs.pop("eps_lf", 0.01)
 
-        # Deal with incomplete datasets
         cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
         return_mean = kwargs.pop("return_mean", False)
         if len(cond_mod) == self.n_modalities:

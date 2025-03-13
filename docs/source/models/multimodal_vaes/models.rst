@@ -24,6 +24,7 @@ Multimodal Variational Autoencoders Models
     mhvae
     mvtcae
     mmvae_plus
+    crmvae
 
 .. automodule::
     multivae.models
@@ -47,4 +48,5 @@ Available VAEs
     MMVAEPlus
     CMVAE
     MHVAE
+    CRMVAE
     :nosignatures:

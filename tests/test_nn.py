@@ -14,8 +14,8 @@ from multivae.models.nn.mmnist import (
     DecoderConvMMNIST,
     DecoderResnetMMNIST,
     EncoderConvMMNIST,
+    EncoderConvMMNIST_adapted,
     EncoderResnetMMNIST,
-    EncoderConvMMNIST_adapted
 )
 from multivae.models.nn.svhn import Decoder_VAE_SVHN, Encoder_VAE_SVHN
 
@@ -133,7 +133,6 @@ class TestMMNISTNets:
             mmnist_like_data.shape[0],
             ae_mmnist_config.latent_dim,
         )
-
 
         # Test Resnet networks
         encoder = encoder_resnet_mmnist

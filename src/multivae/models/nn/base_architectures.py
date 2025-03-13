@@ -1,4 +1,6 @@
 import torch
+
+from typing import Dict
 from pythae.models.base.base_model import BaseDecoder, BaseEncoder, ModelOutput
 
 
@@ -104,7 +106,7 @@ class BaseConditionalDecoder(BaseDecoder):
         BaseDecoder.__init__(self)
         self.latent_dim = None  # to be set in child class
 
-    def forward(self, z: torch.Tensor, conditioning_modality: torch.Tensor):
+    def forward(self, z: torch.Tensor, cond_mods: Dict[str, torch.Tensor]):
         r"""This function must be implemented in a child class.
         It takes the latent variable z and conditioning modality and returns an instance of
         :class:`~pythae.models.base.base_utils.ModelOutput` with the reconstruction.
@@ -124,7 +126,7 @@ class BaseConditionalDecoder(BaseDecoder):
             ...         # your code
             ...         self.latent_dim = ...
             ...
-            ...     def forward(self, z, conditioning_modality):
+            ...     def forward(self, z, cond_mods):
             ...         # your code
             ...         output = ModelOutput(
             ...             reconstruction= ...
@@ -133,7 +135,7 @@ class BaseConditionalDecoder(BaseDecoder):
 
         Parameters:
             z (torch.Tensor): Latent variable
-            conditioning_modality (torch.Tensor): Conditioning data.
+            cond_mods (Dic[str, torch.Tensor]): Conditioning data.
 
         Returns:
             output (~pythae.models.base.base_utils.ModelOutput): The output of the decoder
