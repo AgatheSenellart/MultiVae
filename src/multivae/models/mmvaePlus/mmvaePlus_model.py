@@ -4,13 +4,12 @@ from typing import Union
 
 import numpy as np
 import torch
-import torch.distributions as dist
 import torch.nn as nn
 import torch.nn.functional as F
 from pythae.models.base.base_utils import ModelOutput
 from torch.distributions import Laplace, Normal
 
-from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
+from multivae.data.datasets.base import MultimodalBaseDataset
 from multivae.data.utils import drop_unused_modalities
 from multivae.models.nn.default_architectures import (
     BaseDictDecodersMultiLatents,
