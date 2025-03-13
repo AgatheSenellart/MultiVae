@@ -149,3 +149,5 @@ validate_mmnist/
 examples/tutorial_notebooks/metrics/*
 src/multivae/data/datasets/celebattr.py
 examples/tutorial_notebooks/trained_maf_sampler/*
+
+scratch/

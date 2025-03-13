@@ -1,5 +1,5 @@
 from typing import Dict, Union
-
+import math
 import torch
 import torch.distributions as dist
 from pythae.models.base.base_utils import ModelOutput
@@ -13,6 +13,7 @@ from multivae.models.nn.default_architectures import (
 )
 
 from ..base import BaseMultiVAE
+from ..base.base_utils import kl_divergence, stable_poe
 from ..nn.base_architectures import BaseMultilatentEncoder
 from .dmvae_config import DMVAEConfig
 
@@ -90,26 +91,13 @@ class DMVAE(BaseMultiVAE):
             modality_dims=model_config.modalities_specific_dim,
         )
 
-    def _poe(self, mus_list, log_vars_list):
-        if len(mus_list) == 1:
-            return mus_list[0], log_vars_list[0]
-
-        mus = mus_list.copy()
-        log_vars = log_vars_list.copy()
-
-        # Add the prior to the product of experts
-        mus.append(torch.zeros_like(mus[0]))
-        log_vars.append(torch.zeros_like(log_vars[0]))
-
-        # Compute the joint posterior
-        lnT = torch.stack([-l for l in log_vars])  # Compute the inverse of variances
-        lnV = -torch.logsumexp(lnT, dim=0)  # variances of the product of expert
-        mus = torch.stack(mus)
-        joint_mu = (torch.exp(lnT) * mus).sum(dim=0) * torch.exp(lnV)
-
-        return joint_mu, lnV
 
     def _infer_latent_parameters(self, inputs, subset=None):
+        """
+        Compute the latent parameters for the shared and private latent spaces, 
+        taking the product-of-experts on the subset. 
+        """
+
         # if no subset is provided, use all available modalities
         if subset is None:
             subset = list(inputs.data.keys())
@@ -148,10 +136,13 @@ class DMVAE(BaseMultiVAE):
                 log_var_mod[(1 - inputs.masks[mod].int()).bool().flatten()] = torch.inf
             list_lvs.append(log_var_mod)
 
-        joint_mu, joint_lv = self._poe(
-            list_mu, list_lvs
-        )  # N(0,I) prior is added in the function
+        # Add N(0,I) prior to the product of experts
+        list_mu.append(torch.zeros_like(list_mu[0]))
+        list_lvs.append(torch.zeros_like(list_lvs[0]))
 
+        joint_mu, joint_lv = stable_poe(
+            torch.stack(list_mu), torch.stack(list_lvs)
+        )  
         return joint_mu, joint_lv, shared_params, private_params
 
     def forward(
@@ -195,21 +186,6 @@ class DMVAE(BaseMultiVAE):
 
         return ModelOutput(loss=loss.mean(), metrics=metrics)
 
-    def _kl_divergence(self, mean, log_var, prior_mean, prior_log_var):
-        kl = (
-            0.5
-            * (
-                prior_log_var
-                - log_var
-                - 1
-                + torch.exp(log_var - prior_log_var)
-                + (mean - prior_mean) ** 2
-            )
-            / torch.exp(prior_log_var)
-        )
-
-        return kl.sum(dim=-1)
-
     def _compute_elbo(self, q_mu, q_lv, private_params, inputs):
         sigma = torch.exp(0.5 * q_lv)
         shared_z = dist.Normal(q_mu, sigma).rsample()
@@ -238,7 +214,7 @@ class DMVAE(BaseMultiVAE):
             recon_loss += recon_mod
 
         # Compute KL divergence for shared variable
-        shared_kl = self._kl_divergence(
+        shared_kl = kl_divergence(
             q_mu, q_lv, torch.zeros_like(q_mu), torch.zeros_like(q_lv)
         )
 
@@ -246,9 +222,7 @@ class DMVAE(BaseMultiVAE):
         # Add the modality specific kls
         for mod in self.encoders:
             mu, lv = private_params[mod]
-            kl_mod = self._kl_divergence(
-                mu, lv, torch.zeros_like(mu), torch.zeros_like(lv)
-            )
+            kl_mod = kl_divergence(mu, lv, torch.zeros_like(mu), torch.zeros_like(lv))
 
             kl_mod = kl_mod.reshape(kl_mod.size(0), -1).sum(-1)
 
@@ -328,8 +302,6 @@ class DMVAE(BaseMultiVAE):
 
         return ModelOutput(z=z, one_latent_space=False, modalities_z=modalities_z)
 
-    def compute_joint_nll(self, inputs, K=1000, batch_size_K=100):
-        raise NotImplementedError()
 
     def generate_from_prior(self, n_samples, **kwargs):
         """
@@ -358,3 +330,103 @@ class DMVAE(BaseMultiVAE):
         return ModelOutput(
             z=z_shared, one_latent_space=False, modalities_z=modalities_z
         )
+
+    @torch.no_grad()
+    def compute_joint_nll(
+        self,
+        inputs: Union[MultimodalBaseDataset, IncompleteDataset],
+        K: int = 1000,
+        batch_size_K: int = 100,
+    ):
+        """Estimate the negative joint likelihood.
+        
+        Args: 
+
+            inputs (MultimodalBaseDataset) : a batch of samples.
+            K (int) : the number of importance samples for the estimation. Default to 1000.
+            batch_size_K (int) : Default to 100. 
+        
+        Returns: 
+            
+            The negative log-likelihood summed over the batch.
+        """
+        # Check that the dataset is complete
+        self.eval()
+        if hasattr(inputs, "masks"):
+            raise AttributeError(
+                "The compute_joint_nll method is not yet implemented for incomplete datasets."
+            )
+
+        # Compute the parameters of the joint posterior for the shared latent space
+        # Compute the shared latent variable conditioning on input modalities
+        mu, log_var, _, private_params = self._infer_latent_parameters(
+            inputs
+        )
+
+        sigma = torch.exp(0.5 * log_var)
+        qz_xy = dist.Normal(mu, sigma)
+
+        # Sample K latents from the shared joint posterior
+        z_joint = qz_xy.rsample([K]).permute(
+            1, 0, 2
+        )  # shape :  n_data x K x latent_dim
+        n_data, _, _ = z_joint.shape
+
+        # iter on each datapoint to compute the iwae estimate of ln(p(x))
+        ll = 0
+        ln_prior, ln_posterior = 0, 0
+        for i in range(n_data):
+            start_idx = 0
+            stop_idx = min(start_idx + batch_size_K, K)
+            lnpxs = []
+            # iterate over the mini-batch for the K samples
+            while start_idx < stop_idx:
+                shared_latents = z_joint[i][start_idx:stop_idx]
+                # Compute ln p(x_m|z) for z in latents and for each modality m
+                lpx_zs = 0
+                for mod in inputs.data:
+                    # Sample from the modality specific latent space
+                    mu_private, logvar_private = private_params[mod]
+                    mu_private, sigma_private = mu_private[i], torch.exp(0.5 * logvar_private[i])
+                    private_latents = dist.Normal(mu_private, sigma_private).rsample([len(shared_latents)])
+
+                    latents = torch.cat([shared_latents, private_latents], dim=-1)
+
+                    decoder = self.decoders[mod]
+                    recon = decoder(latents)[
+                        "reconstruction"
+                    ]  # (batch_size_K, nb_channels, w, h)
+                    x_m = inputs.data[mod][i]  # (nb_channels, w, h)
+
+                    lpx_zs += (
+                        self.recon_log_probs[mod](
+                            recon, torch.stack([x_m] * len(recon))
+                        )
+                        .reshape(recon.size(0), -1)
+                        .sum(-1)
+                    )
+
+                    # Compute ln(p(z_private))
+                    ln_prior += dist.Normal(0, 1).log_prob(private_latents).sum(dim=-1)
+
+                    # Compute ln(q(z_private|x))
+                    ln_posterior += dist.Normal(mu_private, sigma_private).log_prob(private_latents).sum(-1)
+
+                # Compute ln(p(z_shared))
+                prior = dist.Normal(0, 1)
+                ln_prior += prior.log_prob(shared_latents).sum(dim=-1)
+
+                # Compute posteriors ln(q(z_shared|x,y))
+                qz_xy = dist.Normal(mu[i], sigma[i])
+                ln_posterior += qz_xy.log_prob(shared_latents).sum(dim=-1)
+
+                ln_px = torch.logsumexp(lpx_zs + ln_prior - ln_posterior, dim=0)
+                lnpxs.append(ln_px)
+
+                # next batch
+                start_idx += batch_size_K
+                stop_idx = min(stop_idx + batch_size_K, K)
+
+            ll += torch.logsumexp(torch.Tensor(lnpxs), dim=0) - math.log(K)
+
+        return -ll

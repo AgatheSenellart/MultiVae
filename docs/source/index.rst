@@ -8,8 +8,12 @@ Welcome to MultiVae's documentation!
 *************************************
 
 This library implements some of the most common *Multimodal Variational Autoencoders* methods in a unifying framework for effective benchmarking and development. 
+*Multimodal Variational Autoencoders* are versatile models that can be used to learn joint representations of multiple modalities and generate new samples
+for prediction or data-augmentations tasks. 
+Our library provides a simple and flexible way to define, train and evaluate these models.
+It is designed to be easy to use, even by non-specialists and even on incomplete datasets. 
 For easy benchmarking, we include ready-to-use datasets and metrics modules.
-It integrates model monitoring with [Wandb](https://wandb.ai) and a quick way to save/load model from [HuggingFaceHub](https://huggingface.co/)🤗.
+It integrates model monitoring with `Wandb <https://wandb.ai>`_ and a quick way to save/load model from `HuggingFaceHub <https://huggingface.co/>`_🤗.
 To improve joint generation of multimodal samples, we also propose *samplers* to explore the latent space of your model.
 
 .. toctree::

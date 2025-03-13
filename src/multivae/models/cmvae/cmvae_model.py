@@ -731,3 +731,63 @@ class CMVAE(BaseMultiVAE):
                 m: model_config.modalities_specific_dim for m in model_config.input_dims
             },
         )
+
+    @torch.no_grad()
+    def compute_joint_nll(self, inputs, K=1000, **kwargs):
+        """Estimate the negative joint likelihood.
+        
+        Args: 
+
+            inputs (MultimodalBaseDataset) : a batch of samples.
+            K (int) : the number of importance samples for the estimation. Default to 1000.
+        
+        Returns: 
+            
+            The negative log-likelihood summed over the batch.
+        """
+        
+        # Check that the dataset is not incomplete for this computation.
+        self.eval()
+        if hasattr(inputs, "masks"):
+            raise AttributeError(
+                "The compute_joint_nll method is not yet implemented for incomplete datasets."
+            )
+
+        # Get the batch size from the input
+        n_data = len(list(inputs.data.values())[0])  
+
+        # Set the rescale factors and beta to one while computing the joint likelihood
+        rescale_factors, self.rescale_factors = self.rescale_factors.copy(), {
+            m: 1 for m in self.rescale_factors
+        }
+        beta, self.model_config.beta = self.model_config.beta, 1
+        
+        # Start iterating on the data samples
+        ll = 0
+        for i in range(n_data):
+            inputs_i = MultimodalBaseDataset(
+                data={m: inputs.data[m][i].unsqueeze(0) for m in inputs.data}
+            )
+            # We dispatch the K samples equally between the unimodal posteriors
+            k_iwae = K // self.n_modalities  
+            posteriors, embeddings, reconstructions = (
+                self._compute_posteriors_and_embeddings(
+                    inputs_i, detach=False, K=k_iwae
+                )
+            )
+
+            lws, embeddings, _ = self._compute_k_lws(
+                posteriors, embeddings, reconstructions, inputs_i
+            )
+
+            # Aggregate by taking the logsumexp on all lws element
+            lws = torch.cat(list(lws.values()), dim=0)  # n_modalities*K, n_batch
+
+            # Take log_mean_exp on all samples
+            ll += torch.logsumexp(lws, dim=0) - math.log(lws.size(0))  # n_batch
+
+        # Revert the changes made for the rescale factors and beta
+        self.rescale_factors = rescale_factors
+        self.model_config.beta = beta
+
+        return -ll.sum()

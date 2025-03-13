@@ -2,7 +2,7 @@
 
 import math
 from copy import deepcopy
-from typing import List
+from typing import List, Dict
 
 import numpy as np
 import torch
@@ -325,24 +325,26 @@ class MultipleHeadJointEncoder(BaseJointEncoder):
         return output
 
 
-class ConditionalDecoder_MLP(BaseConditionalDecoder):
+class ConditionalDecoderMLP(BaseConditionalDecoder):
     """
     Base MLP Conditional Decoder for a single modality.
     """
 
     def __init__(
-        self, latent_dim: int, conditioning_data_dim: tuple, data_dim: tuple
+        self, latent_dim: int, cond_data_dims: Dict[str, tuple], data_dim: tuple
     ) -> ModelOutput:
         super().__init__()
         self.latent_dim = latent_dim
 
-        self.all_dim = latent_dim + math.prod(conditioning_data_dim)
+        self.all_dim = latent_dim 
+        for cond_data_dim in cond_data_dims.values():
+            self.all_dim += np.prod(cond_data_dim)
 
         self.network = Decoder_AE_MLP(
             BaseAEConfig(input_dim=data_dim, latent_dim=self.all_dim)
         )
 
-    def forward(self, z, conditioning_modality):
-        cond_data = conditioning_modality.view(z.shape[0], -1)
-        concatenated = torch.cat([z, cond_data], dim=1)
+    def forward(self, z, cond_mods:Dict[str, torch.Tensor]):
+
+        concatenated = torch.cat([z]+[cond_data.view(z.shape[0],-1) for cond_data in cond_mods.values()], dim=1)
         return self.network(concatenated)
