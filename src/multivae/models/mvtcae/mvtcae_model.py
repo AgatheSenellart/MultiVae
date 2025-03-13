@@ -50,7 +50,7 @@ class MVTCAE(BaseMultiVAE):
 
         # Compute latents parameters for all subsets
         latents = self._inference(inputs)
-        results = dict()
+        results = {}
 
         # Sample from the joint posterior
         joint_mu, joint_logvar = latents["joint"][0], latents["joint"][1]
@@ -138,7 +138,7 @@ class MVTCAE(BaseMultiVAE):
 
         return encoders_outputs
 
-    def inference(self, inputs: MultimodalBaseDataset, **kwargs):
+    def _inference(self, inputs: MultimodalBaseDataset, **kwargs):
         """
         This function takes all the modalities contained in inputs
         and compute the product of experts of the modalities encoders.
@@ -251,7 +251,7 @@ class MVTCAE(BaseMultiVAE):
             )
 
         # Compute the parameters of the joint posterior
-        mu, log_var = self.inference(inputs)["joint"]
+        mu, log_var = self._inference(inputs)["joint"]
         sigma = torch.exp(0.5 * log_var)
         qz_xy = dist.Normal(mu, sigma)
 
