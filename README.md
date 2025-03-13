@@ -142,6 +142,7 @@ Below is the list of models that can be used on Incomplete datasets:
 |:---:|:----:|:--:|
 |CVAE|:x:  |
 |JMVAE|:x:|
+|TELBO|:x: |
 |MVAE| :white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mvae.html)|
 |MMVAE|:white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mmvae.html)
 |MoPoE| :white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mopoe.html)
