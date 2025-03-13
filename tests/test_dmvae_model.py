@@ -107,7 +107,7 @@ class Test:
             model = DMVAE(model_config=model_config_and_architectures["model_config"])
         return model
 
-    def test(self, model, dataset, model_config_and_architectures):
+    def test_setup(self, model, dataset, model_config_and_architectures):
         model_config = model_config_and_architectures["model_config"]
 
         assert model.beta == model_config.beta
@@ -117,61 +117,71 @@ class Test:
         else:
             assert model.private_betas == model_config.modalities_specific_betas
 
+    def test_forward(self, model, dataset):
         output = model(dataset, epoch=2)
         loss = output.loss
-        assert type(loss) == torch.Tensor
+        assert isinstance(loss, torch.Tensor)
         assert loss.size() == torch.Size([])
         assert loss.requires_grad
 
-        # Try encoding and prediction
-        outputs = model.encode(dataset[3])
-        assert ~outputs.one_latent_space
-        assert hasattr(outputs, "modalities_z")
-        embeddings = outputs.z
-        assert isinstance(outputs, ModelOutput)
-        assert embeddings.shape == (1, model_config.latent_dim)
+    def test_encode(self, model, dataset, model_config_and_architectures):
+        model_config = model_config_and_architectures["model_config"]
 
-        for k, value in model_config.modalities_specific_dim.items():
-            assert outputs.modalities_z[k].shape == (1, value)
+        for return_mean in [True, False]:
 
-        outputs = model.encode(dataset[3], N=2)
-        embeddings = outputs.z
-        assert embeddings.shape == (2, 1, model_config.latent_dim)
+            # Condition on all modalities
+            ## N = 1
+            outputs = model.encode(dataset[3], return_mean=return_mean)
+            assert ~outputs.one_latent_space
+            assert hasattr(outputs, "modalities_z")
+            embeddings = outputs.z
+            assert isinstance(outputs, ModelOutput)
+            assert embeddings.shape == (1, model_config.latent_dim)
 
-        for k, value in model_config.modalities_specific_dim.items():
-            assert outputs.modalities_z[k].shape == (2, 1, value)
+            for k, value in model_config.modalities_specific_dim.items():
+                assert outputs.modalities_z[k].shape == (1, value)
+            ## N >1
+            outputs = model.encode(dataset[3], N=2, return_mean=return_mean)
+            embeddings = outputs.z
+            assert embeddings.shape == (2, 1, model_config.latent_dim)
 
-        outputs = model.encode(dataset, cond_mod=["mod2"])
-        embeddings = outputs.z
-        assert embeddings.shape == (len(dataset), model_config.latent_dim)
+            for k, value in model_config.modalities_specific_dim.items():
+                assert outputs.modalities_z[k].shape == (2, 1, value)
+            
+            # Condition on one modality
+            ## N = 1
+            outputs = model.encode(dataset, cond_mod=["mod2"], return_mean=return_mean)
+            embeddings = outputs.z
+            assert embeddings.shape == (len(dataset), model_config.latent_dim)
 
-        assert outputs.modalities_z["mod2"].shape == (
-            len(dataset),
-            model_config.modalities_specific_dim["mod2"],
-        )
+            assert outputs.modalities_z["mod2"].shape == (
+                len(dataset),
+                model_config.modalities_specific_dim["mod2"],
+            )
+            ## N > 1
+            outputs = model.encode(dataset, cond_mod="mod3", N=10, return_mean=return_mean)
+            embeddings = outputs.z
+            assert embeddings.shape == (10, len(dataset), model_config.latent_dim)
 
-        outputs = model.encode(dataset, cond_mod="mod3", N=10)
-        embeddings = outputs.z
-        assert embeddings.shape == (10, len(dataset), model_config.latent_dim)
+            assert outputs.modalities_z["mod3"].shape == (
+                10,
+                len(dataset),
+                model_config.modalities_specific_dim["mod3"],
+            )
+            # Condition on a subset of modalities
+            ## N = 1
+            outputs = model.encode(dataset, cond_mod=["mod2", "mod3"], return_mean=return_mean)
+            embeddings = outputs.z
+            assert embeddings.shape == (len(dataset), model_config.latent_dim)
 
-        assert outputs.modalities_z["mod3"].shape == (
-            10,
-            len(dataset),
-            model_config.modalities_specific_dim["mod3"],
-        )
-
-        outputs = model.encode(dataset, cond_mod=["mod2", "mod3"])
-        embeddings = outputs.z
-        assert embeddings.shape == (len(dataset), model_config.latent_dim)
-
-        assert outputs.modalities_z["mod2"].shape == (
-            len(dataset),
-            model_config.modalities_specific_dim["mod2"],
-        )
-        assert outputs.modalities_z["mod3"].shape == (
-            len(dataset),
-            model_config.modalities_specific_dim["mod3"],
-        )
+            assert outputs.modalities_z["mod2"].shape == (
+                len(dataset),
+                model_config.modalities_specific_dim["mod2"],
+            )
+            assert outputs.modalities_z["mod3"].shape == (
+                len(dataset),
+                model_config.modalities_specific_dim["mod3"],
+            )
 
         Y = model.predict(dataset, cond_mod="mod2")
         assert isinstance(Y, ModelOutput)

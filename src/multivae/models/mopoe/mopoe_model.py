@@ -361,6 +361,7 @@ class MoPoE(BaseMultiVAE):
         inputs: MultimodalBaseDataset,
         cond_mod: Union[list, str] = "all",
         N: int = 1,
+        return_mean=False,
         **kwargs,
     ) -> ModelOutput:
         """
@@ -372,6 +373,7 @@ class MoPoE(BaseMultiVAE):
             cond_mod (Union[list, str]): Either 'all' or a list of str containing the modalities
                 names to condition on.
             N (int) : The number of encodings to sample for each datapoint. Default to 1.
+            return_mean (bool) : if True, returns the mean of the posterior distribution (instead of a sample).
 
         Returns:
             ModelOutput instance with fields:
@@ -385,8 +387,6 @@ class MoPoE(BaseMultiVAE):
 
         # Compute the str associated to the subset
         key = "_".join(sorted(cond_mod))
-        return_mean = kwargs.pop("return_mean", False)
-
         # If the dataset is incomplete, keep only the samples availables in all cond_mod
         # modalities
 

@@ -112,19 +112,20 @@ class Test:
         assert loss.requires_grad
 
         # Try encoding and prediction
-        outputs = model.encode(dataset[0])
-        assert outputs.one_latent_space
-        embeddings = outputs.z
-        assert isinstance(outputs, ModelOutput)
-        assert embeddings.shape == (1, 5)
-        embeddings = model.encode(dataset[0], N=2).z
-        assert embeddings.shape == (2, 1, 5)
-        embeddings = model.encode(dataset, cond_mod=["mod2"]).z
-        assert embeddings.shape == (2, 5)
-        embeddings = model.encode(dataset, cond_mod="mod3", N=10).z
-        assert embeddings.shape == (10, 2, 5)
-        embeddings = model.encode(dataset, cond_mod=["mod2", "mod4"]).z
-        assert embeddings.shape == (2, 5)
+        for return_mean in [True, False]:
+            outputs = model.encode(dataset[0], return_mean=return_mean)
+            assert outputs.one_latent_space
+            embeddings = outputs.z
+            assert isinstance(outputs, ModelOutput)
+            assert embeddings.shape == (1, 5)
+            embeddings = model.encode(dataset[0], N=2, return_mean=return_mean).z
+            assert embeddings.shape == (2, 1, 5)
+            embeddings = model.encode(dataset, cond_mod=["mod2"], return_mean=return_mean).z
+            assert embeddings.shape == (2, 5)
+            embeddings = model.encode(dataset, cond_mod="mod3", N=10, return_mean=return_mean).z
+            assert embeddings.shape == (10, 2, 5)
+            embeddings = model.encode(dataset, cond_mod=["mod2", "mod4"], return_mean=return_mean).z
+            assert embeddings.shape == (2, 5)
 
         Y = model.predict(dataset, cond_mod="mod2")
         assert isinstance(Y, ModelOutput)

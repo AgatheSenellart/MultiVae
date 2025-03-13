@@ -271,7 +271,7 @@ class MHVAE(BaseMultiVAE):
 
         return ModelOutput(loss=loss, loss_sum=loss, metrics=kl_dict)
 
-    def encode(self, inputs, cond_mod="all", N=1, **kwargs):
+    def encode(self, inputs, cond_mod="all", N=1, return_mean=False,**kwargs):
         """
         Encode the input data conditioning on the modalities in cond_mod
             and return the latent variables.

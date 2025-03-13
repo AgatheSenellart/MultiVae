@@ -7,6 +7,7 @@ from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
 
 from ...data.datasets.base import MultimodalBaseDataset
 from ..joint_models import BaseJointModel
+from ..base.base_utils import rsample
 from ..nn.base_architectures import BaseJointEncoder
 from .telbo_config import TELBOConfig
 
@@ -134,6 +135,7 @@ class TELBO(BaseJointModel):
         inputs: MultimodalBaseDataset,
         cond_mod: Union[list, str] = "all",
         N: int = 1,
+        return_mean=False,
         **kwargs,
     ) -> ModelOutput:
         """
@@ -144,6 +146,8 @@ class TELBO(BaseJointModel):
             cond_mod (Union[list, str]): Either 'all' or a list of str containing the modalities
                 names to condition on.
             N (int) : The number of encodings to sample for each datapoint. Default to 1.
+            return_mean (bool) : if True, returns the mean of the posterior distribution (instead of a sample).
+
 
         Returns:
             ModelOutput instance with fields:
@@ -160,30 +164,23 @@ class TELBO(BaseJointModel):
         if len(cond_mod) == 1:
             cond_mod = cond_mod[0]
             output = self.encoders[cond_mod](inputs.data[cond_mod])
-            sample_shape = [] if N == 1 else [N]
-
-            z = dist.Normal(
-                output.embedding, torch.exp(0.5 * output.log_covariance)
-            ).rsample(sample_shape)
-
-            if N > 1 and kwargs.pop("flatten", False):
-                z = z.reshape(-1, self.latent_dim)
-
-            return ModelOutput(z=z, one_latent_space=True)
-        
         # If all conditioning modalities, use the joint encoder
-        if len(cond_mod) == self.n_modalities:
+        elif len(cond_mod) == self.n_modalities:
             output = self.joint_encoder(inputs.data)
-            sample_shape = [] if N == 1 else [N]
-            z = dist.Normal(
-                output.embedding, torch.exp(0.5 * output.log_covariance)
-            ).rsample(sample_shape)
-            if N > 1 and kwargs.pop("flatten", False):
-                N, l, d = z.shape
-                z = z.reshape(l * N, d)
-            return ModelOutput(z=z, one_latent_space=True)
-
-        raise ValueError(
+            
+        else :
+            raise ValueError(
                 f" Conditioning on subset {cond_mod} is not handled. "
                 f" Possible subsets are  {list(self.encoders.keys())} and 'all'. "
             )
+        
+        # Return mean or sample
+        if return_mean:
+            z = torch.stack([output.embedding]*N) if N> 1 else output.embedding
+        else:
+            z = rsample(output, N=N)
+
+        if N > 1 and kwargs.pop("flatten", False):
+            z = z.reshape(-1, self.latent_dim)
+
+        return ModelOutput(z=z, one_latent_space=True)

@@ -157,3 +157,13 @@ def stable_poe(mus, logvars):
         joint_mu = (torch.exp(ln_inv_vars) * mus).sum(dim=0) * torch.exp(ln_var)
 
         return joint_mu, ln_var
+
+def rsample(encoder_output, N=1):
+    """Simple function to sample from a gaussian whose parameters are given by a ModelOutput."""
+
+    sample_shape=[] if N==1 else [N]
+    return dist.Normal(
+                encoder_output.embedding, torch.exp(0.5 * encoder_output.log_covariance)
+            ).rsample(
+                sample_shape
+            )

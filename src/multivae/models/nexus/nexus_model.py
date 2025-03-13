@@ -277,6 +277,7 @@ class Nexus(BaseMultiVAE):
         inputs: MultimodalBaseDataset,
         cond_mod: Union[list, str] = "all",
         N: int = 1,
+        return_mean=False,
         **kwargs,
     ):
         """

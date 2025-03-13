@@ -240,6 +240,7 @@ class DMVAE(BaseMultiVAE):
         inputs: Union[MultimodalBaseDataset, IncompleteDataset],
         cond_mod: Union[list, str] = "all",
         N: int = 1,
+        return_mean=False,
         **kwargs,
     ):
         """
@@ -250,6 +251,7 @@ class DMVAE(BaseMultiVAE):
             cond_mod (Union[list, str]): Either 'all' or a list of str containing the modalities
                 names to condition on.
             N (int) : The number of encodings to sample for each datapoint. Default to 1.
+            return_mean (bool) : if True, returns the mean of the posterior distribution (instead of a sample).
 
         Returns:
             ModelOutput : Contains fields
@@ -268,8 +270,6 @@ class DMVAE(BaseMultiVAE):
         )
         sub_std = torch.exp(0.5 * sub_logvar)
         sample_shape = [N] if N > 1 else []
-
-        return_mean = kwargs.pop("return_mean", False)
 
         if return_mean:
             z = torch.stack([sub_mu] * N) if N > 1 else sub_mu
