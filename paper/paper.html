@@ -1,0 +1,155 @@
+<h1 id="summary">Summary</h1>
+<p>In recent years, there has been a major boom in the development of
+multimodal machine learning models. Among open topics, representation
+(fusion) and genera- tion of multimodal data are very active fields of
+research. Recently, Multimodal Variational Autoencoders (VAEs) have been
+attracting growing interest for both tasks, thanks to their versatility,
+scalability, and interpretability as probabilistic latent variable
+models. They are also particularly interesting models in the partially
+observed setting, as most of them can learn even with missing data. This
+last point makes them particularly interesting for research fields such
+as the medical field, where missing data are commonplace.</p>
+<p>In this article, we present MultiVae, an open-source Python library
+for bringing together unified imple- mentations of multimodal VAEs. It
+has been designed for easy, customizable use of these models on fully or
+partially observed data. This library also facilitates the development
+and benchmarking of new algorithms by integrating several popular
+datasets, variety of evaluation metrics and tools for monitoring and
+sharing models.</p>
+<h1 id="multimodal-variational-autoencoders">Multimodal Variational
+Autoencoders</h1>
+<p>In Multimodal Machine Learning, two goals are generally targeted: (1)
+Learn a shared representation from multiple modalities; (2) Learn to
+generate one missing modality given the ones that are available.</p>
+<p>Multimodal Variational Autoencoders aim at solving both issues at the
+same time. These models learn a latent representation <span
+class="math inline"><em>z</em></span> of all modalities in a lower
+dimensional common space and learn to <em>decode</em> <span
+class="math inline"><em>z</em></span> to generate any modality.<br />
+Let <span
+class="math inline"><em>X</em> = (<em>x</em><sub>1</sub>, <em>x</em><sub>2</sub>, ...<em>x</em><sub><em>M</em></sub>)</span>
+contain <span class="math inline"><em>M</em></span> modalities. In the
+VAE setting, we suppose that the generative process behind the observed
+data is the following: where <span
+class="math inline"><em>p</em>(<em>z</em>)</span> is a prior
+distribution that is often fixed, and <span
+class="math inline"><em>p</em><sub><em>θ</em></sub>(<em>x</em><sub><em>i</em></sub>|<em>z</em>)</span>
+are called <em>decoders</em> and are parameterized by neural network.
+Typically, <span
+class="math inline"><em>p</em><sub><em>θ</em></sub>(<em>x</em><sub><em>i</em></sub>|<em>z</em>) = 𝒩(<em>x</em><sub><em>i</em></sub>, <em>μ</em><sub><em>θ</em></sub>(<em>z</em>), <em>σ</em><sub><em>θ</em></sub>(<em>z</em>))</span>
+where <span
+class="math inline"><em>μ</em><sub><em>θ</em></sub>, <em>σ</em><sub><em>θ</em></sub></span>
+are neural networks. We aim to learn these <em>decoders</em> that
+translate <span class="math inline"><em>z</em></span> into the high
+dimensional data <span
+class="math inline"><em>x</em><sub><em>i</em></sub></span>. At the same
+time, we aim to learn an <em>encoder</em> <span
+class="math inline"><em>q</em><sub><em>ϕ</em></sub>(<em>z</em>|<em>X</em>)</span>
+that map the multimodal observation to the latent space. <span
+class="math inline"><em>q</em><sub><em>ϕ</em></sub>(<em>z</em>|<em>X</em>)</span>
+is also parameterized by a neural network. Derived from variational
+inference theory, the VAE objective writes: <span
+class="math display">𝓁(<em>X</em>) = 𝔼<sub><em>q</em><sub><em>ϕ</em></sub>(<em>z</em>|<em>X</em>)</sub>(∑<sub><em>i</em></sub>ln (<em>p</em><sub><em>θ</em></sub>(<em>x</em><sub><em>i</em></sub>|<em>z</em>))) − <em>K</em><em>L</em>(<em>q</em><sub><em>ϕ</em></sub>(<em>z</em>|<em>X</em>)|<em>p</em>(<em>z</em>))</span></p>
+<p>A simple interpretation of this objective is to see that the first
+term is a reconstruction loss and the second term is a regularization
+term that avoids overfitting. A typical training of a multimodal VAE
+consists in encoding the data with the encoder, reconstructing each
+modality with the decoders and take a gradient step to optimize the loss
+<span class="math inline"><em>l</em>(<em>X</em>)</span>.</p>
+<p>Most multimodal VAEs differ in how they construct the encoder <span
+class="math inline"><em>q</em><sub><em>ϕ</em></sub>(<em>z</em>|<em>X</em>)</span>.
+In Figure , we summarize several approaches: Aggregated models use a
+mean or a product operation to aggregate the information coming from all
+modalities, where joint models uses a neural network taking all
+modalities as input. Finally coordinated models uses different latent
+spaces but add a constraint term in the loss to force them to be
+similar. <img src="mvae_models_diagram.png"
+alt="Caption for example figure." /> Recent extensions of multimodal
+VAEs include additional terms to the loss, multiple or hierarchical
+latent spaces to more comprehensively describe the multimodal data.
+Aggregated models have a natural way of learning on incomplete datasets:
+for an incomplete sample <span class="math inline"><em>X</em></span>, we
+use only the available modalities to encode the data and compute the
+loss <span class="math inline"><em>l</em>(<em>X</em>)</span>. However,
+except in MultiVae, there doesn’t exist an implementation of these
+models that can be used on incomplete datasets in a straightforward
+manner.</p>
+<p>Another application of these models is data augmentation: from
+sampling latent codes <span class="math inline"><em>z</em></span> and
+decoding them, fully synthetic multimodal samples can be generated. Data
+augmentation has been proven useful in many deep learning applications.
+In MultiVae we propose different ways of sampling latent codes <span
+class="math inline"><em>z</em></span> to further explore the generative
+abilities of these models.</p>
+<h1 id="statement-of-need">Statement of need</h1>
+<p>Although multimodal VAEs have interesting applications in different
+fields, the lack of easy-to-use and verified implementations might
+hinder applicative research. With MultiVae, we offer unified
+implementations, designed to be easy to use by non-specialists and even
+on incomplete data. To this end, we offer online documentation and
+tutorials. In order to propose reliable implementations of each method,
+we tried to reproduce, whenever possible, a key result from the original
+paper. Some works similar to ours have grouped together model
+implementations: the Multimodal VAE Comparison Toolkit includes 4 models
+and the Pixyz library groups 2 multimodal models. The work closest to
+ours and developed in parallel is the multi-view-ae library, which
+contains a dozen of models. Nevertheless, we are convinced that our
+library complements what already exists: our API is quite different, the
+models implemented are not all the same, and for those we have in
+common, our implementation offers additional parameterization options.
+Indeed, for each model, we’ve made sure to offer great flexibility on
+parameters and to include all implementation details present in the
+original codes that boost results. What’s more, our library offers
+numerous additional features: compatibility with incomplete data, which
+we consider essential for real-life applications, and a range of tools
+dedicated to the research and development of new algorithms: benchmark
+datasets, metrics modules and samplers, for testing and analyze models.
+Our library also supports distributed training and straightforward model
+sharing via HuggingFace Hub. In this way, our work complements existing
+work and addresses different needs.</p>
+<h1 id="description-of-the-software">Description of the software</h1>
+<p>Our implementation is based on PyTorch [37] and is inspired by the
+architecture of [8] and [53]. The implementations of the models are
+collected in the module multivae.models. For each of the models, the
+actual implementation of the model is accompanied by a configuration as
+a dataclass gathering the collection of any relevant hyperparameter
+which enables them to be saved and loaded straightforwardly. The models
+are implemented in a unified way, so that they can be easily integrated
+within the multivae.trainers. Like the models, the trainers are also
+accompanied by a training configuration dataclass used to specify any
+training-related hyperparameters (number of epochs, optimizers,
+schedulers, etc..). Models that have a multistage training [50, 40]
+benefit from their dedicated trainer that makes them as straightforward
+to use as other models. MultiVae also supports distributed training,
+allowing users to train their models on multiple GPUs straightforwardly.
+Partially observed datasets can be conveniently handled using the
+IncompleteDataset class that contains masks informing on missing or
+corrupted modalities in each sample. Finally, the MultiVae library also
+integrates an evaluation pipeline for all models where common metrics
+such as likelihoods, coherences, FID scores [18] and visualizations can
+be computed in a unified and reliable way</p>
+<h1 id="citations">Citations</h1>
+<p>Citations to entries in paper.bib should be in <a
+href="http://rmarkdown.rstudio.com/authoring_bibliographies_and_citations.html">rMarkdown</a>
+format.</p>
+<p>If you want to cite a software repository URL (e.g. something on
+GitHub without a preferred citation) then you can do it with the example
+BibTeX entry below for <span class="citation"
+data-cites="fidgit">@fidgit</span>.</p>
+<p>For a quick reference, the following citation commands can be used: -
+<code>@author:2001</code> -&gt; “Author et al. (2001)” -
+<code>[@author:2001]</code> -&gt; “(Author et al., 2001)” -
+<code>[@author1:2001; @author2:2001]</code> -&gt; “(Author1 et al.,
+2001; Author2 et al., 2002)”</p>
+<h1 id="figures">Figures</h1>
+<p>Figures can be included like this: <img src="figure.png"
+alt="Caption for example figure." /> and referenced from text using
+.</p>
+<p>Figure sizes can be customized by adding an optional second
+parameter: <img src="figure.png" style="width:20.0%"
+alt="Caption for example figure." /></p>
+<h1 id="acknowledgements">Acknowledgements</h1>
+<p>We acknowledge contributions from Brigitta Sipocz, Syrtis Major, and
+Semyeong Oh, and support from Kathryn Johnston during the genesis of
+this project.</p>
+<h1 id="references">References</h1>
