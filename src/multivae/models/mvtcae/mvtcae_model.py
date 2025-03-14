@@ -146,7 +146,7 @@ class MVTCAE(BaseMultiVAE):
         """
 
         latents = {}
-        enc_mods = self.modality_encode(inputs)
+        enc_mods = self._modality_encode(inputs)
         latents["modalities"] = enc_mods
 
         device = enc_mods[list(inputs.data.keys())[0]].embedding.device
