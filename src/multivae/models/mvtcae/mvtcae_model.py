@@ -33,7 +33,7 @@ class MVTCAE(BaseMultiVAE):
     def __init__(
         self, model_config: MVTCAEConfig, encoders: dict = None, decoders: dict = None
     ):
-        
+
         super().__init__(model_config, encoders, decoders)
 
         self.alpha = model_config.alpha
@@ -210,9 +210,10 @@ class MVTCAE(BaseMultiVAE):
         latents_subsets = self._inference(cond_inputs)
         mu, log_var = latents_subsets["joint"]
         flatten = kwargs.pop("flatten", False)
-        z = rsample_from_gaussian(mu, log_var,
-                                  N=N, return_mean=return_mean, flatten=flatten)
-        
+        z = rsample_from_gaussian(
+            mu, log_var, N=N, return_mean=return_mean, flatten=flatten
+        )
+
         return ModelOutput(z=z, one_latent_space=True)
 
     @torch.no_grad()
@@ -221,17 +222,17 @@ class MVTCAE(BaseMultiVAE):
         inputs: Union[MultimodalBaseDataset, IncompleteDataset],
         K: int = 1000,
         batch_size_K: int = 100,
-    ):  
+    ):
         """Estimate the negative joint likelihood.
-        
-        Args: 
+
+        Args:
 
             inputs (MultimodalBaseDataset) : a batch of samples.
             K (int) : the number of importance samples for the estimation. Default to 1000.
-            batch_size_K (int) : Default to 100. 
-        
-        Returns: 
-            
+            batch_size_K (int) : Default to 100.
+
+        Returns:
+
             The negative log-likelihood summed over the batch.
         """
         # Check that the dataset is complete

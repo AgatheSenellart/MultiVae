@@ -129,58 +129,55 @@ def kl_divergence(
 
 
 def poe(mus, logvars, eps=1e-8):
-        """
-        Compute the Product of Experts (PoE) for a list of Gaussian experts.
-        """
-        var = torch.exp(logvars) + eps
-        # precision of i-th Gaussian expert at point x
-        T = 1.0 / var
-        pd_mu = torch.sum(mus * T, dim=0) / torch.sum(T, dim=0)
-        pd_var = 1.0 / torch.sum(T, dim=0)
-        pd_logvar = torch.log(pd_var)
-        return pd_mu, pd_logvar
+    """
+    Compute the Product of Experts (PoE) for a list of Gaussian experts.
+    """
+    var = torch.exp(logvars) + eps
+    # precision of i-th Gaussian expert at point x
+    T = 1.0 / var
+    pd_mu = torch.sum(mus * T, dim=0) / torch.sum(T, dim=0)
+    pd_var = 1.0 / torch.sum(T, dim=0)
+    pd_logvar = torch.log(pd_var)
+    return pd_mu, pd_logvar
 
 
 def stable_poe(mus, logvars):
-        
-        """Compute the Product of Experts (PoE) for a list of Gaussian experts.
-        This version is more numerically stable than the naive implementation.
-        """
-        # If only one expert, return it
-        if len(mus) == 1:
-            return mus[0], logvars[0]
+    """Compute the Product of Experts (PoE) for a list of Gaussian experts.
+    This version is more numerically stable than the naive implementation.
+    """
+    # If only one expert, return it
+    if len(mus) == 1:
+        return mus[0], logvars[0]
 
-        # Compute ln (1/var) for each expert
-        ln_inv_vars = torch.stack([-l for l in logvars])  # Compute the inverse of variances
-        # ln(var_joint) = ln(1/sum(1/var)) = -ln(sum(1/var))
-        ln_var = -torch.logsumexp(ln_inv_vars, dim=0)  # variances of the product of experts
-        joint_mu = (torch.exp(ln_inv_vars) * mus).sum(dim=0) * torch.exp(ln_var)
+    # Compute ln (1/var) for each expert
+    ln_inv_vars = torch.stack([-l for l in logvars])  # Compute the inverse of variances
+    # ln(var_joint) = ln(1/sum(1/var)) = -ln(sum(1/var))
+    ln_var = -torch.logsumexp(ln_inv_vars, dim=0)  # variances of the product of experts
+    joint_mu = (torch.exp(ln_inv_vars) * mus).sum(dim=0) * torch.exp(ln_var)
 
-        return joint_mu, ln_var
+    return joint_mu, ln_var
+
 
 def rsample_from_gaussian(mu, log_var, N=1, return_mean=False, flatten=False):
     """Simple function to sample from a gaussian whose parameters are given by a ModelOutput.
-    
-    Args:   
+
+    Args:
         mu (torch.Tensor) : mean of the gaussian
         log_var (torch.Tensor) : log_variance of the gaussian
         N(int) : number of samples to draw
         return_mean (bool): If True, each sample is the mean of the distribution.
-        flatten (bool): If True, the output is flattened to be of shape (N*n_batch, *latent_dims)"""
+        flatten (bool): If True, the output is flattened to be of shape (N*n_batch, *latent_dims)
+    """
 
-    sample_shape=[] if N==1 else [N]
+    sample_shape = [] if N == 1 else [N]
 
     if return_mean:
-        z = torch.stack([mu]*N) if N >1 else mu
+        z = torch.stack([mu] * N) if N > 1 else mu
 
     else:
-        z = dist.Normal(
-                mu, torch.exp(0.5 * log_var)
-            ).rsample(
-                sample_shape
-            )
+        z = dist.Normal(mu, torch.exp(0.5 * log_var)).rsample(sample_shape)
     if (N > 1) and flatten:
-        if len(z.shape)==2:
+        if len(z.shape) == 2:
             z = z.unsqueeze(0)
         z = z.reshape(-1, *z.shape[2:])
 

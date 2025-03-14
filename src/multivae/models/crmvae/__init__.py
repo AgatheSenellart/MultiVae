@@ -15,12 +15,12 @@ In practive :math:`\pi_m = \frac{1}{M+1}`.
 
 .. note::
 
-    This model can be used on incomplete datasets. In that case, the product of experts and the reconstructions are 
-    computed only available modalities for each sample. 
+    This model can be used on incomplete datasets. In that case, the product of experts and the reconstructions are
+    computed only available modalities for each sample.
 
 """
 
 from .crmvae_config import CRMVAEConfig
 from .crmvae_model import CRMVAE
 
-__all__ = ['CRMVAEConfig', 'CRMVAE']
+__all__ = ["CRMVAEConfig", "CRMVAE"]

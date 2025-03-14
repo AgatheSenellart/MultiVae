@@ -1,15 +1,16 @@
 """
 Multimodal dataset wrapper for the MNIST labels dataset.
 """
+
 import io
 from typing import Literal
 
+import matplotlib.pyplot as plt
+import numpy as np
+import PIL
 import torch
 from torch.distributions import Bernoulli
 from torchvision.datasets import MNIST
-import matplotlib.pyplot as plt
-import PIL
-import numpy as np
 
 from .base import DatasetOutput, MultimodalBaseDataset
 
@@ -64,23 +65,20 @@ class MnistLabels(MultimodalBaseDataset):  # pragma: no cover
         return len(self.labels)
 
     def transform_for_plotting(self, tensor, modality):
-        
         """Transforms the label modality to text for plotting."""
         if modality == "labels":
             list_images = []
             tensor = torch.argmax(tensor, dim=-1)
             for t in tensor:
                 list_images.append(self.to_text(t))
-            
+
             return torch.stack(list_images)
-            
 
         return tensor
-    
+
     def to_text(self, int_label):
 
         device = int_label.device
-
 
         fig = plt.figure(figsize=(0.2, 0.2))
         plt.text(

@@ -148,7 +148,9 @@ class Nexus(BaseMultiVAE):
 
         # Compute the higher level latent variable z_\sigma
         joint_output = self.joint_encoder(aggregated_msg)
-        joint_z = rsample_from_gaussian(joint_output.embedding, joint_output.log_covariance)
+        joint_z = rsample_from_gaussian(
+            joint_output.embedding, joint_output.log_covariance
+        )
 
         # Compute log p(z_m|z_sigma)
         z_recon_loss = 0
@@ -208,7 +210,6 @@ class Nexus(BaseMultiVAE):
             loss_sum=total_loss.sum(),
             metrics=metrics,
         )
-
 
     def _aggregate_during_training(
         self, inputs: MultimodalBaseDataset, modalities_msg: dict
@@ -283,7 +284,7 @@ class Nexus(BaseMultiVAE):
                 one_latent_space (bool) = True
 
         """
-       
+
         cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
         modalities_z = {}
         modalities_msg = {}
@@ -292,7 +293,13 @@ class Nexus(BaseMultiVAE):
         # Encode each modality with the bottom encoders
         for m in cond_mod:
             output_m = self.encoders[m](inputs.data[m])
-            modalities_z[m] = rsample_from_gaussian(output_m.embedding,output_m.log_covariance,N, return_mean, flatten=True) 
+            modalities_z[m] = rsample_from_gaussian(
+                output_m.embedding,
+                output_m.log_covariance,
+                N,
+                return_mean,
+                flatten=True,
+            )
             modalities_msg[m] = self.top_encoders[m](modalities_z[m]).embedding
 
         # Compute aggregated msg
@@ -300,11 +307,19 @@ class Nexus(BaseMultiVAE):
         if self.model_config.aggregator == "mean":
             aggregated_msg = torch.stack(list(modalities_msg.values()), dim=0).mean(0)
         nexus_output = self.joint_encoder(aggregated_msg)
-        z = rsample_from_gaussian(nexus_output.embedding, nexus_output.log_covariance,N=1,return_mean= return_mean)
+        z = rsample_from_gaussian(
+            nexus_output.embedding,
+            nexus_output.log_covariance,
+            N=1,
+            return_mean=return_mean,
+        )
 
-        if N> 1 and not flatten:
-            z = z.reshape(N,-1,*z.shape[1:])
-            modalities_z = {m:modalities_z[m].reshape(N,-1,*modalities_z[m].shape[1:]) for m in modalities_z}
+        if N > 1 and not flatten:
+            z = z.reshape(N, -1, *z.shape[1:])
+            modalities_z = {
+                m: modalities_z[m].reshape(N, -1, *modalities_z[m].shape[1:])
+                for m in modalities_z
+            }
 
         return ModelOutput(z=z, one_latent_space=True, modalities_z=modalities_z)
 

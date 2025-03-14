@@ -407,7 +407,7 @@ class MMVAEPlus(BaseMultiVAE):
             if return_mean:
                 list_mean = [o.embedding for o in encoders_outputs.values()]
                 embedding = torch.mean(torch.stack(list_mean), dim=0)
-                z = torch.stack([embedding]*N) if N> 1 else embedding
+                z = torch.stack([embedding] * N) if N > 1 else embedding
             else:
 
                 # Choose one of the conditioning modalities at random to sample the shared information.
@@ -415,7 +415,9 @@ class MMVAEPlus(BaseMultiVAE):
 
                 # Sample the shared latent code
                 mu = encoders_outputs[random_mod].embedding
-                sigma = self._log_var_to_std(encoders_outputs[random_mod].log_covariance)
+                sigma = self._log_var_to_std(
+                    encoders_outputs[random_mod].log_covariance
+                )
 
                 sample_shape = torch.Size([]) if N == 1 else torch.Size([N])
                 z = self.post_dist(mu, sigma).rsample(sample_shape)
@@ -451,7 +453,7 @@ class MMVAEPlus(BaseMultiVAE):
                 sigma_m = self._log_var_to_std(logvar_m)
 
                 if return_mean:
-                    style_z[m] = torch.stack([mu_m]*N) if N> 1 else mu_m
+                    style_z[m] = torch.stack([mu_m] * N) if N > 1 else mu_m
                 else:
                     style_z[m] = self.post_dist(mu_m, sigma_m).rsample(sample_shape)
                 if flatten:
@@ -486,15 +488,15 @@ class MMVAEPlus(BaseMultiVAE):
     @torch.no_grad()
     def compute_joint_nll(self, inputs, K=1000, batch_size_K=100):
         """Estimate the negative joint likelihood.
-        
-        Args: 
+
+        Args:
 
             inputs (MultimodalBaseDataset) : a batch of samples.
             K (int) : the number of importance samples for the estimation. Default to 1000.
-            batch_size_K (int) : Default to 100. 
-        
-        Returns: 
-            
+            batch_size_K (int) : Default to 100.
+
+        Returns:
+
             The negative log-likelihood summed over the batch.
         """
         # Check that the dataset is not incomplete

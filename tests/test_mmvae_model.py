@@ -116,19 +116,33 @@ class Test:
 
         # Try encoding and prediction
         for return_mean in [True, False]:
-            outputs = model.encode(dataset, ignore_incomplete=True, return_mean=return_mean)
+            outputs = model.encode(
+                dataset, ignore_incomplete=True, return_mean=return_mean
+            )
             assert outputs.one_latent_space
             embeddings = outputs.z
             assert isinstance(outputs, ModelOutput)
             assert embeddings.shape == (2, 5)
-            embeddings = model.encode(dataset, N=2, ignore_incomplete=True, return_mean=return_mean).z
+            embeddings = model.encode(
+                dataset, N=2, ignore_incomplete=True, return_mean=return_mean
+            ).z
             assert embeddings.shape == (2, 2, 5)
-            embeddings = model.encode(dataset, cond_mod=["mod1"], ignore_incomplete=True, return_mean=return_mean).z
+            embeddings = model.encode(
+                dataset,
+                cond_mod=["mod1"],
+                ignore_incomplete=True,
+                return_mean=return_mean,
+            ).z
             assert embeddings.shape == (2, 5)
-            embeddings = model.encode(dataset, cond_mod="mod2", N=10, return_mean=return_mean).z
+            embeddings = model.encode(
+                dataset, cond_mod="mod2", N=10, return_mean=return_mean
+            ).z
             assert embeddings.shape == (10, 2, 5)
             embeddings = model.encode(
-                dataset, cond_mod=["mod2", "mod1"], ignore_incomplete=True, return_mean=return_mean
+                dataset,
+                cond_mod=["mod2", "mod1"],
+                ignore_incomplete=True,
+                return_mean=return_mean,
             ).z
             assert embeddings.shape == (2, 5)
 

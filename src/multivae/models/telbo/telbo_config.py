@@ -1,4 +1,5 @@
 from typing import Union
+
 from pydantic.dataclasses import dataclass
 
 from ..joint_models import BaseJointModelConfig
@@ -38,6 +39,6 @@ class TELBOConfig(BaseJointModelConfig):
     """
 
     warmup: int = 10
-    lambda_factors: Union[dict,None] = None
-    gamma_factors: Union[dict,None] = None
+    lambda_factors: Union[dict, None] = None
+    gamma_factors: Union[dict, None] = None
     uses_likelihood_rescaling: bool = True
