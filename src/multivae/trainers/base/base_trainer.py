@@ -776,12 +776,10 @@ class BaseTrainer:
 
         model.eval()
 
-        if self.eval_dataset is not None:
-            inputs = next(iter(DataLoader(self.eval_dataset, batch_size=n_data)))
-            inputs = set_inputs_to_device(inputs, self.device)
-        else:
-            inputs = next(iter(DataLoader(self.train_dataset, batch_size=n_data)))
-            inputs = set_inputs_to_device(inputs, self.device)
+        predict_dataset = self.eval_dataset if self.eval_dataset is not None else self.train_dataset
+
+        inputs = next(iter(DataLoader(predict_dataset, batch_size=n_data)))
+        inputs = set_inputs_to_device(inputs, self.device)
 
         all_recons = dict()
 
@@ -790,14 +788,14 @@ class BaseTrainer:
             recon = model.predict(
                 inputs, mod, "all", N=8, flatten=True, ignore_incomplete=True
             )
-            if hasattr(self.eval_dataset, "transform_for_plotting"):
+            if hasattr(predict_dataset, "transform_for_plotting"):
                 recon = {
-                    mod_name: self.eval_dataset.transform_for_plotting(
+                    mod_name: predict_dataset.transform_for_plotting(
                         recon[mod_name], modality=mod_name
                     )
                     for mod_name in recon
                 }
-                recon["true_data"] = self.eval_dataset.transform_for_plotting(
+                recon["true_data"] = predict_dataset.transform_for_plotting(
                     inputs.data[mod], modality=mod
                 )
             else:
@@ -827,16 +825,16 @@ class BaseTrainer:
         recon = model.predict(
             inputs, "all", "all", N=8, flatten=True, ignore_incomplete=True
         )
-        if hasattr(self.eval_dataset, "transform_for_plotting"):
+        if hasattr(predict_dataset, "transform_for_plotting"):
             recon = {
-                mod_name: self.eval_dataset.transform_for_plotting(
+                mod_name: predict_dataset.transform_for_plotting(
                     recon[mod_name], modality=mod_name
                 )
                 for mod_name in recon
             }
             recon.update(
                 {
-                    f"true_data_{mod_name}": self.eval_dataset.transform_for_plotting(
+                    f"true_data_{mod_name}": predict_dataset.transform_for_plotting(
                         inputs.data[mod_name], modality=mod_name
                     )
                     for mod_name in inputs.data

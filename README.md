@@ -32,6 +32,7 @@ To improve joint generation of multimodal samples, we also propose [samplers](#u
 |:---:|:----:|:---------------------:|
 |CVAE|[An introduction to Variational Autoencoders](https://arxiv.org/abs/1906.02691) |  |
 |JMVAE|[Joint Multimodal Learning with Deep Generative Models](https://arxiv.org/abs/1611.01891)|[link](https://github.com/masa-su/jmvae)|
+|TELBO|[Generative Models of Visually Grounded Imagination ](https://openreview.net/forum?id=HkCsm6lRb)|[link](https://github.com/google/joint_vae)|
 |MVAE| [Multimodal Generative Models for Scalable Weakly-Supervised Learning](https://proceedings.neurips.cc/paper/2018/hash/1102a326d5f7c9e04fc3c89d0ede88c9-Abstract.html)|[link](https://github.com/mhw32/multimodal-vae-public)|
 |MMVAE|[Variational Mixture-of-Experts Autoencoders for Multi-Modal Deep Generative Models](https://proceedings.neurips.cc/paper/2019/hash/0ae775a8cb3b499ad1fca944e6f5c836-Abstract.html)|[link](https://github.com/iffsid/mmvae)|
 |MoPoE| [Generalized Multimodal ELBO](https://openreview.net/forum?id=5Y21V0RDBV)|[link](https://github.com/thomassutter/MoPoE)|
@@ -118,7 +119,7 @@ Our library allows you to use any of the models with custom configuration, encod
 - [Computing Metrics](examples/tutorial_notebooks/computing_visualization_and_metrics.ipynb) : Learn how to evaluate your model using MultiVae's metrics modules.
 - [Learning with partial datasets](examples/tutorial_notebooks/learning_with_partial_data.ipynb) : Learn how to use the IncompleteDataset class and to train a model on an incomplete dataset.
 - [Using samplers](examples/tutorial_notebooks/using_samplers.ipynb): Learn how to train and use sampler to improve the joint generation of synthetic data.
-
+- [Using WandB](https://github.com/AgatheSenellart/MultiVae/tree/main/examples/tutorial_notebooks/use_wandb.ipynb): Learn how to easily monitor your training/evaluation with Wandb and MultiVae.  
 
 # Training on incomplete datasets
 
@@ -142,6 +143,7 @@ Below is the list of models that can be used on Incomplete datasets:
 |:---:|:----:|:--:|
 |CVAE|:x:  |
 |JMVAE|:x:|
+|TELBO|:x: |
 |MVAE| :white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mvae.html)|
 |MMVAE|:white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mmvae.html)
 |MoPoE| :white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mopoe.html)

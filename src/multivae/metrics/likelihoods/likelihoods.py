@@ -61,7 +61,7 @@ class LikelihoodsEvaluator(Evaluator):
 
     def joint_nll_from_subset(self, subset):
         """Only available for the MoPoE model for now. Use a subset posterior
-            instead of the joint posterior as the importance sampling distribution."""
+        instead of the joint posterior as the importance sampling distribution."""
         if hasattr(self.model, "_compute_joint_nll_from_subset_encoding"):
             ll = 0
             nb_batch = 0
@@ -73,9 +73,7 @@ class LikelihoodsEvaluator(Evaluator):
                 nb_batch += 1
 
             joint_nll = ll / self.n_data
-            self.logger.info(
-                "Joint likelihood from subset %s", str(joint_nll)
-            )
+            self.logger.info("Joint likelihood from subset %s", str(joint_nll))
             self.metrics[f"Joint likelihood from subset {subset}"] = joint_nll
             return joint_nll
         else:

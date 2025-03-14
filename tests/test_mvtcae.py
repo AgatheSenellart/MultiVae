@@ -110,11 +110,17 @@ class Test_model:
             assert embeddings.shape == (1, 5)
             embeddings = model.encode(dataset[0], N=2, return_mean=return_mean).z
             assert embeddings.shape == (2, 1, 5)
-            embeddings = model.encode(dataset, cond_mod=["mod2"], return_mean=return_mean).z
+            embeddings = model.encode(
+                dataset, cond_mod=["mod2"], return_mean=return_mean
+            ).z
             assert embeddings.shape == (len(dataset), 5)
-            embeddings = model.encode(dataset, cond_mod="mod3", N=10, return_mean=return_mean).z
+            embeddings = model.encode(
+                dataset, cond_mod="mod3", N=10, return_mean=return_mean
+            ).z
             assert embeddings.shape == (10, len(dataset), 5)
-            embeddings = model.encode(dataset, cond_mod=["mod2", "mod4"], return_mean=return_mean).z
+            embeddings = model.encode(
+                dataset, cond_mod=["mod2", "mod4"], return_mean=return_mean
+            ).z
             assert embeddings.shape == (len(dataset), 5)
 
     def test_predict(self, model, dataset):

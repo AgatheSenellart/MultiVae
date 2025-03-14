@@ -1,3 +1,4 @@
+
 ![logo](./static/multivae_logog.png)
 
 
@@ -20,18 +21,13 @@
     </a>
 </p>
 
-
-This library implements some of the most common *Multimodal Variational Autoencoders* methods in a unifying framework for effective benchmarking and development. You can find the list of implemented models below.
-For easy benchmarking, we include ready-to-use datasets like MnistSvhn 🔢, CelebA 😎 and PolyMNIST, and metrics modules for computing: Coherences, Likelihoods and FID, Reconstruction metrics and Clustering Metrics. 
-It integrates model monitoring with [Wandb](https://wandb.ai) and a quick way to save/load model from [HuggingFaceHub](https://huggingface.co/)🤗.
-To improve joint generation of multimodal samples, we also propose [samplers](#using-samplers) to explore the latent space of your model
-
 # Implemented models 
 
 |Model|Paper|Official Implementation|
 |:---:|:----:|:---------------------:|
 |CVAE|[An introduction to Variational Autoencoders](https://arxiv.org/abs/1906.02691) |  |
 |JMVAE|[Joint Multimodal Learning with Deep Generative Models](https://arxiv.org/abs/1611.01891)|[link](https://github.com/masa-su/jmvae)|
+|TELBO|[Generative Models of Visually Grounded Imagination ](https://openreview.net/forum?id=HkCsm6lRb)|[link](https://github.com/google/joint_vae)|
 |MVAE| [Multimodal Generative Models for Scalable Weakly-Supervised Learning](https://proceedings.neurips.cc/paper/2018/hash/1102a326d5f7c9e04fc3c89d0ede88c9-Abstract.html)|[link](https://github.com/mhw32/multimodal-vae-public)|
 |MMVAE|[Variational Mixture-of-Experts Autoencoders for Multi-Modal Deep Generative Models](https://proceedings.neurips.cc/paper/2019/hash/0ae775a8cb3b499ad1fca944e6f5c836-Abstract.html)|[link](https://github.com/iffsid/mmvae)|
 |MoPoE| [Generalized Multimodal ELBO](https://openreview.net/forum?id=5Y21V0RDBV)|[link](https://github.com/thomassutter/MoPoE)|
@@ -43,24 +39,6 @@ DMVAE| [Private-Shared Disentangled Multimodal VAE for Learning of Latent Repres
 |CMVAE| [Deep Generative Clustering with Multimodal Diffusion Variational Autoencoders](https://openreview.net/forum?id=k5THrhXDV3)| [link](https://github.com/epalu/CMVAE)|
 |MHVAE| [Unified Brain MR-Ultrasound Synthesis using  Multi-Modal Hierarchical Representations](https://arxiv.org/abs/2309.08747) |[link](https://github.com/ReubenDo/MHVAE)|
 |CRMVAE| [Mitigating the Limitations of Multimodal VAEs with Coordination-Based Approach](https://openreview.net/forum?id=Rn8u4MYgeNJ) | [link](https://openreview.net/forum?id=Rn8u4MYgeNJ)|
-
-
-
-
-<!-- # Table of Contents
-
-- [Models available](#implemented-models)
-- [Installation](#installation)
-- [Training a Model](#quickstart)
-- [Tutorials](#getting-your-hands-in-the-code)
-- [Training on an incomplete dataset](#training-on-incomplete-datasets)
-- [Available metrics](#metrics) / [Available datasets](#datasets)
-- [Monitor training with Wandb](#monitoring-your-training-with-wandb) / [Model sharing with HuggingFaceHub](#sharing-your-models-with-the-huggingface-hub-)
-- [Using samplers for improved joint generation](#using-samplers)
-- [Documentation and Case-Studies](#documentation-examples-and-case-studies)
-- [Reproducibility](#reproducibility-statement) 
-- [Contribute](#contribute)
-- [Citation](#citation) -->
 
 
 # Installation
@@ -111,7 +89,7 @@ trainer = BaseTrainer(
 trainer.train()
 ```
 
-# Getting your hands on the code
+# Tutorials
 
 
 Our library allows you to use any of the models with custom configuration, encoders and decoders architectures and datasets easily. To learn how to use MultiVae's features we propose different tutorial notebooks:
@@ -120,7 +98,7 @@ Our library allows you to use any of the models with custom configuration, encod
 - [Computing Metrics](https://github.com/AgatheSenellart/MultiVae/tree/main/examples/tutorial_notebooks/computing_visualization_and_metrics.ipynb) : Learn how to evaluate your model using MultiVae's metrics modules.
 - [Learning with partial datasets](https://github.com/AgatheSenellart/MultiVae/tree/main/examples/tutorial_notebooks/learning_with_partial_data.ipynb) : Learn how to use the IncompleteDataset class and to train a model on an incomplete dataset.
 - [Using samplers](https://github.com/AgatheSenellart/MultiVae/tree/main/examples/tutorial_notebooks/using_samplers.ipynb): Learn how to train and use sampler to improve the joint generation of synthetic data.
-
+- [Using WandB](https://github.com/AgatheSenellart/MultiVae/tree/main/examples/tutorial_notebooks/use_wandb.ipynb): Learn how to easily monitor your training/evaluation with Wandb and MultiVae.  
 
 # Training on incomplete datasets
 
@@ -144,6 +122,7 @@ Below is the list of models that can be used on Incomplete datasets:
 |:---:|:----:|:--:|
 |CVAE|❌   |
 |JMVAE|❌ |
+|TELBO|❌ |
 |MVAE| ✅|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mvae.html)|
 |MMVAE|✅|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mmvae.html)
 |MoPoE| ✅|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mopoe.html)
@@ -159,25 +138,17 @@ DMVAE| ✅ | [see here](https://multivae.readthedocs.io/en/latest/models/multimo
 ### Toy datasets with missing values
 
 To ease the development of new methods on incomplete datasets, we propose two easy-to-import toy datasets with missing values:
-- Missing at Random: The PolyMNIST dataset with missing values. 
-- Missing not at Random: The MHD dataset with missing ratios that depend on the label. 
+- Missing at Random: The [PolyMNIST](https://multivae.readthedocs.io/en/latest/datasets/mmnist.html) dataset with missing values. 
+- Missing not at Random: The [MHD](https://multivae.readthedocs.io/en/latest/datasets/mhd.html) dataset with missing ratios that depend on the label. 
 
 See the documentation for more information on those datasets. 
 
 # Metrics
-We provide metrics modules that can be used on any MultiVae model for evaluation. See the documentation for minimal code examples and see this [notebook](https://github.com/AgatheSenellart/MultiVae/tree/main/examples/tutorial_notebooks/computing_visualization_and_metrics.ipynb) for a hands-on tutorial.
-
-- [Likelihoods](https://multivae.readthedocs.io/en/latest/metrics/likelihoods.html#multivae.metrics.LikelihoodsEvaluator)
-- [Coherences](https://multivae.readthedocs.io/en/latest/metrics/coherences.html)
-- [FID](https://multivae.readthedocs.io/en/latest/metrics/fids.html)
-- [Clustering](https://multivae.readthedocs.io/en/latest/metrics/clustering.html)
-- [Visualization](https://multivae.readthedocs.io/en/latest/metrics/visualization.html)
-- [Reconstruction metrics](https://multivae.readthedocs.io/en/latest/metrics/reconstruction.html)
+We provide 6 metrics modules that can be used on any MultiVae model for evaluation. See the [documentation](https://multivae.readthedocs.io/en/latest/metrics/multivae.metrics.html) for minimal code examples and see this [notebook](https://github.com/AgatheSenellart/MultiVae/tree/main/examples/tutorial_notebooks/computing_visualization_and_metrics.ipynb) for a hands-on tutorial. 
 
 # Datasets
-
 At the time, we provide 7 ready-to-use multimodal datasets with an automatic download option. 
-Click [here](file:///home/asenella/dev/MultiVae/docs/build/datasets/multivae.datasets.html) to see the options. 
+Click [here](https://multivae.readthedocs.io/en/latest/datasets/multivae.datasets.html) to see the options. 
 
 # Monitoring your training with Wandb 
 
@@ -185,7 +156,7 @@ MultiVae allows easy monitoring with [Wandb](https://wandb.ai/).
 To use this feature, you will need to install and configure Wandb with the few steps below:
 
 ### Install Wandb
-1. Install wandb ```$ pip install wandb==0.18.7```
+1. Install wandb ```$ pip install wandb```
 2. Create a wandb account [online](https://wandb.ai/)
 3. Once you are logged in, go to this [page](https://wandb.ai/authorize) and copy the API key. 
 4. In your terminal, enter ```$ wandb login``` and then copy your API key when prompted.
@@ -302,7 +273,7 @@ gmm_sampler.fit(train_data) # train_data is the Multimodal Dataset used for trai
 Note that samplers can be used with all MultiVae models and that they can really improve joint generation. For a taste of what it can do, see the joint generations below for a MVTCAE model trained on PolyMNIST:
 ![alt text](./static/taste_samplers.png)
 
-# Documentation, Examples and Case Studies
+# Examples and Case Studies
 
 <!-- We provide a full online documentation at https://multivae.readthedocs.io.  -->
 

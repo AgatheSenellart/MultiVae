@@ -9,7 +9,7 @@ from pythae.models.base import BaseAEConfig
 from pythae.models.base.base_utils import ModelOutput
 from pythae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
 
-from multivae.data.datasets.base import MultimodalBaseDataset, IncompleteDataset
+from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
 from multivae.models import JMVAE, AutoModel, JMVAEConfig
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 
@@ -101,16 +101,22 @@ class Test_forward_and_predict:
             assert out_dec.mod1.shape == (4, 2)
 
             # Encode conditioning on a subset of modalities
-            embeddings = model.encode(dataset, cond_mod=["mod1"], return_mean=return_mean)
+            embeddings = model.encode(
+                dataset, cond_mod=["mod1"], return_mean=return_mean
+            )
             assert embeddings.z.shape == (2, model.latent_dim)
 
             out_dec = model.decode(embeddings, modalities="mod1")
             assert out_dec.mod1.shape == (2, 2)
 
-            embeddings = model.encode(dataset, cond_mod="mod2", N=10, flatten=False, return_mean=return_mean)
+            embeddings = model.encode(
+                dataset, cond_mod="mod2", N=10, flatten=False, return_mean=return_mean
+            )
             assert embeddings.z.shape == (10, 2, model.latent_dim)
 
-            embeddings = model.encode(dataset, cond_mod=["mod2", "mod1"], return_mean=return_mean)
+            embeddings = model.encode(
+                dataset, cond_mod=["mod2", "mod1"], return_mean=return_mean
+            )
             assert embeddings.z.shape == (2, model.latent_dim)
 
             out_dec = model.decode(embeddings, modalities="mod1")
@@ -145,21 +151,30 @@ class Test_forward_and_predict:
             mod2=torch.Tensor([[67.1, 2.3, 3.0], [1.3, 2.0, 3.0]]),
             mod3=torch.Tensor([[67.1, 2.3, 3.0, 4], [1.3, 2.0, 3.0, 4]]),
         )
-        masks = {'mod1':torch.zeros(2,), 
-                 'mod2':torch.zeros(2,),
-                 'mod3':torch.ones(2,)}
+        masks = {
+            "mod1": torch.zeros(
+                2,
+            ),
+            "mod2": torch.zeros(
+                2,
+            ),
+            "mod3": torch.ones(
+                2,
+            ),
+        }
         labels = np.array([0, 1])
         return IncompleteDataset(data, labels=labels, masks=masks)
 
-    def test_error_with_incomplete_datasets(self, incomplete_dataset, config_and_architectures):
+    def test_error_with_incomplete_datasets(
+        self, incomplete_dataset, config_and_architectures
+    ):
         model = JMVAE(**config_and_architectures)
         with pytest.raises(AttributeError):
             model(incomplete_dataset)
         with pytest.raises(AttributeError):
             model.encode(incomplete_dataset)
         with pytest.raises(AttributeError):
-            model.compute_joint_nll(incomplete_dataset,K=10,batch_size_K=2)
-        
+            model.compute_joint_nll(incomplete_dataset, K=10, batch_size_K=2)
 
 
 @pytest.mark.slow

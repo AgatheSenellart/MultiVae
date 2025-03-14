@@ -376,15 +376,15 @@ class MMVAE(BaseMultiVAE):
         self, inputs: MultimodalBaseDataset, K: int = 1000, batch_size_K: int = 100
     ):
         """Estimate the negative joint likelihood.
-        
-        Args: 
+
+        Args:
 
             inputs (MultimodalBaseDataset) : a batch of samples.
             K (int) : the number of importance samples for the estimation. Default to 1000.
-            batch_size_K (int) : Default to 100. 
-        
-        Returns: 
-            
+            batch_size_K (int) : Default to 100.
+
+        Returns:
+
             The negative log-likelihood summed over the batch.
         """
 

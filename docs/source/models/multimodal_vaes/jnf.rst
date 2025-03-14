@@ -1,5 +1,5 @@
 **********************************
-Joint Normalizing Flows (JNF)
+JNF: Joint Normalizing Flows 
 **********************************
 
 

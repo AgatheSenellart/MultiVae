@@ -463,13 +463,18 @@ class Test_forward_encode_and_predict:
             assert embeddings.shape == (1, model.latent_dim)
             embeddings = model.encode(dataset[0], N=2, return_mean=return_mean).z
             assert embeddings.shape == (2, 1, model.latent_dim)
-            embeddings = model.encode(dataset, cond_mod=["mod2"], return_mean=return_mean).z
+            embeddings = model.encode(
+                dataset, cond_mod=["mod2"], return_mean=return_mean
+            ).z
             assert embeddings.shape == (4, model.latent_dim)
-            embeddings = model.encode(dataset, cond_mod="mod3", N=10, return_mean=return_mean).z
+            embeddings = model.encode(
+                dataset, cond_mod="mod3", N=10, return_mean=return_mean
+            ).z
             assert embeddings.shape == (10, 4, model.latent_dim)
-            embeddings = model.encode(dataset, cond_mod=["mod2", "mod4"], return_mean=return_mean).z
+            embeddings = model.encode(
+                dataset, cond_mod=["mod2", "mod4"], return_mean=return_mean
+            ).z
             assert embeddings.shape == (4, model.latent_dim)
-
 
         # Test decode
         Y = model.decode(model.encode(dataset, cond_mod="mod3", N=10))

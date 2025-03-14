@@ -6,8 +6,8 @@ from pythae.models.base.base_utils import ModelOutput
 from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
 
 from ...data.datasets.base import MultimodalBaseDataset
-from ..joint_models import BaseJointModel
 from ..base.base_utils import rsample_from_gaussian
+from ..joint_models import BaseJointModel
 from ..nn.base_architectures import BaseJointEncoder
 from .telbo_config import TELBOConfig
 
@@ -154,7 +154,7 @@ class TELBO(BaseJointModel):
 
         self.eval()
         # Transform to list and check that dataset is complete
-        cond_mod = super().encode(inputs, cond_mod,N, **kwargs).cond_mod
+        cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
 
         # If one conditioning modality, use the modality encoder
         if len(cond_mod) == 1:
@@ -163,15 +163,17 @@ class TELBO(BaseJointModel):
         # If all conditioning modalities, use the joint encoder
         elif len(cond_mod) == self.n_modalities:
             output = self.joint_encoder(inputs.data)
-            
-        else :
+
+        else:
             raise ValueError(
                 f" Conditioning on subset {cond_mod} is not handled. "
                 f" Possible subsets are  {list(self.encoders.keys())} and 'all'. "
             )
-        
+
         # Return mean or sample
-        flatten = kwargs.pop('flatten', False)
-        z = rsample_from_gaussian(output.embedding, output.log_covariance, N, return_mean, flatten)
+        flatten = kwargs.pop("flatten", False)
+        z = rsample_from_gaussian(
+            output.embedding, output.log_covariance, N, return_mean, flatten
+        )
 
         return ModelOutput(z=z, one_latent_space=True)

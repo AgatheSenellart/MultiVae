@@ -32,10 +32,10 @@ class Test_model:
             dataset = MultimodalBaseDataset(data)
         else:
             masks = dict(
-                mod1=torch.Tensor([True]*3+[False]*3),
-                mod2=torch.Tensor([True]*6),
-                mod3=torch.Tensor([True]*6),
-                mod4=torch.Tensor([True]*6)
+                mod1=torch.Tensor([True] * 3 + [False] * 3),
+                mod2=torch.Tensor([True] * 6),
+                mod3=torch.Tensor([True] * 6),
+                mod4=torch.Tensor([True] * 6),
             )
             dataset = IncompleteDataset(data=data, masks=masks)
 
@@ -49,7 +49,6 @@ class Test_model:
             config2 = BaseAEConfig(input_dim=(3,), latent_dim=5)
             config3 = BaseAEConfig(input_dim=(4,), latent_dim=5)
             config4 = BaseAEConfig(input_dim=(4,), latent_dim=5)
-
 
             encoders = dict(
                 mod1=Encoder_test(config1),
@@ -78,7 +77,6 @@ class Test_model:
             config3 = BaseAEConfig(input_dim=(4,), latent_dim=5, style_dim=3)
             config4 = BaseAEConfig(input_dim=(4,), latent_dim=5, style_dim=3)
 
-
             encoders = dict(
                 mod1=Encoder_test_multilatents(config1),
                 mod2=Encoder_test_multilatents(config2),
@@ -106,12 +104,11 @@ class Test_model:
         beta = request.param
 
         return beta
-    
 
     @pytest.fixture(params=[True, False])
     def custom(self, request):
         return request.param
-    
+
     @pytest.fixture
     def model(self, archi_and_config, custom):
         if custom:
@@ -121,7 +118,7 @@ class Test_model:
         return model
 
     def test_setup(self, model, custom, archi_and_config):
-        
+
         # check that our custom architectures were passed to the model
         model_config = archi_and_config["model_config"]
         if custom:
@@ -143,7 +140,7 @@ class Test_model:
         ]
         for s in expected_subsets:
             assert s in list(model.subsets.values())
-        
+
     def test_forward(self, model, dataset):
         output = model(dataset, epoch=2)
         loss = output.loss
@@ -153,13 +150,15 @@ class Test_model:
 
         # test that setting a wrong architectures raises an error in forward
         if model.model_config.modalities_specific_dim is not None:
-            model.encoders['mod1'] = Encoder_test(BaseAEConfig(input_dim=(2,), latent_dim=5))
+            model.encoders["mod1"] = Encoder_test(
+                BaseAEConfig(input_dim=(2,), latent_dim=5)
+            )
             with pytest.raises(AttributeError):
                 output = model(dataset, epoch=2)
 
     def test_encode(self, model, dataset, archi_and_config):
-        
-        latent_dim = archi_and_config['model_config'].latent_dim
+
+        latent_dim = archi_and_config["model_config"].latent_dim
         outputs = model.encode(dataset[0])
         # Check the value of 'one_latent_space'
         if archi_and_config["model_config"].modalities_specific_dim is not None:
@@ -184,15 +183,16 @@ class Test_model:
         if model.multiple_latent_spaces:
             output = model.encode(dataset[0], N=2)
             assert not output.one_latent_space
-            assert hasattr(output, 'modalities_z')
-        
-        # Test the return_mean parameter
-        for cond_mod in ['all', ['mod2', 'mod3']]:
-            outputs = model.encode(dataset[:3],cond_mod=cond_mod, return_mean=True, N=5)
-            assert outputs.z.shape == (5,3,latent_dim)
-            # Assert that the returned embeddings contains 3 times the mean
-            assert torch.all(outputs.z[1:]==outputs.z[0])
+            assert hasattr(output, "modalities_z")
 
+        # Test the return_mean parameter
+        for cond_mod in ["all", ["mod2", "mod3"]]:
+            outputs = model.encode(
+                dataset[:3], cond_mod=cond_mod, return_mean=True, N=5
+            )
+            assert outputs.z.shape == (5, 3, latent_dim)
+            # Assert that the returned embeddings contains 3 times the mean
+            assert torch.all(outputs.z[1:] == outputs.z[0])
 
     def test_predict(self, model, dataset):
         # Test the shape of reconstruction
@@ -222,7 +222,6 @@ class Test_model:
         )
 
         assert torch.all(mu_joint == torch.tensor([[0, 1, 2, 3], [12, 13, 14, 15]]))
-
 
     def test_backward_with_missing(self, model, dataset):
 
@@ -319,6 +318,7 @@ class Test_model:
                 for key in start_model_state_dict.keys()
             ]
         )
+
     @pytest.mark.slow
     def test_checkpoint_saving(self, model, trainer, training_config):
         dir_path = training_config.output_dir
@@ -490,13 +490,14 @@ class Test_model:
             assert type(nll) == torch.Tensor
             assert nll.size() == torch.Size([])
 
-
     def test_compute_joint_nll_from_subset_encoding(self, model, dataset):
 
         if hasattr(dataset, "masks"):
             with pytest.raises(AttributeError):
-                nll = model.compute_joint_nll_from_subset_encoding(dataset, K=10, batch_size_K=6)
-        else :
+                nll = model.compute_joint_nll_from_subset_encoding(
+                    dataset, K=10, batch_size_K=6
+                )
+        else:
             nll = model._compute_joint_nll_from_subset_encoding(
                 ["mod1", "mod2"], dataset, K=10, batch_size_K=6
             )

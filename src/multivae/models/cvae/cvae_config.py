@@ -25,7 +25,7 @@ class CVAEConfig(BaseConfig):
 
     conditioning_modalities: List[str]
     main_modality: str
-    input_dims: Dict[str,tuple] = None
+    input_dims: Dict[str, tuple] = None
     latent_dim: int = 10
     beta: float = 1.0
     decoder_dist: Literal["normal", "laplace", "bernoulli", "categorical"] = "normal"

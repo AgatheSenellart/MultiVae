@@ -10,7 +10,7 @@ from pythae.models.base.base_utils import ModelOutput
 from pythae.models.normalizing_flows import IAF, IAFConfig
 from torch import nn
 
-from multivae.data.datasets.base import MultimodalBaseDataset, IncompleteDataset
+from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
 from multivae.data.utils import set_inputs_to_device
 from multivae.models import JNF, AutoModel, JNFConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
@@ -117,11 +117,20 @@ class Test:
             assert embeddings.shape == (2, 5)
             embeddings = model.encode(dataset, N=2, return_mean=return_mean).z
             assert embeddings.shape == (2, 2, 5)
-            embeddings = model.encode(dataset, cond_mod=["mod1"],return_mean=return_mean).z
+            embeddings = model.encode(
+                dataset, cond_mod=["mod1"], return_mean=return_mean
+            ).z
             assert embeddings.shape == (2, 5)
-            embeddings = model.encode(dataset, cond_mod="mod2", N=10, return_mean=return_mean).z
+            embeddings = model.encode(
+                dataset, cond_mod="mod2", N=10, return_mean=return_mean
+            ).z
             assert embeddings.shape == (10, 2, 5)
-            embeddings = model.encode(dataset, cond_mod=["mod2", "mod1"], mcmc_steps=2, return_mean=return_mean).z
+            embeddings = model.encode(
+                dataset,
+                cond_mod=["mod2", "mod1"],
+                mcmc_steps=2,
+                return_mean=return_mean,
+            ).z
             assert embeddings.shape == (2, 5)
 
         Y = model.predict(dataset, cond_mod="mod1")
@@ -146,9 +155,17 @@ class Test:
             mod2=torch.Tensor([[67.1, 2.3, 3.0], [1.3, 2.0, 3.0]]),
             mod3=torch.Tensor([[67.1, 2.3, 3.0, 4], [1.3, 2.0, 3.0, 4]]),
         )
-        masks = {'mod1':torch.zeros(2,), 
-                 'mod2':torch.zeros(2,),
-                 'mod3':torch.ones(2,)}
+        masks = {
+            "mod1": torch.zeros(
+                2,
+            ),
+            "mod2": torch.zeros(
+                2,
+            ),
+            "mod3": torch.ones(
+                2,
+            ),
+        }
         labels = np.array([0, 1])
         return IncompleteDataset(data, labels=labels, masks=masks)
 
@@ -158,8 +175,7 @@ class Test:
         with pytest.raises(AttributeError):
             model.encode(incomplete_dataset)
         with pytest.raises(AttributeError):
-            model.compute_joint_nll(incomplete_dataset,K=10,batch_size_K=2)
-        
+            model.compute_joint_nll(incomplete_dataset, K=10, batch_size_K=2)
 
 
 @pytest.mark.slow

@@ -38,7 +38,7 @@ class MoPoE(BaseMultiVAE):
 
         list_subsets = self.model_config.subsets
 
-        if isinstance(list_subsets,dict):
+        if isinstance(list_subsets, dict):
             list_subsets = list(list_subsets.values())
         if list_subsets is None:
             list_subsets = self.all_subsets()
@@ -142,7 +142,9 @@ class MoPoE(BaseMultiVAE):
         results = dict()
 
         # Get the embeddings for shared latent space
-        shared_embeddings = rsample_from_gaussian(latents["joint"][0], latents["joint"][1])
+        shared_embeddings = rsample_from_gaussian(
+            latents["joint"][0], latents["joint"][1]
+        )
         len_batch = shared_embeddings.shape[0]
 
         # Compute the divergence to the prior
@@ -238,8 +240,6 @@ class MoPoE(BaseMultiVAE):
 
         return encoders_outputs
 
-    
-
     def _poe_fusion(self, mus: torch.Tensor, logvars: torch.Tensor):
         # Following the original implementation : add the prior when we consider the
         # subset that contains all the modalities
@@ -254,7 +254,6 @@ class MoPoE(BaseMultiVAE):
                 dim=0,
             )
         return poe(mus, logvars)
-        
 
     def subset_mask(self, inputs: IncompleteDataset, subset: Union[list, tuple]):
         """
@@ -308,7 +307,7 @@ class MoPoE(BaseMultiVAE):
                     logvars_subset = torch.cat(
                         (logvars_subset, log_vars_mod.unsqueeze(0)), dim=0
                     )
-                    
+
                 # Case with only one sample : adapt the shape
                 if len(mus_subset.shape) == 2:
                     mus_subset = mus_subset.unsqueeze(1)
@@ -381,21 +380,17 @@ class MoPoE(BaseMultiVAE):
 
         # Compute the str associated to the subset
         key = "_".join(sorted(cond_mod))
-        
+
         latents_subsets = self.inference(inputs)
-        
+
         # Take the product of experts on the subset
         mu, log_var = latents_subsets["subsets"][key]
 
-        
         if return_mean and len(cond_mod) == self.n_modalities:
-                # Aggregate the posterior 
-                mu = torch.stack(
-                    [
-                        latents_subsets["subsets"][k][0]
-                        for k in latents_subsets["subsets"]
-                    ]
-                ).mean(0)
+            # Aggregate the posterior
+            mu = torch.stack(
+                [latents_subsets["subsets"][k][0] for k in latents_subsets["subsets"]]
+            ).mean(0)
         flatten = kwargs.pop("flatten", False)
 
         z = rsample_from_gaussian(mu, log_var, N, return_mean, flatten=flatten)
@@ -413,10 +408,12 @@ class MoPoE(BaseMultiVAE):
                     log_var_style = torch.zeros((len(mu), self.style_dims[m])).to(
                         mu.device
                     )
-                modalities_z[m] = rsample_from_gaussian(mu_style,log_var_style,N,return_mean, flatten)
-                
+                modalities_z[m] = rsample_from_gaussian(
+                    mu_style, log_var_style, N, return_mean, flatten
+                )
+
             return ModelOutput(z=z, one_latent_space=False, modalities_z=modalities_z)
-        
+
         return ModelOutput(z=z, one_latent_space=True)
 
     def random_mixture_component_selection(self, mus, logvars, availabilities):
@@ -484,18 +481,18 @@ class MoPoE(BaseMultiVAE):
         In the original code, the product of experts is used as inference distribution
         for computing the nll instead of the MoPoe, but that is less coherent with the definition of the
         MoPoE definition as the joint posterior.
-        
-        Args: 
+
+        Args:
 
             inputs (MultimodalBaseDataset) : a batch of samples.
             K (int) : the number of importance samples for the estimation. Default to 1000.
-            batch_size_K (int) : Default to 100. 
-        
-        Returns: 
-            
+            batch_size_K (int) : Default to 100.
+
+        Returns:
+
             The negative log-likelihood summed over the batch.
-        
-        
+
+
         """
         # Check that the dataset is complete
         self.eval()
@@ -511,7 +508,9 @@ class MoPoE(BaseMultiVAE):
         log_vars_subset = infer["logvars"]
 
         # And sample from the posterior
-        z_joint = rsample_from_gaussian(mu,log_var,N=K)  # shape K x n_data x latent_dim
+        z_joint = rsample_from_gaussian(
+            mu, log_var, N=K
+        )  # shape K x n_data x latent_dim
         z_joint = z_joint.permute(1, 0, 2)
         n_data, _, _ = z_joint.shape
 
@@ -525,7 +524,9 @@ class MoPoE(BaseMultiVAE):
                     infer["modalities"][mod].style_log_covariance,
                 )
                 style_embeddings = rsample_from_gaussian(*private_params[mod], N=K)
-                private_zs[mod] = style_embeddings.permute(1, 0, 2) # shape n_data x K x private dim
+                private_zs[mod] = style_embeddings.permute(
+                    1, 0, 2
+                )  # shape n_data x K x private dim
 
         # Then iter on each datapoint to compute the iwae estimate of ln(p(x))
         ll = 0
@@ -543,7 +544,9 @@ class MoPoE(BaseMultiVAE):
                 for mod in inputs.data:
                     if self.multiple_latent_spaces:
                         private_latents = private_zs[mod][i][start_idx:stop_idx]
-                        full_embedding = torch.cat([shared_latents, private_latents], dim=-1)
+                        full_embedding = torch.cat(
+                            [shared_latents, private_latents], dim=-1
+                        )
                     else:
                         full_embedding = shared_latents
                     decoder = self.decoders[mod]
@@ -562,15 +565,17 @@ class MoPoE(BaseMultiVAE):
 
                     # If we are using modalities specific latent spaces compute the modalities priors and posteriors
                     if self.multiple_latent_spaces:
-                        
+
                         lpz += dist.Normal(0, 1).log_prob(private_latents).sum(dim=-1)
-                        qz_x = dist.Normal(private_params[mod][0][i], torch.exp(0.5*private_params[mod][1][i]))
+                        qz_x = dist.Normal(
+                            private_params[mod][0][i],
+                            torch.exp(0.5 * private_params[mod][1][i]),
+                        )
                         lqz_xs += qz_x.log_prob(private_latents).sum(dim=-1)
 
                 # Compute ln(p(z))
                 prior = dist.Normal(0, 1)
                 lpz += prior.log_prob(shared_latents).sum(dim=-1)
-
 
                 # Compute shared posterior -ln(q(z|x,y) = -ln (1/S \sum q(z|x_s))
                 qz_xs = [
@@ -579,12 +584,13 @@ class MoPoE(BaseMultiVAE):
                     )
                     for j in range(len(mus_subset))
                 ]
-                lqz_xs_tensor = torch.stack([q.log_prob(shared_latents).sum(-1) for q in qz_xs])
+                lqz_xs_tensor = torch.stack(
+                    [q.log_prob(shared_latents).sum(-1) for q in qz_xs]
+                )
                 lqz_xs += torch.logsumexp(lqz_xs_tensor, dim=0) - np.log(
                     len(lqz_xs_tensor)
                 )  # log_mean_exp
 
-                
                 ln_px = torch.logsumexp(lpx_zs + lpz - lqz_xs, dim=0)
                 lnpxs.append(ln_px)
 
@@ -621,7 +627,7 @@ class MoPoE(BaseMultiVAE):
         mu, log_var = infer["subsets"][subset_name]
 
         # And sample from the posterior
-        z_joint =rsample_from_gaussian(mu, log_var, K)  # shape K x n_data x latent_dim
+        z_joint = rsample_from_gaussian(mu, log_var, K)  # shape K x n_data x latent_dim
         z_joint = z_joint.permute(1, 0, 2)
         n_data, _, _ = z_joint.shape
 
@@ -635,7 +641,9 @@ class MoPoE(BaseMultiVAE):
                     infer["modalities"][mod].style_log_covariance,
                 )
                 style_embeddings = rsample_from_gaussian(*private_params[mod], K)
-                private_zs[mod] = style_embeddings.permute(1, 0, 2) # shape n_data x K x private dim
+                private_zs[mod] = style_embeddings.permute(
+                    1, 0, 2
+                )  # shape n_data x K x private dim
 
         # Then iter on each datapoint to compute the iwae estimate of ln(p(x))
         ll = 0
@@ -650,11 +658,13 @@ class MoPoE(BaseMultiVAE):
                 # Compute ln p(x_m|z) for z in latents and for each modality m
                 lpx_zs = 0  # ln(p(x,y|z))
                 lpz = 0  # ln(p(z)) prior
-                lqz_xs = 0 # ln(q(z|X)) posterior
+                lqz_xs = 0  # ln(q(z|X)) posterior
                 for mod in inputs.data:
                     if self.multiple_latent_spaces:
                         private_latents = private_zs[mod][i][start_idx:stop_idx]
-                        full_embedding = torch.cat([shared_latents,private_latents], dim=-1)
+                        full_embedding = torch.cat(
+                            [shared_latents, private_latents], dim=-1
+                        )
                     else:
                         full_embedding = shared_latents
 
@@ -675,7 +685,10 @@ class MoPoE(BaseMultiVAE):
                     # If we are using modalities specific latent spaces compute the modalities priors and posteriors
                     if self.multiple_latent_spaces:
                         lpz += dist.Normal(0, 1).log_prob(private_latents).sum(dim=-1)
-                        qz_x = dist.Normal(private_params[mod][0][i], torch.exp(0.5*private_params[mod][1][i]))
+                        qz_x = dist.Normal(
+                            private_params[mod][0][i],
+                            torch.exp(0.5 * private_params[mod][1][i]),
+                        )
                         lqz_xs += qz_x.log_prob(private_latents).sum(dim=-1)
 
                 # Compute ln(p(z))
@@ -685,7 +698,6 @@ class MoPoE(BaseMultiVAE):
                 # Compute posteriors -ln(q(z|x,y))
                 qz_xy = dist.Normal(mu[i], torch.exp(0.5 * log_var[i]))
                 lqz_xs += qz_xy.log_prob(shared_latents).sum(dim=-1)
-
 
                 ln_px = torch.logsumexp(lpx_zs + lpz - lqz_xs, dim=0)
                 lnpxs.append(ln_px)
@@ -697,8 +709,6 @@ class MoPoE(BaseMultiVAE):
             ll += torch.logsumexp(torch.Tensor(lnpxs), dim=0) - np.log(K)
 
         return -ll
-    
-    
 
     def compute_joint_nll_paper(
         self,

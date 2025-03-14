@@ -52,14 +52,17 @@ class Test_CVAE:
                     label=Encoder_VAE_MLP(
                         BaseAEConfig(
                             input_dim=(10,), latent_dim=model_config.latent_dim
-                        )),
+                        )
+                    ),
                     color=Encoder_VAE_MLP(
                         BaseAEConfig(
                             input_dim=(4,), latent_dim=model_config.latent_dim
                         ),
-            )),
+                    ),
+                ),
                 args=model_config,
-                n_hidden_layers=1)
+                n_hidden_layers=1,
+            )
             encoder = MultipleHeadJointEncoder(
                 dict_encoders=dict(
                     mnist=EncoderConvMMNIST(
@@ -73,9 +76,7 @@ class Test_CVAE:
                         )
                     ),
                     color=Encoder_VAE_MLP(
-                        BaseAEConfig(
-                            input_dim=(4,), latent_dim=model_config.latent_dim
-                        )
+                        BaseAEConfig(input_dim=(4,), latent_dim=model_config.latent_dim)
                     ),
                 ),
                 args=model_config,
@@ -83,7 +84,7 @@ class Test_CVAE:
                 hidden_dim=128,
             )
             decoder = ConditionalDecoderMLP(
-                model_config.latent_dim, {'label':(10,), 'color':(4,)}, (3, 28, 28)
+                model_config.latent_dim, {"label": (10,), "color": (4,)}, (3, 28, 28)
             )
         else:
             prior_network = None
@@ -143,21 +144,22 @@ class Test_CVAE:
         assert output.z.shape == (10, model.latent_dim)
         assert hasattr(output, "cond_mod_data")
         assert isinstance(output.cond_mod_data, dict)
-        assert torch.all(output.cond_mod_data['label'] == samples.data["label"])
-        assert torch.all(output.cond_mod_data['color'] == samples.data["color"])
-
+        assert torch.all(output.cond_mod_data["label"] == samples.data["label"])
+        assert torch.all(output.cond_mod_data["color"] == samples.data["color"])
 
         output = model.encode(samples, N=4)
         assert isinstance(output, ModelOutput)
         assert output.z.shape == (4, 10, model.latent_dim)
         assert hasattr(output, "cond_mod_data")
-        assert output.cond_mod_data['label'].shape == (4, *samples.data["label"].shape)
+        assert output.cond_mod_data["label"].shape == (4, *samples.data["label"].shape)
 
         output = model.encode(samples, N=4, flatten=True)
         assert isinstance(output, ModelOutput)
         assert output.z.shape == (4 * 10, model.latent_dim)
         assert hasattr(output, "cond_mod_data")
-        assert torch.all(output.cond_mod_data['label'] == torch.cat([samples.data["label"]] * 4))
+        assert torch.all(
+            output.cond_mod_data["label"] == torch.cat([samples.data["label"]] * 4)
+        )
 
         return
 
@@ -181,19 +183,21 @@ class Test_CVAE:
         assert output.z.shape == (10, model.latent_dim)
         assert hasattr(output, "cond_mod_data")
         assert isinstance(output.cond_mod_data, dict)
-        assert torch.all(output.cond_mod_data['label'] == samples.data["label"])
+        assert torch.all(output.cond_mod_data["label"] == samples.data["label"])
 
         output = model.generate_from_prior(cond_mod_data=cond_mod_data, N=4)
         assert isinstance(output, ModelOutput)
         assert output.z.shape == (4, 10, model.latent_dim)
         assert hasattr(output, "cond_mod_data")
-        assert output.cond_mod_data['label'].shape == (4, *samples.data["label"].shape)
+        assert output.cond_mod_data["label"].shape == (4, *samples.data["label"].shape)
 
         output = model.generate_from_prior(cond_mod_data, N=4, flatten=True)
         assert isinstance(output, ModelOutput)
         assert output.z.shape == (4 * 10, model.latent_dim)
         assert hasattr(output, "cond_mod_data")
-        assert torch.all(output.cond_mod_data['label'] == torch.cat([samples.data["label"]] * 4))
+        assert torch.all(
+            output.cond_mod_data["label"] == torch.cat([samples.data["label"]] * 4)
+        )
 
         return
 
@@ -206,39 +210,45 @@ class Test_CVAE:
         assert hasattr(output, "reconstruction")
         assert output.reconstruction.shape == samples.data["mnist"].shape
 
-        output = model.predict(cond_mod=['mnist'], inputs=samples)
+        output = model.predict(cond_mod=["mnist"], inputs=samples)
         assert isinstance(output, ModelOutput)
         assert hasattr(output, "reconstruction")
         assert output.reconstruction.shape == samples.data["mnist"].shape
 
-        output = model.predict(cond_mod=['mnist', 'label', 'color'], inputs=samples, N=10)
+        output = model.predict(
+            cond_mod=["mnist", "label", "color"], inputs=samples, N=10
+        )
         assert isinstance(output, ModelOutput)
         assert hasattr(output, "reconstruction")
         assert output.reconstruction.shape == (10, 10, 3, 28, 28)
 
-        
         # Test generation
-        output = model.predict(cond_mod=['label', 'color'], inputs=samples)
+        output = model.predict(cond_mod=["label", "color"], inputs=samples)
         assert isinstance(output, ModelOutput)
         assert hasattr(output, "reconstruction")
         assert output.reconstruction.shape == samples.data["mnist"].shape
 
-        output = model.predict(cond_mod=['label', 'color'], inputs=samples, N=10)
+        output = model.predict(cond_mod=["label", "color"], inputs=samples, N=10)
         assert isinstance(output, ModelOutput)
         assert hasattr(output, "reconstruction")
-        assert output.reconstruction.shape == (10,*samples.data["mnist"].shape)
+        assert output.reconstruction.shape == (10, *samples.data["mnist"].shape)
 
-        output = model.predict(cond_mod=['label', 'color'], inputs=samples, N=10, flatten=True)
+        output = model.predict(
+            cond_mod=["label", "color"], inputs=samples, N=10, flatten=True
+        )
         assert isinstance(output, ModelOutput)
         assert hasattr(output, "reconstruction")
-        assert output.reconstruction.shape == (10*samples.data["mnist"].shape[0], *samples.data['mnist'].shape[1:])
+        assert output.reconstruction.shape == (
+            10 * samples.data["mnist"].shape[0],
+            *samples.data["mnist"].shape[1:],
+        )
 
         # Test that a ValueError is raised if the cond_mod is not in the conditioning modalities
         with pytest.raises(ValueError):
-            model.predict(cond_mod=['color'], inputs=samples)
-        
+            model.predict(cond_mod=["color"], inputs=samples)
+
         with pytest.raises(ValueError):
-            model.predict(cond_mod='wrong_cond_mod', inputs=samples)
+            model.predict(cond_mod="wrong_cond_mod", inputs=samples)
 
         return
 

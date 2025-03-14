@@ -439,8 +439,8 @@ class CMVAE(BaseMultiVAE):
 
 
         """
-        
-        cond_mod = super().encode(inputs, cond_mod, N,return_mean, **kwargs).cond_mod
+
+        cond_mod = super().encode(inputs, cond_mod, N, return_mean, **kwargs).cond_mod
 
         if all([s in self.encoders.keys() for s in cond_mod]):
             # For the conditioning modalities we compute all the embeddings
@@ -448,7 +448,6 @@ class CMVAE(BaseMultiVAE):
 
             # Choose one of the conditioning modalities at random to sample the shared information.
             random_mod = np.random.choice(cond_mod)
-
 
             # Sample the shared latent code
             mu = encoders_outputs[random_mod].embedding
@@ -462,11 +461,11 @@ class CMVAE(BaseMultiVAE):
 
             # Get the z
             if return_mean:
-                if N>1:
-                    z = torch.stack([mu]*N)
+                if N > 1:
+                    z = torch.stack([mu] * N)
                 else:
                     z = mu
-            else: #sample
+            else:  # sample
                 qz_x = self.latent_dist(mu, sigma)
                 sample_shape = torch.Size([]) if N == 1 else torch.Size([N])
                 z = qz_x.rsample(sample_shape)
@@ -509,11 +508,11 @@ class CMVAE(BaseMultiVAE):
                 sigma_m = self._log_var_to_std(logvar_m)
 
                 if return_mean:
-                    if N> 1:
-                        style_z[m] = torch.stack([mu_m]*N)
+                    if N > 1:
+                        style_z[m] = torch.stack([mu_m] * N)
                     else:
                         style_z[m] = mu_m
-                else: #sample
+                else:  # sample
                     style_z[m] = self.latent_dist(mu_m, sigma_m).rsample(sample_shape)
                 if flatten:
                     style_z[m] = style_z[m].reshape(
@@ -753,17 +752,17 @@ class CMVAE(BaseMultiVAE):
     @torch.no_grad()
     def compute_joint_nll(self, inputs, K=1000, **kwargs):
         """Estimate the negative joint likelihood.
-        
-        Args: 
+
+        Args:
 
             inputs (MultimodalBaseDataset) : a batch of samples.
             K (int) : the number of importance samples for the estimation. Default to 1000.
-        
-        Returns: 
-            
+
+        Returns:
+
             The negative log-likelihood summed over the batch.
         """
-        
+
         # Check that the dataset is not incomplete for this computation.
         self.eval()
         if hasattr(inputs, "masks"):
@@ -772,14 +771,14 @@ class CMVAE(BaseMultiVAE):
             )
 
         # Get the batch size from the input
-        n_data = len(list(inputs.data.values())[0])  
+        n_data = len(list(inputs.data.values())[0])
 
         # Set the rescale factors and beta to one while computing the joint likelihood
         rescale_factors, self.rescale_factors = self.rescale_factors.copy(), {
             m: 1 for m in self.rescale_factors
         }
         beta, self.model_config.beta = self.model_config.beta, 1
-        
+
         # Start iterating on the data samples
         ll = 0
         for i in range(n_data):
@@ -787,7 +786,7 @@ class CMVAE(BaseMultiVAE):
                 data={m: inputs.data[m][i].unsqueeze(0) for m in inputs.data}
             )
             # We dispatch the K samples equally between the unimodal posteriors
-            k_iwae = K // self.n_modalities  
+            k_iwae = K // self.n_modalities
             posteriors, embeddings, reconstructions = (
                 self._compute_posteriors_and_embeddings(
                     inputs_i, detach=False, K=k_iwae
