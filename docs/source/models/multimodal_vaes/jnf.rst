@@ -1,5 +1,5 @@
 **********************************
-JMVAE with Normalizing Flows
+Joint Normalizing Flows (JNF)
 **********************************
 
 

@@ -13,6 +13,8 @@ from torch.nn import ModuleDict
 
 from ...data.datasets.base import MultimodalBaseDataset
 from ..joint_models import BaseJointModel
+from ..base.base_utils import rsample_from_gaussian
+from ..nn.base_architectures import BaseJointEncoder
 from .jnf_config import JNFConfig
 
 logger = logging.getLogger(__name__)
@@ -27,8 +29,7 @@ class JNF(BaseJointModel):
 
     Args:
 
-        model_config (JNFConfig): An instance of JNFConfig in which any model's parameters is
-            made available.
+        model_config (JNFConfig): Contains parameters for the JNF model.
 
         encoders (Dict[str, ~pythae.models.nn.base_architectures.BaseEncoder]): A dictionary
             containing the modalities names and the encoders for each modality. Each encoder is
@@ -38,8 +39,8 @@ class JNF(BaseJointModel):
             containing the modalities names and the decoders for each modality. Each decoder is an
             instance of Pythae's BaseDecoder.
 
-        joint_encoder (~pythae.models.nn.base_architectures.BaseEncoder) : An instance of
-            BaseEncoder that takes all the modalities as an input. If none is provided, one is
+        joint_encoder (~multivae.models.nn.base_architectures.BaseJointEncoder) : Takes all
+            the modalities as an input. If none is provided, one is
             created from the unimodal encoders. Default : None.
 
         flows (Dict[str, ~pythae.models.normalizing_flows.BaseNF]) : A dictionary containing the
@@ -54,28 +55,33 @@ class JNF(BaseJointModel):
         model_config: JNFConfig,
         encoders: Dict[str, BaseEncoder] = None,
         decoders: Dict[str, BaseDecoder] = None,
-        joint_encoder: Union[BaseEncoder, None] = None,
+        joint_encoder: Union[BaseJointEncoder, None] = None,
         flows: Dict[str, BaseNF] = None,
         **kwargs,
     ):
         super().__init__(model_config, encoders, decoders, joint_encoder, **kwargs)
 
         if flows is None:
-            flows = dict()
-            for modality in self.encoders:
-                flows[modality] = MAF(MAFConfig(input_dim=(model_config.latent_dim,)))
+            flows = self._default_flows(model_config)
         else:
             self.model_config.custom_architectures.append("flows")
 
-        self.set_flows(flows)
+        self._set_flows(flows)
 
         self.model_name = "JNF"
         self.warmup = model_config.warmup
         self.reset_optimizer_epochs = [self.warmup + 1]
         self.beta = model_config.beta
 
-    def set_flows(self, flows: Dict[str, BaseNF]):
-        # check that the keys corresponds with the encoders keys
+    def _default_flows(self, model_config):
+        """Return default masked autoregressive flows for each modality."""
+        flows = {}
+        for modality in self.encoders:
+            flows[modality] = MAF(MAFConfig(input_dim=(model_config.latent_dim,)))
+        return flows
+
+    def _set_flows(self, flows: Dict[str, BaseNF]):
+        """Sanity check on the flows and set attribute."""
         if flows.keys() != self.encoders.keys():
             raise AttributeError(
                 f"The keys of provided flows : {list(flows.keys())}"
@@ -85,7 +91,6 @@ class JNF(BaseJointModel):
 
         # Check that the flows are instances of BaseNF and that the input_dim for the
         # flows matches the latent_dimension
-
         self.flows = ModuleDict()
         for m in flows:
             if isinstance(flows[m], BaseNF) and flows[m].input_dim == (
@@ -105,6 +110,11 @@ class JNF(BaseJointModel):
         self.decoders.requires_grad_(False)
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs):
+        """Forward pass of the JNF model. Returns the loss and metrics."""
+
+        # Check that the dataset is not incomplete
+        super().forward(inputs)
+
         epoch = kwargs.pop("epoch", 1)
 
         # First compute the joint ELBO
@@ -141,7 +151,7 @@ class JNF(BaseJointModel):
 
         else:
             self._set_torch_no_grad_on_joint_vae()
-            ljm = self.compute_ljm(inputs, z_joint)
+            ljm = self._compute_ljm(inputs, z_joint)
 
             return ModelOutput(
                 loss=ljm / len_batch,
@@ -153,7 +163,7 @@ class JNF(BaseJointModel):
                 ),
             )
 
-    def compute_ljm(self, inputs, z_joint):
+    def _compute_ljm(self, inputs, z_joint):
         """Compute the KL-divergence between unimodal posteriors and joint posterior.
 
         Args:
@@ -180,6 +190,7 @@ class JNF(BaseJointModel):
         inputs: MultimodalBaseDataset,
         cond_mod: Union[list, str] = "all",
         N: int = 1,
+        return_mean=False,
         **kwargs,
     ) -> ModelOutput:
         """
@@ -190,6 +201,8 @@ class JNF(BaseJointModel):
             cond_mod (Union[list, str]): Either 'all' or a list of str containing the modalities
                 names to condition on.
             N (int) : The number of encodings to sample for each datapoint. Default to 1.
+            return_mean (bool) : if True, returns the mean of the posterior distribution (instead of a sample).
+
 
         **kwargs:
             mcmc_steps(int) : the number of Monte-Carlo step to perform when sampling from the product
@@ -201,9 +214,10 @@ class JNF(BaseJointModel):
                 default to 0.01.
 
         Returns:
-            ModelOutput instance with fields:
-                z (torch.Tensor (n_data, N, latent_dim))
-                one_latent_space (bool) = True
+            ModelOutput :
+                Contains fields
+                'z' (torch.Tensor (N, n_data, latent_dim))
+                'one_latent_space' (bool) = True
 
 
 
@@ -213,25 +227,16 @@ class JNF(BaseJointModel):
         n_lf = kwargs.pop("n_lf", 10)
         eps_lf = kwargs.pop("eps_lf", 0.01)
 
-        # Deal with incomplete datasets
         cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
-        return_mean = kwargs.pop("return_mean", False)
+
         if len(cond_mod) == self.n_modalities:
             output = self.joint_encoder(inputs.data)
-            sample_shape = [] if N == 1 else [N]
-            if return_mean:
-                z = torch.stack([output.embedding] * N) if N > 1 else output.embedding
-            else:
-                z = dist.Normal(
-                    output.embedding, torch.exp(0.5 * output.log_covariance)
-                ).rsample(sample_shape)
-            if N > 1 and kwargs.pop("flatten", False):
-                N, l, d = z.shape
-                z = z.reshape(l * N, d)
-            return ModelOutput(z=z, one_latent_space=True)
+            
+            z = rsample_from_gaussian(output.embedding, output.log_covariance, N, return_mean)
+            
 
         elif len(cond_mod) != 1:
-            z = self.sample_from_poe_subset(
+            z = self._sample_from_poe_subset(
                 cond_mod,
                 inputs.data,
                 ax=None,
@@ -241,36 +246,32 @@ class JNF(BaseJointModel):
                 K=N,
                 divide_prior=True,
             )
-            if N > 1 and kwargs.pop("flatten", False):
-                N, l, d = z.shape
-                z = z.reshape(l * N, d)
-            return ModelOutput(z=z, one_latent_space=True)
+            # no return mean option here
 
         elif len(cond_mod) == 1:
             cond_mod = cond_mod[0]
             output = self.encoders[cond_mod](inputs.data[cond_mod])
-            sample_shape = [] if N == 1 else [N]
 
-            z0 = dist.Normal(
-                output.embedding, torch.exp(0.5 * output.log_covariance)
-            ).rsample(sample_shape)
+            z0 = rsample_from_gaussian(output.embedding, output.log_covariance, N, return_mean)
+
             flow_output = self.flows[cond_mod].inverse(
                 z0.reshape(-1, self.latent_dim)
             )  # The reshaping is because MAF flows doesn't handle
             # any shape of input data (*,*input_dim)
             z = flow_output.out.reshape(z0.shape)
 
-            if N > 1 and kwargs.pop("flatten", False):
-                z = z.reshape(-1, self.latent_dim)
-
-            return ModelOutput(z=z, one_latent_space=True)
         else:
             raise AttributeError(
                 f"Modality of name {cond_mod} not handled. The"
                 f" modalities that can be encoded are {list(self.encoders.keys())}"
             )
+        
+        if N > 1 and kwargs.pop("flatten", False):
+            N, l, d = z.shape
+            z = z.reshape(l * N, d)
+        return ModelOutput(z=z, one_latent_space=True)
 
-    def sample_from_moe_subset(self, subset: list, data: dict):
+    def _sample_from_moe_subset(self, subset: list, data: dict):
         """Sample z from the mixture of posteriors from the subset.
         Torch no grad is activated, so that no gradient are computed durin the forward pass of the encoders.
 
@@ -294,7 +295,7 @@ class JNF(BaseJointModel):
                 zs[indices == m] = dist.Normal(mu, torch.exp(0.5 * log_var)).rsample()
         return zs
 
-    def compute_poe_posterior(
+    def _compute_poe_posterior(
         self, subset: list, z_: torch.Tensor, data: list, divide_prior=True, grad=True
     ):
         """Compute the log density of the product of experts for Hamiltonian sampling.
@@ -342,7 +343,7 @@ class JNF(BaseJointModel):
             else:
                 return lnqzs
 
-    def sample_from_poe_subset(
+    def _sample_from_poe_subset(
         self,
         subset,
         data,
@@ -362,7 +363,7 @@ class JNF(BaseJointModel):
             K (int, optional): . Defaults to 100.
         """
         logger.info(
-            f"starting to sample from poe_subset, divide prior = {divide_prior}"
+            "starting to sample from poe_subset, divide prior = %s", str(divide_prior)
         )
 
         # Multiply the data to have multiple samples per datapoints
@@ -374,7 +375,7 @@ class JNF(BaseJointModel):
         acc_nbr = torch.zeros(n_samples, 1).to(device)
 
         # First we need to sample an initial point from the mixture of experts
-        z0 = self.sample_from_moe_subset(subset, data)
+        z0 = self._sample_from_moe_subset(subset, data)
         z = z0
 
         # fig, ax = plt.subplots()
@@ -388,7 +389,7 @@ class JNF(BaseJointModel):
             rho = gamma  # / self.beta_zero_sqrt
 
             # Compute ln q(z|X_s)
-            ln_q_zxs, g = self.compute_poe_posterior(
+            ln_q_zxs, g = self._compute_poe_posterior(
                 subset, z, data, divide_prior=divide_prior
             )
 
@@ -404,7 +405,7 @@ class JNF(BaseJointModel):
                 z = z + eps_lf * rho_
 
                 # Compute the updated gradient
-                ln_q_zxs, g = self.compute_poe_posterior(subset, z, data, divide_prior)
+                ln_q_zxs, g = self._compute_poe_posterior(subset, z, data, divide_prior)
 
                 # step 3
                 rho__ = rho_ - (eps_lf / 2) * (-g)

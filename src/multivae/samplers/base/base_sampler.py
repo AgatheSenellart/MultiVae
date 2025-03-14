@@ -7,6 +7,7 @@ import numpy as np
 import torch
 from imageio import imwrite
 
+from ...data.datasets.base import MultimodalBaseDataset
 from ...models import BaseMultiVAE
 from .base_sampler_config import BaseSamplerConfig
 
@@ -45,9 +46,9 @@ class BaseSampler:
         self.model.to(device)
         self.name = "BaseSampler"
 
-    def fit(self, *args, **kwargs):
+    def fit(self, train_data: MultimodalBaseDataset, **kwargs):
         """Function to be called to fit the sampler before sampling"""
-        pass
+        return
 
     def sample(
         self,
@@ -72,4 +73,7 @@ class BaseSampler:
         """Method to save the sampler config. The config is saved a as ``sampler_config.json``
         file in ``dir_path``"""
 
+        logger.info("Saving model in %s.", dir_path)
+
+        os.makedirs(dir_path, exist_ok=True)
         self.sampler_config.save_json(dir_path, "sampler_config")

@@ -1,14 +1,10 @@
-from itertools import combinations
 from typing import List
 
-import numpy as np
 import torch
 from pythae.models.base.base_utils import ModelOutput
 from torchmetrics.image import StructuralSimilarityIndexMeasure as SSIM
 
-from multivae.data import MultimodalBaseDataset
 from multivae.data.utils import set_inputs_to_device
-from multivae.samplers.base import BaseSampler
 
 from ..base.evaluator_class import Evaluator
 from .reconstruction_config import ReconstructionConfig
@@ -86,6 +82,8 @@ class Reconstruction(Evaluator):
         return mean_recon_error
 
     def eval(self):
+        """Compute metrics for joint reconstruction and unimodal reconstruction."""
+
         # Joint reconstruction with all modalities
         self.reconstruction_from_subset(list(self.model.encoders.keys()))
 

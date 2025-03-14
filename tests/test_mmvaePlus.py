@@ -1,4 +1,5 @@
 import os
+import shutil
 from copy import deepcopy
 
 import numpy as np
@@ -92,27 +93,28 @@ class Test_model:
 
         output = model(dataset, epoch=2)
         loss = output.loss
-        assert type(loss) == torch.Tensor
+        assert isinstance(loss, torch.Tensor)
         assert loss.size() == torch.Size([])
         assert loss.requires_grad
 
-        # Try encoding and prediction
-        outputs = model.encode(dataset[0])
-        assert not outputs.one_latent_space
+        for return_mean in [True, False]:
+            # Try encoding and prediction
+            outputs = model.encode(dataset[0], return_mean=return_mean)
+            assert not outputs.one_latent_space
 
-        embeddings = outputs.z
-        assert isinstance(outputs, ModelOutput)
-        assert embeddings.shape == (1, 5)
-        embeddings = model.encode(dataset[0], N=2).z
-        assert embeddings.shape == (2, 1, 5)
-        embeddings = model.encode(dataset, cond_mod=["mod2"]).z
-        assert embeddings.shape == (2, 5)
-        embeddings = model.encode(dataset, cond_mod="mod3", N=10).z
-        assert embeddings.shape == (10, 2, 5)
-        embeddings = model.encode(dataset, cond_mod=["mod2", "mod4"]).z
-        assert embeddings.shape == (2, 5)
-        embeddings = model.encode(dataset, ignore_incomplete=True).z
-        assert embeddings.shape == (2, 5)
+            embeddings = outputs.z
+            assert isinstance(outputs, ModelOutput)
+            assert embeddings.shape == (1, 5)
+            embeddings = model.encode(dataset[0], N=2, return_mean=return_mean).z
+            assert embeddings.shape == (2, 1, 5)
+            embeddings = model.encode(dataset, cond_mod=["mod2"], return_mean=return_mean).z
+            assert embeddings.shape == (2, 5)
+            embeddings = model.encode(dataset, cond_mod="mod3", N=10, return_mean=return_mean).z
+            assert embeddings.shape == (10, 2, 5)
+            embeddings = model.encode(dataset, cond_mod=["mod2", "mod4"], return_mean=return_mean).z
+            assert embeddings.shape == (2, 5)
+            embeddings = model.encode(dataset, ignore_incomplete=True,return_mean=return_mean).z
+            assert embeddings.shape == (2, 5)
 
         if hasattr(dataset, "masks"):
             with pytest.raises(AttributeError):
@@ -266,17 +268,20 @@ class TestTraining:
         return model
 
     @pytest.fixture
-    def training_config(self, tmpdir):
-        tmpdir.mkdir("dummy_folder")
-        dir_path = os.path.join(tmpdir, "dummy_folder")
-        return BaseTrainerConfig(
+    def training_config(self, tmp_path_factory):
+
+        dir_path = tmp_path_factory.mktemp("dummy_folder")
+
+        yield BaseTrainerConfig(
             num_epochs=3,
             steps_saving=2,
             learning_rate=1e-4,
             optimizer_cls="AdamW",
             optimizer_params={"betas": (0.91, 0.995)},
-            output_dir=dir_path,
+            output_dir=str(dir_path),
+            no_cuda=True,
         )
+        shutil.rmtree(dir_path)
 
     @pytest.fixture
     def trainer(self, model, training_config, dataset):
@@ -494,16 +499,10 @@ class TestTraining:
         assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
         assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
 
-    # def test_compute_nll(self, model, dataset):
-    #     nll = model.compute_joint_nll(dataset, K=10, batch_size_K=6)
-    #     assert nll >= 0
-    #     assert type(nll) == torch.Tensor
-    #     assert nll.size() == torch.Size([])
+    def test_compute_nll(self, model, dataset):
 
-    # def test_compute_joint_nll_from_subset_encoding(self, model, dataset):
-    #     nll = model.compute_joint_nll_from_subset_encoding(
-    #         ["mod1", "mod2"], dataset, K=10, batch_size_K=6
-    #     )
-    #     assert nll >= 0
-    #     assert type(nll) == torch.Tensor
-    #     assert nll.size() == torch.Size([])
+        if not hasattr(dataset, "masks"):
+            nll = model.compute_joint_nll(dataset, K=10, batch_size_K=6)
+            assert nll >= 0
+            assert type(nll) == torch.Tensor
+            assert nll.size() == torch.Size([])

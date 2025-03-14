@@ -24,6 +24,19 @@ class MMNISTDataset(MultimodalBaseDataset):  # pragma: no cover
     Multimodal PolyMNIST Dataset from
     'Generalized Multimodal Elbo' Sutter et al 2021.
 
+    This dataset class has a parameter 'missing_ratio' that allows to simulate a dataset
+    with missing values (Missing At Random).
+
+    .. code-block:: python
+
+        >>> from multivae.data.datasets import MMNISTDataset
+        >>> dataset = MMNISTDataset(
+        ...            data_path = 'your_data_path',
+        ...            split = 'train',
+        ...            download = True, #to download the dataset
+        ...            missing_ratio = 0.2 # 20% of missing data
+        ...        )
+
     """
 
     def __init__(
@@ -103,7 +116,7 @@ class MMNISTDataset(MultimodalBaseDataset):  # pragma: no cover
 
             self.masks["m0"] = torch.ones(
                 (self.num_files,)
-            )  # ensure there is at least one modality
+            ).bool()  # ensure there is at least one modality
             # available for all samples
 
             # To be sure, also erase the content of the masked samples
@@ -118,7 +131,7 @@ class MMNISTDataset(MultimodalBaseDataset):  # pragma: no cover
                 self.images_dict[k] = self.images_dict[k].permute(*reverse_dim_order)
 
     def __check_or_download_data__(self, data_path, unimodal_datapaths):
-        # TODO : test this function
+
         if not os.path.exists(unimodal_datapaths[0]) and self.download:
             tempdir = tempfile.mkdtemp()
             logger.info(

@@ -39,7 +39,7 @@ class OrderedCounter(Counter, OrderedDict):
         return self.__class__, (OrderedDict(self),)
 
 
-class CUBSentences(Dataset):  # pragma : no cover
+class CUBSentences(Dataset):  # pragma: no cover
     """
 
     Dataset for the CUB captions only.
@@ -277,7 +277,7 @@ class CUBSentences(Dataset):  # pragma : no cover
         return ret_str
 
 
-class CUB(MultimodalBaseDataset):  # pragma : no cover
+class CUB(MultimodalBaseDataset):  # pragma: no cover
     """
 
     A paired text image CUB dataset.
@@ -415,9 +415,9 @@ class CUB(MultimodalBaseDataset):  # pragma : no cover
         fig.tight_layout()
         # Draw the canvas and retrieve the image as a NumPy array
         fig.canvas.draw()
-        image = PIL.Image.frombytes(
-            "RGB", fig.canvas.get_width_height(), fig.canvas.tostring_rgb()
-        )
+        img_buf = io.BytesIO()
+        plt.savefig(img_buf, format="png")
+        image = PIL.Image.open(img_buf)
 
         image = np.array(image).transpose(2, 0, 1) / 255
         plt.close(fig=fig)

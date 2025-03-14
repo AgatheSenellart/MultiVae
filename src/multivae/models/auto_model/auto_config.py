@@ -48,10 +48,6 @@ class AutoConfig(BaseConfig):
 
             model_config = MVAEConfig.from_json_file(json_path)
 
-        elif config_name == "JNFDccaConfig":
-            from ..jnf_dcca import JNFDccaConfig
-
-            model_config = JNFDccaConfig.from_json_file(json_path)
         elif config_name == "MoPoEConfig":
             from ..mopoe import MoPoEConfig
 
@@ -91,6 +87,11 @@ class AutoConfig(BaseConfig):
             from ..cmvae import CMVAEConfig
 
             model_config = CMVAEConfig.from_json_file(json_path)
+
+        elif config_name == "CRMVAEConfig":
+            from ..crmvae import CRMVAEConfig
+
+            model_config = CRMVAEConfig.from_json_file(json_path)
 
         else:
             raise NameError(

@@ -1,17 +1,10 @@
-import os
-
 import numpy as np
 import torch
-from PIL import Image
 from torch.utils.data import DataLoader
-from torchvision.utils import make_grid
 
 from multivae.data import MultimodalBaseDataset
-from multivae.data.datasets.utils import adapt_shape
 from multivae.data.utils import set_inputs_to_device
-from multivae.metrics.base.evaluator_config import EvaluatorConfig
 from multivae.models.base import BaseMultiVAE, ModelOutput
-from multivae.samplers.base import BaseSampler
 
 from ..base.evaluator_class import Evaluator
 from .clustering_config import ClusteringConfig
@@ -32,9 +25,6 @@ class Clustering(Evaluator):
             file.
         eval_config (EvaluatorConfig) : The configuration class to specify parameters for the
             evaluation.
-        sampler (BaseSampler) : A custom sampler for sampling from the common latent space. If
-            None is provided, samples are generated from the prior. Not used in this module, just
-            given to keep the API for evaluators modules.
 
     """
 
@@ -45,9 +35,8 @@ class Clustering(Evaluator):
         train_dataset: MultimodalBaseDataset,
         output: str = None,
         eval_config=ClusteringConfig(),
-        sampler: BaseSampler = None,
     ) -> None:
-        super().__init__(model, test_dataset, output, eval_config, sampler)
+        super().__init__(model, test_dataset, output, eval_config)
 
         self.num_samples_for_fit = eval_config.num_samples_for_fit
         self.n_fits = eval_config.number_of_runs

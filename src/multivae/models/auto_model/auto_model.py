@@ -62,11 +62,6 @@ class AutoModel(nn.Module):
 
             model = MVAE.load_from_folder(dir_path)
 
-        elif model_name == "JNFDccaConfig":
-            from ..jnf_dcca import JNFDcca
-
-            model = JNFDcca.load_from_folder(dir_path)
-
         elif model_name == "MoPoEConfig":
             from ..mopoe import MoPoE
 
@@ -106,6 +101,11 @@ class AutoModel(nn.Module):
             from ..cmvae import CMVAE
 
             model = CMVAE.load_from_folder(dir_path)
+
+        elif model_name == "CRMVAEConfig":
+            from ..crmvae import CRMVAE
+
+            model = CRMVAE.load_from_folder(dir_path)
 
         else:
             raise NameError(
@@ -179,11 +179,6 @@ class AutoModel(nn.Module):
 
             model = MVAE.load_from_hf_hub(hf_hub_path, allow_pickle)
 
-        elif model_name == "JNFDccaConfig":
-            from ..jnf_dcca import JNFDcca
-
-            model = JNFDcca.load_from_hf_hub(hf_hub_path, allow_pickle)
-
         elif model_name == "MoPoEConfig":
             from ..mopoe import MoPoE
 
@@ -223,6 +218,11 @@ class AutoModel(nn.Module):
             from ..mhvae import MHVAE
 
             model = MHVAE.load_from_hf_hub(hf_hub_path, allow_pickle)
+
+        elif model_name == "CRMVAEConfig":
+            from ..crmvae import CRMVAE
+
+            model = CRMVAE.load_from_hf_hub(hf_hub_path, allow_pickle)
 
         else:
             raise NameError(

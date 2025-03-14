@@ -4,7 +4,6 @@ from typing import Union
 import numpy as np
 import torch
 import torch.distributions as dist
-from pythae.models.nn.base_architectures import BaseEncoder
 
 from multivae.models.nn import BaseJointEncoder
 
@@ -33,7 +32,7 @@ class BaseJointModel(BaseMultiVAE):
         decoder (Dict[BaseDecoder]): A dictionary containing the modalities names and the decoders for each
             modality. Each decoder is an instance of Pythae's BaseDecoder class.
 
-        joint_encoder (BaseEncoder) : An instance of BaseEncoder that takes all the modalities as an input.
+        joint_encoder (BaseJointEncoder) : Takes all the modalities as an input.
             If none is provided, one is created from the unimodal encoders. Default : None.
     """
 
@@ -59,38 +58,58 @@ class BaseJointModel(BaseMultiVAE):
         return MultipleHeadJointEncoder(self.encoders, model_config)
 
     def set_joint_encoder(self, joint_encoder):
-        "Checks that the provided joint encoder is an instance of BaseEncoder."
+        "Checks that the provided joint encoder is an instance of BaseJointEncoder."
 
-        if not issubclass(type(joint_encoder), BaseEncoder):
+        if not issubclass(type(joint_encoder), BaseJointEncoder):
             raise AttributeError(
                 (
-                    f"The joint encoder must inherit from BaseEncoder class from "
-                    "multivae.models.nn.default_architectures.BaseJointEncoder . Refer to documentation."
+                    f"The joint encoder must inherit from "
+                    "~multivae.models.nn.default_architectures.BaseJointEncoder . Refer to documentation."
                 )
             )
         self.joint_encoder = joint_encoder
 
+    def forward(self, inputs, **kwargs):
+        if hasattr(inputs, 'masks'):
+            raise AttributeError('The inputs have masks but this model is not compatible with incomplete dataset.')
+        
+    def encode(self, inputs, cond_mod = "all", N = 1, return_mean = False,**kwargs):
+        if hasattr(inputs, 'masks'):
+            raise AttributeError('The inputs have masks but this model is not compatible with incomplete dataset.')
+        return super().encode(inputs, cond_mod, N, **kwargs)
+
     def compute_joint_nll(
         self, inputs: MultimodalBaseDataset, K: int = 1000, batch_size_K: int = 100
     ):
+        """Estimate the negative joint likelihood.
+        
+        Args: 
+
+            inputs (MultimodalBaseDataset) : a batch of samples.
+            K (int) : the number of importance samples for the estimation. Default to 1000.
+            batch_size_K (int) : Default to 100. 
+        
+        Returns: 
+            
+            The negative log-likelihood summed over the batch.
         """
-        Return the estimated negative log-likelihood summed over the input batch.
-        The negative log-likelihood is estimated using importance sampling.
 
-        Args:
-            inputs : the data to compute the joint likelihood"""
+        # Check that the dataset is not incomplete. 
+        self.eval()
+        if hasattr(inputs, "masks"):
+            raise AttributeError(
+                "The inputs contains masks but this model is not compatible with incomplete dataset."
+            )
 
-        # First compute all the parameters of the joint posterior q(z|x,y)
-
+        # Compute the parameters of the joint posterior
         joint_output = self.joint_encoder(inputs.data)
         mu, log_var = joint_output.embedding, joint_output.log_covariance
-
         sigma = torch.exp(0.5 * log_var)
+
+        # Sample K latents from the joint posterior
         qz_xy = dist.Normal(mu, sigma)
-        # And sample from the posterior
-        z_joint = qz_xy.rsample([K])  # shape K x n_data x latent_dim
-        z_joint = z_joint.permute(1, 0, 2)
-        n_data, _, latent_dim = z_joint.shape
+        z_joint = qz_xy.rsample([K]).permute(1, 0, 2)  # n_data x K x latent_dim
+        n_data, _, _ = z_joint.shape
 
         # Then iter on each datapoint to compute the iwae estimate of ln(p(x))
         ll = 0
@@ -101,8 +120,8 @@ class BaseJointModel(BaseMultiVAE):
             while start_idx < stop_idx:
                 latents = z_joint[i][start_idx:stop_idx]
 
-                # Compute p(x_m|z) for z in latents and for each modality m
-                lpx_zs = 0  # ln(p(x,y|z))
+                # Compute ln p(x_m|z) for z in latents and for each modality m
+                lpx_zs = 0
                 for mod in inputs.data:
                     decoder = self.decoders[mod]
                     recon = decoder(latents)[
@@ -110,7 +129,9 @@ class BaseJointModel(BaseMultiVAE):
                     ]  # (batch_size_K, *decoder_output_shape)
                     x_m = inputs.data[mod][i]  # (*input_shape)
                     lpx_zs += (
-                        self.recon_log_probs[mod](recon, x_m)
+                        self.recon_log_probs[mod](
+                            recon, torch.stack([x_m] * len(recon))
+                        )
                         .reshape(recon.size(0), -1)
                         .sum(-1)
                     )
@@ -119,7 +140,7 @@ class BaseJointModel(BaseMultiVAE):
                 prior = dist.Normal(0, 1)
                 lpz = prior.log_prob(latents).sum(dim=-1)
 
-                # Compute posteriors -ln(q(z|x,y))
+                # Compute posteriors -ln(q(z|X))
                 qz_xy = dist.Normal(mu[i], sigma[i])
                 lqz_xy = qz_xy.log_prob(latents).sum(dim=-1)
 

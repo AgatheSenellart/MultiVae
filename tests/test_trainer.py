@@ -4,6 +4,7 @@ import shutil
 import pytest
 import torch
 import torch.optim as optim
+from pydantic import ValidationError
 from PIL import Image
 from pythae.models.base import BaseAEConfig
 from pythae.models.nn.benchmarks.mnist.convnets import (
@@ -22,11 +23,11 @@ from multivae.trainers.base.callbacks import rename_logs
 PATH = os.path.dirname(os.path.abspath(__file__))
 
 
-@pytest.fixture
-def training_config(tmpdir):
-    tmpdir.mkdir("dummy_folder")
-    dir_path = os.path.join(tmpdir, "dummy_folder")
-    return BaseTrainerConfig(output_dir=dir_path)
+@pytest.fixture(scope="module")
+def training_config(tmp_path_factory):
+    d = tmp_path_factory.mktemp("dummy_folder")
+
+    return BaseTrainerConfig(output_dir=str(d))
 
 
 @pytest.fixture(params=[0, 20])
@@ -109,13 +110,14 @@ class Test_Set_Training_config:
                 scheduler_cls="ExponentialLR",
                 scheduler_params={"gamma": 0.321},
             ),
-        ]
+        ],
+        scope="class",
     )
-    def training_configs(self, request, tmpdir):
+    def training_configs(self, request, tmp_path_factory):
         if request.param is not None:
-            tmpdir.mkdir("dummy_folder")
-            dir_path = os.path.join(tmpdir, "dummy_folder")
-            request.param.output_dir = dir_path
+            d = tmp_path_factory.mktemp("dummy_folder")
+
+            request.param.output_dir = str(d)
             return request.param
         else:
             return None
@@ -148,9 +150,13 @@ class Test_Build_Optimizer:
                 optimizer_cls="Adam", optimizer_params={"wrong_config": 1}
             )
 
-    @pytest.fixture(params=[BaseTrainerConfig(), BaseTrainerConfig(learning_rate=1e-5)])
-    def training_configs_learning_rate(self, tmpdir, request):
-        request.param.output_dir = tmpdir.mkdir("dummy_folder")
+    @pytest.fixture(
+        params=[BaseTrainerConfig(), BaseTrainerConfig(learning_rate=1e-5)],
+        scope="class",
+    )
+    def training_configs_learning_rate(self, tmp_path_factory, request):
+        d = tmp_path_factory.mktemp("dummy_folder")
+        request.param.output_dir = str(d)
         return request.param
 
     @pytest.fixture(
@@ -232,9 +238,13 @@ class Test_Build_Scheduler:
                 scheduler_cls="ReduceLROnPlateau", scheduler_params={"wrong_config": 1}
             )
 
-    @pytest.fixture(params=[BaseTrainerConfig(), BaseTrainerConfig(learning_rate=1e-5)])
-    def training_configs_learning_rate(self, tmpdir, request):
-        request.param.output_dir = tmpdir.mkdir("dummy_folder")
+    @pytest.fixture(
+        params=[BaseTrainerConfig(), BaseTrainerConfig(learning_rate=1e-5)],
+        scope="module",
+    )
+    def training_configs_learning_rate(self, tmp_path_factory, request):
+        d = tmp_path_factory.mktemp("dummy_folder")
+        request.param.output_dir = str(d)
         return request.param
 
     @pytest.fixture(
@@ -342,12 +352,13 @@ class Test_Device_Checks:
     @pytest.fixture(
         params=[
             BaseTrainerConfig(num_epochs=3, no_cuda=True),
-        ]
+        ],
+        scope="module",
     )
-    def training_configs(self, tmpdir, request):
-        tmpdir.mkdir("dummy_folder")
-        dir_path = os.path.join(tmpdir, "dummy_folder")
-        request.param.output_dir = dir_path
+    def training_configs(self, tmp_path_factory, request):
+        d = tmp_path_factory.mktemp("dummy_folder")
+
+        request.param.output_dir = str(d)
         return request.param
 
     def test_setup_device_with_no_cuda(
@@ -427,20 +438,23 @@ class TestSaving:
             BaseTrainerConfig(num_epochs=3, no_cuda=True),
         ]
     )
-    def training_configs(self, tmpdir, request):
-        dir_path = os.path.join(tmpdir, "test_output_dir")
-        request.param.output_dir = dir_path
+    def training_configs(self, tmp_path, request):
+        d = tmp_path / "test_output_dir"
+
+        request.param.output_dir = str(d)
         return request.param
 
-    def test_create_dir(self, tmpdir, model_sample, train_dataset, training_configs):
-        trainer = BaseTrainer(
+    def test_create_dir(self, model_sample, train_dataset, training_configs):
+        assert not os.path.exists(os.path.join(training_configs.output_dir))
+
+        BaseTrainer(
             model=model_sample,
             train_dataset=train_dataset,
             eval_dataset=train_dataset,
             training_config=training_configs,
         )
 
-        assert os.path.exists(os.path.join(tmpdir, "test_output_dir"))
+        assert os.path.exists(os.path.join(training_configs.output_dir))
 
 
 class TestLogging:
@@ -449,7 +463,7 @@ class TestLogging:
         return "dummy_log_output_dir"
 
     def test_create_dir(
-        self, tmpdir, model_sample, train_dataset, training_config, log_output_dir
+        self, tmp_path, model_sample, train_dataset, training_config, log_output_dir
     ):
         trainer = BaseTrainer(
             model=model_sample,
@@ -461,13 +475,13 @@ class TestLogging:
         # create dummy training signature
         trainer._training_signature = "dummy_signature"
 
-        assert not os.path.exists(os.path.join(tmpdir, "dummy_log_output_dir"))
-        file_logger = trainer._get_file_logger(os.path.join(tmpdir, log_output_dir))
+        assert not os.path.exists(os.path.join(tmp_path, "dummy_log_output_dir"))
+        file_logger = trainer._get_file_logger(os.path.join(tmp_path, log_output_dir))
 
-        assert os.path.exists(os.path.join(tmpdir, "dummy_log_output_dir"))
+        assert os.path.exists(os.path.join(tmp_path, "dummy_log_output_dir"))
         assert os.path.exists(
             os.path.join(
-                tmpdir, "dummy_log_output_dir", f"training_logs_dummy_signature.log"
+                tmp_path, "dummy_log_output_dir", f"training_logs_dummy_signature.log"
             )
         )
 

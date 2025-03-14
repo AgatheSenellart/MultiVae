@@ -1,17 +1,22 @@
 """
 Multimodal dataset wrapper for the MNIST labels dataset.
 """
-
+import io
 from typing import Literal
 
 import torch
 from torch.distributions import Bernoulli
 from torchvision.datasets import MNIST
+import matplotlib.pyplot as plt
+import PIL
+import numpy as np
 
 from .base import DatasetOutput, MultimodalBaseDataset
 
 
 class MnistLabels(MultimodalBaseDataset):  # pragma: no cover
+    """Mnist-Labels dataset. The first modality is the image and the second modality is the label."""
+
     def __init__(
         self,
         data_path: str,
@@ -57,3 +62,43 @@ class MnistLabels(MultimodalBaseDataset):  # pragma: no cover
 
     def __len__(self):
         return len(self.labels)
+
+    def transform_for_plotting(self, tensor, modality):
+        
+        """Transforms the label modality to text for plotting."""
+        if modality == "labels":
+            list_images = []
+            tensor = torch.argmax(tensor, dim=-1)
+            for t in tensor:
+                list_images.append(self.to_text(t))
+            
+            return torch.stack(list_images)
+            
+
+        return tensor
+    
+    def to_text(self, int_label):
+
+        device = int_label.device
+
+
+        fig = plt.figure(figsize=(0.2, 0.2))
+        plt.text(
+            x=0.5,
+            y=0.5,
+            s=str(int_label.item()),
+            fontsize=7,
+            verticalalignment="center_baseline",
+            horizontalalignment="center",
+        )
+        plt.axis("off")
+        fig.tight_layout()
+        # Draw the canvas and retrieve the image as a NumPy array
+        fig.canvas.draw()
+        img_buf = io.BytesIO()
+        plt.savefig(img_buf, format="png")
+        image = PIL.Image.open(img_buf)
+
+        image = np.array(image).transpose(2, 0, 1) / 255
+        plt.close(fig=fig)
+        return torch.from_numpy(image).float().to(device)

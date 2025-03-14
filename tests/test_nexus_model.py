@@ -1,4 +1,5 @@
 import os
+import shutil
 from copy import deepcopy
 
 import numpy as np
@@ -338,6 +339,107 @@ class Test_forward_encode_and_predict:
 
         assert isinstance(model.joint_encoder, Encoder_VAE_MLP)
 
+    def test_setup_with_wrong_attributes(self, custom_config_archi):
+
+        dict_config = custom_config_archi["model_config"].to_dict()
+        dict_config.pop("name")
+
+        # wrong aggregator
+        wrong_config = NexusConfig(**dict_config)
+        wrong_config.aggregator = "concat"
+        with pytest.raises(AttributeError):
+            Nexus(model_config=wrong_config)
+
+        # No input_dims and no encoders
+        wrong_config = NexusConfig(**dict_config)
+        wrong_config.input_dims = None
+        with pytest.raises(AttributeError):
+            Nexus(
+                model_config=wrong_config,
+                decoders=custom_config_archi["decoders"],
+                top_decoders=custom_config_archi["top_decoders"],
+                top_encoders=custom_config_archi["top_encoders"],
+                joint_encoder=custom_config_archi["joint_encoder"],
+            )
+
+        # No input dims and no decoders
+        with pytest.raises(AttributeError):
+            Nexus(
+                model_config=wrong_config,
+                encoders=custom_config_archi["encoders"],
+                top_decoders=custom_config_archi["top_decoders"],
+                top_encoders=custom_config_archi["top_encoders"],
+                joint_encoder=custom_config_archi["joint_encoder"],
+            )
+
+        # No modalities_dims and no top_decoders
+        wrong_config = NexusConfig(**dict_config)
+        wrong_config.modalities_specific_dim = None
+        with pytest.raises(AttributeError):
+            Nexus(
+                model_config=wrong_config,
+                decoders=custom_config_archi["decoders"],
+                encoders=custom_config_archi["encoders"],
+                top_encoders=custom_config_archi["top_encoders"],
+                joint_encoder=custom_config_archi["joint_encoder"],
+            )
+        # No modalities_dims and no top_decoders
+        with pytest.raises(AttributeError):
+            Nexus(
+                model_config=wrong_config,
+                decoders=custom_config_archi["decoders"],
+                encoders=custom_config_archi["encoders"],
+                top_decoders=custom_config_archi["top_decoders"],
+                joint_encoder=custom_config_archi["joint_encoder"],
+            )
+        # Top encoder is not BaseEncoder
+        wrong_top_encoders = custom_config_archi["top_encoders"]
+        wrong_top_encoders["mod1"] = nn.Linear(3, 4)
+        with pytest.raises(AttributeError):
+            Nexus(
+                model_config=NexusConfig(**dict_config),
+                decoders=custom_config_archi["decoders"],
+                encoders=custom_config_archi["encoders"],
+                top_encoders=wrong_top_encoders,
+                top_decoders=custom_config_archi["top_decoders"],
+                joint_encoder=custom_config_archi["joint_encoder"],
+            )
+        # Top decoder is not BaseDecoder
+        wrong_top_decoders = custom_config_archi["top_decoders"]
+        wrong_top_decoders["mod1"] = nn.Linear(3, 4)
+        with pytest.raises(AttributeError):
+            Nexus(
+                model_config=NexusConfig(**dict_config),
+                decoders=custom_config_archi["decoders"],
+                encoders=custom_config_archi["encoders"],
+                top_decoders=wrong_top_decoders,
+                top_encoders=custom_config_archi["top_encoders"],
+                joint_encoder=custom_config_archi["joint_encoder"],
+            )
+        # Joint Encoder is not BaseEncoder
+        wrong_joint_encoder = nn.Linear(3, 4)
+        with pytest.raises(AttributeError):
+            Nexus(
+                model_config=NexusConfig(**dict_config),
+                decoders=custom_config_archi["decoders"],
+                encoders=custom_config_archi["encoders"],
+                top_decoders=wrong_top_decoders,
+                top_encoders=custom_config_archi["top_encoders"],
+                joint_encoder=wrong_joint_encoder,
+            )
+        # wrong_gammas
+        wrong_model_config = NexusConfig(**dict_config)
+        if wrong_model_config.gammas is not None:
+            wrong_model_config.gammas.pop("mod1")
+            with pytest.raises(AttributeError):
+                Nexus(model_config=wrong_model_config)
+        # wrong_betas
+        wrong_model_config = NexusConfig(**dict_config)
+        if wrong_model_config.bottom_betas is not None:
+            wrong_model_config.bottom_betas.pop("mod1")
+            with pytest.raises(AttributeError):
+                Nexus(model_config=wrong_model_config)
+
     @pytest.fixture(params=["custom_architectures", "default_architectures"])
     def model(self, custom_config_archi, request):
         if request.param == "custom_architectures":
@@ -353,20 +455,27 @@ class Test_forward_encode_and_predict:
         assert loss.requires_grad
 
         # Try encoding and prediction
-        outputs = model.encode(dataset[0])
-        assert outputs.one_latent_space
-        embeddings = outputs.z
-        assert isinstance(outputs, ModelOutput)
-        assert embeddings.shape == (1, model.latent_dim)
-        embeddings = model.encode(dataset[0], N=2).z
-        assert embeddings.shape == (2, 1, model.latent_dim)
-        embeddings = model.encode(dataset, cond_mod=["mod2"]).z
-        assert embeddings.shape == (4, model.latent_dim)
-        embeddings = model.encode(dataset, cond_mod="mod3", N=10).z
-        assert embeddings.shape == (10, 4, model.latent_dim)
-        embeddings = model.encode(dataset, cond_mod=["mod2", "mod4"]).z
-        assert embeddings.shape == (4, model.latent_dim)
+        for return_mean in [True, False]:
+            outputs = model.encode(dataset[0], return_mean=return_mean)
+            assert outputs.one_latent_space
+            embeddings = outputs.z
+            assert isinstance(outputs, ModelOutput)
+            assert embeddings.shape == (1, model.latent_dim)
+            embeddings = model.encode(dataset[0], N=2, return_mean=return_mean).z
+            assert embeddings.shape == (2, 1, model.latent_dim)
+            embeddings = model.encode(dataset, cond_mod=["mod2"], return_mean=return_mean).z
+            assert embeddings.shape == (4, model.latent_dim)
+            embeddings = model.encode(dataset, cond_mod="mod3", N=10, return_mean=return_mean).z
+            assert embeddings.shape == (10, 4, model.latent_dim)
+            embeddings = model.encode(dataset, cond_mod=["mod2", "mod4"], return_mean=return_mean).z
+            assert embeddings.shape == (4, model.latent_dim)
 
+
+        # Test decode
+        Y = model.decode(model.encode(dataset, cond_mod="mod3", N=10))
+        assert Y.mod1.shape == (10, 4, 1, 12, 12)
+
+        # Test predict
         Y = model.predict(dataset, cond_mod="mod2")
         assert isinstance(Y, ModelOutput)
         assert Y.mod1.shape == (4, 1, 12, 12)
@@ -499,17 +608,20 @@ class Test_training:
             return Nexus(model_config=custom_config_archi["model_config"])
 
     @pytest.fixture
-    def training_config(self, tmpdir):
-        tmpdir.mkdir("dummy_folder")
-        dir_path = os.path.join(tmpdir, "dummy_folder")
-        return BaseTrainerConfig(
+    def training_config(self, tmp_path_factory):
+
+        dir_path = tmp_path_factory.mktemp("dummy_folder")
+
+        yield BaseTrainerConfig(
             num_epochs=3,
             steps_saving=2,
             learning_rate=1e-4,
             optimizer_cls="AdamW",
             optimizer_params={"betas": (0.91, 0.995)},
-            output_dir=dir_path,
+            output_dir=str(dir_path),
+            no_cuda=True,
         )
+        shutil.rmtree(dir_path)
 
     @pytest.fixture
     def trainer(self, model, training_config, dataset):

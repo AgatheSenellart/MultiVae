@@ -4,7 +4,6 @@ from typing import Union
 
 import numpy as np
 import torch
-import torch.distributions as dist
 import torch.nn.functional as F
 from pythae.models.base.base_utils import ModelOutput
 from torch.distributions import Laplace, Normal
@@ -97,7 +96,7 @@ class MMVAE(BaseMultiVAE):
         return mean, std
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs):
-
+        """Forward pass of the model. Outputs the loss and metrics."""
         # First compute all the encodings for all modalities
 
         # drop modalities that are completely unavailable in the batch to avoid Nan in backward
@@ -279,7 +278,7 @@ class MMVAE(BaseMultiVAE):
         return ModelOutput(loss=-lws.sum(), loss_sum=-lws.sum(), metrics={})
 
     def iwae_looser(self, qz_xs, embeddings, reconstructions, inputs):
-
+        """Compute the iwae loss without the DReG estimator for the gradient."""
         lws, n_mods_sample = self.compute_k_lws(
             qz_xs, embeddings, reconstructions, inputs
         )
@@ -323,6 +322,7 @@ class MMVAE(BaseMultiVAE):
         inputs: MultimodalBaseDataset,
         cond_mod: Union[list, str] = "all",
         N: int = 1,
+        return_mean=False,
         **kwargs,
     ):
         """
@@ -333,20 +333,16 @@ class MMVAE(BaseMultiVAE):
             cond_mod (Union[list, str]): Either 'all' or a list of str containing the modalities
                 names to condition on.
             N (int) : The number of encodings to sample for each datapoint. Default to 1.
+            return_mean (bool) : if True, returns the mean of the posterior distribution (instead of a sample).
+
 
         Returns:
-            ModelOutput instance with fields:
-                z (torch.Tensor (n_data, N, latent_dim))
-                one_latent_space (bool) = True
-
-
-
+            ModelOutput instance with fields 'z' (torch.Tensor (n_data, N, latent_dim)),'one_latent_space' (bool) = True
 
         """
 
         cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
 
-        return_mean = kwargs.pop("return_mean", False)
         if all([s in self.encoders.keys() for s in cond_mod]):
             if return_mean:
                 emb = torch.stack(
@@ -375,21 +371,31 @@ class MMVAE(BaseMultiVAE):
 
             return ModelOutput(z=z, one_latent_space=True)
 
+    @torch.no_grad()
     def compute_joint_nll(
         self, inputs: MultimodalBaseDataset, K: int = 1000, batch_size_K: int = 100
     ):
+        """Estimate the negative joint likelihood.
+        
+        Args: 
+
+            inputs (MultimodalBaseDataset) : a batch of samples.
+            K (int) : the number of importance samples for the estimation. Default to 1000.
+            batch_size_K (int) : Default to 100. 
+        
+        Returns: 
+            
+            The negative log-likelihood summed over the batch.
         """
-        Return the estimated negative log-likelihood summed over the inputs.
-        The negative log-likelihood is estimated using importance sampling.
 
-        Args:
-            inputs : the data to compute the joint likelihood
-
-        """
-
+        # Check the dataset is not incomplete
         self.eval()
+        if hasattr(inputs, "masks"):
+            raise AttributeError(
+                "The compute_joint_nll method is not yet implemented for incomplete datasets."
+            )
 
-        # First compute all the parameters of the joint posterior q(z|x,y)
+        # Compute all the parameters of the joint posterior q(z|x_1), q(z|x_2), ...
         post_params = []
         for cond_mod in self.encoders:
             output = self.encoders[cond_mod](inputs.data[cond_mod])
@@ -397,9 +403,9 @@ class MMVAE(BaseMultiVAE):
             sigma = self.log_var_to_std(log_var)
             post_params.append((mu, sigma))
 
-        z_joint = self.encode(inputs, N=K).z
-        z_joint = z_joint.permute(1, 0, 2)
-        n_data, _, latent_dim = z_joint.shape
+        # Sample K latents from the joint posterior
+        z_joint = self.encode(inputs, N=K).z.permute(1, 0, 2)  # n_data x K x latent_dim
+        n_data, _, _ = z_joint.shape
 
         # Then iter on each datapoint to compute the iwae estimate of ln(p(x))
         ll = 0
@@ -410,8 +416,8 @@ class MMVAE(BaseMultiVAE):
             while start_idx < stop_idx:
                 latents = z_joint[i][start_idx:stop_idx]
 
-                # Compute p(x_m|z) for z in latents and for each modality m
-                lpx_zs = 0  # ln(p(x,y|z))
+                # Compute ln p(x_m|z) for z in latents and for each modality m
+                lpx_zs = 0
                 for mod in inputs.data:
                     decoder = self.decoders[mod]
                     recon = decoder(latents)[
@@ -420,7 +426,9 @@ class MMVAE(BaseMultiVAE):
                     x_m = inputs.data[mod][i]  # (nb_channels, w, h)
 
                     lpx_zs += (
-                        self.recon_log_probs[mod](recon, x_m)
+                        self.recon_log_probs[mod](
+                            recon, torch.stack([x_m] * len(recon))
+                        )
                         .reshape(recon.size(0), -1)
                         .sum(-1)
                     )
@@ -429,7 +437,7 @@ class MMVAE(BaseMultiVAE):
                 prior = self.prior_dist(*self.pz_params)
                 lpz = prior.log_prob(latents).sum(dim=-1)
 
-                # Compute posteriors -ln(q(z|x,y))
+                # Compute posteriors ln(q(z|X)) = ln(1/M \sum_m q(z|x_m))
                 qz_xs = [self.post_dist(p[0][i], p[1][i]) for p in post_params]
                 lqz_xy = torch.logsumexp(
                     torch.stack([q.log_prob(latents).sum(-1) for q in qz_xs]), dim=0

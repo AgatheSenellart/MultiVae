@@ -7,6 +7,8 @@ from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
 
 from ...data.datasets.base import MultimodalBaseDataset
 from ..joint_models import BaseJointModel
+from ..base.base_utils import rsample_from_gaussian
+from ..nn.base_architectures import BaseJointEncoder
 from .telbo_config import TELBOConfig
 
 
@@ -27,7 +29,7 @@ class TELBO(BaseJointModel):
             the modalities names and the decoders for each modality. Each decoder is an instance of
             Pythae's BaseDecoder.
 
-        joint_encoder (~pythae.models.nn.base_architectures.BaseEncoder) : An instance of BaseEncoder that takes all the modalities as an input.
+        joint_encoder (~multivae.models.nn.base_architectures.BaseJointEncoder) : takes all the modalities as an input.
             If none is provided, one is created from the unimodal encoders. Default : None.
 
 
@@ -38,7 +40,7 @@ class TELBO(BaseJointModel):
         model_config: TELBOConfig,
         encoders: Dict[str, BaseEncoder] = None,
         decoders: Dict[str, BaseDecoder] = None,
-        joint_encoder: Union[BaseEncoder, None] = None,
+        joint_encoder: Union[BaseJointEncoder, None] = None,
         **kwargs,
     ):
         super().__init__(model_config, encoders, decoders, joint_encoder, **kwargs)
@@ -63,15 +65,18 @@ class TELBO(BaseJointModel):
         self.decoders.requires_grad_(False)
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs):
+        """Forward pass of the model."""
+
+        # Check that the dataset is not incomplete
+        super().forward(inputs)
+
         epoch = kwargs.pop("epoch", 1)
 
         # First compute the joint ELBO
         joint_output = self.joint_encoder(inputs.data)
         mu, log_var = joint_output.embedding, joint_output.log_covariance
 
-        sigma = torch.exp(0.5 * log_var)
-        qz_xy = dist.Normal(mu, sigma)
-        z_joint = qz_xy.rsample()
+        z_joint = rsample_from_gaussian(mu, log_var)
 
         recon_loss = 0
 
@@ -105,9 +110,7 @@ class TELBO(BaseJointModel):
                 mod_output = self.encoders[mod](inputs.data[mod])
                 mod_mu, mod_log_var = mod_output.embedding, mod_output.log_covariance
 
-                mod_sigma = torch.exp(0.5 * mod_log_var)
-                qz_x0 = dist.Normal(mod_mu, mod_sigma)
-                mod_z = qz_x0.rsample()
+                mod_z = rsample_from_gaussian(mod_mu, mod_log_var)
 
                 mod_recon = self.decoders[mod](mod_z).reconstruction
                 mod_recon_loss = (
@@ -128,6 +131,7 @@ class TELBO(BaseJointModel):
         inputs: MultimodalBaseDataset,
         cond_mod: Union[list, str] = "all",
         N: int = 1,
+        return_mean=False,
         **kwargs,
     ) -> ModelOutput:
         """
@@ -138,52 +142,36 @@ class TELBO(BaseJointModel):
             cond_mod (Union[list, str]): Either 'all' or a list of str containing the modalities
                 names to condition on.
             N (int) : The number of encodings to sample for each datapoint. Default to 1.
+            return_mean (bool) : if True, returns the mean of the posterior distribution (instead of a sample).
+
 
         Returns:
             ModelOutput instance with fields:
-                z (torch.Tensor (n_data, N, latent_dim))
+                z (torch.Tensor (N,n_data, latent_dim))
                 one_latent_space (bool) = True
 
         """
 
         self.eval()
+        # Transform to list and check that dataset is complete
+        cond_mod = super().encode(inputs, cond_mod,N, **kwargs).cond_mod
 
-        if type(cond_mod) == list and len(cond_mod) == 1:
+        # If one conditioning modality, use the modality encoder
+        if len(cond_mod) == 1:
             cond_mod = cond_mod[0]
-
-        if cond_mod == "all" or (
-            type(cond_mod) == list and len(cond_mod) == self.n_modalities
-        ):
-            output = self.joint_encoder(inputs.data)
-            sample_shape = [] if N == 1 else [N]
-            z = dist.Normal(
-                output.embedding, torch.exp(0.5 * output.log_covariance)
-            ).rsample(sample_shape)
-            if N > 1 and kwargs.pop("flatten", False):
-                N, l, d = z.shape
-                z = z.reshape(l * N, d)
-            return ModelOutput(z=z, one_latent_space=True)
-
-        if type(cond_mod) == list and len(cond_mod) != 1:
-            raise AttributeError(
-                "Conditioning on a subset containing more than one modality "
-                "is not yet implemented."
-            )
-
-        if cond_mod in self.modalities_name:
             output = self.encoders[cond_mod](inputs.data[cond_mod])
-            sample_shape = [] if N == 1 else [N]
-
-            z = dist.Normal(
-                output.embedding, torch.exp(0.5 * output.log_covariance)
-            ).rsample(sample_shape)
-
-            if N > 1 and kwargs.pop("flatten", False):
-                z = z.reshape(-1, self.latent_dim)
-
-            return ModelOutput(z=z, one_latent_space=True)
-        else:
-            raise AttributeError(
-                f"Modality of name {cond_mod} not handled. The"
-                f" modalities that can be encoded are {list(self.encoders.keys())}"
+        # If all conditioning modalities, use the joint encoder
+        elif len(cond_mod) == self.n_modalities:
+            output = self.joint_encoder(inputs.data)
+            
+        else :
+            raise ValueError(
+                f" Conditioning on subset {cond_mod} is not handled. "
+                f" Possible subsets are  {list(self.encoders.keys())} and 'all'. "
             )
+        
+        # Return mean or sample
+        flatten = kwargs.pop('flatten', False)
+        z = rsample_from_gaussian(output.embedding, output.log_covariance, N, return_mean, flatten)
+
+        return ModelOutput(z=z, one_latent_space=True)

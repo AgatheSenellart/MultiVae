@@ -11,7 +11,6 @@ Trainers
 
     base
     multistage
-    add_dcca
 
 .. automodule::
     multivae.trainers
@@ -22,5 +21,4 @@ Available Trainers
 .. autosummary::
     BaseTrainer
     MultistageTrainer
-    AddDccaTrainer
     :nosignatures:

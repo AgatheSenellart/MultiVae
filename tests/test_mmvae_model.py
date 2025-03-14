@@ -1,4 +1,5 @@
 import os
+import shutil
 from copy import deepcopy
 
 import numpy as np
@@ -114,22 +115,22 @@ class Test:
         assert loss.requires_grad
 
         # Try encoding and prediction
-
-        outputs = model.encode(dataset, ignore_incomplete=True)
-        assert outputs.one_latent_space
-        embeddings = outputs.z
-        assert isinstance(outputs, ModelOutput)
-        assert embeddings.shape == (2, 5)
-        embeddings = model.encode(dataset, N=2, ignore_incomplete=True).z
-        assert embeddings.shape == (2, 2, 5)
-        embeddings = model.encode(dataset, cond_mod=["mod1"], ignore_incomplete=True).z
-        assert embeddings.shape == (2, 5)
-        embeddings = model.encode(dataset, cond_mod="mod2", N=10).z
-        assert embeddings.shape == (10, 2, 5)
-        embeddings = model.encode(
-            dataset, cond_mod=["mod2", "mod1"], ignore_incomplete=True
-        ).z
-        assert embeddings.shape == (2, 5)
+        for return_mean in [True, False]:
+            outputs = model.encode(dataset, ignore_incomplete=True, return_mean=return_mean)
+            assert outputs.one_latent_space
+            embeddings = outputs.z
+            assert isinstance(outputs, ModelOutput)
+            assert embeddings.shape == (2, 5)
+            embeddings = model.encode(dataset, N=2, ignore_incomplete=True, return_mean=return_mean).z
+            assert embeddings.shape == (2, 2, 5)
+            embeddings = model.encode(dataset, cond_mod=["mod1"], ignore_incomplete=True, return_mean=return_mean).z
+            assert embeddings.shape == (2, 5)
+            embeddings = model.encode(dataset, cond_mod="mod2", N=10, return_mean=return_mean).z
+            assert embeddings.shape == (10, 2, 5)
+            embeddings = model.encode(
+                dataset, cond_mod=["mod2", "mod1"], ignore_incomplete=True, return_mean=return_mean
+            ).z
+            assert embeddings.shape == (2, 5)
 
         Y = model.predict(dataset, cond_mod="mod1", ignore_incomplete=True)
         assert isinstance(Y, ModelOutput)
@@ -292,17 +293,20 @@ class TestTraining:
         return model
 
     @pytest.fixture
-    def training_config(self, tmpdir):
-        tmpdir.mkdir("dummy_folder")
-        dir_path = os.path.join(tmpdir, "dummy_folder")
-        return BaseTrainerConfig(
+    def training_config(self, tmp_path_factory):
+
+        dir_path = tmp_path_factory.mktemp("dummy_folder")
+
+        yield BaseTrainerConfig(
             num_epochs=3,
             steps_saving=2,
             learning_rate=1e-4,
             optimizer_cls="AdamW",
             optimizer_params={"betas": (0.91, 0.995)},
-            output_dir=dir_path,
+            output_dir=str(dir_path),
+            no_cuda=True,
         )
+        shutil.rmtree(dir_path)
 
     @pytest.fixture
     def trainer(self, model, training_config, input_dataset):

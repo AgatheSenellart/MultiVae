@@ -30,7 +30,6 @@ class MoPoEConfig(BaseMultiVAEConfig):
             all subsets are considered. Example of valid input : [['mod_1', 'mod_2'], ['mod_1'], ['mod_2']].
             Default to None.
         beta (float) : The weight to the KL divergence term in the ELBO. Default to 1.0
-        use_modality_specific_spaces (bool) : Whether to use additional latent spaces for modalities. Default to False.
         beta_style (float) : The beta factor for additional elbos in the case, there are multiple latent spaces.
             Default to 1.
         modalities_specific_dim (dict) : a dictionary containing the modalities names and the dimension of
@@ -38,8 +37,7 @@ class MoPoEConfig(BaseMultiVAEConfig):
 
     """
 
-    subsets: Union[List[list], Dict[str, list]] = None
+    subsets: Union[List[list], Dict[str, list], None] = None
     beta: float = 1.0
-    use_modality_specific_spaces: bool = False
     beta_style: float = 1.0
-    modalities_specific_dim: dict = None
+    modalities_specific_dim: Union[dict,None] = None

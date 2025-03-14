@@ -91,3 +91,97 @@ def set_decoder_dist(dist_name, dist_params):
         raise ValueError("The distribution type 'dist' is not supported")
 
     return log_prob
+
+
+def kl_divergence(
+    mean: torch.Tensor,
+    log_var: torch.Tensor,
+    prior_mean: torch.Tensor,
+    prior_log_var: torch.Tensor,
+):
+    """Compute the explicit Kullback-Leibler divergence between two gaussians.
+
+    .. math::
+
+        KL(p,q) = \frac{1}{2}(\log(\frac{\sigma_2²}{\sigma_1²} + \frac{\sigma_1² + (\mu_1 - \mu_2)²}{\sigma_2²} - 1)
+
+    Args:
+
+        mean (torch.Tensor) : mean of the first gaussian
+        log_var (torch.Tensor) : log_covariance of the first gaussian
+        prior_mean (torch.Tensor) : mean of the second gaussian
+        prior_log_var (torch.Tensor) : log_covariance of the second gaussian
+
+    Returns:
+
+        torch.Tensor
+    """
+
+    kl = 0.5 * (
+        prior_log_var
+        - log_var
+        + torch.exp(log_var - prior_log_var)
+        + ((mean - prior_mean) ** 2) / torch.exp(prior_log_var)
+        - 1
+    )
+
+    return kl.sum(dim=-1)
+
+
+def poe(mus, logvars, eps=1e-8):
+        """
+        Compute the Product of Experts (PoE) for a list of Gaussian experts.
+        """
+        var = torch.exp(logvars) + eps
+        # precision of i-th Gaussian expert at point x
+        T = 1.0 / var
+        pd_mu = torch.sum(mus * T, dim=0) / torch.sum(T, dim=0)
+        pd_var = 1.0 / torch.sum(T, dim=0)
+        pd_logvar = torch.log(pd_var)
+        return pd_mu, pd_logvar
+
+
+def stable_poe(mus, logvars):
+        
+        """Compute the Product of Experts (PoE) for a list of Gaussian experts.
+        This version is more numerically stable than the naive implementation.
+        """
+        # If only one expert, return it
+        if len(mus) == 1:
+            return mus[0], logvars[0]
+
+        # Compute ln (1/var) for each expert
+        ln_inv_vars = torch.stack([-l for l in logvars])  # Compute the inverse of variances
+        # ln(var_joint) = ln(1/sum(1/var)) = -ln(sum(1/var))
+        ln_var = -torch.logsumexp(ln_inv_vars, dim=0)  # variances of the product of experts
+        joint_mu = (torch.exp(ln_inv_vars) * mus).sum(dim=0) * torch.exp(ln_var)
+
+        return joint_mu, ln_var
+
+def rsample_from_gaussian(mu, log_var, N=1, return_mean=False, flatten=False):
+    """Simple function to sample from a gaussian whose parameters are given by a ModelOutput.
+    
+    Args:   
+        mu (torch.Tensor) : mean of the gaussian
+        log_var (torch.Tensor) : log_variance of the gaussian
+        N(int) : number of samples to draw
+        return_mean (bool): If True, each sample is the mean of the distribution.
+        flatten (bool): If True, the output is flattened to be of shape (N*n_batch, *latent_dims)"""
+
+    sample_shape=[] if N==1 else [N]
+
+    if return_mean:
+        z = torch.stack([mu]*N) if N >1 else mu
+
+    else:
+        z = dist.Normal(
+                mu, torch.exp(0.5 * log_var)
+            ).rsample(
+                sample_shape
+            )
+    if (N > 1) and flatten:
+        if len(z.shape)==2:
+            z = z.unsqueeze(0)
+        z = z.reshape(-1, *z.shape[2:])
+
+    return z

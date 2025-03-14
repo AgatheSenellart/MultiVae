@@ -1,4 +1,5 @@
 import os
+import shutil
 from copy import deepcopy
 
 import numpy as np
@@ -130,63 +131,71 @@ class Test:
             else:
                 assert not model.r_logvars_priors[mod].requires_grad
 
-        # Test forward
+    def test_forward(self, model, dataset, model_config_and_architectures):
         output = model(dataset, epoch=2)
         loss = output.loss
         assert isinstance(loss, torch.Tensor)
         assert loss.size() == torch.Size([])
         assert loss.requires_grad
 
-        ## Test encode
+        
+    def test_encode(self, model, dataset, model_config_and_architectures):
+        model_config = model_config_and_architectures["model_config"]
 
-        # conditioning on all modalities
-        outputs = model.encode(dataset[3])
-        assert ~outputs.one_latent_space
-        assert hasattr(outputs, "modalities_z")
-        embeddings = outputs.z
-        assert isinstance(outputs, ModelOutput)
-        assert embeddings.shape == (1, model_config.latent_dim)
+        
+        for return_mean in [True, False]:
+            # conditioning on all modalities
+            ## N=1
+            outputs = model.encode(dataset[3], return_mean=return_mean)
+            assert ~outputs.one_latent_space
+            assert hasattr(outputs, "modalities_z")
+            embeddings = outputs.z
+            assert isinstance(outputs, ModelOutput)
+            assert embeddings.shape == (1, model_config.latent_dim)
 
-        for k, tensor in outputs.modalities_z.items():
-            assert tensor.shape == (1, model_config.modalities_specific_dim)
+            for k, tensor in outputs.modalities_z.items():
+                assert tensor.shape == (1, model_config.modalities_specific_dim)
+            ## N>1
+            outputs = model.encode(dataset[3], N=2, return_mean=return_mean)
+            embeddings = outputs.z
+            assert embeddings.shape == (2, 1, model_config.latent_dim)
 
-        outputs = model.encode(dataset[3], N=2)
-        embeddings = outputs.z
-        assert embeddings.shape == (2, 1, model_config.latent_dim)
+            for k, tensor in outputs.modalities_z.items():
+                assert tensor.shape == (2, 1, model_config.modalities_specific_dim)
 
-        for k, tensor in outputs.modalities_z.items():
-            assert tensor.shape == (2, 1, model_config.modalities_specific_dim)
+            # conditioning on one modality
+            ## N=1
+            outputs = model.encode(dataset, cond_mod=["mod2"], return_mean=return_mean)
+            embeddings = outputs.z
+            assert embeddings.shape == (len(dataset), model_config.latent_dim)
 
-        # conditioning on one modality
-        outputs = model.encode(dataset, cond_mod=["mod2"])
-        embeddings = outputs.z
-        assert embeddings.shape == (len(dataset), model_config.latent_dim)
+            assert outputs.modalities_z["mod2"].shape == (
+                len(dataset),
+                model_config.modalities_specific_dim,
+            )
+            ## N>1
+            outputs = model.encode(dataset, cond_mod="mod3", N=10, return_mean=return_mean)
+            embeddings = outputs.z
+            assert embeddings.shape == (10, len(dataset), model_config.latent_dim)
 
-        assert outputs.modalities_z["mod2"].shape == (
-            len(dataset),
-            model_config.modalities_specific_dim,
-        )
+            assert outputs.modalities_z["mod3"].shape == (
+                10,
+                len(dataset),
+                model_config.modalities_specific_dim,
+            )
+            # conditioning on a subset of modalities
+            ##N=1
+            outputs = model.encode(dataset, cond_mod=["mod2", "mod3"], return_mean=return_mean)
+            embeddings = outputs.z
+            assert embeddings.shape == (len(dataset), model_config.latent_dim)
 
-        outputs = model.encode(dataset, cond_mod="mod3", N=10)
-        embeddings = outputs.z
-        assert embeddings.shape == (10, len(dataset), model_config.latent_dim)
+            assert outputs.modalities_z["mod1"].shape == (
+                len(dataset),
+                model_config.modalities_specific_dim,
+            )
 
-        assert outputs.modalities_z["mod3"].shape == (
-            10,
-            len(dataset),
-            model_config.modalities_specific_dim,
-        )
-        # conditioning on a subset of modalities
-        outputs = model.encode(dataset, cond_mod=["mod2", "mod3"])
-        embeddings = outputs.z
-        assert embeddings.shape == (len(dataset), model_config.latent_dim)
 
-        assert outputs.modalities_z["mod1"].shape == (
-            len(dataset),
-            model_config.modalities_specific_dim,
-        )
-
-        # Test predict
+    def test_predict(self, model, dataset):
         Y = model.predict(dataset[3:])
         assert isinstance(Y, ModelOutput)
         assert Y.mod1.shape == (3, 3, 28, 28)
@@ -273,18 +282,20 @@ class Test:
         model.prune_clusters(dataset, batch_size=4)
 
     @pytest.fixture
-    def training_config(self, tmpdir):
-        tmpdir.mkdir("dummy_folder")
-        dir_path = os.path.join(tmpdir, "dummy_folder")
-        return BaseTrainerConfig(
+    def training_config(self, tmp_path_factory):
+
+        dir_path = tmp_path_factory.mktemp("dummy_folder")
+
+        yield BaseTrainerConfig(
             num_epochs=3,
             steps_saving=2,
             learning_rate=1e-4,
             optimizer_cls="AdamW",
             optimizer_params={"betas": (0.91, 0.995)},
-            output_dir=dir_path,
+            output_dir=str(dir_path),
             no_cuda=True,
         )
+        shutil.rmtree(dir_path)
 
     @pytest.fixture
     def trainer(self, model, training_config, dataset):
@@ -508,8 +519,12 @@ class Test:
         assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
         assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
 
-    # # def test_compute_nll(self, model, dataset):
-    # #     nll = model.compute_joint_nll(dataset, K=10, batch_size_K=2)
-    # #     assert nll >= 0
-    # #     assert type(nll) == torch.Tensor
-    # #     assert nll.size() == torch.Size([])
+    def test_compute_nll(self, model, dataset):
+        if hasattr(dataset, "masks"):
+            with pytest.raises(AttributeError):
+                nll = model.compute_joint_nll(dataset, K=10, batch_size_K=2)
+        else:
+            nll = model.compute_joint_nll(dataset, K=10, batch_size_K=2)
+            assert nll >= 0
+            assert type(nll) == torch.Tensor
+            assert nll.size() == torch.Size([])

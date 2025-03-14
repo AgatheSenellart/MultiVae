@@ -10,6 +10,7 @@ from multivae.models.base import BaseMultiVAE
 from multivae.models.base.base_model import ModelOutput
 from multivae.models.nn.base_architectures import BaseEncoder
 
+from ..base.base_utils import kl_divergence, poe, rsample_from_gaussian
 from .mhvae_config import MHVAEConfig
 
 logger = logging.getLogger(__name__)
@@ -80,54 +81,7 @@ class MHVAE(BaseMultiVAE):
             ["bottom_up_blocks", "top_down_blocks", "prior_blocks", "posterior_blocks"]
         )
 
-    def poe(self, mus_list, log_vars_list):
-        """Compute the product of experts given means and logvars
-
-        Args:
-            mus_list (List[torch.Tensor]): list of means of the experts
-            log_vars_list (List[torch.Tensor]): list of logvars of the experts
-        Returns:
-            joint_mu (torch.Tensor): mean of the product of experts
-            joint_logvar (torch.Tensor): logvar of the product of experts
-        """
-
-        log_inverse_cov = torch.stack(
-            [-l for l in log_vars_list]
-        )  # Compute the inverse of variances
-        log_var = -torch.logsumexp(log_inverse_cov, dim=0)  # variances of the product of expert
-        mus = torch.stack(mus_list)
-        joint_mu = (torch.exp(log_inverse_cov) * mus).sum(dim=0) * torch.exp(log_var)
-
-        return joint_mu, log_var
-
-    def kl_divergence_exact(self, mean, prior_mean, log_var, prior_log_var):
-        """
-        Compute the KL divergence between two gaussians with diagonal covariance matrices.
-
-        Parameters:
-            mean (torch.Tensor): mean of the first gaussian
-            prior_mean (torch.Tensor): mean of the second gaussian
-            log_var (torch.Tensor): log variance of the first gaussian
-            prior_log_var (torch.Tensor): log variance of the second gaussian
-
-        Returns:
-            kl (torch.Tensor): the KL divergence between the two gaussians"""
-
-        kl = (
-            0.5
-            * (
-                prior_log_var
-                - log_var
-                - 1
-                + torch.exp(log_var - prior_log_var)
-                + (mean - prior_mean) ** 2
-            )
-            / torch.exp(prior_log_var)
-        )
-
-        return kl.sum()
-
-    def subsets(self):
+    def _subsets(self):
         """
         Returns :
             subsets (list) : all the possible subsets of the modalities.
@@ -138,7 +92,22 @@ class MHVAE(BaseMultiVAE):
             subsets += combinations(list(self.encoders.keys()), r=i)
         return subsets
 
-    def subset_encode(self, z_deepest_params, skips, subset):
+    def _adapt_log_var_to_missing_data(self, dict_params, inputs):
+        """
+        For incomplete datasets, we set the variance of missing modalities posterior to infinity
+        so that it doesn't contribute to the PoE.
+        Returns:
+            list of mean
+            list of variance
+        """
+        if hasattr(inputs, "masks"):
+            for m, item in dict_params.items():
+                item.log_covariance[~inputs.masks[m].bool()] = torch.inf
+        list_means = [dict_params[m].embedding for m in dict_params]
+        list_log_vars = [dict_params[m].log_covariance for m in dict_params]
+        return list_means, list_log_vars
+
+    def subset_encode(self, z_deepest_params, skips, subset, inputs, return_mean=False):
         """
         Compute all the latent variables and KL divergences for a given subset of modalities.
 
@@ -148,30 +117,36 @@ class MHVAE(BaseMultiVAE):
             skips (Dict[str, List[torch.Tensor]]): dictionary containing the intermediate results of the bottom-up
                 layers for each modality.
             subset (List[str]): list of modalities to consider to compute the joint posterior.
+            inputs (MultimodalBaseDataset) : the batch data.
+            return_mean (bool): If True, we return the mean everytime we sample from a distribution. Default to False.
 
         Returns:
             z_dict (Dict[str, torch.Tensor]): dictionary containing all the latent variables at each level.
             kl_dict (Dict[str, torch.Tensor]): dictionary containing all the KL divergences at each level.
         """
+        # Only keep the modalities in subset
+        z_deepest_params_subset = {m: z_deepest_params[m] for m in subset}
+        # For missing modalities in the dataset, we set the variance to infty
+        list_mus, list_log_vars = self._adapt_log_var_to_missing_data(
+            z_deepest_params_subset, inputs
+        )
 
-        # Compute the joint posterior q(z_L | x) = p(z_L) * \prod_i q(z_L | x_i )
-        list_mus = [z_deepest_params[mod].embedding for mod in subset]
         list_mus.append(torch.zeros_like(list_mus[0]))  # add the prior p(z_L) mean = 0
 
-        list_log_vars = [z_deepest_params[mod].log_covariance for mod in subset]
         list_log_vars.append(
             torch.zeros_like(list_log_vars[0])
         )  # add the prior p(z_L) std = 1, logstd = 0
 
-        joint_mu, joint_lv = self.poe(list_mus, list_log_vars)
+        # Compute the joint posterior q(z_L | x) = p(z_L) * \prod_i q(z_L | x_i )
+        joint_mu, joint_lv = poe(torch.stack(list_mus), torch.stack(list_log_vars))
 
         # Sample z_L
-        z_l_deepest = dist.Normal(joint_mu, torch.exp(0.5 * joint_lv)).rsample()
+        z_l_deepest = rsample_from_gaussian(joint_mu, joint_lv,N=1, return_mean=return_mean)
 
         # Compute KL(q(z_L | x) || p(z_L))
-        kl_l_deepest = self.kl_divergence_exact(
-            joint_mu, torch.zeros_like(joint_mu), joint_lv, torch.zeros_like(joint_lv)
-        )  # p(z_L) = N(0,1)
+        kl_l_deepest = kl_divergence(
+            joint_mu, joint_lv, torch.zeros_like(joint_mu), torch.zeros_like(joint_lv)
+        ).sum()  # p(z_L) = N(0,1)
 
         # Keep track of all latent variables and KLs
         z_dict = {f"z_{self.n_latent}": z_l_deepest}
@@ -183,38 +158,39 @@ class MHVAE(BaseMultiVAE):
             h = self.top_down_blocks[i - 1](z_dict[f"z_{i+1}"])
 
             # Compute p(z_l|z>l)
-            prior_params = self.prior_blocks[i - 1](
-                h
-            )  
+            prior_params = self.prior_blocks[i - 1](h)
 
             # Compute q(z_l | x, z>l) = p(z_l|z>l) \prod_i q(z_l | x_i, z>l)
-            list_mus = [prior_params.embedding ]
-            list_log_vars = [prior_params.log_covariance]
+            zl_params = {}
             for mod in subset:
                 # Compute the parameters of q(z_l | x_i, z>l)
                 d = skips[mod][i - 1]  # skips[mod is of lenght self.n_latent - 1]
 
                 concat = torch.cat([h, d], dim=1)  # concatenate on the channels
 
-                output = self.get_posterior_block(mod, i - 1)(concat)
-                list_mus.append(output.embedding)
-                list_log_vars.append(output.log_covariance)
+                zl_params[mod] = self._get_posterior_block(mod, i - 1)(concat)
 
-            joint_mu, joint_lv = self.poe(list_mus, list_log_vars)
+            # For missing modalities, we set variance to infty
+            list_mus, list_log_vars = self._adapt_log_var_to_missing_data(
+                zl_params, inputs
+            )
+            # Add the prior to the product of experts
+            list_mus.append(prior_params.embedding)
+            list_log_vars.append(prior_params.log_covariance)
+
+            joint_mu, joint_lv = poe(torch.stack(list_mus), torch.stack(list_log_vars))
 
             # Sample z_l
-            z_dict[f"z_{i}"] = dist.Normal(
-                joint_mu, torch.exp(0.5 * joint_lv)
-            ).rsample()
+            z_dict[f"z_{i}"] = rsample_from_gaussian(joint_mu, joint_lv,N=1,return_mean=return_mean)
 
-            # Compute KL
-            kl_dict[f"kl_{i}"] = self.kl_divergence_exact(
-                joint_mu, prior_params.embedding, joint_lv, prior_params.log_covariance
-            )
+            # Compute KL(q(z_l | x, z>l)|p(z_l|z>l))
+            kl_dict[f"kl_{i}"] = kl_divergence(
+                joint_mu, joint_lv, prior_params.embedding, prior_params.log_covariance
+            ).sum()
 
         return z_dict, kl_dict
 
-    def get_posterior_block(self, mod, i):
+    def _get_posterior_block(self, mod, i):
         """Returns the posterior block for a given modality and level.
         Handles the case where the weights are shared between modalities."""
         if self.share_posterior_weights:
@@ -222,7 +198,7 @@ class MHVAE(BaseMultiVAE):
 
         return self.posterior_blocks[mod][i]
 
-    def loss_subset(self, inputs, z_l_deepest_params, skips, subset):
+    def _loss_subset(self, inputs, z_l_deepest_params, skips, subset):
         """
 
         Compute the negative ELBO loss using a subset of modalities for the posterior.
@@ -240,7 +216,8 @@ class MHVAE(BaseMultiVAE):
             kl_dict (Dict[str, torch.Tensor]): dictionary containing all the KL divergences at each level.
         """
 
-        z_dict, kl_dict = self.subset_encode(z_l_deepest_params, skips, subset)
+        # get all the latent variables and KLs in the hierarchy
+        z_dict, kl_dict = self.subset_encode(z_l_deepest_params, skips, subset, inputs)
 
         # Reconstruct all modalities using z_1
         recon_loss = 0
@@ -248,12 +225,19 @@ class MHVAE(BaseMultiVAE):
             output = self.decoders[mod](z_dict["z_1"])
             recon = output.reconstruction
 
-            recon_loss += (
-                -self.recon_log_probs[mod](recon, inputs.data[mod]).sum()
+            mod_loss = (
+                -self.recon_log_probs[mod](recon, inputs.data[mod])
                 * self.rescale_factors[mod]
             )
+            mod_loss = mod_loss.reshape(mod_loss.shape[0], -1).sum(-1)
 
-        # Sum all kls
+            # We don't reconstruct missing modalities
+            if hasattr(inputs, "masks"):
+                mod_loss = mod_loss * inputs.masks[mod]
+
+            recon_loss += mod_loss.sum()
+
+        # Sum all kls of all levels
         kl = 0
         for i in range(1, self.n_latent + 1):
             kl += kl_dict[f"kl_{i}"]
@@ -276,18 +260,18 @@ class MHVAE(BaseMultiVAE):
 
         z_l_deepest_params, skips = self.modality_encode(inputs.data)
 
-        subsets = self.subsets()
+        subsets = self._subsets()
 
         losses = []
         for subset in subsets:
-            loss, kl_dict = self.loss_subset(inputs, z_l_deepest_params, skips, subset)
+            loss, kl_dict = self._loss_subset(inputs, z_l_deepest_params, skips, subset)
             losses.append(loss)
 
         loss = torch.stack(losses).mean()  # average on all subsets
 
         return ModelOutput(loss=loss, loss_sum=loss, metrics=kl_dict)
 
-    def encode(self, inputs, cond_mod="all", N=1, **kwargs):
+    def encode(self, inputs, cond_mod="all", N=1,return_mean=False,**kwargs):
         """
         Encode the input data conditioning on the modalities in cond_mod
             and return the latent variables.
@@ -297,6 +281,8 @@ class MHVAE(BaseMultiVAE):
             cond_mod (str, list): the modality to condition on. Either 'all' or a list of modalities.
             N (int): the number of samples to draw from the posterior for each sample.
                 Generated latent_variables will have shape (N, n_data, n_latent)
+            return_mean (bool) : if True, returns the mean of the posterior distribution (instead of a sample).
+
 
         Returns:
             ModelOutput: a ModelOutput instance containing the latent variables.
@@ -305,7 +291,8 @@ class MHVAE(BaseMultiVAE):
         cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
 
         z_ls_params, skips = self.modality_encode(inputs.data)
-
+        
+        # Get the batch size
         n_data = len(list(z_ls_params.values())[0].embedding)
 
         if N > 1:
@@ -315,7 +302,12 @@ class MHVAE(BaseMultiVAE):
 
                 skips[mod] = [torch.cat([t] * N, dim=0) for t in skips[mod]]
 
-        z_dict, _ = self.subset_encode(z_ls_params, skips, cond_mod)
+        # Replicate masks if necessary (N>1)
+        if hasattr(inputs, "masks") and N > 1:
+            masks = inputs.masks.copy()
+            inputs.masks = {m: torch.cat([masks[m]] * N, dim=0) for m in masks}
+
+        z_dict, _ = self.subset_encode(z_ls_params, skips, cond_mod, inputs, return_mean=return_mean)
 
         flatten = kwargs.pop("flatten", False)
 
@@ -323,6 +315,9 @@ class MHVAE(BaseMultiVAE):
             for k in z_dict:
 
                 z_dict[k] = z_dict[k].reshape(N, n_data, *z_dict[k].shape[1:])
+        # Set the masks back to the original value (before it was replicated)
+        if hasattr(inputs, "masks") and N > 1:
+            inputs.masks = masks
 
         return ModelOutput(z=z_dict["z_1"], all_z=z_dict, one_latent_space=True)
 
@@ -336,7 +331,7 @@ class MHVAE(BaseMultiVAE):
         Returns:
             z_Ls_params: a dictionary containing for each modality a ModelOutput instance
                 with embedding and logcovariance.
-                
+
             skips : a dictionary containing a list of tensors for each modality.
         """
 
@@ -422,7 +417,9 @@ class MHVAE(BaseMultiVAE):
             logger.info("Not shared weights for the posterior blocks")
             self.share_posterior_weights = False
             if posterior_blocks.keys() != self.encoders.keys():
-                raise AttributeError("The keys of posterior_blocks must match the keys of encoders.")
+                raise AttributeError(
+                    "The keys of posterior_blocks must match the keys of encoders."
+                )
             for m, p in posterior_blocks.items():
                 if len(p) != self.n_latent - 1:
                     raise AttributeError(
@@ -460,4 +457,3 @@ class MHVAE(BaseMultiVAE):
         self.bottom_up_blocks = torch.nn.ModuleDict()
         for mod in bottom_up_blocks:
             self.bottom_up_blocks[mod] = torch.nn.ModuleList(bottom_up_blocks[mod])
-

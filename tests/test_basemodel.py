@@ -143,9 +143,13 @@ class Test_BaseMultiVAE:
             n_modalities=4,
             latent_dim=10,
             input_dims=dict(mod1=(3,), mod2=(3, 4), mod3=(3, 4, 4), mod4=(3, 4, 4, 4)),
-            decoders_dist=dict(mod1="normal", mod2="bernoulli", mod3="laplace", mod4='categorical'),
+            decoders_dist=dict(
+                mod1="normal", mod2="bernoulli", mod3="laplace", mod4="categorical"
+            ),
             decoder_dist_params=dict(
-                mod1=dict(scale=12), mod2=None, mod3=dict(scale=31), 
+                mod1=dict(scale=12),
+                mod2=None,
+                mod3=dict(scale=31),
             ),
         )
 
@@ -163,7 +167,7 @@ class Test_BaseMultiVAE:
             == dumb_x2.shape
         )
         assert model.recon_log_probs["mod3"](dumb_x3, dumb_x3).shape == dumb_x3.shape
-        assert model.recon_log_probs['mod4'](dumb_x4, dumb_x4).shape == dumb_x4.shape
+        assert model.recon_log_probs["mod4"](dumb_x4, dumb_x4).shape == dumb_x4.shape
 
     def test_raises_sanity_check_flags(self):
         model_config = BaseMultiVAEConfig(
@@ -262,42 +266,46 @@ class Test_BaseMultiVAE:
         output = model.generate_from_prior(11)
         assert output.z.shape == (11, input_model1["model_config"].latent_dim)
 
-    def test_dummy_model_saving(self, input_model1, tmpdir):
+    def test_dummy_model_saving(self, input_model1, tmp_path):
+
+        path = tmp_path / "model_save"
         model = BaseMultiVAE(**input_model1)
 
-        assert not os.path.exists(os.path.join(tmpdir, "model_save"))
-        model.save(os.path.join(tmpdir, "model_save"))
-        assert os.path.exists(os.path.join(tmpdir, "model_save"))
+        assert not os.path.exists(path)
+        model.save(path)
+        assert os.path.exists(path)
 
         with pytest.raises(FileNotFoundError):
-            model._load_model_config_from_folder(tmpdir)
+            model._load_model_config_from_folder(tmp_path)
 
         with pytest.raises(FileNotFoundError):
-            model._load_model_weights_from_folder(tmpdir)
+            model._load_model_weights_from_folder(tmp_path)
 
-        torch.save({"wrong_key": torch.ones(2)}, os.path.join(tmpdir, "model.pt"))
+        torch.save({"wrong_key": torch.ones(2)}, os.path.join(tmp_path, "model.pt"))
         with pytest.raises(KeyError):
-            model._load_model_weights_from_folder(tmpdir)
+            model._load_model_weights_from_folder(tmp_path)
 
         with pytest.raises(FileNotFoundError):
-            model._load_custom_archi_from_folder(tmpdir, "encoders")
+            model._load_custom_archi_from_folder(tmp_path, "encoders")
 
 
 class TestIntegrateAutoConfig:
-    def test_autoconfig(self, tmpdir):
+    def test_autoconfig(self, tmp_path):
         model_config = BaseMultiVAEConfig(n_modalities=14, latent_dim=3)
-        model_config.save_json(tmpdir, "model_config")
+        model_config.save_json(tmp_path, "model_config")
         reloaded_config = AutoConfig.from_json_file(
-            os.path.join(tmpdir, "model_config.json")
+            os.path.join(tmp_path, "model_config.json")
         )
 
         assert model_config == reloaded_config
 
-    def test_raises_not_handled(self, tmpdir):
+    def test_raises_not_handled(self, tmp_path):
         training_config = BaseTrainerConfig()
-        training_config.save_json(tmpdir, "training_config")
+        training_config.save_json(tmp_path, "training_config")
         with pytest.raises(NameError):
-            _ = AutoConfig.from_json_file(os.path.join(tmpdir, "training_config.json"))
+            _ = AutoConfig.from_json_file(
+                os.path.join(tmp_path, "training_config.json")
+            )
 
 
 class TestIntegrateAutoModel:

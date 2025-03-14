@@ -1,18 +1,13 @@
 """Main script for training the MVTCAE on PolyMNIST"""
 
 import torch
-from pythae.models.base.base_config import BaseAEConfig
 from torch.utils.data import random_split
 
 from multivae.data.datasets.mmnist import MMNISTDataset
 from multivae.models import MVTCAE, MVTCAEConfig
-from multivae.models.nn.mmnist import (
-    Decoder_ResNet_AE_MMNIST,
-    Encoder_ResNet_VAE_MMNIST,
-)
+from multivae.models.nn.mmnist import DecoderResnetMMNIST, EncoderResnetMMNIST
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 from multivae.trainers.base.callbacks import WandbCallback
-
 
 # Set data path and experiment path
 DATA_PATH = "/home/asenella/data"
@@ -37,17 +32,14 @@ model_config = MVTCAEConfig(
 
 # Set up encoders and decoders
 encoders = {
-    k: Encoder_ResNet_VAE_MMNIST(
-        BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3, 28, 28))
+    k: EncoderResnetMMNIST(
+        private_latent_dim=0, shared_latent_dim=model_config.latent_dim
     )
     for k in modalities
 }
 
 decoders = {
-    k: Decoder_ResNet_AE_MMNIST(
-        BaseAEConfig(latent_dim=model_config.latent_dim, input_dim=(3, 28, 28))
-    )
-    for k in modalities
+    k: DecoderResnetMMNIST(latent_dim=model_config.latent_dim) for k in modalities
 }
 
 # Define model
