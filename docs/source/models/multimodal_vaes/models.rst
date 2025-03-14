@@ -6,7 +6,6 @@ Multimodal Variational Autoencoders Models
 
 
 .. toctree::
-    :hidden:
     :maxdepth: 1
 
     base
@@ -26,27 +25,3 @@ Multimodal Variational Autoencoders Models
     mmvae_plus
     crmvae
 
-.. automodule::
-    multivae.models
-
-Available VAEs
--------------------------------------------
-
-.. autosummary::
-    CVAE
-    BaseMultiVAE
-    AutoModel
-    JMVAE
-    TELBO
-    MVAE
-    MMVAE
-    MoPoE
-    MVTCAE
-    DMVAE
-    Nexus
-    JNF
-    MMVAEPlus
-    CMVAE
-    MHVAE
-    CRMVAE
-    :nosignatures:

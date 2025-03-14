@@ -93,10 +93,10 @@ class Test_model:
         assert model.model_config == model_config
 
         # Test forward with one sample
-        output=model(dataset[0])
+        output = model(dataset[0])
         loss = output.loss
         assert isinstance(loss, torch.Tensor)
-        
+
         # Test forward with multiple samples
         output = model(dataset, epoch=2)
         loss = output.loss

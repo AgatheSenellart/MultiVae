@@ -21,10 +21,9 @@ logger.setLevel(logging.INFO)
 
 class MHVAE(BaseMultiVAE):
     """MHVAE model.
-    .. image:: mhvae_architectures.png
 
-    Parameters :
 
+    Args:
         model_config (MHVAEConfig) : the model configuration.
 
         encoders (Dict[str,BaseEncoder]) : contains the first layer encoder per modality.
@@ -141,7 +140,9 @@ class MHVAE(BaseMultiVAE):
         joint_mu, joint_lv = poe(torch.stack(list_mus), torch.stack(list_log_vars))
 
         # Sample z_L
-        z_l_deepest = rsample_from_gaussian(joint_mu, joint_lv,N=1, return_mean=return_mean)
+        z_l_deepest = rsample_from_gaussian(
+            joint_mu, joint_lv, N=1, return_mean=return_mean
+        )
 
         # Compute KL(q(z_L | x) || p(z_L))
         kl_l_deepest = kl_divergence(
@@ -181,7 +182,9 @@ class MHVAE(BaseMultiVAE):
             joint_mu, joint_lv = poe(torch.stack(list_mus), torch.stack(list_log_vars))
 
             # Sample z_l
-            z_dict[f"z_{i}"] = rsample_from_gaussian(joint_mu, joint_lv,N=1,return_mean=return_mean)
+            z_dict[f"z_{i}"] = rsample_from_gaussian(
+                joint_mu, joint_lv, N=1, return_mean=return_mean
+            )
 
             # Compute KL(q(z_l | x, z>l)|p(z_l|z>l))
             kl_dict[f"kl_{i}"] = kl_divergence(
@@ -271,7 +274,7 @@ class MHVAE(BaseMultiVAE):
 
         return ModelOutput(loss=loss, loss_sum=loss, metrics=kl_dict)
 
-    def encode(self, inputs, cond_mod="all", N=1,return_mean=False,**kwargs):
+    def encode(self, inputs, cond_mod="all", N=1, return_mean=False, **kwargs):
         """
         Encode the input data conditioning on the modalities in cond_mod
             and return the latent variables.
@@ -291,7 +294,7 @@ class MHVAE(BaseMultiVAE):
         cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
 
         z_ls_params, skips = self.modality_encode(inputs.data)
-        
+
         # Get the batch size
         n_data = len(list(z_ls_params.values())[0].embedding)
 
@@ -307,7 +310,9 @@ class MHVAE(BaseMultiVAE):
             masks = inputs.masks.copy()
             inputs.masks = {m: torch.cat([masks[m]] * N, dim=0) for m in masks}
 
-        z_dict, _ = self.subset_encode(z_ls_params, skips, cond_mod, inputs, return_mean=return_mean)
+        z_dict, _ = self.subset_encode(
+            z_ls_params, skips, cond_mod, inputs, return_mean=return_mean
+        )
 
         flatten = kwargs.pop("flatten", False)
 

@@ -1,5 +1,6 @@
-from typing import Dict, Union
 import math
+from typing import Dict, Union
+
 import torch
 import torch.distributions as dist
 from pythae.models.base.base_utils import ModelOutput
@@ -13,7 +14,7 @@ from multivae.models.nn.default_architectures import (
 )
 
 from ..base import BaseMultiVAE
-from ..base.base_utils import kl_divergence, stable_poe, rsample_from_gaussian
+from ..base.base_utils import kl_divergence, rsample_from_gaussian, stable_poe
 from ..nn.base_architectures import BaseMultilatentEncoder
 from .dmvae_config import DMVAEConfig
 
@@ -91,11 +92,10 @@ class DMVAE(BaseMultiVAE):
             modality_dims=model_config.modalities_specific_dim,
         )
 
-
     def _infer_latent_parameters(self, inputs, subset=None):
         """
-        Compute the latent parameters for the shared and private latent spaces, 
-        taking the product-of-experts on the subset. 
+        Compute the latent parameters for the shared and private latent spaces,
+        taking the product-of-experts on the subset.
         """
 
         # if no subset is provided, use all available modalities
@@ -140,9 +140,7 @@ class DMVAE(BaseMultiVAE):
         list_mu.append(torch.zeros_like(list_mu[0]))
         list_lvs.append(torch.zeros_like(list_lvs[0]))
 
-        joint_mu, joint_lv = stable_poe(
-            torch.stack(list_mu), torch.stack(list_lvs)
-        )  
+        joint_mu, joint_lv = stable_poe(torch.stack(list_mu), torch.stack(list_lvs))
         return joint_mu, joint_lv, shared_params, private_params
 
     def forward(
@@ -195,7 +193,7 @@ class DMVAE(BaseMultiVAE):
         for mod in self.encoders:
             # Sample the modality specific
             mu, logvar = private_params[mod]
-            z_mod = rsample_from_gaussian(mu,logvar)
+            z_mod = rsample_from_gaussian(mu, logvar)
 
             z = torch.cat([shared_z, z_mod], dim=1)
 
@@ -270,7 +268,9 @@ class DMVAE(BaseMultiVAE):
         )
         flatten = kwargs.pop("flatten", False)
 
-        z = rsample_from_gaussian(sub_mu, sub_logvar,N=N,return_mean=return_mean, flatten=flatten)
+        z = rsample_from_gaussian(
+            sub_mu, sub_logvar, N=N, return_mean=return_mean, flatten=flatten
+        )
 
         modalities_z = {}
         for mod in self.encoders:
@@ -282,11 +282,11 @@ class DMVAE(BaseMultiVAE):
                 )
                 mod_lv = torch.zeros_like(mod_mu).to(sub_logvar.device)
 
-            modalities_z[mod] = rsample_from_gaussian(mod_mu, mod_lv,N=N, return_mean=return_mean, flatten=flatten)
-            
+            modalities_z[mod] = rsample_from_gaussian(
+                mod_mu, mod_lv, N=N, return_mean=return_mean, flatten=flatten
+            )
 
         return ModelOutput(z=z, one_latent_space=False, modalities_z=modalities_z)
-
 
     def generate_from_prior(self, n_samples, **kwargs):
         """
@@ -324,15 +324,15 @@ class DMVAE(BaseMultiVAE):
         batch_size_K: int = 100,
     ):
         """Estimate the negative joint likelihood.
-        
-        Args: 
+
+        Args:
 
             inputs (MultimodalBaseDataset) : a batch of samples.
             K (int) : the number of importance samples for the estimation. Default to 1000.
-            batch_size_K (int) : Default to 100. 
-        
-        Returns: 
-            
+            batch_size_K (int) : Default to 100.
+
+        Returns:
+
             The negative log-likelihood summed over the batch.
         """
         # Check that the dataset is complete
@@ -344,9 +344,7 @@ class DMVAE(BaseMultiVAE):
 
         # Compute the parameters of the joint posterior for the shared latent space
         # Compute the shared latent variable conditioning on input modalities
-        mu, log_var, _, private_params = self._infer_latent_parameters(
-            inputs
-        )
+        mu, log_var, _, private_params = self._infer_latent_parameters(inputs)
 
         sigma = torch.exp(0.5 * log_var)
         qz_xy = dist.Normal(mu, sigma)
@@ -372,8 +370,12 @@ class DMVAE(BaseMultiVAE):
                 for mod in inputs.data:
                     # Sample from the modality specific latent space
                     mu_private, logvar_private = private_params[mod]
-                    mu_private, sigma_private = mu_private[i], torch.exp(0.5 * logvar_private[i])
-                    private_latents = dist.Normal(mu_private, sigma_private).rsample([len(shared_latents)])
+                    mu_private, sigma_private = mu_private[i], torch.exp(
+                        0.5 * logvar_private[i]
+                    )
+                    private_latents = dist.Normal(mu_private, sigma_private).rsample(
+                        [len(shared_latents)]
+                    )
 
                     latents = torch.cat([shared_latents, private_latents], dim=-1)
 
@@ -395,7 +397,11 @@ class DMVAE(BaseMultiVAE):
                     ln_prior += dist.Normal(0, 1).log_prob(private_latents).sum(dim=-1)
 
                     # Compute ln(q(z_private|x))
-                    ln_posterior += dist.Normal(mu_private, sigma_private).log_prob(private_latents).sum(-1)
+                    ln_posterior += (
+                        dist.Normal(mu_private, sigma_private)
+                        .log_prob(private_latents)
+                        .sum(-1)
+                    )
 
                 # Compute ln(p(z_shared))
                 prior = dist.Normal(0, 1)

@@ -34,12 +34,13 @@ class Test_set_inputs_to_device:
                             device == "cuda"
                         )
 
+
 class Test_rsample_from_gaussian:
 
-    @pytest.fixture(params=[(5,10),(10,)])
+    @pytest.fixture(params=[(5, 10), (10,)])
     def mu_log_var(self, request):
         return torch.randn(*request.param), torch.randn(*request.param)
-    
+
     def test(self, mu_log_var):
         mu, lv = mu_log_var
 
@@ -48,26 +49,25 @@ class Test_rsample_from_gaussian:
         assert z.shape == mu.shape
 
         z = rsample_from_gaussian(mu, lv, return_mean=True)
-        assert torch.all(z==mu)
+        assert torch.all(z == mu)
 
         # Test with N>1
-        z = rsample_from_gaussian(mu, lv,N=10)
+        z = rsample_from_gaussian(mu, lv, N=10)
         assert z.shape == (10, *mu.shape)
 
-        z = rsample_from_gaussian(mu, lv,N=10,return_mean=True)
+        z = rsample_from_gaussian(mu, lv, N=10, return_mean=True)
         for r in z:
-            assert torch.all(r==mu)
-        
+            assert torch.all(r == mu)
+
         # Test with N>1 and flatten
-        z = rsample_from_gaussian(mu, lv,N=10, flatten=True)
-        if len(mu.shape)==1:
+        z = rsample_from_gaussian(mu, lv, N=10, flatten=True)
+        if len(mu.shape) == 1:
             mu_t = mu.unsqueeze(0)
         else:
-            mu_t=mu
-        assert z.shape == (10*mu_t.shape[0], mu_t.shape[1])
+            mu_t = mu
+        assert z.shape == (10 * mu_t.shape[0], mu_t.shape[1])
 
-        z = rsample_from_gaussian(mu, lv,N=10,return_mean=True, flatten=True)
-        z_test = z.reshape(10,-1,z.shape[1])
+        z = rsample_from_gaussian(mu, lv, N=10, return_mean=True, flatten=True)
+        z_test = z.reshape(10, -1, z.shape[1])
         for r in z_test:
-            assert torch.all(r==mu)
-
+            assert torch.all(r == mu)

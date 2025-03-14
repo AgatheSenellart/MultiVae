@@ -424,7 +424,7 @@ class Test_MHVAE:
         return
 
     def test_encode(self, dataset, model):
-        
+
         for return_mean in [True, False]:
             samples = dataset[:10]
 
@@ -447,7 +447,6 @@ class Test_MHVAE:
             assert isinstance(output, ModelOutput)
             assert output.z.shape == (4 * 10, 32, 14, 14)
             assert hasattr(output, "all_z")
-
 
     def test_decode(self, model, dataset):
 

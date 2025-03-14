@@ -27,17 +27,18 @@ class CRMVAE(BaseMultiVAE):
 
         self.model_name = "CRMVAE"
 
-
-    def _rsample(self, latent_params: ModelOutput,N=1, return_mean=False, flatten=False):
+    def _rsample(
+        self, latent_params: ModelOutput, N=1, return_mean=False, flatten=False
+    ):
         mean = latent_params.embedding
         log_var = latent_params.log_covariance
-        z = rsample_from_gaussian(mean, log_var,N,return_mean, flatten)
+        z = rsample_from_gaussian(mean, log_var, N, return_mean, flatten)
         return mean, log_var, z
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
         """
-        Forward pass of the model. Returns the loss and additional metrics 
-        in a ModelOutput Instance. 
+        Forward pass of the model. Returns the loss and additional metrics
+        in a ModelOutput Instance.
         """
 
         # Compute latents parameters for q(z|x_i) and q(z|X)
@@ -136,7 +137,6 @@ class CRMVAE(BaseMultiVAE):
                 ] = torch.inf
         return encoders_outputs, masked_outputs
 
-
     def _infer_all_latent_parameters(self, inputs: MultimodalBaseDataset, **kwargs):
         """
         This function takes all the modalities contained in inputs
@@ -182,7 +182,7 @@ class CRMVAE(BaseMultiVAE):
         inputs: MultimodalBaseDataset,
         cond_mod: Union[list, str] = "all",
         N: int = 1,
-        return_mean = False,
+        return_mean=False,
         **kwargs,
     ) -> ModelOutput:
         """
@@ -215,7 +215,9 @@ class CRMVAE(BaseMultiVAE):
         # Compute the product of experts of the modalities in cond_mod
         latents_subsets = self._infer_all_latent_parameters(cond_inputs)
 
-        _, _, z = self._rsample(latents_subsets["joint"], N=N, return_mean=return_mean, flatten=flatten)
+        _, _, z = self._rsample(
+            latents_subsets["joint"], N=N, return_mean=return_mean, flatten=flatten
+        )
         return ModelOutput(z=z, one_latent_space=True)
 
     @torch.no_grad()
@@ -224,17 +226,17 @@ class CRMVAE(BaseMultiVAE):
         inputs: Union[MultimodalBaseDataset, IncompleteDataset],
         K: int = 1000,
         batch_size_K: int = 100,
-    )-> torch.Tensor:
+    ) -> torch.Tensor:
         """Estimate the negative joint likelihood.
-        
-        Args: 
+
+        Args:
 
             inputs (MultimodalBaseDataset) : a batch of samples.
             K (int) : the number of importance samples for the estimation. Default to 1000.
-            batch_size_K (int) : Default to 100. 
-        
-        Returns: 
-            
+            batch_size_K (int) : Default to 100.
+
+        Returns:
+
             The negative log-likelihood summed over the batch.
         """
         self.eval()

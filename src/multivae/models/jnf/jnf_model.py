@@ -12,8 +12,8 @@ from pythae.models.normalizing_flows.maf import MAF, MAFConfig
 from torch.nn import ModuleDict
 
 from ...data.datasets.base import MultimodalBaseDataset
-from ..joint_models import BaseJointModel
 from ..base.base_utils import rsample_from_gaussian
+from ..joint_models import BaseJointModel
 from ..nn.base_architectures import BaseJointEncoder
 from .jnf_config import JNFConfig
 
@@ -231,9 +231,10 @@ class JNF(BaseJointModel):
 
         if len(cond_mod) == self.n_modalities:
             output = self.joint_encoder(inputs.data)
-            
-            z = rsample_from_gaussian(output.embedding, output.log_covariance, N, return_mean)
-            
+
+            z = rsample_from_gaussian(
+                output.embedding, output.log_covariance, N, return_mean
+            )
 
         elif len(cond_mod) != 1:
             z = self._sample_from_poe_subset(
@@ -252,7 +253,9 @@ class JNF(BaseJointModel):
             cond_mod = cond_mod[0]
             output = self.encoders[cond_mod](inputs.data[cond_mod])
 
-            z0 = rsample_from_gaussian(output.embedding, output.log_covariance, N, return_mean)
+            z0 = rsample_from_gaussian(
+                output.embedding, output.log_covariance, N, return_mean
+            )
 
             flow_output = self.flows[cond_mod].inverse(
                 z0.reshape(-1, self.latent_dim)
@@ -265,7 +268,7 @@ class JNF(BaseJointModel):
                 f"Modality of name {cond_mod} not handled. The"
                 f" modalities that can be encoded are {list(self.encoders.keys())}"
             )
-        
+
         if N > 1 and kwargs.pop("flatten", False):
             N, l, d = z.shape
             z = z.reshape(l * N, d)

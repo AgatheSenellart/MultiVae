@@ -7,10 +7,9 @@ import pytest
 import torch
 from pythae.models.base import BaseAEConfig
 from pythae.models.base.base_utils import ModelOutput
-
 from pythae.models.nn.default_architectures import Encoder_VAE_MLP
 
-from multivae.data.datasets.base import MultimodalBaseDataset, IncompleteDataset
+from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
 from multivae.models import TELBO, AutoModel, TELBOConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP
 from multivae.trainers import BaseTrainerConfig, MultistageTrainer
@@ -24,7 +23,6 @@ class Test:
             mod1=torch.Tensor([[1.0, 2.0], [4.0, 5.0]]),
             mod2=torch.Tensor([[67.1, 2.3, 3.0], [1.3, 2.0, 3.0]]),
             mod3=torch.Tensor([[67.1, 2.3, 3.0], [1.3, 2.0, 3.0]]),
-
         )
         labels = np.array([0, 1])
         dataset = MultimodalBaseDataset(data, labels)
@@ -36,17 +34,25 @@ class Test:
         config1 = BaseAEConfig(input_dim=(2,), latent_dim=5)
         config2 = BaseAEConfig(input_dim=(3,), latent_dim=5)
 
-        encoders = dict(mod1=Encoder_VAE_MLP(config1), mod2=Encoder_VAE_MLP(config2),mod3=Encoder_VAE_MLP(config2))
+        encoders = dict(
+            mod1=Encoder_VAE_MLP(config1),
+            mod2=Encoder_VAE_MLP(config2),
+            mod3=Encoder_VAE_MLP(config2),
+        )
 
-        decoders = dict(mod1=Decoder_AE_MLP(config1), mod2=Decoder_AE_MLP(config2), mod3 = Decoder_AE_MLP(config2))
+        decoders = dict(
+            mod1=Decoder_AE_MLP(config1),
+            mod2=Decoder_AE_MLP(config2),
+            mod3=Decoder_AE_MLP(config2),
+        )
 
         return dict(encoders=encoders, decoders=decoders)
 
     @pytest.fixture(params=[True, False])
     def model_config(self, request):
         if request.param:
-            lambda_factors = dict(mod1=4, mod2=1, mod3 = 3)
-            gamma_factors = dict(mod1=3, mod2=3, mod3 = 3)
+            lambda_factors = dict(mod1=4, mod2=1, mod3=3)
+            gamma_factors = dict(mod1=3, mod2=3, mod3=3)
 
         else:
             lambda_factors = None
@@ -109,17 +115,22 @@ class Test:
             assert embeddings.shape == (2, 5)
             embeddings = model.encode(dataset, N=2, return_mean=return_mean).z
             assert embeddings.shape == (2, 2, 5)
-            embeddings = model.encode(dataset, cond_mod=["mod1"], return_mean=return_mean).z
+            embeddings = model.encode(
+                dataset, cond_mod=["mod1"], return_mean=return_mean
+            ).z
             assert embeddings.shape == (2, 5)
-            embeddings = model.encode(dataset, cond_mod="mod2", N=10, return_mean=return_mean).z
+            embeddings = model.encode(
+                dataset, cond_mod="mod2", N=10, return_mean=return_mean
+            ).z
             assert embeddings.shape == (10, 2, 5)
-            embeddings = model.encode(dataset, cond_mod=["mod2", "mod1", "mod3"], return_mean=return_mean).z
+            embeddings = model.encode(
+                dataset, cond_mod=["mod2", "mod1", "mod3"], return_mean=return_mean
+            ).z
             assert embeddings.shape == (2, 5)
 
         # Test encode on an impossible subset
         with pytest.raises(ValueError):
-            outputs = model.encode(dataset, cond_mod=['mod1','mod2'])
-        
+            outputs = model.encode(dataset, cond_mod=["mod1", "mod2"])
 
         Y = model.predict(dataset, cond_mod="mod1")
         assert isinstance(Y, ModelOutput)
@@ -143,9 +154,17 @@ class Test:
             mod2=torch.Tensor([[67.1, 2.3, 3.0], [1.3, 2.0, 3.0]]),
             mod3=torch.Tensor([[67.1, 2.3, 3.0, 4], [1.3, 2.0, 3.0, 4]]),
         )
-        masks = {'mod1':torch.zeros(2,), 
-                 'mod2':torch.zeros(2,),
-                 'mod3':torch.ones(2,)}
+        masks = {
+            "mod1": torch.zeros(
+                2,
+            ),
+            "mod2": torch.zeros(
+                2,
+            ),
+            "mod3": torch.ones(
+                2,
+            ),
+        }
         labels = np.array([0, 1])
         return IncompleteDataset(data, labels=labels, masks=masks)
 
@@ -155,7 +174,7 @@ class Test:
         with pytest.raises(AttributeError):
             model.encode(incomplete_dataset)
         with pytest.raises(AttributeError):
-            model.compute_joint_nll(incomplete_dataset,K=10,batch_size_K=2)
+            model.compute_joint_nll(incomplete_dataset, K=10, batch_size_K=2)
 
 
 @pytest.mark.slow

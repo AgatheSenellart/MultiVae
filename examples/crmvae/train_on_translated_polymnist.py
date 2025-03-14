@@ -2,9 +2,7 @@ from classifiers import load_classifiers
 from torch.utils.data import random_split
 
 from multivae.data.datasets import TranslatedMMNIST
-from multivae.metrics import (
-    CoherenceEvaluator,
-    CoherenceEvaluatorConfig)
+from multivae.metrics import CoherenceEvaluator, CoherenceEvaluatorConfig
 from multivae.models import CRMVAE, CRMVAEConfig
 from multivae.models.nn.mmnist import DecoderResnetMMNIST, EncoderResnetMMNIST
 from multivae.trainers import BaseTrainer, BaseTrainerConfig

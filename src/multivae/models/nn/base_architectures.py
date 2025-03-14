@@ -1,6 +1,6 @@
-import torch
-
 from typing import Dict
+
+import torch
 from pythae.models.base.base_model import BaseDecoder, BaseEncoder, ModelOutput
 
 

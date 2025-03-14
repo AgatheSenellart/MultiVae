@@ -4,8 +4,8 @@ import shutil
 import pytest
 import torch
 import torch.optim as optim
-from pydantic import ValidationError
 from PIL import Image
+from pydantic import ValidationError
 from pythae.models.base import BaseAEConfig
 from pythae.models.nn.benchmarks.mnist.convnets import (
     Decoder_Conv_AE_MNIST,

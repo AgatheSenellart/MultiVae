@@ -13,13 +13,19 @@ from .mvtcae_config import MVTCAEConfig
 
 
 class MVTCAE(BaseMultiVAE):
-    """
+    """MVTCAE model.
 
-    Implementation for 'Multi-View Representation Learning via Total Correlation Objective'.
-    Hwang et al, 2021.
+    Args:
+        model_config (MVTCAEConfig): An instance of MVTCAEConfig in which any model's
+            parameters is made available.
 
-    This code is heavily based on the official implementation that can be found here :
-    https://github.com/gr8joo/MVTCAE.
+        encoders (Dict[str, ~pythae.models.nn.base_architectures.BaseEncoder]): A dictionary containing
+            the modalities names and the encoders for each modality. Each encoder is an instance of
+            Pythae's BaseEncoder. Default: None.
+
+        decoders (Dict[str, ~pythae.models.nn.base_architectures.BaseDecoder]): A dictionary containing
+            the modalities names and the decoders for each modality. Each decoder is an instance of
+            Pythae's BaseDecoder.
 
 
     """
@@ -27,6 +33,7 @@ class MVTCAE(BaseMultiVAE):
     def __init__(
         self, model_config: MVTCAEConfig, encoders: dict = None, decoders: dict = None
     ):
+
         super().__init__(model_config, encoders, decoders)
 
         self.alpha = model_config.alpha
@@ -34,9 +41,11 @@ class MVTCAE(BaseMultiVAE):
         self.model_name = "MVTCAE"
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
+        """Forward pass of the model that returns the loss."""
+
         # Compute latents parameters for all subsets
-        latents = self.inference(inputs)
-        results = dict()
+        latents = self._inference(inputs)
+        results = {}
 
         # Sample from the joint posterior
         joint_mu, joint_logvar = latents["joint"][0], latents["joint"][1]
@@ -100,7 +109,7 @@ class MVTCAE(BaseMultiVAE):
             loss=total_loss / ndata, loss_sum=total_loss, metrics=results
         )
 
-    def modality_encode(
+    def _modality_encode(
         self, inputs: Union[MultimodalBaseDataset, IncompleteDataset], **kwargs
     ):
         """Computes for each modality, the parameters mu and logvar of the
@@ -124,7 +133,7 @@ class MVTCAE(BaseMultiVAE):
 
         return encoders_outputs
 
-    def inference(self, inputs: MultimodalBaseDataset, **kwargs):
+    def _inference(self, inputs: MultimodalBaseDataset, **kwargs):
         """
         This function takes all the modalities contained in inputs
         and compute the product of experts of the modalities encoders.
@@ -137,7 +146,7 @@ class MVTCAE(BaseMultiVAE):
         """
 
         latents = {}
-        enc_mods = self.modality_encode(inputs)
+        enc_mods = self._modality_encode(inputs)
         latents["modalities"] = enc_mods
 
         device = enc_mods[list(inputs.data.keys())[0]].embedding.device
@@ -198,12 +207,13 @@ class MVTCAE(BaseMultiVAE):
             data={k: inputs.data[k] for k in cond_mod},
         )
 
-        latents_subsets = self.inference(cond_inputs)
+        latents_subsets = self._inference(cond_inputs)
         mu, log_var = latents_subsets["joint"]
         flatten = kwargs.pop("flatten", False)
-        z = rsample_from_gaussian(mu, log_var,
-                                  N=N, return_mean=return_mean, flatten=flatten)
-        
+        z = rsample_from_gaussian(
+            mu, log_var, N=N, return_mean=return_mean, flatten=flatten
+        )
+
         return ModelOutput(z=z, one_latent_space=True)
 
     @torch.no_grad()
@@ -212,17 +222,17 @@ class MVTCAE(BaseMultiVAE):
         inputs: Union[MultimodalBaseDataset, IncompleteDataset],
         K: int = 1000,
         batch_size_K: int = 100,
-    ):  
+    ):
         """Estimate the negative joint likelihood.
-        
-        Args: 
+
+        Args:
 
             inputs (MultimodalBaseDataset) : a batch of samples.
             K (int) : the number of importance samples for the estimation. Default to 1000.
-            batch_size_K (int) : Default to 100. 
-        
-        Returns: 
-            
+            batch_size_K (int) : Default to 100.
+
+        Returns:
+
             The negative log-likelihood summed over the batch.
         """
         # Check that the dataset is complete
@@ -233,7 +243,7 @@ class MVTCAE(BaseMultiVAE):
             )
 
         # Compute the parameters of the joint posterior
-        mu, log_var = self.inference(inputs)["joint"]
+        mu, log_var = self._inference(inputs)["joint"]
         sigma = torch.exp(0.5 * log_var)
         qz_xy = dist.Normal(mu, sigma)
 

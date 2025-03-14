@@ -147,7 +147,7 @@ class Test:
 
             for k, value in model_config.modalities_specific_dim.items():
                 assert outputs.modalities_z[k].shape == (2, 1, value)
-            
+
             # Condition on one modality
             ## N = 1
             outputs = model.encode(dataset, cond_mod=["mod2"], return_mean=return_mean)
@@ -159,7 +159,9 @@ class Test:
                 model_config.modalities_specific_dim["mod2"],
             )
             ## N > 1
-            outputs = model.encode(dataset, cond_mod="mod3", N=10, return_mean=return_mean)
+            outputs = model.encode(
+                dataset, cond_mod="mod3", N=10, return_mean=return_mean
+            )
             embeddings = outputs.z
             assert embeddings.shape == (10, len(dataset), model_config.latent_dim)
 
@@ -170,7 +172,9 @@ class Test:
             )
             # Condition on a subset of modalities
             ## N = 1
-            outputs = model.encode(dataset, cond_mod=["mod2", "mod3"], return_mean=return_mean)
+            outputs = model.encode(
+                dataset, cond_mod=["mod2", "mod3"], return_mean=return_mean
+            )
             embeddings = outputs.z
             assert embeddings.shape == (len(dataset), model_config.latent_dim)
 
@@ -487,8 +491,8 @@ class Test:
         assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
 
     def test_compute_nll(self, model, dataset):
-        
-        if hasattr(dataset, 'masks'):
+
+        if hasattr(dataset, "masks"):
             with pytest.raises(AttributeError):
                 nll = model.compute_nll(dataset, K=10, batch_size_K=2)
         else:

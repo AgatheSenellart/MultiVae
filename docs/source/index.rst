@@ -13,8 +13,10 @@ for prediction or data-augmentations tasks.
 Our library provides a simple and flexible way to define, train and evaluate these models.
 It is designed to be easy to use, even by non-specialists and even on incomplete datasets. 
 For easy benchmarking, we include ready-to-use datasets and metrics modules.
-It integrates model monitoring with `Wandb <https://wandb.ai>`_ and a quick way to save/load model from `HuggingFaceHub <https://huggingface.co/>`_🤗.
+It integrates model monitoring with `Wandb <https://wandb.ai>`_ and a quick way to save/load model from `HuggingFaceHub <https://huggingface.co/>`_ 🤗.
 To improve joint generation of multimodal samples, we also propose *samplers* to explore the latent space of your model.
+
+.. image:: ./static/diagram2.png
 
 .. toctree::
    :caption: Basics
@@ -28,12 +30,14 @@ To improve joint generation of multimodal samples, we also propose *samplers* to
    :caption: Documentation
    :titlesonly:
 
+   api_description
    models/multivae.models
    datasets/multivae.datasets
    metrics/multivae.metrics
    trainers/multivae.trainers
    samplers/multivae.samplers
    examples/multivae.examples
+   
 
 Setup
 ~~~~~~~~~~~~~

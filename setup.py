@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="multivae",
-    version="0.1.1",
+    version="1.0.0",
     author="Agathe Senellart, Clement Chadebec",
     author_email="agathe.senellart@inria.fr",
     description="Unifying Generative Multimodel Variational Autoencoders in Pytorch",
@@ -26,9 +26,8 @@ setup(
     install_requires=[
         "pythae",
         "cloudpickle>=2.1.0",
-        "imageio",
         "numpy>=1.19",
-        "pydantic>=2.0.0",
+        "pydantic>=2.0",
         "scikit-learn",
         "scipy>=1.7.1",
         "torch>=1.10.1",

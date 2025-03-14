@@ -7,8 +7,8 @@ from torch import Tensor
 
 class MultimodalBaseDataset(Dataset):
     """
-    This class is the Base class for datasets. A ``__getitem__`` is redefined and outputs a
-    python dictionnary with the keys corresponding to `data` and `labels`. You can use this
+    This class is the base class for datasets. A ``__getitem__`` is redefined and outputs a
+    python dictionary with the keys corresponding to `data` and `labels`. You can use this
     class to define new datasets.
 
     If you want, you can also create your own dataset class, inheriting from
@@ -99,11 +99,12 @@ class MultimodalBaseDataset(Dataset):
 
 class IncompleteDataset(MultimodalBaseDataset):
     """
-    This class is the Base class for datasets with incomplete data.
+    This class is the base class for datasets with incomplete data.
     We add a field masks to indicate which data samples are available.
     This is used with models compatible with partial data.
-    A ``__getitem__`` is redefined and outputs a python dictionnary with the keys
-    corresponding to `data` and `labels`. This Class should be used for any new incomplete datasets.
+    A ``__getitem__`` is redefined and outputs a python dictionary with the keys
+    corresponding to `data` and `masks` (optionally `labels`). 
+    This class should be used for any new incomplete datasets.
 
     If you want, you can also create your own dataset class, inheriting from
     IncompleteDataset and overwriting the __getitem__ function. (Just make sure the output

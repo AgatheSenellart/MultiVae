@@ -40,4 +40,4 @@ class MoPoEConfig(BaseMultiVAEConfig):
     subsets: Union[List[list], Dict[str, list], None] = None
     beta: float = 1.0
     beta_style: float = 1.0
-    modalities_specific_dim: Union[dict,None] = None
+    modalities_specific_dim: Union[dict, None] = None

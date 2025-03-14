@@ -10,7 +10,7 @@ from pythae.models.base.base_utils import ModelOutput
 from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
 
 from ..base import BaseMultiVAE
-from ..base.base_utils import stable_poe, rsample_from_gaussian
+from ..base.base_utils import rsample_from_gaussian, stable_poe
 from .mvae_config import MVAEConfig
 
 
@@ -228,9 +228,10 @@ class MVAE(BaseMultiVAE):
         # Compute the latent variable conditioning on input modalities
         sub_mu, sub_logvar = self.compute_mu_log_var_subset(inputs, cond_mod)
         flatten = kwargs.pop("flatten", False)
-        z = rsample_from_gaussian(sub_mu, sub_logvar, 
-                                  N=N, return_mean=return_mean, flatten=flatten)
-        
+        z = rsample_from_gaussian(
+            sub_mu, sub_logvar, N=N, return_mean=return_mean, flatten=flatten
+        )
+
         return ModelOutput(z=z, one_latent_space=True)
 
     @torch.no_grad()
@@ -241,15 +242,15 @@ class MVAE(BaseMultiVAE):
         batch_size_K: int = 100,
     ):
         """Estimate the negative joint likelihood.
-        
-        Args: 
+
+        Args:
 
             inputs (MultimodalBaseDataset) : a batch of samples.
             K (int) : the number of importance samples for the estimation. Default to 1000.
-            batch_size_K (int) : Default to 100. 
-        
-        Returns: 
-            
+            batch_size_K (int) : Default to 100.
+
+        Returns:
+
             The negative log-likelihood summed over the batch.
         """
         # Check that the dataset is complete

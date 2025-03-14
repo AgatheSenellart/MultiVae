@@ -138,11 +138,9 @@ class Test:
         assert loss.size() == torch.Size([])
         assert loss.requires_grad
 
-        
     def test_encode(self, model, dataset, model_config_and_architectures):
         model_config = model_config_and_architectures["model_config"]
 
-        
         for return_mean in [True, False]:
             # conditioning on all modalities
             ## N=1
@@ -174,7 +172,9 @@ class Test:
                 model_config.modalities_specific_dim,
             )
             ## N>1
-            outputs = model.encode(dataset, cond_mod="mod3", N=10, return_mean=return_mean)
+            outputs = model.encode(
+                dataset, cond_mod="mod3", N=10, return_mean=return_mean
+            )
             embeddings = outputs.z
             assert embeddings.shape == (10, len(dataset), model_config.latent_dim)
 
@@ -185,7 +185,9 @@ class Test:
             )
             # conditioning on a subset of modalities
             ##N=1
-            outputs = model.encode(dataset, cond_mod=["mod2", "mod3"], return_mean=return_mean)
+            outputs = model.encode(
+                dataset, cond_mod=["mod2", "mod3"], return_mean=return_mean
+            )
             embeddings = outputs.z
             assert embeddings.shape == (len(dataset), model_config.latent_dim)
 
@@ -193,7 +195,6 @@ class Test:
                 len(dataset),
                 model_config.modalities_specific_dim,
             )
-
 
     def test_predict(self, model, dataset):
         Y = model.predict(dataset[3:])

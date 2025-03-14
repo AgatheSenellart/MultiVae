@@ -2,7 +2,7 @@
 
 import math
 from copy import deepcopy
-from typing import List, Dict
+from typing import Dict, List
 
 import numpy as np
 import torch
@@ -336,7 +336,7 @@ class ConditionalDecoderMLP(BaseConditionalDecoder):
         super().__init__()
         self.latent_dim = latent_dim
 
-        self.all_dim = latent_dim 
+        self.all_dim = latent_dim
         for cond_data_dim in cond_data_dims.values():
             self.all_dim += np.prod(cond_data_dim)
 
@@ -344,7 +344,10 @@ class ConditionalDecoderMLP(BaseConditionalDecoder):
             BaseAEConfig(input_dim=data_dim, latent_dim=self.all_dim)
         )
 
-    def forward(self, z, cond_mods:Dict[str, torch.Tensor]):
+    def forward(self, z, cond_mods: Dict[str, torch.Tensor]):
 
-        concatenated = torch.cat([z]+[cond_data.view(z.shape[0],-1) for cond_data in cond_mods.values()], dim=1)
+        concatenated = torch.cat(
+            [z] + [cond_data.view(z.shape[0], -1) for cond_data in cond_mods.values()],
+            dim=1,
+        )
         return self.network(concatenated)
