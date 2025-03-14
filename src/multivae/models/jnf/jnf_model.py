@@ -13,7 +13,7 @@ from torch.nn import ModuleDict
 
 from ...data.datasets.base import MultimodalBaseDataset
 from ..joint_models import BaseJointModel
-from ..base.base_utils import rsample
+from ..base.base_utils import rsample_from_gaussian
 from ..nn.base_architectures import BaseJointEncoder
 from .jnf_config import JNFConfig
 
@@ -232,10 +232,7 @@ class JNF(BaseJointModel):
         if len(cond_mod) == self.n_modalities:
             output = self.joint_encoder(inputs.data)
             
-            if return_mean:
-                z = torch.stack([output.embedding] * N) if N > 1 else output.embedding
-            else:
-                z = rsample(output, N)
+            z = rsample_from_gaussian(output.embedding, output.log_covariance, N, return_mean)
             
 
         elif len(cond_mod) != 1:
@@ -255,10 +252,7 @@ class JNF(BaseJointModel):
             cond_mod = cond_mod[0]
             output = self.encoders[cond_mod](inputs.data[cond_mod])
 
-            if return_mean:
-                z0 = torch.stack([output.embedding]*N) if N> 1 else output.embedding
-            else:
-                z0 = rsample(output, N=N)
+            z0 = rsample_from_gaussian(output.embedding, output.log_covariance, N, return_mean)
 
             flow_output = self.flows[cond_mod].inverse(
                 z0.reshape(-1, self.latent_dim)

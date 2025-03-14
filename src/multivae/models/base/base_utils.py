@@ -158,12 +158,30 @@ def stable_poe(mus, logvars):
 
         return joint_mu, ln_var
 
-def rsample(encoder_output, N=1):
-    """Simple function to sample from a gaussian whose parameters are given by a ModelOutput."""
+def rsample_from_gaussian(mu, log_var, N=1, return_mean=False, flatten=False):
+    """Simple function to sample from a gaussian whose parameters are given by a ModelOutput.
+    
+    Args:   
+        mu (torch.Tensor) : mean of the gaussian
+        log_var (torch.Tensor) : log_variance of the gaussian
+        N(int) : number of samples to draw
+        return_mean (bool): If True, each sample is the mean of the distribution.
+        flatten (bool): If True, the output is flattened to be of shape (N*n_batch, *latent_dims)"""
 
     sample_shape=[] if N==1 else [N]
-    return dist.Normal(
-                encoder_output.embedding, torch.exp(0.5 * encoder_output.log_covariance)
+
+    if return_mean:
+        z = torch.stack([mu]*N) if N >1 else mu
+
+    else:
+        z = dist.Normal(
+                mu, torch.exp(0.5 * log_var)
             ).rsample(
                 sample_shape
             )
+    if (N > 1) and flatten:
+        if len(z.shape)==2:
+            z = z.unsqueeze(0)
+        z = z.reshape(-1, *z.shape[2:])
+
+    return z

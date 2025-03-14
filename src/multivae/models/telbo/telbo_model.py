@@ -7,7 +7,7 @@ from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
 
 from ...data.datasets.base import MultimodalBaseDataset
 from ..joint_models import BaseJointModel
-from ..base.base_utils import rsample
+from ..base.base_utils import rsample_from_gaussian
 from ..nn.base_architectures import BaseJointEncoder
 from .telbo_config import TELBOConfig
 
@@ -76,9 +76,7 @@ class TELBO(BaseJointModel):
         joint_output = self.joint_encoder(inputs.data)
         mu, log_var = joint_output.embedding, joint_output.log_covariance
 
-        sigma = torch.exp(0.5 * log_var)
-        qz_xy = dist.Normal(mu, sigma)
-        z_joint = qz_xy.rsample()
+        z_joint = rsample_from_gaussian(mu, log_var)
 
         recon_loss = 0
 
@@ -112,9 +110,7 @@ class TELBO(BaseJointModel):
                 mod_output = self.encoders[mod](inputs.data[mod])
                 mod_mu, mod_log_var = mod_output.embedding, mod_output.log_covariance
 
-                mod_sigma = torch.exp(0.5 * mod_log_var)
-                qz_x0 = dist.Normal(mod_mu, mod_sigma)
-                mod_z = qz_x0.rsample()
+                mod_z = rsample_from_gaussian(mod_mu, mod_log_var)
 
                 mod_recon = self.decoders[mod](mod_z).reconstruction
                 mod_recon_loss = (
@@ -175,12 +171,7 @@ class TELBO(BaseJointModel):
             )
         
         # Return mean or sample
-        if return_mean:
-            z = torch.stack([output.embedding]*N) if N> 1 else output.embedding
-        else:
-            z = rsample(output, N=N)
-
-        if N > 1 and kwargs.pop("flatten", False):
-            z = z.reshape(-1, self.latent_dim)
+        flatten = kwargs.pop('flatten', False)
+        z = rsample_from_gaussian(output.embedding, output.log_covariance, N, return_mean, flatten)
 
         return ModelOutput(z=z, one_latent_space=True)

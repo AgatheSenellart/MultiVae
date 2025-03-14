@@ -19,6 +19,7 @@ from multivae.models.nn.default_architectures import (
 
 from ...data.datasets.base import MultimodalBaseDataset
 from ..base import BaseMultiVAE
+from ..base.base_utils import rsample_from_gaussian
 from .nexus_config import NexusConfig
 
 logger = logging.getLogger(__name__)
@@ -95,9 +96,7 @@ class Nexus(BaseMultiVAE):
         for m, x_m in inputs.data.items():
             # Encode the modality
             output_m = self.encoders[m](x_m)
-            z_m = dist.Normal(
-                output_m.embedding, torch.exp(0.5 * output_m.log_covariance)
-            ).rsample()
+            z_m = rsample_from_gaussian(output_m.embedding, output_m.log_covariance)
 
             # Decode and reconstruct
             recon_x_m = self.decoders[m](z_m).reconstruction
@@ -149,9 +148,7 @@ class Nexus(BaseMultiVAE):
 
         # Compute the higher level latent variable z_\sigma
         joint_output = self.joint_encoder(aggregated_msg)
-        joint_z = dist.Normal(
-            joint_output.embedding, torch.exp(0.5 * joint_output.log_covariance)
-        ).rsample()
+        joint_z = rsample_from_gaussian(joint_output.embedding, joint_output.log_covariance)
 
         # Compute log p(z_m|z_sigma)
         z_recon_loss = 0
@@ -212,17 +209,6 @@ class Nexus(BaseMultiVAE):
             metrics=metrics,
         )
 
-    def _sample(self, encoder_output: ModelOutput, N=1, flatten=False):
-        """Sample and handles the shape output"""
-        mu = encoder_output.embedding
-        sigma = torch.exp(0.5 * encoder_output.log_covariance)
-        shape = [] if N == 1 else [N]
-
-        z = dist.Normal(mu, sigma).sample(shape)
-        if N > 1 and flatten:
-            N, l, d = z.shape
-            z = z.reshape(l * N, d)
-        return z
 
     def _aggregate_during_training(
         self, inputs: MultimodalBaseDataset, modalities_msg: dict
@@ -281,13 +267,23 @@ class Nexus(BaseMultiVAE):
         **kwargs,
     ):
         """
-        Compute latent variables conditioning on all modalities or a subset of modalities.
+        Generate encodings conditioning on all modalities or a subset of modalities.
+
+        Args:
+            inputs (MultimodalBaseDataset): The dataset to use for the conditional generation.
+            cond_mod (Union[list, str]): Either 'all' or a list of str containing the modalities
+                names to condition on.
+            N (int) : The number of encodings to sample for each datapoint. Default to 1.
+            return_mean (bool) : if True, returns the mean of the posterior distribution (instead of a sample).
+
 
         Returns:
-            ModelOutput : contains field 'z' for the shared latent,
-                'modalities_z' for the modalities specific latents,
-                'one_latent_space' = True # for decoding purposes.
+            ModelOutput instance with fields:
+                z (torch.Tensor (n_data, N, latent_dim))
+                one_latent_space (bool) = True
+
         """
+       
         cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
         modalities_z = {}
         modalities_msg = {}
@@ -296,15 +292,19 @@ class Nexus(BaseMultiVAE):
         # Encode each modality with the bottom encoders
         for m in cond_mod:
             output_m = self.encoders[m](inputs.data[m])
-            modalities_z[m] = self._sample(output_m, N, flatten)
-            modalities_msg[m] = self.top_encoders[m](self._sample(output_m)).embedding
+            modalities_z[m] = rsample_from_gaussian(output_m.embedding,output_m.log_covariance,N, return_mean, flatten=True) 
+            modalities_msg[m] = self.top_encoders[m](modalities_z[m]).embedding
 
         # Compute aggregated msg
         aggregated_msg = None
         if self.model_config.aggregator == "mean":
             aggregated_msg = torch.stack(list(modalities_msg.values()), dim=0).mean(0)
+        nexus_output = self.joint_encoder(aggregated_msg)
+        z = rsample_from_gaussian(nexus_output.embedding, nexus_output.log_covariance,N=1,return_mean= return_mean)
 
-        z = self._sample(self.joint_encoder(aggregated_msg), N=N, flatten=flatten)
+        if N> 1 and not flatten:
+            z = z.reshape(N,-1,*z.shape[1:])
+            modalities_z = {m:modalities_z[m].reshape(N,-1,*modalities_z[m].shape[1:]) for m in modalities_z}
 
         return ModelOutput(z=z, one_latent_space=True, modalities_z=modalities_z)
 

@@ -10,7 +10,7 @@ from pythae.models.base.base_utils import ModelOutput
 from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
 
 from ..base import BaseMultiVAE
-from ..base.base_utils import stable_poe
+from ..base.base_utils import stable_poe, rsample_from_gaussian
 from .mvae_config import MVAEConfig
 
 
@@ -83,8 +83,7 @@ class MVAE(BaseMultiVAE):
         self, inputs: MultimodalBaseDataset, subset: list, beta: float
     ):
         sub_mu, sub_logvar = self.compute_mu_log_var_subset(inputs, subset)
-        sub_std = torch.exp(0.5 * sub_logvar)
-        z = dist.Normal(sub_mu, sub_std).rsample()
+        z = rsample_from_gaussian(sub_mu, sub_logvar)
         elbo_sub = 0
         for mod in self.decoders:
             if mod in subset:
@@ -228,17 +227,10 @@ class MVAE(BaseMultiVAE):
 
         # Compute the latent variable conditioning on input modalities
         sub_mu, sub_logvar = self.compute_mu_log_var_subset(inputs, cond_mod)
-        sub_std = torch.exp(0.5 * sub_logvar)
-        sample_shape = [N] if N > 1 else []
-
-        if return_mean:
-            z = torch.stack([sub_mu] * N) if N > 1 else sub_mu
-        else:
-            z = dist.Normal(sub_mu, sub_std).rsample(sample_shape)
         flatten = kwargs.pop("flatten", False)
-        if flatten:
-            z = z.reshape(-1, self.latent_dim)
-
+        z = rsample_from_gaussian(sub_mu, sub_logvar, 
+                                  N=N, return_mean=return_mean, flatten=flatten)
+        
         return ModelOutput(z=z, one_latent_space=True)
 
     @torch.no_grad()

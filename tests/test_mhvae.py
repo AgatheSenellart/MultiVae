@@ -424,31 +424,30 @@ class Test_MHVAE:
         return
 
     def test_encode(self, dataset, model):
+        
+        for return_mean in [True, False]:
+            samples = dataset[:10]
 
-        samples = dataset[:10]
-        output = model.encode(samples)
+            output = model.encode(samples, return_mean=return_mean)
+            assert isinstance(output, ModelOutput)
+            assert hasattr(output, "z")
+            assert output.z.shape == (10, 32, 14, 14)
+            assert hasattr(output, "all_z")
+            assert output.one_latent_space
+            assert isinstance(output.all_z, dict)
 
-        assert isinstance(output, ModelOutput)
-        assert hasattr(output, "z")
-        assert output.z.shape == (10, 32, 14, 14)
+            output = model.encode(samples, N=4, return_mean=return_mean)
+            assert isinstance(output, ModelOutput)
+            assert output.z.shape == (4, 10, 32, 14, 14)
+            assert hasattr(output, "all_z")
+            assert output.one_latent_space
+            assert isinstance(output.all_z, dict)
 
-        assert hasattr(output, "all_z")
-        assert output.one_latent_space
-        assert type(output.all_z) == dict
+            output = model.encode(samples, N=4, flatten=True, return_mean=return_mean)
+            assert isinstance(output, ModelOutput)
+            assert output.z.shape == (4 * 10, 32, 14, 14)
+            assert hasattr(output, "all_z")
 
-        output = model.encode(samples, N=4)
-        assert isinstance(output, ModelOutput)
-        assert output.z.shape == (4, 10, 32, 14, 14)
-        assert hasattr(output, "all_z")
-        assert output.one_latent_space
-        assert type(output.all_z) == dict
-
-        output = model.encode(samples, N=4, flatten=True)
-        assert isinstance(output, ModelOutput)
-        assert output.z.shape == (4 * 10, 32, 14, 14)
-        assert hasattr(output, "all_z")
-
-        return
 
     def test_decode(self, model, dataset):
 

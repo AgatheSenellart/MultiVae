@@ -8,7 +8,7 @@ from pythae.models.base.base_utils import ModelOutput
 from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
 
 from ..base import BaseMultiVAE
-from ..base.base_utils import poe
+from ..base.base_utils import poe, rsample_from_gaussian
 from .mvtcae_config import MVTCAEConfig
 
 
@@ -33,11 +33,6 @@ class MVTCAE(BaseMultiVAE):
         self.beta = model_config.beta
         self.model_name = "MVTCAE"
 
-    def reparameterize(self, mu, logvar):
-        std = logvar.mul(0.5).exp_()
-        z = dist.Normal(mu, std).rsample()
-        return z
-
     def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
         # Compute latents parameters for all subsets
         latents = self.inference(inputs)
@@ -45,7 +40,7 @@ class MVTCAE(BaseMultiVAE):
 
         # Sample from the joint posterior
         joint_mu, joint_logvar = latents["joint"][0], latents["joint"][1]
-        shared_embeddings = self.reparameterize(joint_mu, joint_logvar)
+        shared_embeddings = rsample_from_gaussian(joint_mu, joint_logvar)
         ndata = len(shared_embeddings)
         joint_kld = -0.5 * torch.sum(
             1 - joint_logvar.exp() - joint_mu.pow(2) + joint_logvar
@@ -141,7 +136,7 @@ class MVTCAE(BaseMultiVAE):
             dict : Contains the modalities' encoders parameters and the poe parameters.
         """
 
-        latents = dict()
+        latents = {}
         enc_mods = self.modality_encode(inputs)
         latents["modalities"] = enc_mods
 
@@ -205,16 +200,10 @@ class MVTCAE(BaseMultiVAE):
 
         latents_subsets = self.inference(cond_inputs)
         mu, log_var = latents_subsets["joint"]
-        sample_shape = [N] if N > 1 else []
-
-        if return_mean:
-            z = torch.stack([mu] * N) if N > 1 else mu
-        else:
-            z = dist.Normal(mu, torch.exp(0.5 * log_var)).rsample(sample_shape)
         flatten = kwargs.pop("flatten", False)
-        if flatten:
-            z = z.reshape(-1, self.latent_dim)
-
+        z = rsample_from_gaussian(mu, log_var,
+                                  N=N, return_mean=return_mean, flatten=flatten)
+        
         return ModelOutput(z=z, one_latent_space=True)
 
     @torch.no_grad()
