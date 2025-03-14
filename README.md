@@ -1,4 +1,4 @@
-![logo](./static/multivae_logog.png)
+![MultiVae](./static/multivae_logog.png)
 
 
 <!-- Add buttons here -->
@@ -141,20 +141,20 @@ Below is the list of models that can be used on Incomplete datasets:
 
 |Model|Can be used on Incomplete Datasets|Details|
 |:---:|:----:|:--:|
-|CVAE|:x:  |
-|JMVAE|:x:|
-|TELBO|:x: |
-|MVAE| :white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mvae.html)|
-|MMVAE|:white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mmvae.html)
-|MoPoE| :white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mopoe.html)
-|MVTCAE |:white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mvtcae.html)
-DMVAE| :white_check_mark: | [see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/dmvae.html)
-|JNF| :x:|
-|MMVAE + |:white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mmvae_plus.html)
-|Nexus | :white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/nexus.html)
-|CMVAE| :white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/cmvae.html)
-|MHVAE| :white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mhvae.html)
-|CRMVAE|:white_check_mark:|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/crmvae.html)
+|CVAE|❌   |
+|JMVAE|❌ |
+|TELBO|❌  |
+|MVAE| ✅|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mvae.html)|
+|MMVAE|✅|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mmvae.html)
+|MoPoE| ✅|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mopoe.html)
+|MVTCAE |✅|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mvtcae.html)
+DMVAE| ✅ | [see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/dmvae.html)
+|JNF| ❌ |
+|MMVAE+ |✅|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mmvae_plus.html)
+|Nexus | ✅|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/nexus.html)
+|CMVAE| ✅|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/cmvae.html)
+|MHVAE| ✅|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/mhvae.html)
+|CRMVAE|✅|[see here](https://multivae.readthedocs.io/en/latest/models/multimodal_vaes/crmvae.html)
 
 ### Toy datasets with missing values
 
@@ -184,7 +184,7 @@ MultiVae allows easy monitoring with [Wandb](https://wandb.ai/).
 To use this feature, you will need to install and configure Wandb with the few steps below:
 
 ### Install Wandb
-1. Install wandb ```$ pip install wandb==0.18.7```
+1. Install wandb ```$ pip install wandb```
 2. Create a wandb account [online](https://wandb.ai/)
 3. Once you are logged in, go to this [page](https://wandb.ai/authorize) and copy the API key. 
 4. In your terminal, enter ```$ wandb login``` and then copy your API key when prompted.

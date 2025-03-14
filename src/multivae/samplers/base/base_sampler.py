@@ -3,9 +3,7 @@
 import logging
 import os
 
-import numpy as np
 import torch
-from imageio import imwrite
 
 from ...data.datasets.base import MultimodalBaseDataset
 from ...models import BaseMultiVAE
