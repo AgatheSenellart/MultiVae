@@ -10,7 +10,7 @@ from multivae.models.base import BaseMultiVAE
 from multivae.models.base.base_model import ModelOutput
 from multivae.models.nn.base_architectures import BaseEncoder
 
-from ..base.base_utils import kl_divergence, poe
+from ..base.base_utils import kl_divergence, poe, rsample_from_gaussian
 from .mhvae_config import MHVAEConfig
 
 logger = logging.getLogger(__name__)
@@ -106,7 +106,7 @@ class MHVAE(BaseMultiVAE):
         list_log_vars = [dict_params[m].log_covariance for m in dict_params]
         return list_means, list_log_vars
 
-    def subset_encode(self, z_deepest_params, skips, subset, inputs):
+    def subset_encode(self, z_deepest_params, skips, subset, inputs, return_mean=False):
         """
         Compute all the latent variables and KL divergences for a given subset of modalities.
 
@@ -116,6 +116,8 @@ class MHVAE(BaseMultiVAE):
             skips (Dict[str, List[torch.Tensor]]): dictionary containing the intermediate results of the bottom-up
                 layers for each modality.
             subset (List[str]): list of modalities to consider to compute the joint posterior.
+            inputs (MultimodalBaseDataset) : the batch data.
+            return_mean (bool): If True, we return the mean everytime we sample from a distribution. Default to False.
 
         Returns:
             z_dict (Dict[str, torch.Tensor]): dictionary containing all the latent variables at each level.
@@ -138,7 +140,7 @@ class MHVAE(BaseMultiVAE):
         joint_mu, joint_lv = poe(torch.stack(list_mus), torch.stack(list_log_vars))
 
         # Sample z_L
-        z_l_deepest = dist.Normal(joint_mu, torch.exp(0.5 * joint_lv)).rsample()
+        z_l_deepest = rsample_from_gaussian(joint_mu, joint_lv,N=1, return_mean=return_mean)
 
         # Compute KL(q(z_L | x) || p(z_L))
         kl_l_deepest = kl_divergence(
@@ -178,9 +180,7 @@ class MHVAE(BaseMultiVAE):
             joint_mu, joint_lv = poe(torch.stack(list_mus), torch.stack(list_log_vars))
 
             # Sample z_l
-            z_dict[f"z_{i}"] = dist.Normal(
-                joint_mu, torch.exp(0.5 * joint_lv)
-            ).rsample()
+            z_dict[f"z_{i}"] = rsample_from_gaussian(joint_mu, joint_lv,N=1,return_mean=return_mean)
 
             # Compute KL(q(z_l | x, z>l)|p(z_l|z>l))
             kl_dict[f"kl_{i}"] = kl_divergence(
@@ -270,7 +270,7 @@ class MHVAE(BaseMultiVAE):
 
         return ModelOutput(loss=loss, loss_sum=loss, metrics=kl_dict)
 
-    def encode(self, inputs, cond_mod="all", N=1, **kwargs):
+    def encode(self, inputs, cond_mod="all", N=1,return_mean=False,**kwargs):
         """
         Encode the input data conditioning on the modalities in cond_mod
             and return the latent variables.
@@ -280,6 +280,8 @@ class MHVAE(BaseMultiVAE):
             cond_mod (str, list): the modality to condition on. Either 'all' or a list of modalities.
             N (int): the number of samples to draw from the posterior for each sample.
                 Generated latent_variables will have shape (N, n_data, n_latent)
+            return_mean (bool) : if True, returns the mean of the posterior distribution (instead of a sample).
+
 
         Returns:
             ModelOutput: a ModelOutput instance containing the latent variables.
@@ -288,7 +290,8 @@ class MHVAE(BaseMultiVAE):
         cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
 
         z_ls_params, skips = self.modality_encode(inputs.data)
-
+        
+        # Get the batch size
         n_data = len(list(z_ls_params.values())[0].embedding)
 
         if N > 1:
@@ -303,7 +306,7 @@ class MHVAE(BaseMultiVAE):
             masks = inputs.masks.copy()
             inputs.masks = {m: torch.cat([masks[m]] * N, dim=0) for m in masks}
 
-        z_dict, _ = self.subset_encode(z_ls_params, skips, cond_mod, inputs)
+        z_dict, _ = self.subset_encode(z_ls_params, skips, cond_mod, inputs, return_mean=return_mean)
 
         flatten = kwargs.pop("flatten", False)
 

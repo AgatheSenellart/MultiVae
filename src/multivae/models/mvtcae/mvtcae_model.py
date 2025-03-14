@@ -8,7 +8,7 @@ from pythae.models.base.base_utils import ModelOutput
 from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
 
 from ..base import BaseMultiVAE
-from ..base.base_utils import poe
+from ..base.base_utils import poe, rsample_from_gaussian
 from .mvtcae_config import MVTCAEConfig
 
 
@@ -40,11 +40,6 @@ class MVTCAE(BaseMultiVAE):
         self.beta = model_config.beta
         self.model_name = "MVTCAE"
 
-    def _reparameterize(self, mu, logvar):
-        std = logvar.mul(0.5).exp_()
-        z = dist.Normal(mu, std).rsample()
-        return z
-
     def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
         """Forward pass of the model that returns the loss."""
 
@@ -54,7 +49,7 @@ class MVTCAE(BaseMultiVAE):
 
         # Sample from the joint posterior
         joint_mu, joint_logvar = latents["joint"][0], latents["joint"][1]
-        shared_embeddings = self._reparameterize(joint_mu, joint_logvar)
+        shared_embeddings = rsample_from_gaussian(joint_mu, joint_logvar)
         ndata = len(shared_embeddings)
         joint_kld = -0.5 * torch.sum(
             1 - joint_logvar.exp() - joint_mu.pow(2) + joint_logvar
@@ -150,8 +145,8 @@ class MVTCAE(BaseMultiVAE):
             dict : Contains the modalities' encoders parameters and the poe parameters.
         """
 
-        latents = dict()
-        enc_mods = self._modality_encode(inputs)
+        latents = {}
+        enc_mods = self.modality_encode(inputs)
         latents["modalities"] = enc_mods
 
         device = enc_mods[list(inputs.data.keys())[0]].embedding.device
@@ -182,6 +177,7 @@ class MVTCAE(BaseMultiVAE):
         inputs: MultimodalBaseDataset,
         cond_mod: Union[list, str] = "all",
         N: int = 1,
+        return_mean=False,
         **kwargs,
     ) -> ModelOutput:
         """
@@ -192,6 +188,8 @@ class MVTCAE(BaseMultiVAE):
             cond_mod (Union[list, str]): Either 'all' or a list of str containing the modalities
                 names to condition on.
             N (int) : The number of encodings to sample for each datapoint. Default to 1.
+            return_mean (bool) : if True, returns the mean of the posterior distribution (instead of a sample).
+
 
         Returns:
             ModelOutput instance with fields:
@@ -211,17 +209,10 @@ class MVTCAE(BaseMultiVAE):
 
         latents_subsets = self._inference(cond_inputs)
         mu, log_var = latents_subsets["joint"]
-        sample_shape = [N] if N > 1 else []
-
-        return_mean = kwargs.pop("return_mean", False)
-        if return_mean:
-            z = torch.stack([mu] * N) if N > 1 else mu
-        else:
-            z = dist.Normal(mu, torch.exp(0.5 * log_var)).rsample(sample_shape)
         flatten = kwargs.pop("flatten", False)
-        if flatten:
-            z = z.reshape(-1, self.latent_dim)
-
+        z = rsample_from_gaussian(mu, log_var,
+                                  N=N, return_mean=return_mean, flatten=flatten)
+        
         return ModelOutput(z=z, one_latent_space=True)
 
     @torch.no_grad()

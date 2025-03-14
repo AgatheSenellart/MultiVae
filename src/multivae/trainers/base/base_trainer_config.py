@@ -97,8 +97,6 @@ class BaseTrainerConfig(BaseConfig):
             self.master_port = env_master_port
         os.environ["MASTER_PORT"] = self.master_port
 
-    def __post_init_post_parse__(self):
-        """Check compatibilty"""
         try:
             import torch.optim as optim
 

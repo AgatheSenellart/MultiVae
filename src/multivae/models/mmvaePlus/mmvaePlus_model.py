@@ -375,6 +375,7 @@ class MMVAEPlus(BaseMultiVAE):
         inputs: MultimodalBaseDataset,
         cond_mod: Union[list, str] = "all",
         N: int = 1,
+        return_mean=False,
         **kwargs,
     ):
         """
@@ -385,6 +386,8 @@ class MMVAEPlus(BaseMultiVAE):
             cond_mod (Union[list, str]): Either 'all' or a list of str containing the modalities
                 names to condition on.
             N (int) : The number of encodings to sample for each datapoint. Default to 1.
+            return_mean (bool) : if True, returns the mean of the posterior distribution (instead of a sample).
+
 
         Returns:
             ModelOutput : contains fields
@@ -393,20 +396,29 @@ class MMVAEPlus(BaseMultiVAE):
                 'modalities_z' (Dict[str,torch.Tensor (n_data, N, latent_dim) ])
         """
 
+        # Look up the batchsize
+        batch_size = len(list(inputs.data.values())[0])
+
         cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
         if all(s in self.encoders.keys() for s in cond_mod):
             # For the conditioning modalities we compute all the embeddings
             encoders_outputs = {m: self.encoders[m](inputs.data[m]) for m in cond_mod}
 
-            # Choose one of the conditioning modalities at random to sample the shared information.
-            random_mod = np.random.choice(cond_mod)
+            if return_mean:
+                list_mean = [o.embedding for o in encoders_outputs.values()]
+                embedding = torch.mean(torch.stack(list_mean), dim=0)
+                z = torch.stack([embedding]*N) if N> 1 else embedding
+            else:
 
-            # Sample the shared latent code
-            mu = encoders_outputs[random_mod].embedding
-            sigma = self._log_var_to_std(encoders_outputs[random_mod].log_covariance)
+                # Choose one of the conditioning modalities at random to sample the shared information.
+                random_mod = np.random.choice(cond_mod)
 
-            sample_shape = torch.Size([]) if N == 1 else torch.Size([N])
-            z = self.post_dist(mu, sigma).rsample(sample_shape)
+                # Sample the shared latent code
+                mu = encoders_outputs[random_mod].embedding
+                sigma = self._log_var_to_std(encoders_outputs[random_mod].log_covariance)
+
+                sample_shape = torch.Size([]) if N == 1 else torch.Size([N])
+                z = self.post_dist(mu, sigma).rsample(sample_shape)
 
             flatten = kwargs.pop("flatten", False)
             if flatten:
@@ -428,8 +440,8 @@ class MMVAEPlus(BaseMultiVAE):
                         mu_m = self.mean_priors["shared"][:, self.latent_dim :]
                         logvar_m = self.logvars_priors["shared"][:, self.latent_dim :]
 
-                    mu_m = torch.cat([mu_m] * len(mu), dim=0)
-                    logvar_m = torch.cat([logvar_m] * len(mu), dim=0)
+                    mu_m = torch.cat([mu_m] * batch_size, dim=0)
+                    logvar_m = torch.cat([logvar_m] * batch_size, dim=0)
 
                 else:
                     # Sample from posteriors parameters
@@ -437,7 +449,11 @@ class MMVAEPlus(BaseMultiVAE):
                     logvar_m = encoders_outputs[m].style_log_covariance
 
                 sigma_m = self._log_var_to_std(logvar_m)
-                style_z[m] = self.post_dist(mu_m, sigma_m).rsample(sample_shape)
+
+                if return_mean:
+                    style_z[m] = torch.stack([mu_m]*N) if N> 1 else mu_m
+                else:
+                    style_z[m] = self.post_dist(mu_m, sigma_m).rsample(sample_shape)
                 if flatten:
                     style_z[m] = style_z[m].reshape(-1, self.modalities_specific_dim)
 

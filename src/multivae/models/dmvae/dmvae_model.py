@@ -13,7 +13,7 @@ from multivae.models.nn.default_architectures import (
 )
 
 from ..base import BaseMultiVAE
-from ..base.base_utils import kl_divergence, stable_poe
+from ..base.base_utils import kl_divergence, stable_poe, rsample_from_gaussian
 from ..nn.base_architectures import BaseMultilatentEncoder
 from .dmvae_config import DMVAEConfig
 
@@ -187,15 +187,15 @@ class DMVAE(BaseMultiVAE):
         return ModelOutput(loss=loss.mean(), metrics=metrics)
 
     def _compute_elbo(self, q_mu, q_lv, private_params, inputs):
-        sigma = torch.exp(0.5 * q_lv)
-        shared_z = dist.Normal(q_mu, sigma).rsample()
+
+        shared_z = rsample_from_gaussian(q_mu, q_lv)
 
         # Compute reconstructions
         recon_loss = 0
         for mod in self.encoders:
             # Sample the modality specific
-            mu, sigma = private_params[mod][0], torch.exp(0.5 * private_params[mod][1])
-            z_mod = dist.Normal(mu, sigma).rsample()
+            mu, logvar = private_params[mod]
+            z_mod = rsample_from_gaussian(mu,logvar)
 
             z = torch.cat([shared_z, z_mod], dim=1)
 
@@ -240,6 +240,7 @@ class DMVAE(BaseMultiVAE):
         inputs: Union[MultimodalBaseDataset, IncompleteDataset],
         cond_mod: Union[list, str] = "all",
         N: int = 1,
+        return_mean=False,
         **kwargs,
     ):
         """
@@ -250,6 +251,7 @@ class DMVAE(BaseMultiVAE):
             cond_mod (Union[list, str]): Either 'all' or a list of str containing the modalities
                 names to condition on.
             N (int) : The number of encodings to sample for each datapoint. Default to 1.
+            return_mean (bool) : if True, returns the mean of the posterior distribution (instead of a sample).
 
         Returns:
             ModelOutput : Contains fields
@@ -266,39 +268,22 @@ class DMVAE(BaseMultiVAE):
         sub_mu, sub_logvar, _, private_params = self._infer_latent_parameters(
             inputs, cond_mod
         )
-        sub_std = torch.exp(0.5 * sub_logvar)
-        sample_shape = [N] if N > 1 else []
-
-        return_mean = kwargs.pop("return_mean", False)
-
-        if return_mean:
-            z = torch.stack([sub_mu] * N) if N > 1 else sub_mu
-        else:
-            z = dist.Normal(sub_mu, sub_std).rsample(sample_shape)
-
         flatten = kwargs.pop("flatten", False)
-        if flatten:
-            z = z.reshape(-1, self.latent_dim)
+
+        z = rsample_from_gaussian(sub_mu, sub_logvar,N=N,return_mean=return_mean, flatten=flatten)
 
         modalities_z = {}
         for mod in self.encoders:
             if mod in cond_mod:
-                mod_mu, mod_std = private_params[mod][0], torch.exp(
-                    0.5 * private_params[mod][1]
-                )
+                mod_mu, mod_lv = private_params[mod]
             else:
                 mod_mu = torch.zeros((sub_mu.shape[0], self.style_dims[mod])).to(
                     sub_mu.device
                 )
-                mod_std = torch.ones_like(mod_mu).to(sub_logvar.device)
+                mod_lv = torch.zeros_like(mod_mu).to(sub_logvar.device)
 
-            if return_mean:
-                mod_z = torch.stack([mod_mu] * N) if N > 1 else mod_mu
-            else:
-                mod_z = dist.Normal(mod_mu, mod_std).rsample(sample_shape)
-            if flatten:
-                mod_z = mod_z.reshape(-1, self.style_dims[mod])
-            modalities_z[mod] = mod_z
+            modalities_z[mod] = rsample_from_gaussian(mod_mu, mod_lv,N=N, return_mean=return_mean, flatten=flatten)
+            
 
         return ModelOutput(z=z, one_latent_space=False, modalities_z=modalities_z)
 

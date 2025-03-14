@@ -13,6 +13,7 @@ from torch.nn import ModuleDict
 
 from ...data.datasets.base import MultimodalBaseDataset
 from ..joint_models import BaseJointModel
+from ..base.base_utils import rsample_from_gaussian
 from ..nn.base_architectures import BaseJointEncoder
 from .jnf_config import JNFConfig
 
@@ -189,6 +190,7 @@ class JNF(BaseJointModel):
         inputs: MultimodalBaseDataset,
         cond_mod: Union[list, str] = "all",
         N: int = 1,
+        return_mean=False,
         **kwargs,
     ) -> ModelOutput:
         """
@@ -199,6 +201,8 @@ class JNF(BaseJointModel):
             cond_mod (Union[list, str]): Either 'all' or a list of str containing the modalities
                 names to condition on.
             N (int) : The number of encodings to sample for each datapoint. Default to 1.
+            return_mean (bool) : if True, returns the mean of the posterior distribution (instead of a sample).
+
 
         **kwargs:
             mcmc_steps(int) : the number of Monte-Carlo step to perform when sampling from the product
@@ -224,20 +228,12 @@ class JNF(BaseJointModel):
         eps_lf = kwargs.pop("eps_lf", 0.01)
 
         cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
-        return_mean = kwargs.pop("return_mean", False)
+
         if len(cond_mod) == self.n_modalities:
             output = self.joint_encoder(inputs.data)
-            sample_shape = [] if N == 1 else [N]
-            if return_mean:
-                z = torch.stack([output.embedding] * N) if N > 1 else output.embedding
-            else:
-                z = dist.Normal(
-                    output.embedding, torch.exp(0.5 * output.log_covariance)
-                ).rsample(sample_shape)
-            if N > 1 and kwargs.pop("flatten", False):
-                N, l, d = z.shape
-                z = z.reshape(l * N, d)
-            return ModelOutput(z=z, one_latent_space=True)
+            
+            z = rsample_from_gaussian(output.embedding, output.log_covariance, N, return_mean)
+            
 
         elif len(cond_mod) != 1:
             z = self._sample_from_poe_subset(
@@ -250,34 +246,30 @@ class JNF(BaseJointModel):
                 K=N,
                 divide_prior=True,
             )
-            if N > 1 and kwargs.pop("flatten", False):
-                N, l, d = z.shape
-                z = z.reshape(l * N, d)
-            return ModelOutput(z=z, one_latent_space=True)
+            # no return mean option here
 
         elif len(cond_mod) == 1:
             cond_mod = cond_mod[0]
             output = self.encoders[cond_mod](inputs.data[cond_mod])
-            sample_shape = [] if N == 1 else [N]
 
-            z0 = dist.Normal(
-                output.embedding, torch.exp(0.5 * output.log_covariance)
-            ).rsample(sample_shape)
+            z0 = rsample_from_gaussian(output.embedding, output.log_covariance, N, return_mean)
+
             flow_output = self.flows[cond_mod].inverse(
                 z0.reshape(-1, self.latent_dim)
             )  # The reshaping is because MAF flows doesn't handle
             # any shape of input data (*,*input_dim)
             z = flow_output.out.reshape(z0.shape)
 
-            if N > 1 and kwargs.pop("flatten", False):
-                z = z.reshape(-1, self.latent_dim)
-
-            return ModelOutput(z=z, one_latent_space=True)
         else:
             raise AttributeError(
                 f"Modality of name {cond_mod} not handled. The"
                 f" modalities that can be encoded are {list(self.encoders.keys())}"
             )
+        
+        if N > 1 and kwargs.pop("flatten", False):
+            N, l, d = z.shape
+            z = z.reshape(l * N, d)
+        return ModelOutput(z=z, one_latent_space=True)
 
     def _sample_from_moe_subset(self, subset: list, data: dict):
         """Sample z from the mixture of posteriors from the subset.

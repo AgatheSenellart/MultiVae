@@ -84,36 +84,37 @@ class Test_forward_and_predict:
         assert loss.size() == torch.Size([])
 
         # test encode and decode
-        outputs = model.encode(dataset)
-        assert outputs.one_latent_space
-        embeddings = outputs.z
-        assert isinstance(outputs, ModelOutput)
-        assert embeddings.shape == (2, model.latent_dim)
+        for return_mean in [True, False]:
+            outputs = model.encode(dataset, return_mean=return_mean)
+            assert outputs.one_latent_space
+            embeddings = outputs.z
+            assert isinstance(outputs, ModelOutput)
+            assert embeddings.shape == (2, model.latent_dim)
 
-        out_dec = model.decode(outputs, modalities="mod1")
-        assert out_dec.mod1.shape == (2, 2)
+            out_dec = model.decode(outputs, modalities="mod1")
+            assert out_dec.mod1.shape == (2, 2)
 
-        outputs = model.encode(dataset, N=2, flatten=True)
-        assert outputs.z.shape == (4, model.latent_dim)
+            outputs = model.encode(dataset, N=2, flatten=True, return_mean=return_mean)
+            assert outputs.z.shape == (4, model.latent_dim)
 
-        out_dec = model.decode(outputs, modalities="mod1")
-        assert out_dec.mod1.shape == (4, 2)
+            out_dec = model.decode(outputs, modalities="mod1")
+            assert out_dec.mod1.shape == (4, 2)
 
-        # Encode conditioning on a subset of modalities
-        embeddings = model.encode(dataset, cond_mod=["mod1"])
-        assert embeddings.z.shape == (2, model.latent_dim)
+            # Encode conditioning on a subset of modalities
+            embeddings = model.encode(dataset, cond_mod=["mod1"], return_mean=return_mean)
+            assert embeddings.z.shape == (2, model.latent_dim)
 
-        out_dec = model.decode(embeddings, modalities="mod1")
-        assert out_dec.mod1.shape == (2, 2)
+            out_dec = model.decode(embeddings, modalities="mod1")
+            assert out_dec.mod1.shape == (2, 2)
 
-        embeddings = model.encode(dataset, cond_mod="mod2", N=10, flatten=False)
-        assert embeddings.z.shape == (10, 2, model.latent_dim)
+            embeddings = model.encode(dataset, cond_mod="mod2", N=10, flatten=False, return_mean=return_mean)
+            assert embeddings.z.shape == (10, 2, model.latent_dim)
 
-        embeddings = model.encode(dataset, cond_mod=["mod2", "mod1"])
-        assert embeddings.z.shape == (2, model.latent_dim)
+            embeddings = model.encode(dataset, cond_mod=["mod2", "mod1"], return_mean=return_mean)
+            assert embeddings.z.shape == (2, model.latent_dim)
 
-        out_dec = model.decode(embeddings, modalities="mod1")
-        assert out_dec.mod1.shape == (2, 2)
+            out_dec = model.decode(embeddings, modalities="mod1")
+            assert out_dec.mod1.shape == (2, 2)
 
         # test predict
         Y = model.predict(dataset, cond_mod="mod1")
