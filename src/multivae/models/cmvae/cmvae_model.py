@@ -417,6 +417,7 @@ class CMVAE(BaseMultiVAE):
         inputs: MultimodalBaseDataset,
         cond_mod: Union[list, str] = "all",
         N: int = 1,
+        return_mean=False,
         **kwargs,
     ):
         """
@@ -427,6 +428,7 @@ class CMVAE(BaseMultiVAE):
             cond_mod (Union[list, str]): Either 'all' or a list of str containing the modalities
                 names to condition on.
             N (int) : The number of encodings to sample for each datapoint. Default to 1.
+            return_mean (bool) : if True, returns the mean of the posterior distribution (instead of a sample).
 
         Returns:
             ModelOutput: Contains the following fields
@@ -437,14 +439,16 @@ class CMVAE(BaseMultiVAE):
 
 
         """
+        
+        cond_mod = super().encode(inputs, cond_mod, N,return_mean, **kwargs).cond_mod
 
-        cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
         if all([s in self.encoders.keys() for s in cond_mod]):
             # For the conditioning modalities we compute all the embeddings
             encoders_outputs = {m: self.encoders[m](inputs.data[m]) for m in cond_mod}
 
             # Choose one of the conditioning modalities at random to sample the shared information.
             random_mod = np.random.choice(cond_mod)
+
 
             # Sample the shared latent code
             mu = encoders_outputs[random_mod].embedding
@@ -456,9 +460,16 @@ class CMVAE(BaseMultiVAE):
                 mu = mu.unsqueeze(0)
                 sigma = sigma.unsqueeze(0)
 
-            qz_x = self.latent_dist(mu, sigma)
-            sample_shape = torch.Size([]) if N == 1 else torch.Size([N])
-            z = qz_x.rsample(sample_shape)
+            # Get the z
+            if return_mean:
+                if N>1:
+                    z = torch.stack([mu]*N)
+                else:
+                    z = mu
+            else: #sample
+                qz_x = self.latent_dist(mu, sigma)
+                sample_shape = torch.Size([]) if N == 1 else torch.Size([N])
+                z = qz_x.rsample(sample_shape)
 
             flatten = kwargs.pop("flatten", False)
 
@@ -496,7 +507,14 @@ class CMVAE(BaseMultiVAE):
                     logvar_m = logvar_m.unsqueeze(0)
 
                 sigma_m = self._log_var_to_std(logvar_m)
-                style_z[m] = self.latent_dist(mu_m, sigma_m).rsample(sample_shape)
+
+                if return_mean:
+                    if N> 1:
+                        style_z[m] = torch.stack([mu_m]*N)
+                    else:
+                        style_z[m] = mu_m
+                else: #sample
+                    style_z[m] = self.latent_dist(mu_m, sigma_m).rsample(sample_shape)
                 if flatten:
                     style_z[m] = style_z[m].reshape(
                         -1, self.model_config.modalities_specific_dim

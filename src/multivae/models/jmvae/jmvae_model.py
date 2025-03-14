@@ -7,7 +7,7 @@ from pythae.models.base.base_utils import ModelOutput
 
 from ...data.datasets.base import MultimodalBaseDataset
 from ..joint_models import BaseJointModel
-from ..base.base_utils import stable_poe
+from ..base.base_utils import stable_poe, rsample_from_gaussian
 from ..nn.base_architectures import BaseJointEncoder
 from .jmvae_config import JMVAEConfig
 
@@ -59,6 +59,7 @@ class JMVAE(BaseJointModel):
         inputs: MultimodalBaseDataset,
         cond_mod: Union[list, str] = "all",
         N: int = 1,
+        return_mean = False,
         **kwargs,
     ):
         """Generate encodings conditioning on all modalities or a subset of modalities.
@@ -70,6 +71,8 @@ class JMVAE(BaseJointModel):
             distribution. Defaults to 'all'.
             N (int, optional): The number of samples to generate from the posterior distribution
             for each datapoint. Defaults to 1.
+            return_mean (bool) : if True, returns the mean of the posterior distribution (instead of a sample).
+
 
         Raises:
             AttributeError: _description_
@@ -84,51 +87,29 @@ class JMVAE(BaseJointModel):
         self.eval()
 
         cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
-        sample_shape = [] if N == 1 else [N]
-        return_mean = kwargs.pop("return_mean", False)
-
+        flatten = kwargs.pop('flatten', False)
         if len(cond_mod) == self.n_modalities:
             output = self.joint_encoder(inputs.data)
-            if return_mean:
-                z = torch.stack([output.embedding] * N) if N > 1 else output.embedding
-            else:
-                z = dist.Normal(
-                    output.embedding, torch.exp(0.5 * output.log_covariance)
-                ).rsample(sample_shape)
-            if N > 1 and kwargs.pop("flatten", False):
-                N, l, d = z.shape
-                z = z.reshape(l * N, d)
-            return ModelOutput(z=z, one_latent_space=True)
+            z = rsample_from_gaussian(output.embedding, output.log_covariance, 
+                                      N, return_mean, flatten=flatten)
 
         elif len(cond_mod) != 1:
             z = self._sample_from_poe_subset_exact(
-                cond_mod, inputs.data, sample_shape=sample_shape
+                cond_mod, inputs.data, N,return_mean=return_mean, flatten=flatten
             )
-
-            if N > 1 and kwargs.pop("flatten", False):
-                N, l, d = z.shape
-                z = z.reshape(l * N, d)
-            return ModelOutput(z=z, one_latent_space=True)
 
         elif len(cond_mod) == 1:
             cond_mod = cond_mod[0]
             output = self.encoders[cond_mod](inputs.data[cond_mod])
-            sample_shape = [] if N == 1 else [N]
-
-            z = dist.Normal(
-                output.embedding, torch.exp(0.5 * output.log_covariance)
-            ).rsample(
-                sample_shape
-            )  # shape N x len_data x latent_dim
-            if N > 1 and kwargs.pop("flatten", False):
-                N, l, d = z.shape
-                z = z.reshape(l * N, d)
-            return ModelOutput(z=z, one_latent_space=True)
+            z = rsample_from_gaussian(output.embedding, output.log_covariance,
+                                       N, return_mean, flatten=flatten)
+            
         else:
             raise AttributeError(
-                f"Modalities of names {cond_mod} not handled. The"
-                f" modalities that can be encoded are {list(self.encoders.keys())}"
+                f"Too many modalities passed to the encode function : {cond_mod}."
             )
+        
+        return ModelOutput(z=z, one_latent_space=True)
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
         """Performs a forward pass of the JMVAE model on inputs.
@@ -209,12 +190,10 @@ class JMVAE(BaseJointModel):
         return output
 
 
-    def _sample_from_poe_subset_exact(self, subset: list, data: dict, sample_shape=None):
+    def _sample_from_poe_subset_exact(self, subset: list, data: dict, N=1, return_mean=False, flatten=False):
         """
         Sample from the product of experts for infering from a subset of modalities.
         """
-        if sample_shape is None:
-            sample_shape = []
 
         # Get all the experts' means and logvars
         mus, logvars = [], []
@@ -225,5 +204,5 @@ class JMVAE(BaseJointModel):
         
         # Compute the product of experts
         joint_mu, joint_logvar = stable_poe(torch.stack(mus), torch.stack(logvars))
-        z = dist.Normal(joint_mu, torch.exp(0.5 * joint_logvar)).rsample(sample_shape)
+        z = rsample_from_gaussian(joint_mu,joint_logvar, N, return_mean, flatten)
         return z

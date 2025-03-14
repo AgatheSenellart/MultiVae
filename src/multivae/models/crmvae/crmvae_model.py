@@ -8,7 +8,7 @@ from pythae.models.base.base_utils import ModelOutput
 from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
 
 from ..base import BaseMultiVAE
-from ..base.base_utils import kl_divergence, poe
+from ..base.base_utils import kl_divergence, poe, rsample_from_gaussian
 from .crmvae_config import CRMVAEConfig
 
 
@@ -27,15 +27,12 @@ class CRMVAE(BaseMultiVAE):
 
         self.model_name = "CRMVAE"
 
-    def _logits_to_scale(self, logits):
-        return torch.exp(0.5 * logits), logits
 
-    def _rsample(self, latent_params: ModelOutput, size=None):
+    def _rsample(self, latent_params: ModelOutput,N=1, return_mean=False, flatten=False):
         mean = latent_params.embedding
-        scale, log_var = self._logits_to_scale(latent_params.log_covariance)
-        if size is None:
-            return mean, log_var, dist.Normal(mean, scale).rsample()
-        return mean, log_var, dist.Normal(mean, scale).rsample(size)
+        log_var = latent_params.log_covariance
+        z = rsample_from_gaussian(mean, log_var,N,return_mean, flatten)
+        return mean, log_var, z
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
         """
@@ -185,6 +182,7 @@ class CRMVAE(BaseMultiVAE):
         inputs: MultimodalBaseDataset,
         cond_mod: Union[list, str] = "all",
         N: int = 1,
+        return_mean = False,
         **kwargs,
     ) -> ModelOutput:
         """
@@ -195,6 +193,8 @@ class CRMVAE(BaseMultiVAE):
             cond_mod (Union[list, str]): Either 'all' or a list of str containing the modalities
                 names to condition on.
             N (int) : The number of encodings to sample for each datapoint. Default to 1.
+            return_mean (bool) : if True, returns the mean of the posterior distribution (instead of a sample).
+
 
         Returns:
             ModelOutput instance with fields:
@@ -206,6 +206,7 @@ class CRMVAE(BaseMultiVAE):
         # Call super() function to transform to preprocess cond_mod. You obtain a list of
         # the modalities' names to condition on.
         cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
+        flatten = kwargs.pop("flatten", False)
 
         # Only keep the relevant modalities for prediction
         cond_inputs = MultimodalBaseDataset(
@@ -213,18 +214,8 @@ class CRMVAE(BaseMultiVAE):
         )
         # Compute the product of experts of the modalities in cond_mod
         latents_subsets = self._infer_all_latent_parameters(cond_inputs)
-        sample_shape = [N] if N > 1 else []
 
-        mu, log_var, z = self._rsample(latents_subsets["joint"], size=sample_shape)
-
-        return_mean = kwargs.pop("return_mean", False)
-        if return_mean:
-            z = torch.stack([mu] * N) if N > 1 else mu
-
-        flatten = kwargs.pop("flatten", False)
-        if flatten:
-            z = z.reshape(-1, self.latent_dim)
-
+        _, _, z = self._rsample(latents_subsets["joint"], N=N, return_mean=return_mean, flatten=flatten)
         return ModelOutput(z=z, one_latent_space=True)
 
     @torch.no_grad()
@@ -255,7 +246,7 @@ class CRMVAE(BaseMultiVAE):
         joint_params = self._infer_all_latent_parameters(inputs)["joint"]
 
         # Sample K latents from the joint posterior
-        mu, logvar, z_joint = self._rsample(joint_params, size=[K])
+        mu, logvar, z_joint = self._rsample(joint_params, N=K)
         z_joint = z_joint.permute(1, 0, 2)  # shape :  n_data x K x latent_dim
         n_data, _, _ = z_joint.shape
 

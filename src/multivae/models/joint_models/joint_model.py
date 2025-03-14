@@ -73,7 +73,7 @@ class BaseJointModel(BaseMultiVAE):
         if hasattr(inputs, 'masks'):
             raise AttributeError('The inputs have masks but this model is not compatible with incomplete dataset.')
         
-    def encode(self, inputs, cond_mod = "all", N = 1, **kwargs):
+    def encode(self, inputs, cond_mod = "all", N = 1, return_mean = False,**kwargs):
         if hasattr(inputs, 'masks'):
             raise AttributeError('The inputs have masks but this model is not compatible with incomplete dataset.')
         return super().encode(inputs, cond_mod, N, **kwargs)
