@@ -207,38 +207,38 @@ class Test_CVAE:
         # Test reconstruction
         output = model.predict(cond_mod="all", inputs=samples)
         assert isinstance(output, ModelOutput)
-        assert hasattr(output, "reconstruction")
-        assert output.reconstruction.shape == samples.data["mnist"].shape
+        assert hasattr(output, 'mnist')
+        assert output.mnist.shape == samples.data["mnist"].shape
 
         output = model.predict(cond_mod=["mnist"], inputs=samples)
         assert isinstance(output, ModelOutput)
-        assert hasattr(output, "reconstruction")
-        assert output.reconstruction.shape == samples.data["mnist"].shape
+        assert hasattr(output, model.main_modality)
+        assert output.mnist.shape == samples.data["mnist"].shape
 
         output = model.predict(
             cond_mod=["mnist", "label", "color"], inputs=samples, N=10
         )
         assert isinstance(output, ModelOutput)
-        assert hasattr(output, "reconstruction")
-        assert output.reconstruction.shape == (10, 10, 3, 28, 28)
+        assert hasattr(output, model.main_modality)
+        assert output.mnist.shape == (10, 10, 3, 28, 28)
 
         # Test generation
         output = model.predict(cond_mod=["label", "color"], inputs=samples)
         assert isinstance(output, ModelOutput)
-        assert hasattr(output, "reconstruction")
-        assert output.reconstruction.shape == samples.data["mnist"].shape
+        assert hasattr(output, "mnist")
+        assert output.mnist.shape == samples.data["mnist"].shape
 
         output = model.predict(cond_mod=["label", "color"], inputs=samples, N=10)
         assert isinstance(output, ModelOutput)
-        assert hasattr(output, "reconstruction")
-        assert output.reconstruction.shape == (10, *samples.data["mnist"].shape)
+        assert hasattr(output, "mnist")
+        assert output.mnist.shape == (10, *samples.data["mnist"].shape)
 
         output = model.predict(
             cond_mod=["label", "color"], inputs=samples, N=10, flatten=True
         )
         assert isinstance(output, ModelOutput)
-        assert hasattr(output, "reconstruction")
-        assert output.reconstruction.shape == (
+        assert hasattr(output, "mnist")
+        assert output.mnist.shape == (
             10 * samples.data["mnist"].shape[0],
             *samples.data["mnist"].shape[1:],
         )

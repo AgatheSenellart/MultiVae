@@ -521,10 +521,9 @@ class BaseTrainer:
                 self._best_model = best_model
                 logger.info("New best model on train saved!")
 
-            # For BaseMultiVae models, compute reconstruction
+            # If steps_predict is not None, compute reconstruction images
             if (
-                isinstance(self.model, BaseMultiVAE)
-                and self.training_config.steps_predict is not None
+                self.training_config.steps_predict is not None
                 and (epoch % self.training_config.steps_predict == 0 or epoch == 1)
                 and self.is_main_process
             ):
@@ -535,6 +534,12 @@ class BaseTrainer:
                     reconstructions=reconstructions,
                     global_step=epoch,
                 )
+
+                # Save the reconstructions to folder
+                for key, image in reconstructions.items():
+                    image.save(os.path.join(self.training_dir, f'recon_from_{key}.png'))
+                    
+
             self.callback_handler.on_epoch_end(training_config=self.training_config)
 
             # save checkpoints
@@ -771,60 +776,63 @@ class BaseTrainer:
             self.training_config, checkpoint_dir=checkpoint_dir
         )
 
-    def predict(self, model: BaseMultiVAE, epoch: int, n_data=8):
+    def predict(self, model: BaseModel, epoch: int, n_data=8):
         """For BaseMultiVaE models, compute self and cross reconstructions during training."""
 
         model.eval()
 
         predict_dataset = self.eval_dataset if self.eval_dataset is not None else self.train_dataset
 
+        # Take one sample with n_data datapoints
         inputs = next(iter(DataLoader(predict_dataset, batch_size=n_data)))
         inputs = set_inputs_to_device(inputs, self.device)
 
-        all_recons = dict()
+        all_recons = {}
 
-        # Cross modal reconstructions
-        for mod in inputs.data:
-            recon = model.predict(
-                inputs, mod, "all", N=8, flatten=True, ignore_incomplete=True
-            )
-            if hasattr(predict_dataset, "transform_for_plotting"):
-                recon = {
-                    mod_name: predict_dataset.transform_for_plotting(
-                        recon[mod_name], modality=mod_name
-                    )
-                    for mod_name in recon
-                }
-                recon["true_data"] = predict_dataset.transform_for_plotting(
-                    inputs.data[mod], modality=mod
+        # For multimodal VAEs we compute all 1-to-1 cross-modal reconstruction
+        if isinstance(model, BaseMultiVAE):
+            for mod in inputs.data:
+                recon = model.predict(
+                    inputs, mod, "all", N=8, flatten=True, ignore_incomplete=True
                 )
-            else:
-                recon["true_data"] = inputs.data[mod]
-            recon, shape = adapt_shape(recon)
-            recon_image = [recon["true_data"]] + [
-                recon[m] for m in recon if m != "true_data"
-            ]
-            recon_image = torch.cat(recon_image)
+                if hasattr(predict_dataset, "transform_for_plotting"):
+                    recon = {
+                        mod_name: predict_dataset.transform_for_plotting(
+                            recon[mod_name], modality=mod_name
+                        )
+                        for mod_name in recon
+                    }
+                    recon["true_data"] = predict_dataset.transform_for_plotting(
+                        inputs.data[mod], modality=mod
+                    )
+                else:
+                    recon["true_data"] = inputs.data[mod]
+                recon, _ = adapt_shape(recon)
+                recon_image = [recon["true_data"]] + [
+                    recon[m] for m in recon if m != "true_data"
+                ]
+                recon_image = torch.cat(recon_image)
 
-            # Transform to PIL format
-            recon_image = make_grid(recon_image, nrow=n_data)
-            # Add 0.5 after unnormalizing to [0, 255] to round to nearest integer
-            ndarr = (
-                recon_image.mul(255)
-                .add_(0.5)
-                .clamp_(0, 255)
-                .permute(1, 2, 0)
-                .to("cpu", torch.uint8)
-                .numpy()
-            )
-            recon_image = Image.fromarray(ndarr)
+                # Transform to PIL format
+                recon_image = make_grid(recon_image, nrow=n_data)
+                # Add 0.5 after unnormalizing to [0, 255] to round to nearest integer
+                ndarr = (
+                    recon_image.mul(255)
+                    .add_(0.5)
+                    .clamp_(0, 255)
+                    .permute(1, 2, 0)
+                    .to("cpu", torch.uint8)
+                    .numpy()
+                )
+                recon_image = Image.fromarray(ndarr)
 
-            all_recons[mod] = recon_image
+                all_recons[mod] = recon_image
 
-        # joint reconstruction
+        # For multimodal VAE or CVAE model, we compute the joint reconstruction
         recon = model.predict(
-            inputs, "all", "all", N=8, flatten=True, ignore_incomplete=True
+            inputs=inputs, cond_mod="all", gen_mod="all", N=8, flatten=True, ignore_incomplete=True
         )
+        reconstructed_modalities = list(recon.keys())
         if hasattr(predict_dataset, "transform_for_plotting"):
             recon = {
                 mod_name: predict_dataset.transform_for_plotting(
@@ -843,12 +851,12 @@ class BaseTrainer:
 
         else:
             recon.update(
-                {f"true_data_{mod_name}": inputs.data[mod_name] for mod_name in recon}
+                {f"true_data_{mod_name}": inputs.data[mod_name] for mod_name in inputs.data}
             )
 
-        recon, shape = adapt_shape(recon)
+        recon, _ = adapt_shape(recon)
         recon_image = [recon[f"true_data_{m}"] for m in inputs.data] + [
-            recon[m] for m in inputs.data
+            recon[m] for m in reconstructed_modalities
         ]
         recon_image = torch.cat(recon_image)
 

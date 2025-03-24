@@ -360,6 +360,9 @@ class CVAE(BaseModel):
                 "The conditioning modalities must be either 'all' or the list of conditioning modalities"
             )
 
-        output = self.decode(embeddings)
+        output_decoder = self.decode(embeddings)
+
+        output = ModelOutput()
+        output[self.main_modality] = output_decoder.reconstruction
 
         return output
