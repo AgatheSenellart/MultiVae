@@ -15,7 +15,7 @@ from pythae.models.nn.default_architectures import Encoder_VAE_MLP
 from torch.utils.data import random_split
 
 from multivae.data import MultimodalBaseDataset
-from multivae.models import JMVAE, TELBO, JMVAEConfig, TELBOConfig
+from multivae.models import JMVAE, TELBO, JMVAEConfig, TELBOConfig, CVAE, CVAEConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 from multivae.trainers.base.callbacks import rename_logs
@@ -27,16 +27,29 @@ PATH = os.path.dirname(os.path.abspath(__file__))
 def training_config(tmp_path_factory):
     d = tmp_path_factory.mktemp("dummy_folder")
 
-    return BaseTrainerConfig(output_dir=str(d))
+    return BaseTrainerConfig(output_dir=str(d), num_epochs=5)
 
 
 @pytest.fixture(params=[0, 20])
-def model_sample(request):
+def model_sample_1(request):
     model_config = JMVAEConfig(n_modalities=2, latent_dim=10, warmup=request.param)
     config = BaseAEConfig(input_dim=(1, 28, 28), latent_dim=10)
     encoders = dict(mod1=Encoder_VAE_MLP(config), mod2=Encoder_Conv_VAE_MNIST(config))
     decoders = dict(mod1=Decoder_AE_MLP(config), mod2=Decoder_Conv_AE_MNIST(config))
     return JMVAE(model_config=model_config, encoders=encoders, decoders=decoders)
+
+@pytest.fixture()
+def model_sample_2():
+    model_config = CVAEConfig(n_modalities=2, latent_dim=10, main_modality='mod1', conditioning_modalities=['mod2'],
+                               input_dims={'mod1':(1,28,28), 'mod2':(1,28,28)})
+    return CVAE(model_config=model_config)
+
+@pytest.fixture(params=['jmvae','cvae'])
+def model_sample(request, model_sample_1, model_sample_2):
+    if request.param=='jmvae':
+        return model_sample_1
+    return model_sample_2
+
 
 
 @pytest.fixture
@@ -383,8 +396,8 @@ class Test_set_start_keep_best_epoch:
             eval_dataset=train_dataset,
             training_config=training_config,
         )
-
-        assert trainer.start_keep_best_epoch == model_sample.start_keep_best_epoch
+        if isinstance(model_sample, JMVAE):
+            assert trainer.start_keep_best_epoch == model_sample.start_keep_best_epoch
 
 
 class TestPredict:
@@ -402,11 +415,15 @@ class TestPredict:
 
         all_recons = trainer.predict(model_sample, epoch=1, n_data=3)
 
-        assert list(all_recons.keys()) == model_sample.modalities_name + ["all"]
+        if isinstance(model_sample, JMVAE):
+            assert list(all_recons.keys()) == model_sample.modalities_name + ["all"]
+        else:
+            assert list(all_recons.keys()) == ['all']
+
         for mod in all_recons:
             recon_mod = all_recons[mod]
             assert isinstance(recon_mod, Image.Image)
-        output_without_transform = all_recons["mod1"]
+        output_without_transform = all_recons["all"]
 
         # Test predict on a dataset with transform_for_plotting option
         trainer = BaseTrainer(
@@ -416,7 +433,7 @@ class TestPredict:
             training_config=training_config,
         )
         all_recons = trainer.predict(model_sample, epoch=1, n_data=3)
-        output_with_transform = all_recons["mod1"]
+        output_with_transform = all_recons["all"]
 
         assert output_with_transform.size != output_without_transform.size
 
@@ -429,7 +446,11 @@ class TestPredict:
             training_config=training_config,
         )
         all_recons = trainer.predict(model_sample, epoch=1, n_data=3)
-        assert list(all_recons.keys()) == model_sample.modalities_name + ["all"]
+        if isinstance(model_sample, JMVAE):
+            assert list(all_recons.keys()) == model_sample.modalities_name + ["all"]
+        else:
+            assert list(all_recons.keys()) == ['all']
+
 
 
 class TestSaving:
@@ -495,3 +516,23 @@ class TestTrainingCallbacks:
         assert set(renamed_metrics.keys()).issubset(
             set(["train/metric", "eval/metric"])
         )
+
+
+class TestSavingImages:
+
+    def test(self,model_sample, train_dataset, training_config):
+
+        training_config_predict = training_config
+        training_config_predict.steps_predict = 1
+
+        trainer = BaseTrainer(model_sample,train_dataset,eval_dataset=None,
+                              training_config= training_config_predict)
+        
+        trainer.train()
+
+        # check that images were saved in the right place
+        if isinstance(model_sample, JMVAE):
+            for key in ['mod1', 'mod2','all']:
+                assert os.path.exists(os.path.join(trainer.training_dir, f'recon_from_{key}.png'))
+        else:
+            assert os.path.exists(os.path.join(trainer.training_dir, 'recon_from_all.png'))
