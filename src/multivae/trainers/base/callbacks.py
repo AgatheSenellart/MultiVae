@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import warnings
+import torch
 from typing import Literal
 
 import numpy as np
@@ -390,13 +391,20 @@ class WandbCallback(TrainingCallback):  # pragma: no cover
         self._wandb.log({**logs, "train/global_step": global_step})
 
     def on_prediction_step(self, training_config: BaseTrainerConfig, **kwargs):
+        """Log all metrics or media contained in the metrics dictionary"""
+
         kwargs.pop("global_step", None)
 
-        reconstructions = kwargs.pop("reconstructions", None)
+        metrics_media = kwargs.pop("metrics_media", {})
 
-        for cond_mod in reconstructions:
-            image = self._wandb.Image(reconstructions[cond_mod])
-            self._wandb.log({"recon_from_" + cond_mod: image})
+        images = metrics_media.pop('images',{})
+
+        # Log the images
+        for k, image in images.items():
+            self._wandb.log({k : self._wandb.Image(image)})
+
+        # Log other metrics
+        self._wandb.log(metrics_media)
 
     def on_save_checkpoint(self, training_config: BaseTrainerConfig, **kwargs):
         checkpoint_dir = kwargs.pop("checkpoint_dir", None)

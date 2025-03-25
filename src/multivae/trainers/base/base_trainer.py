@@ -13,7 +13,7 @@ from PIL import Image
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
-from torchvision.utils import make_grid
+from torchvision.utils import make_grid, save_image
 
 from ...data import MultimodalBaseDataset
 from ...data.datasets.utils import adapt_shape
@@ -527,17 +527,18 @@ class BaseTrainer:
                 and (epoch % self.training_config.steps_predict == 0 or epoch == 1)
                 and self.is_main_process
             ):
-                reconstructions = self.predict(self._best_model, epoch)
+                metrics_media = self.predict(self._best_model, epoch)
 
                 self.callback_handler.on_prediction_step(
                     self.training_config,
-                    reconstructions=reconstructions,
+                    metrics_media=metrics_media,
                     global_step=epoch,
                 )
 
                 # Save the reconstructions to folder
-                for key, image in reconstructions.items():
-                    image.save(os.path.join(self.training_dir, f'recon_from_{key}.png'))
+                images = metrics_media.pop('images', {})
+                for key, image in images.items():
+                    save_image(image, os.path.join(self.training_dir, f'{key}.png'))
                     
 
             self.callback_handler.on_epoch_end(training_config=self.training_config)
@@ -787,7 +788,7 @@ class BaseTrainer:
         inputs = next(iter(DataLoader(predict_dataset, batch_size=n_data)))
         inputs = set_inputs_to_device(inputs, self.device)
 
-        all_recons = {}
+        all_recons = {'images' : {}}
 
         # For multimodal VAEs we compute all 1-to-1 cross-modal reconstruction
         if isinstance(model, BaseMultiVAE):
@@ -816,17 +817,8 @@ class BaseTrainer:
                 # Transform to PIL format
                 recon_image = make_grid(recon_image, nrow=n_data)
                 # Add 0.5 after unnormalizing to [0, 255] to round to nearest integer
-                ndarr = (
-                    recon_image.mul(255)
-                    .add_(0.5)
-                    .clamp_(0, 255)
-                    .permute(1, 2, 0)
-                    .to("cpu", torch.uint8)
-                    .numpy()
-                )
-                recon_image = Image.fromarray(ndarr)
-
-                all_recons[mod] = recon_image
+                
+                all_recons['images'][f'recon_from_{mod}'] = recon_image
 
         # For multimodal VAE or CVAE model, we compute the joint reconstruction
         recon = model.predict(
@@ -863,16 +855,7 @@ class BaseTrainer:
         # Transform to PIL format
         recon_image = make_grid(recon_image, nrow=n_data)
         # Add 0.5 after unnormalizing to [0, 255] to round to nearest integer
-        ndarr = (
-            recon_image.mul(255)
-            .add_(0.5)
-            .clamp_(0, 255)
-            .permute(1, 2, 0)
-            .to("cpu", torch.uint8)
-            .numpy()
-        )
-        recon_image = Image.fromarray(ndarr)
-
-        all_recons["all"] = recon_image
+        
+        all_recons['images']["recon_from_all"] = recon_image
 
         return all_recons
