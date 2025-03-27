@@ -151,3 +151,4 @@ src/multivae/data/datasets/celebattr.py
 examples/tutorial_notebooks/trained_maf_sampler/*
 
 scratch/
+mlruns/
