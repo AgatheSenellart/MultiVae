@@ -474,6 +474,7 @@ class MLFlowCallback(TrainingCallback):  # pragma: no cover
         model_config: BaseConfig = None,
         project_name:str = None,
         run_name: str = None,
+        logging_dir:str = None,
         **kwargs,
     ):
         """
@@ -484,11 +485,19 @@ class MLFlowCallback(TrainingCallback):  # pragma: no cover
 
             model_config (BaseAEConfig): The model configuration used in the run.
 
+            project_name (str): Name of the project.
+
             run_name (str): The name to apply to the current run.
+
+            logging_dir (str): The path where to save the mlflow logs. 
+                This must be an absolute path.
         """
         self.is_initialized = True
 
         training_config_dict = training_config.to_dict()
+
+        if logging_dir is not None:
+            self._mlflow.set_tracking_uri(f"file://{logging_dir}")
 
         if project_name is not None:
             self._mlflow.set_experiment(project_name)

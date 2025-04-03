@@ -340,10 +340,8 @@ class CVAE(BaseModel):
                 >>> output = model.predict(inputs, cond_mod = 'all')
                 >>> reconstruction = output.reconstruction
 
-
-
-
         """
+        self.eval()
         if (
             cond_mod == "all"
             or set(cond_mod) == set([self.main_modality])
