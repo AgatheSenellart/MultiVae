@@ -185,7 +185,10 @@ class CVAE(BaseModel):
         return ModelOutput(loss=loss, metrics=metrics)
 
     def encode(
-        self, inputs: MultimodalBaseDataset, N: int = 1, **kwargs
+        self, inputs: MultimodalBaseDataset, N: int = 1,
+        return_mean = False,
+        flatten = False,
+        **kwargs
     ) -> ModelOutput:
         """Generate latent code by encoding the data and sampling from the
         posterior distribution.
@@ -193,6 +196,10 @@ class CVAE(BaseModel):
         Args:
             inputs (MultimodalBaseDataset): The data to encode.
             N (int, optional): number of samples per datapoint to sample from the posterior. Defaults to 1.
+            return_mean (bool): If True, we don't sample in the latent space but return the mean of the encoder function.
+                Default to False
+            flatten (bool): If True, and N>1, we flatten the output to have shape (N*n_batch, latent_dim)
+
 
         Returns:
             A ModelOutput instance containing the embeddings. The shape of the embeddings is (N,batch_size,latent_dim)
@@ -204,9 +211,7 @@ class CVAE(BaseModel):
 
 
         """
-        return_mean = kwargs.pop("return_mean", False)
-        flatten = kwargs.pop("flatten", False)
-
+        
         output = self.encoder(inputs.data)
         mean, log_var = output.embedding, output.log_covariance
         scale = torch.exp(0.5 * log_var)
@@ -322,6 +327,7 @@ class CVAE(BaseModel):
         inputs: MultimodalBaseDataset,
         cond_mod: Union[str, list] = "all",
         N=1,
+        use_mean_embedding = False,
         **kwargs,
     ) -> ModelOutput:
         """Reconstruct from the input or from the conditioning modalities.
@@ -331,6 +337,7 @@ class CVAE(BaseModel):
             inputs (MultimodalBaseDataset) : The data to use for prediction.
             cond_mod (Union[str, list]) : Either 'all' to perform reconstruction or the list of conditioning modalities to generate from the prior.
             N (int) : number of samples per datapoint to sample from the posterior or prior.
+            use_mean_embedding (bool): If True, we use the mean of the encoder function as the embedding instead of sampling.
         Returns:
             ModelOutput : A ModelOutput instance containing the reconstruction / generation.
 
@@ -347,7 +354,7 @@ class CVAE(BaseModel):
             or set(cond_mod) == set([self.main_modality])
             or set(cond_mod) == set([self.main_modality] + self.conditioning_modalities)
         ):
-            embeddings = self.encode(inputs, N, **kwargs)
+            embeddings = self.encode(inputs, N, return_mean=use_mean_embedding, **kwargs)
 
         elif set(cond_mod) == set(self.conditioning_modalities):
             cond_mod_data = {m: inputs.data[m] for m in self.conditioning_modalities}

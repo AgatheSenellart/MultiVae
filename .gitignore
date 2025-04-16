@@ -152,3 +152,4 @@ examples/tutorial_notebooks/trained_maf_sampler/*
 
 scratch/
 mlruns/
+static/add_covariates_expes_9_04.ods

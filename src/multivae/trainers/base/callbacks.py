@@ -39,6 +39,11 @@ def load_wandb_path_from_folder(path):
 
         return wandb_info["path"]
 
+def load_ml_flow_id_from_folder(path):
+    with open(os.path.join(path, "mlflow_info.json")) as fp:
+        ml_flow_info = json.load(fp)
+
+        return ml_flow_info
 
 def rename_logs(logs):
     train_prefix = "train_"
@@ -563,7 +568,22 @@ class MLFlowCallback(TrainingCallback):  # pragma: no cover
 
         self._mlflow.log_metrics(metrics=metrics, step=global_step)
 
-        
+    def on_save(self, training_config: BaseTrainerConfig, **kwargs):
+        dir_path = kwargs.pop("dir_path", None)
+        if dir_path is None:
+            warnings.warn(
+                "mlflow callback on_save is called without"
+                "a  directory information. Please provide dir_path=.."
+            )
+            return
+        info_dict = {
+            'run_id' :self._mlflow.active_run().info.run_id,
+            'run_name': self._mlflow.active_run().info.run_name,
+            'experiment_id':self._mlflow.active_run().info.experiment_id, 
+            'artifact_uri': self._mlflow.active_run().info.artifact_uri
+        }
+        with open(os.path.join(dir_path, "mlflow_info.json"), "w") as fp:
+            json.dump(info_dict, fp)
 
     def __del__(self):
         # if the previous run is not terminated correctly, the fluent API will
