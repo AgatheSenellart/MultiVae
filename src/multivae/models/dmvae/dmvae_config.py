@@ -28,8 +28,8 @@ class DMVAEConfig(BaseMultiVAEConfig):
             the decoder is expected to output **logits**. If None is provided, a normal distribution is used for each modality.
         decoder_dist_params (Dict[str,dict]) : Parameters for the output decoder distributions, for
             computing the log-probability.
-            For instance, with normal or laplace distribution, you can pass the scale in this dictionary.
-            ex :  {'mod1' : {scale : 0.75}}
+            For instance, with normal or laplace distribution, you can pass the scale in this dictionary with
+            :code:`decoder_dist_params =  {'mod1' : {"scale" : 0.75}}`.
         modalities_specific_dims (dict): The latent dimensions for the private spaces.
         beta (float) : The scaling factor for the joint divergence term. Default to 1.
         modality_specific_betas (dict) : the betas for the private KL divergence terms. Default to None.

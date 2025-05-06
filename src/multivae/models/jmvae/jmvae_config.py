@@ -16,9 +16,16 @@ class JMVAEConfig(BaseJointModelConfig):
             (see : https://proceedings.mlr.press/v162/javaloy22a.html).
             The inputs_dim must be provided to compute the likelihoods rescalings. It is used in a number of models
             which is why we include it here. Default to False.
+        rescale_factors (dict[str, float]): The reconstruction rescaling factors per modality.
+            If None is provided but uses_likelihood_rescaling is True, a default value proportional to the input modality
+            size is computed. Default to None.
         decoders_dist (Dict[str, Union[function, str]]). The decoder distributions to use per modality.
-            Per modality, you can provide a string in ['normal','bernoulli','laplace','categorical']. For Bernoulli distribution,
+            Per modality, you can provide a string in ['normal','bernoulli','laplace']. For Bernoulli distribution,
             the decoder is expected to output **logits**. If None is provided, a normal distribution is used for each modality.
+        decoder_dist_params (Dict[str,dict]) : Parameters for the output decoder distributions, for
+            computing the log-probability.
+            For instance, with normal or laplace distribution, you can pass the scale in this dictionary with
+            :code:`decoder_dist_params =  {'mod1' : {"scale" : 0.75}}`.
         alpha (float):  the parameter that controls the tradeoff between the ELBO and the
             regularization term. Default to 0.1.
         warmup (int): The number of warmup epochs during training. The JMVAE model uses annealing.

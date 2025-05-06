@@ -207,7 +207,7 @@ class Test_CVAE:
         # Test reconstruction
         output = model.predict(cond_mod="all", inputs=samples)
         assert isinstance(output, ModelOutput)
-        assert hasattr(output, 'mnist')
+        assert hasattr(output, "mnist")
         assert output.mnist.shape == samples.data["mnist"].shape
 
         output = model.predict(cond_mod=["mnist"], inputs=samples)

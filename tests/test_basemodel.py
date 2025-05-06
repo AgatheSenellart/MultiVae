@@ -131,12 +131,13 @@ class Test_BaseMultiVAE:
 
         config = BaseAEConfig(input_dim=(10, 2), latent_dim=10)
 
+        # test wrong encoder name
         encoders = dict(mod1=Encoder_VAE_MLP(config))
-
         decoders = dict(mod1=Decoder_Conv_AE_MNIST(config))
 
         with pytest.raises(KeyError):
             BaseMultiVAE(model_config, encoders=encoders, decoders=decoders)
+
 
     def test_recon_dist(self):
         model_config = BaseMultiVAEConfig(

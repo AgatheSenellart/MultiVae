@@ -537,8 +537,7 @@ class BaseTrainer:
 
                 # Save the reconstructions to folder
                 for key, image in reconstructions.items():
-                    image.save(os.path.join(self.training_dir, f'recon_from_{key}.png'))
-                    
+                    image.save(os.path.join(self.training_dir, f"recon_from_{key}.png"))
 
             self.callback_handler.on_epoch_end(training_config=self.training_config)
 
@@ -781,7 +780,9 @@ class BaseTrainer:
 
         model.eval()
 
-        predict_dataset = self.eval_dataset if self.eval_dataset is not None else self.train_dataset
+        predict_dataset = (
+            self.eval_dataset if self.eval_dataset is not None else self.train_dataset
+        )
 
         # Take one sample with n_data datapoints
         inputs = next(iter(DataLoader(predict_dataset, batch_size=n_data)))
@@ -830,7 +831,12 @@ class BaseTrainer:
 
         # For multimodal VAE or CVAE model, we compute the joint reconstruction
         recon = model.predict(
-            inputs=inputs, cond_mod="all", gen_mod="all", N=8, flatten=True, ignore_incomplete=True
+            inputs=inputs,
+            cond_mod="all",
+            gen_mod="all",
+            N=8,
+            flatten=True,
+            ignore_incomplete=True,
         )
         reconstructed_modalities = list(recon.keys())
         if hasattr(predict_dataset, "transform_for_plotting"):
@@ -851,7 +857,10 @@ class BaseTrainer:
 
         else:
             recon.update(
-                {f"true_data_{mod_name}": inputs.data[mod_name] for mod_name in inputs.data}
+                {
+                    f"true_data_{mod_name}": inputs.data[mod_name]
+                    for mod_name in inputs.data
+                }
             )
 
         recon, _ = adapt_shape(recon)
