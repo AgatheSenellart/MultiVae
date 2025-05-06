@@ -63,23 +63,25 @@ Here is a very simple code to illustrate how you can use MultiVae:
 ```python
 # Load a dataset 
 from multivae.data.datasets import MnistSvhn
-train_set = MnistSvhn(data_path='your_data_path', split="train", download=True)
+
+train_set = MnistSvhn(data_path="./data", split="train", download=True)
 
 
 # Instantiate your favorite model:
 from multivae.models import MVTCAE, MVTCAEConfig
+
 model_config = MVTCAEConfig(
-    latent_dim=20, 
-    input_dims = {'mnist' : (1,28,28),'svhn' : (3,32,32)})
+    n_modalities=2,
+    latent_dim=20,
+    input_dims={"mnist": (1, 28, 28), "svhn": (3, 32, 32)},
+)
 model = MVTCAE(model_config)
 
 
 # Define a trainer and train the model !
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
-training_config = BaseTrainerConfig(
-    learning_rate=1e-3,
-    num_epochs=30
-)
+
+training_config = BaseTrainerConfig(learning_rate=1e-3, num_epochs=10)
 
 trainer = BaseTrainer(
     model=model,
