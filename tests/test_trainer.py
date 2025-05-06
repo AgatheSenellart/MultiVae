@@ -15,7 +15,7 @@ from pythae.models.nn.default_architectures import Encoder_VAE_MLP
 from torch.utils.data import random_split
 
 from multivae.data import MultimodalBaseDataset
-from multivae.models import JMVAE, TELBO, JMVAEConfig, TELBOConfig, CVAE, CVAEConfig
+from multivae.models import CVAE, JMVAE, TELBO, CVAEConfig, JMVAEConfig, TELBOConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 from multivae.trainers.base.callbacks import rename_logs
@@ -38,18 +38,24 @@ def model_sample_1(request):
     decoders = dict(mod1=Decoder_AE_MLP(config), mod2=Decoder_Conv_AE_MNIST(config))
     return JMVAE(model_config=model_config, encoders=encoders, decoders=decoders)
 
+
 @pytest.fixture()
 def model_sample_2():
-    model_config = CVAEConfig(n_modalities=2, latent_dim=10, main_modality='mod1', conditioning_modalities=['mod2'],
-                               input_dims={'mod1':(1,28,28), 'mod2':(1,28,28)})
+    model_config = CVAEConfig(
+        n_modalities=2,
+        latent_dim=10,
+        main_modality="mod1",
+        conditioning_modalities=["mod2"],
+        input_dims={"mod1": (1, 28, 28), "mod2": (1, 28, 28)},
+    )
     return CVAE(model_config=model_config)
 
-@pytest.fixture(params=['jmvae','cvae'])
+
+@pytest.fixture(params=["jmvae", "cvae"])
 def model_sample(request, model_sample_1, model_sample_2):
-    if request.param=='jmvae':
+    if request.param == "jmvae":
         return model_sample_1
     return model_sample_2
-
 
 
 @pytest.fixture
@@ -418,7 +424,7 @@ class TestPredict:
         if isinstance(model_sample, JMVAE):
             assert list(all_recons.keys()) == model_sample.modalities_name + ["all"]
         else:
-            assert list(all_recons.keys()) == ['all']
+            assert list(all_recons.keys()) == ["all"]
 
         for mod in all_recons:
             recon_mod = all_recons[mod]
@@ -449,8 +455,7 @@ class TestPredict:
         if isinstance(model_sample, JMVAE):
             assert list(all_recons.keys()) == model_sample.modalities_name + ["all"]
         else:
-            assert list(all_recons.keys()) == ['all']
-
+            assert list(all_recons.keys()) == ["all"]
 
 
 class TestSaving:
@@ -520,19 +525,27 @@ class TestTrainingCallbacks:
 
 class TestSavingImages:
 
-    def test(self,model_sample, train_dataset, training_config):
+    def test(self, model_sample, train_dataset, training_config):
 
         training_config_predict = training_config
         training_config_predict.steps_predict = 1
 
-        trainer = BaseTrainer(model_sample,train_dataset,eval_dataset=None,
-                              training_config= training_config_predict)
-        
+        trainer = BaseTrainer(
+            model_sample,
+            train_dataset,
+            eval_dataset=None,
+            training_config=training_config_predict,
+        )
+
         trainer.train()
 
         # check that images were saved in the right place
         if isinstance(model_sample, JMVAE):
-            for key in ['mod1', 'mod2','all']:
-                assert os.path.exists(os.path.join(trainer.training_dir, f'recon_from_{key}.png'))
+            for key in ["mod1", "mod2", "all"]:
+                assert os.path.exists(
+                    os.path.join(trainer.training_dir, f"recon_from_{key}.png")
+                )
         else:
-            assert os.path.exists(os.path.join(trainer.training_dir, 'recon_from_all.png'))
+            assert os.path.exists(
+                os.path.join(trainer.training_dir, "recon_from_all.png")
+            )

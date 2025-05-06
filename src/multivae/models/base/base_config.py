@@ -1,5 +1,5 @@
 from dataclasses import field
-from typing import Dict, Literal, Tuple, Union, Optional
+from typing import Dict, Literal, Optional, Tuple, Union
 
 from pydantic.dataclasses import dataclass
 from pythae.config import BaseConfig

@@ -86,10 +86,9 @@ class BaseMultiVAE(BaseModel):
         self.set_encoders(encoders)
         self.modalities_name = list(self.decoders.keys())
 
-        
         # Set the rescale factors
         self.rescale_factors = self.set_rescale_factors()
-            
+
         # Set the output decoder distributions
         if model_config.decoders_dist is None:
             model_config.decoders_dist = {k: "normal" for k in self.encoders}
@@ -116,7 +115,7 @@ class BaseMultiVAE(BaseModel):
         # reconstruction loss as the log probability.
 
     def check_input_dims(self, model_config):
-        """ Check that the input dimensions are coherent with the provided number of modalities"""
+        """Check that the input dimensions are coherent with the provided number of modalities"""
 
         if model_config.input_dims is not None:
             if len(model_config.input_dims.keys()) != model_config.n_modalities:
@@ -125,7 +124,7 @@ class BaseMultiVAE(BaseModel):
                     f"match the number of modalities ({model_config.n_modalities} in model config "
                 )
         return
-    
+
     def set_rescale_factors(self):
         """Set the rescale factors for the reconstruction losses.
         When using likelihood rescaling, the rescale factors are used to compute the
@@ -153,7 +152,6 @@ class BaseMultiVAE(BaseModel):
             rescale_factors = {k: 1 for k in self.encoders}
         return rescale_factors
 
-
     def sanity_check(self, encoders, decoders):
         """Check coherences between the encoders, decoders and model configuration."""
         if self.n_modalities != len(encoders.keys()):
@@ -173,7 +171,7 @@ class BaseMultiVAE(BaseModel):
                 "The names of the modalities in the encoders dict doesn't match the names of the modalities"
                 " in the decoders dict."
             )
-        
+
         # If input_dims is provided, check that the encoders and decoders are coherent with it
         if self.input_dims is not None:
             if self.input_dims.keys() != encoders.keys():
