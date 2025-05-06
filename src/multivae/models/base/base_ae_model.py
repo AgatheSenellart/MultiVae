@@ -172,17 +172,12 @@ class BaseMultiVAE(BaseModel):
                 " in the decoders dict."
             )
 
-        # If input_dims is provided, check that the encoders and decoders are coherent with it
+        # If input_dims is provided, check that the modalities'names are coherent with encoders/decoders
         if self.input_dims is not None:
             if self.input_dims.keys() != encoders.keys():
                 raise KeyError(
                     f"Warning! : The modalities names in model_config.input_dims : {list(self.input_dims.keys())}"
                     f" do not match the modalities names in encoders : {list(encoders.keys())}"
-                )
-            if self.input_dims.keys() != decoders.keys():
-                raise KeyError(
-                    f"Warning! : The modalities names in model_config.input_dims : {list(self.input_dims.keys())}"
-                    f" do not match the modalities names in encoders : {list(decoders.keys())}"
                 )
 
     def encode(
