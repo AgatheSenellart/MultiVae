@@ -29,8 +29,8 @@ class MHVAEConfig(BaseMultiVAEConfig):
             the decoder is expected to output **logits**. If None is provided, a normal distribution is used for each modality.
         decoder_dist_params (Dict[str,dict]) : Parameters for the output decoder distributions, for
             computing the log-probability.
-            For instance, with normal or laplace distribution, you can pass the scale in this dictionary.
-            ex :  {'mod1' : {scale : 0.75}}
+            For instance, with normal or laplace distribution, you can pass the scale in this dictionary with
+            :code:`decoder_dist_params =  {'mod1' : {"scale" : 0.75}}`.
 
         n_latent (int) : the number of latent variables.
         beta (float) : the weight for the KL divergence.

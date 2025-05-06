@@ -23,12 +23,12 @@ class MVTCAEConfig(BaseMultiVAEConfig):
             If None is provided but uses_likelihood_rescaling is True, a default value proportional to the input modality
             size is computed. Default to None.
         decoders_dist (Dict[str, Union[function, str]]). The decoder distributions to use per modality.
-            Per modality, you can provide a string in ['normal','bernoulli','laplace','categorical']. For Bernoulli distribution,
+            Per modality, you can provide a string in ['normal','bernoulli','laplace']. For Bernoulli distribution,
             the decoder is expected to output **logits**. If None is provided, a normal distribution is used for each modality.
         decoder_dist_params (Dict[str,dict]) : Parameters for the output decoder distributions, for
             computing the log-probability.
-            For instance, with normal or laplace distribution, you can pass the scale in this dictionary.
-            ex :  {'mod1' : {scale : 0.75}}
+            For instance, with normal or laplace distribution, you can pass the scale in this dictionary with
+            :code:`decoder_dist_params =  {'mod1' : {"scale" : 0.75}}`.
         alpha (float) : The parameter that ponderates the total correlation ratio in the loss. Default to 0.1
         beta (float) : The parameter that weights the sum of all KLs. Default to 2.5.
     """
