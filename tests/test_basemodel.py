@@ -138,7 +138,6 @@ class Test_BaseMultiVAE:
         with pytest.raises(KeyError):
             BaseMultiVAE(model_config, encoders=encoders, decoders=decoders)
 
-
     def test_recon_dist(self):
         model_config = BaseMultiVAEConfig(
             n_modalities=4,
