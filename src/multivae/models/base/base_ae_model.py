@@ -45,83 +45,52 @@ class BaseMultiVAE(BaseModel):
         encoders: dict = None,
         decoders: dict = None,
     ):
-        nn.Module.__init__(self)
+        super().__init__(model_config)
 
+        # Set basic attributes
         self.model_name = "BaseMultiVAE"
-        self.model_config = model_config
         self.n_modalities = model_config.n_modalities
         self.input_dims = model_config.input_dims
-        self.multiple_latent_spaces = False  # Default value, this field must be changes
+        self.latent_dim = model_config.latent_dim
+        self.device = None
+        self.multiple_latent_spaces = False  # Default value, this field must be changed
         # in models using multiple latent spaces
+        self.use_likelihood_rescaling = model_config.uses_likelihood_rescaling
 
+        # Check the coherence between n_modalities and input_dims
+        self.check_input_dims(model_config)
+
+        # Set the encoders
         if encoders is None:
             if self.input_dims is None:
                 raise AttributeError(
                     "Please provide encoders or input dims for the modalities in the model_config."
                 )
-            if len(self.input_dims.keys()) != self.n_modalities:
-                raise AttributeError(
-                    f"The provided number of input_dims {len(self.input_dims.keys())} doesn't"
-                    f"match the number of modalities ({self.n_modalities} in model config "
-                )
             encoders = self.default_encoders(model_config)
         else:
             self.model_config.custom_architectures.append("encoders")
 
+        # Set the decoders
         if decoders is None:
             if self.input_dims is None:
                 raise AttributeError(
                     "Please provide decoders or input dims for the modalities in the model_config."
                 )
-            if len(self.input_dims.keys()) != self.n_modalities:
-                raise AttributeError(
-                    f"The provided number of input_dims {len(self.input_dims.keys())} doesn't"
-                    f"match the number of modalities ({self.n_modalities} in model config "
-                )
             decoders = self.default_decoders(model_config)
         else:
             self.model_config.custom_architectures.append("decoders")
 
+        # Check the coherence between encoders and decoders and model configuration
         self.sanity_check(encoders, decoders)
-
-        self.latent_dim = model_config.latent_dim
-        self.model_config = model_config
-        self.device = None
-
         self.set_decoders(decoders)
         self.set_encoders(encoders)
-
         self.modalities_name = list(self.decoders.keys())
 
-        # Check that the modalities' name are coherent
-        if self.input_dims is not None:
-            if self.input_dims.keys() != self.encoders.keys():
-                raise KeyError(
-                    f"Warning! : The modalities names in model_config.input_dims : {list(self.input_dims.keys())}"
-                    f" does not match the modalities names in encoders : {list(self.encoders.keys())}"
-                )
-
-        self.use_likelihood_rescaling = model_config.uses_likelihood_rescaling
-        if self.use_likelihood_rescaling:
-            if self.model_config.rescale_factors is not None:
-                self.rescale_factors = model_config.rescale_factors
-            elif self.input_dims is None:
-                raise AttributeError(
-                    " inputs_dim = None but (use_likelihood_rescaling = True"
-                    " in model_config)"
-                    " To compute likelihood rescalings we need the input dimensions."
-                    " Please provide a valid dictionary for input_dims."
-                )
-            else:
-                max_dim = max(*[np.prod(self.input_dims[k]) for k in self.input_dims])
-                self.rescale_factors = {
-                    k: max_dim / np.prod(self.input_dims[k]) for k in self.input_dims
-                }
-        else:
-            self.rescale_factors = {k: 1 for k in self.encoders}
-            # above, we take the modalities keys in self.encoders as input_dims may be None
-
-        # Set the reconstruction losses
+        
+        # Set the rescale factors
+        self.rescale_factors = self.set_rescale_factors()
+            
+        # Set the output decoder distributions
         if model_config.decoders_dist is None:
             model_config.decoders_dist = {k: "normal" for k in self.encoders}
         if model_config.decoder_dist_params is None:
@@ -146,6 +115,45 @@ class BaseMultiVAE(BaseModel):
         # TODO : add the possibility to provide custom reconstruction loss and in that case use the negative
         # reconstruction loss as the log probability.
 
+    def check_input_dims(self, model_config):
+        """ Check that the input dimensions are coherent with the provided number of modalities"""
+
+        if model_config.input_dims is not None:
+            if len(model_config.input_dims.keys()) != model_config.n_modalities:
+                raise AttributeError(
+                    f"The provided number of input_dims {len(model_config.input_dims)} doesn't"
+                    f"match the number of modalities ({model_config.n_modalities} in model config "
+                )
+        return
+    
+    def set_rescale_factors(self):
+        """Set the rescale factors for the reconstruction losses.
+        When using likelihood rescaling, the rescale factors are used to compute the
+        reconstruction losses.
+        """
+        if self.use_likelihood_rescaling:
+            # If rescale factors are provided, use them
+            if self.model_config.rescale_factors is not None:
+                rescale_factors = self.model_config.rescale_factors
+            # If rescale factors are not provided, compute them from input dimensions
+            elif self.input_dims is None:
+                raise AttributeError(
+                    " inputs_dim is None but (use_likelihood_rescaling = True"
+                    " in model_config)"
+                    " To compute default likelihood rescalings we need the input dimensions."
+                    " Please provide a valid dictionary for input_dims or provide rescale_factors"
+                    " in the model_config."
+                )
+            else:
+                max_dim = max(*[np.prod(self.input_dims[k]) for k in self.input_dims])
+                rescale_factors = {
+                    k: max_dim / np.prod(self.input_dims[k]) for k in self.input_dims
+                }
+        else:
+            rescale_factors = {k: 1 for k in self.encoders}
+        return rescale_factors
+
+
     def sanity_check(self, encoders, decoders):
         """Check coherences between the encoders, decoders and model configuration."""
         if self.n_modalities != len(encoders.keys()):
@@ -165,6 +173,19 @@ class BaseMultiVAE(BaseModel):
                 "The names of the modalities in the encoders dict doesn't match the names of the modalities"
                 " in the decoders dict."
             )
+        
+        # If input_dims is provided, check that the encoders and decoders are coherent with it
+        if self.input_dims is not None:
+            if self.input_dims.keys() != encoders.keys():
+                raise KeyError(
+                    f"Warning! : The modalities names in model_config.input_dims : {list(self.input_dims.keys())}"
+                    f" do not match the modalities names in encoders : {list(encoders.keys())}"
+                )
+            if self.input_dims.keys() != decoders.keys():
+                raise KeyError(
+                    f"Warning! : The modalities names in model_config.input_dims : {list(self.input_dims.keys())}"
+                    f" do not match the modalities names in encoders : {list(decoders.keys())}"
+                )
 
     def encode(
         self,

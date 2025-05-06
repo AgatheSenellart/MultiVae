@@ -1,5 +1,5 @@
 from dataclasses import field
-from typing import Dict, Literal, Tuple, Union
+from typing import Dict, Literal, Tuple, Union, Optional
 
 from pydantic.dataclasses import dataclass
 from pythae.config import BaseConfig
@@ -7,7 +7,8 @@ from pythae.config import BaseConfig
 
 @dataclass
 class BaseMultiVAEConfig(BaseConfig):
-    """This is the base config for a Multi-Modal VAE model.
+    """
+    This is the base config for a Multi-Modal VAE model.
 
     Parameters:
         n_modalities (int): The number of modalities. Default: None.
@@ -29,11 +30,11 @@ class BaseMultiVAEConfig(BaseConfig):
             ex :  {'mod1' : {scale : 0.75}}
     """
 
-    n_modalities: Union[int, None] = None
+    n_modalities: int
     latent_dim: int = 10
-    input_dims: Union[dict, None] = None
+    input_dims: Optional[dict] = None
     uses_likelihood_rescaling: bool = False
-    rescale_factors: Union[dict, None] = None
+    rescale_factors: Optional[dict] = None
     decoders_dist: Union[
         Dict[str, Literal["normal", "bernoulli", "laplace", "categorical"]], None
     ] = None
