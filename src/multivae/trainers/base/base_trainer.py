@@ -335,12 +335,16 @@ class BaseTrainer:
         except Exception as e:
             raise Exception(
                 "Error when calling forward method from model. Potential issues: \n"
-                " - Wrong model architecture -> check encoder, decoder and metric architecture if "
-                "you provide yours \n"
-                " - The data input dimension provided is wrong -> when no encoder, decoder or metric "
-                "provided, a network is built automatically but requires the shape of the flatten "
-                "input data.\n"
-                f"Exception raised: {type(e)} with message: " + str(e)
+                " - Wrong model architecture:\n"
+                "   Check encoders, decoders, and other custom architectures that you provided.\n"
+                " - Incorrect input_dims:\n"
+                "   When no encoders or decoders are provided, networks are built automatically but require\n"
+                "   the data shape for each modality. Check the input_dims parameter in the model config.\n"
+                "   It must be a dictionary with a tuple shape for each modality.\n"
+                " - Dataset incompatibility:\n"
+                "   The model might not be compatible with the dataset you provided.\n"
+                f"This is the specific exception raised: {type(e)} with message: "
+                + str(e)
             ) from e
 
     def _optimizers_step(self, model_output=None):

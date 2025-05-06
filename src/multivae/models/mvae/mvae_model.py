@@ -149,6 +149,7 @@ class MVAE(BaseMultiVAE):
         """
 
         epoch = kwargs.pop("epoch", 1)
+        # The annealing factor is updated each batch, so we need to know the idx of the batch in the epoch
         batch_ratio = kwargs.pop("batch_ratio", 0)
         if epoch >= self.warmup:
             beta = 1 * self.beta
@@ -186,13 +187,18 @@ class MVAE(BaseMultiVAE):
                     subset_recon,
                     len_batch,
                 ) = self._compute_elbo_subset(filtered_inputs, s, beta)
+
+                # update the metrics for monitoring
+                metrics["_".join(sorted(s))] = subset_elbo
+                metrics["beta"] = beta
+                metrics["kld" + "_".join(sorted(s))] = subset_kld
+                metrics["recon" + "_".join(sorted(s))] = subset_recon
             else:
-                subset_elbo = subset_kld = subset_recon = 0
+                subset_elbo = subset_kld = subset_recon = torch.tensor(
+                    0.0, requires_grad=True
+                )
+                len_batch = 0.0
             total_loss += subset_elbo
-            metrics["_".join(sorted(s))] = subset_elbo
-            metrics["beta"] = beta
-            metrics["kld" + "_".join(sorted(s))] = subset_kld
-            metrics["recon" + "_".join(sorted(s))] = subset_recon
 
         return ModelOutput(
             loss=total_loss, loss_sum=total_loss * len_batch, metrics=metrics
