@@ -60,16 +60,13 @@ Multimodal VAEs aim to:
 These models learn a latent representation $z$ of all modalities in a lower dimensional space and learn to *decode* $z$ to generate each modality.  
 Let $X = (x_1, x_2, ... x_M)$ contain $M$ modalities. In the VAE setting, we define an *encoder* distribution $q_{\phi}(z|X)$ projecting the observations to the latent space, and decoders distributions $(p_{\theta}(x_i|z))_{1 \leq i \leq M}$ translating the latent code $z$ back to observations. Those distributions are parameterized by neural networks that are trained to minimize an objective function derived from variational inference. See [@kingma] to learn more about the VAE framework and [@suzuki_survey_2022] for a survey on multimodal VAEs. 
 
-A key differentiator of multimodal VAEs relies in the choice of the encoder $q_{\phi}(z|X)$. They fall into three main categories:
-- *Aggregated models* [@wu:2018; @shi:2019; @sutter:2021] use a mean or product operation to combine modalities,
-- *Joint models* [@suzuki:2016; @vedantam:2018; @senellart:2023] use a neural network taking all modalities as input, 
-- *Coordinated models* [@wang_deep_2017; @tian:2019] use separate latent spaces with additional similarity constraints. 
+A key differentiator of multimodal VAEs relies in the choice of the encoder $q_{\phi}(z|X)$. They fall into three main categories: *Aggregated models* [@wu:2018; @shi:2019; @sutter:2021] use a mean or product operation to combine modalities, *Joint models* [@suzuki:2016; @vedantam:2018; @senellart:2023] use a neural network taking all modalities as input, and *Coordinated models* [@wang_deep_2017; @tian:2019] use separate latent spaces with additional similarity constraints. 
 
 ![Different types of multimodal VAEs \label{types_vae}](mvae_models_diagrams.png){width=100%}
 MultiVae unifies these approaches in a modular and extensible way. 
 
 Notably, aggregated models offer a natural way of *learning* on incomplete datasets: for an incomplete sample $X$, the encoding $z$ and the objective function can be computed using only available modalities.
-However, MultiVae is the first library to provide implementations of these models with built-in support for missing data, using masks during loss computation.
+MultiVae is the first library to provide implementations of these models with built-in support for missing data, using masks during loss computation.
 
 ## Data Augmentation
 Another application of VAEs is Data Augmentation (DA): by sampling new latent codes $z$ and decoding them, *fully synthetic multimodal* samples can be generated to augment a dataset. 
@@ -81,17 +78,13 @@ MultiVae includes a `multivae.samplers` module with several sampling strategies 
 Despite the usefulness of multimodal VAEs, the lack of easy-to-use and verified implementations might hinder 
 applicative research. MultiVae offers unified implementations, designed to be accessible even for non-specialists. We ensure reliability by reproducing key results from original papers whenever possible.
 
-Related libraries contain implementations of Multimodal VAEs: the [Multimodal VAE Comparison Toolkit](https://github.com/gabinsane/multimodal-vae-comparison) [@sejnova:2024], the [Pixyz](https://github.com/masa-su/pixyz/blob/main/examples/jmvae.ipynb)[@suzuki2023pixyz] library and `multi-view-ae` [@Aguila2023] that is most closely related and released while we were developing MultiVae.
+Related libraries contain implementations of Multimodal VAEs: the [Multimodal VAE Comparison Toolkit](https://github.com/gabinsane/multimodal-vae-comparison) [@sejnova:2024], [Pixyz]  (https://github.com/masa-su/pixyz/blob/main/examples/jmvae.ipynb)[@suzuki2023pixyz] and `multi-view-ae` [@Aguila2023] that is most closely related to us and released while we were developing MultiVae.
 
- We compare in a summarizing table below, the different features of each work. MultiVae differs and complements existing software packages in key ways: 
- - A different API and range of models implemented.
- - All models are implemented with attention to details from original codes and extended parameter options.
- - It supports incomplete datasets, which we consider essential for real-life applications
- - It includes generative samplers, **benchmark datasets** and **metrics** to facilitate research. 
+ We compare in a summarizing table below, the different features of each work. MultiVae differs and complements existing software packages in key ways: for each model, we made sure to offer great flexibility on parameters' choices and to include all implementation details present in the original codes. It supports incomplete datasets, which we consider essential for real-life applications, as well as  generative samplers, **benchmark datasets** and **metrics** to facilitate research. 
  
 
 ## List of Models and Features
-We list models and features in each work. Symbol ($\checkmark$*) indicates that the implementation includes additional options.
+We list models and features in each work. Symbol ($\checkmark$*) indicates that the implementation includes additional options unavailable in the others.
 
 
 |Models/ Features           |Ours     |[@Aguila2023]|[@sejnova:2024]| [@suzuki2023pixyz]
@@ -125,14 +118,14 @@ We list models and features in each work. Symbol ($\checkmark$*) indicates that 
 |Model sharing via Hugging Face |	$\checkmark$||||
 
 # Code Quality and Documentation
-MultiVae is available on Github (https://github.com/AgatheSenellart/MultiVae) and Pypi, with full documentation at (https://multivae.readthedocs.io/).
+MultiVae is available on [Github](https://github.com/AgatheSenellart/MultiVae) and Pypi, with full documentation at (https://multivae.readthedocs.io/).
 The code is unit-tested with 94% coverage. 
  We provide **tutorials** either as notebooks or scripts allowing users to get started easily. To further showcase how to use our library for research applications, we provide detailed *case studies* in the documentation.
 
 
 # Acknowledgements
 
-We are grateful to the authors of all the initial implementations of the models included in MultiVae. 
+We are grateful to the authors of the initial implementations of the models included in MultiVae. 
 This work benefited from state grant managed by the Agence Nationale de la Recherche under the France 2030 program,
 AN\-23-IACL-0008.
 This research has been partly supported by the European Union under the (2023-2030) ERC Synergy Grant 101071601. 
