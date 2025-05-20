@@ -1,0 +1,17 @@
+cff-version: 1.0.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Senellart"
+  given-names: "Agathe"
+  orcid: "https://orcid.org/0009-0000-3176-6461"
+- family-names: "Chadebec"
+  given-names: "Clément"
+  orcid: "https://orcid.org/0000-0003-3890-1392"
+- family-names: "Allassonnière"
+  given-names: "Stéphanie"
+  orcid: "https://orcid.org/0000-0003-3890-1392"
+
+title: "MultiVae"
+version: 1.0.0
+date-released: 2025-14-03
+url: " https://github.com/AgatheSenellart/MultiVae/"
