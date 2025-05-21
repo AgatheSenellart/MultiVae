@@ -1,6 +1,5 @@
 from pythae.models.base.base_utils import ModelOutput
 
-
 from ..base.evaluator_class import Evaluator
 from .likelihoods_config import LikelihoodsEvaluatorConfig
 

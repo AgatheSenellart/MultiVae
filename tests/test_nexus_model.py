@@ -5,7 +5,6 @@ from copy import deepcopy
 import numpy as np
 import pytest
 import torch
-from .encoders import DecoderTest, EncoderTest
 from pythae.models.base import BaseAEConfig
 from pythae.models.base.base_utils import ModelOutput
 from torch import nn
@@ -14,6 +13,8 @@ from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
 from multivae.models import AutoModel, Nexus, NexusConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
+
+from .encoders import DecoderTest, EncoderTest
 
 
 class TestNexus:

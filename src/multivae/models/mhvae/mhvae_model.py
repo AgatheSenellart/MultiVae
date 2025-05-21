@@ -5,8 +5,7 @@ from typing import Union
 import torch
 
 from multivae.data.datasets.base import MultimodalBaseDataset
-from multivae.models.base import BaseMultiVAE
-from multivae.models.base.base_model import ModelOutput
+from multivae.models.base import BaseMultiVAE, ModelOutput
 from multivae.models.nn.base_architectures import BaseEncoder
 
 from ..base.base_utils import kl_divergence, poe, rsample_from_gaussian

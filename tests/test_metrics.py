@@ -4,9 +4,10 @@ import numpy as np
 import pytest
 import torch
 from PIL import Image
-from .tests_data.classifiers import MNIST_Classifier, SVHN_Classifier
+from torch.utils.data import random_split
 
 from multivae.data.datasets.base import MultimodalBaseDataset
+from multivae.metrics import Clustering, Visualization
 from multivae.metrics.base import Evaluator, EvaluatorConfig
 from multivae.metrics.coherences import CoherenceEvaluator, CoherenceEvaluatorConfig
 from multivae.metrics.likelihoods import (
@@ -14,11 +15,10 @@ from multivae.metrics.likelihoods import (
     LikelihoodsEvaluatorConfig,
 )
 from multivae.models import JMVAE, JMVAEConfig, MoPoE, MoPoEConfig
-from multivae.samplers import GaussianMixtureSampler, GaussianMixtureSamplerConfig
-from multivae.metrics import Visualization
 from multivae.models.base import ModelOutput
-from torch.utils.data import random_split
-from multivae.metrics import Clustering
+from multivae.samplers import GaussianMixtureSampler, GaussianMixtureSamplerConfig
+
+from .tests_data.classifiers import MNIST_Classifier, SVHN_Classifier
 
 
 @pytest.fixture

@@ -3,14 +3,15 @@ import os
 import numpy as np
 import pytest
 import torch
-from .encoders import EncoderTest, EncoderTestMultilatents
+from pythae.trainers import BaseTrainerConfig
 
 from multivae.data.datasets.base import MultimodalBaseDataset
 from multivae.models import DMVAE, MVAE, DMVAEConfig, MVAEConfig
 from multivae.models.base.base_config import BaseAEConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP, ModelOutput
-from pythae.trainers import BaseTrainerConfig
 from multivae.samplers.iaf_sampler import IAFSampler, IAFSamplerConfig
+
+from .encoders import EncoderTest, EncoderTestMultilatents
 
 
 class Test_IAFSampler:

@@ -1,6 +1,5 @@
 import pytest
 from pythae.models.base import BaseAEConfig
-
 from pythae.models.nn.default_architectures import Encoder_AE_MLP
 from torch import nn
 

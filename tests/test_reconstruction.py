@@ -1,7 +1,6 @@
 import pytest
 import torch
 
-
 from multivae.data.datasets.base import MultimodalBaseDataset
 from multivae.metrics.reconstruction import Reconstruction, ReconstructionConfig
 from multivae.models import JMVAE, JMVAEConfig

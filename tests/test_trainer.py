@@ -17,6 +17,7 @@ from multivae.models import CVAE, JMVAE, TELBO, CVAEConfig, JMVAEConfig, TELBOCo
 from multivae.models.nn.default_architectures import Decoder_AE_MLP
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 from multivae.trainers.base.callbacks import rename_logs
+
 from .tests_data.utils import test_dataset_plotting
 
 PATH = os.path.dirname(os.path.abspath(__file__))

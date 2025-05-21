@@ -17,7 +17,6 @@ from multivae.models.nn.default_architectures import (
     MultipleHeadJointEncoder,
 )
 
-
 from .cvae_config import CVAEConfig
 
 

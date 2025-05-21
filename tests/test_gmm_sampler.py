@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 import torch
-from .encoders import EncoderTest, EncoderTestMultilatents
 
 from multivae.data.datasets.base import MultimodalBaseDataset
 from multivae.models.base.base_config import BaseAEConfig
@@ -12,6 +11,8 @@ from multivae.samplers.gaussian_mixture import (
     GaussianMixtureSampler,
     GaussianMixtureSamplerConfig,
 )
+
+from .encoders import EncoderTest, EncoderTestMultilatents
 
 
 class Test_GMMSampler:

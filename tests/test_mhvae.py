@@ -13,16 +13,17 @@ from multivae.models.auto_model import AutoModel
 from multivae.models.base import ModelOutput
 from multivae.models.mhvae import MHVAE, MHVAEConfig
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
+
 from .mhvae_test_architectures import (
-    prior_block,
-    posterior_block,
+    add_bu,
     bu_1,
     bu_2,
-    td_1,
-    td_2,
     my_input_decoder,
     my_input_encoder,
-    add_bu,
+    posterior_block,
+    prior_block,
+    td_1,
+    td_2,
 )
 
 

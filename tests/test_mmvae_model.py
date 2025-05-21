@@ -7,7 +7,6 @@ import pytest
 import torch
 from pythae.models.base import BaseAEConfig
 from pythae.models.base.base_utils import ModelOutput
-
 from pythae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
 
 from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset

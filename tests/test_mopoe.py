@@ -4,7 +4,6 @@ from copy import deepcopy
 
 import pytest
 import torch
-from .encoders import EncoderTest, EncoderTestMultilatents
 from pythae.models.base.base_utils import ModelOutput
 
 from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
@@ -14,6 +13,8 @@ from multivae.models.mopoe import MoPoE, MoPoEConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP
 from multivae.trainers.base.base_trainer import BaseTrainer
 from multivae.trainers.base.base_trainer_config import BaseTrainerConfig
+
+from .encoders import EncoderTest, EncoderTestMultilatents
 
 
 class TestMoPoE:
