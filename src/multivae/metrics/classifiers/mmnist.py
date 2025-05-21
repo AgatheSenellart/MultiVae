@@ -6,6 +6,7 @@ from torch import nn
 
 class Flatten(torch.nn.Module):
     """Simple transform to flatten."""
+
     def forward(self, x):
         return x.view(x.size(0), -1)
 

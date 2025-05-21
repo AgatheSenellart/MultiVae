@@ -1,5 +1,5 @@
 """Implements a Gaussian Mixture Sampler in the latent space of MultiVae models
-for improved unconditional generation. A Gaussian Mixture is fitted 
+for improved unconditional generation. A Gaussian Mixture is fitted
 on the training embeddings.
 """
 

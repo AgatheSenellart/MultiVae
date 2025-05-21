@@ -20,6 +20,7 @@ from multivae.models.nn.base_architectures import (
 
 class Encoder_VAE_MLP(BaseEncoder):
     """Simple MLP encoder."""
+
     def __init__(self, args: dict, n_hidden=1):
         BaseEncoder.__init__(self)
         self.input_dim = args.input_dim

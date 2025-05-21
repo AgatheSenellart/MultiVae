@@ -1,4 +1,5 @@
 """Architectures for the CUB dataset."""
+
 import math
 
 import numpy as np
@@ -49,6 +50,7 @@ class CubTextEncoder(BaseEncoder):
         n_layers (int): Number of Encoders layers in the TransformerEncoder. Default: 4
         dropout (float): Dropout rate. Default: 0.5
     """
+
     def __init__(
         self,
         latent_dim,
@@ -60,7 +62,6 @@ class CubTextEncoder(BaseEncoder):
         n_layers: int = 4,
         dropout: float = 0.5,
     ):
-        
         BaseEncoder.__init__(self)
         self.latent_dim = latent_dim
 
@@ -105,6 +106,7 @@ class CubTextEncoder(BaseEncoder):
 
 class CubTextDecoderMLP(BaseDecoder):
     """Simple MLP decoder for CUB text."""
+
     def __init__(self, args: dict):
         """A simple MLP decoder for text."""
         BaseDecoder.__init__(self)
@@ -246,6 +248,7 @@ class CUB_Resnet_Decoder(BaseDecoder):
 
 class ResnetBlock(nn.Module):
     """Base residual block for resnets architectures."""
+
     def __init__(self, fin, fout, fhidden=None, is_bias=True):
         super().__init__()
         # Attributes

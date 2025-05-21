@@ -1,5 +1,4 @@
-"""Store in this file all the shared variables for the benchmark on mmnist.
-"""
+"""Store in this file all the shared variables for the benchmark on mmnist."""
 
 import argparse
 

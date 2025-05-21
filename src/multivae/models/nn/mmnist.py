@@ -1,4 +1,5 @@
 """Architectures for the PolyMNIST dataset."""
+
 import numpy as np
 import torch
 from pythae.models.base.base_utils import ModelOutput
@@ -11,12 +12,14 @@ from .base_architectures import BaseDecoder, BaseEncoder
 
 class Flatten(torch.nn.Module):
     """Simple transform to flatten."""
+
     def forward(self, x):
         return x.view(x.size(0), -1)
 
 
 class Unflatten(torch.nn.Module):
     """Simple transform to reverse flatten."""
+
     def __init__(self, ndims):
         super(Unflatten, self).__init__()
         self.ndims = ndims

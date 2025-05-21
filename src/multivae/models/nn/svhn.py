@@ -6,6 +6,7 @@ from torch import nn
 
 class Encoder_VAE_SVHN(BaseEncoder):
     """Simple convolutional encoder for SVHN."""
+
     def __init__(self, args):
         BaseEncoder.__init__(self)
         self.input_dim = args.input_dim
@@ -39,6 +40,7 @@ class Encoder_VAE_SVHN(BaseEncoder):
 
 class Decoder_VAE_SVHN(BaseDecoder):
     """Simple convolutional encoder for SVHN."""
+
     def __init__(self, args):
         BaseDecoder.__init__(self)
         self.latent_dim = args.latent_dim

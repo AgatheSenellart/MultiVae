@@ -14,7 +14,7 @@ from .crmvae_config import CRMVAEConfig
 
 class CRMVAE(BaseMultiVAE):
     """Main class for the CRMVAE model proposed in https://openreview.net/forum?id=Rn8u4MYgeNJ.
-    
+
     Args:
         model_config (CRMVAEConfig): An instance of CRMVAEConfig containing
             all the parameters for the model.

@@ -5,6 +5,7 @@ from pythae.config import BaseConfig
 @dataclass
 class AutoConfig(BaseConfig):
     """Class to reload any multivae.models configuration."""
+
     @classmethod
     def from_json_file(cls, json_path):
         """Creates a :class:`~multivae.config.BaseMultiVAEConfig` instance from a JSON config file. It

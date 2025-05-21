@@ -44,6 +44,7 @@ class BaseMultiVAEConfig(BaseConfig):
 @dataclass
 class EnvironmentConfig(BaseConfig):
     """Base environment config to save python version."""
+
     python_version: str = "3.8"
 
 
