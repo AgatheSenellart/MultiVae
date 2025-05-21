@@ -5,8 +5,7 @@ from ..base.base_config import BaseMultiVAEConfig
 
 @dataclass
 class CRMVAEConfig(BaseMultiVAEConfig):
-    """
-    This is the base config class for the CRMVAE model.
+    """This is the base config class for the CRMVAE model.
 
     Args:
         n_modalities (int): The number of modalities. Default: None.

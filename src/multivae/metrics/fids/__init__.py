@@ -1,5 +1,4 @@
-"""
-This module allow to easily compute FID metrics on a MultiVae model.
+"""This module allow to easily compute FID metrics on a MultiVae model.
 
 We are grateful to https://github.com/mseitzer/pytorch-fid, on which our code is heavily based.
 

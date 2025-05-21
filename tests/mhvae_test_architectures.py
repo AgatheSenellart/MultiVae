@@ -1,20 +1,10 @@
-"""Define test architectures for the MHVAE model. """
-import os
-import shutil
-import tempfile
-from copy import deepcopy
+"""Define test architectures for the MHVAE model."""
 
-import pytest
-import torch
-from pytest import fixture, mark
 from torch import nn
 
-from multivae.data import IncompleteDataset, MultimodalBaseDataset
-from multivae.models.auto_model import AutoModel
 from multivae.models.base import BaseDecoder, BaseEncoder, ModelOutput
-from multivae.models.mhvae import MHVAE, MHVAEConfig
-from multivae.models.nn.default_architectures import ModelOutput
-from multivae.trainers import BaseTrainer, BaseTrainerConfig
+
+
 # Architectures for testing
 class my_input_encoder(BaseEncoder):
     """Define a test encoder"""
@@ -26,7 +16,6 @@ class my_input_encoder(BaseEncoder):
         self.act_1 = nn.SiLU()
 
     def forward(self, x):
-
         x = self.conv0(x)
         x = self.act_1(x)
 
@@ -162,7 +151,6 @@ class my_input_decoder(BaseDecoder):
 
 
 class prior_block(BaseEncoder):
-
     def __init__(self, n_channels, wn=False):
         super().__init__()
         if wn:
@@ -181,7 +169,6 @@ class prior_block(BaseEncoder):
 
 
 class posterior_block(BaseEncoder):
-
     def __init__(self, n_channels_before_concat, wn=False):
         super().__init__()
         self.network = nn.Sequential(

@@ -5,11 +5,13 @@ from multivae.data.datasets.celeba import CelebAttr, DatasetOutput
 
 class TestCelebAttr:
     """Test class for CelebAttr dataset.
-    This test only works locally with the CelebAttr downloaded in the ../data folder."""
+    This test only works locally with the CelebAttr downloaded in the ../data folder.
+    """
+
     def test(self):
         try:
             dataset = CelebAttr("../data", "valid")
-        except:
+        except RuntimeError:
             return
         # Check the output of the dataset
         item = dataset[0]

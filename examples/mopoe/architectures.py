@@ -22,8 +22,7 @@ class Unflatten(torch.nn.Module):
 
 
 class EncoderImg(BaseEncoder):
-    """
-    Adopted from:
+    """Adopted from:
     https://www.cs.toronto.edu/~lczhang/360/lec/w05/autoencoder.html
     """
 
@@ -54,8 +53,7 @@ class EncoderImg(BaseEncoder):
 
 
 class DecoderImg(BaseDecoder):
-    """
-    Adopted from:
+    """Adopted from:
     https://www.cs.toronto.edu/~lczhang/360/lec/w05/autoencoder.html
     """
 
@@ -97,8 +95,7 @@ class Flatten(torch.nn.Module):
 
 
 class ClfImg(nn.Module):
-    """
-    MNIST image-to-digit classifier. Roughly based on the encoder from:
+    """MNIST image-to-digit classifier. Roughly based on the encoder from:
     https://colab.research.google.com/github/smartgeometry-ucl/dl4g/blob/master/variational_autoencoder.ipynb
     """
 

@@ -11,7 +11,6 @@ from multivae.models.auto_model import AutoModel
 from multivae.models.cvae import CVAE, CVAEConfig
 from multivae.models.nn.default_architectures import (
     BaseAEConfig,
-    BaseDictEncoders,
     ConditionalDecoderMLP,
     Encoder_VAE_MLP,
     ModelOutput,
@@ -23,7 +22,8 @@ from multivae.trainers import BaseTrainer, BaseTrainerConfig
 
 class TestCVAE:
     """Test class for CVAE model.
-    We test the methods of the CVAE model and check training with BaseTrainer."""
+    We test the methods of the CVAE model and check training with BaseTrainer.
+    """
 
     @fixture
     def dataset(self):
@@ -100,8 +100,9 @@ class TestCVAE:
         return dict(encoder=encoder, decoder=decoder, prior_network=prior_network)
 
     def test_setup(self, model_config, architectures):
-        """ Test the model initialization. We check that the attributes
-         are correctly set and the architectures are the right type.  """
+        """Test the model initialization. We check that the attributes
+        are correctly set and the architectures are the right type.
+        """
         model = CVAE(model_config=model_config, **architectures)
 
         assert model.latent_dim == model_config.latent_dim
@@ -137,7 +138,8 @@ class TestCVAE:
 
     def test_forward(self, model, dataset):
         """Test the forward function of the model. We check that the output is
-        a ModelOutput and contains the loss."""
+        a ModelOutput and contains the loss.
+        """
         samples = dataset[:10]
         output = model(samples)
 
@@ -149,8 +151,8 @@ class TestCVAE:
 
     def test_encode(self, dataset, model):
         """Test the encode function of the model. We check that the output is
-        a ModelOutput and contains the latent variable z."""
-
+        a ModelOutput and contains the latent variable z.
+        """
         # Generate one latent sample per datapoint
         samples = dataset[:10]
         output = model.encode(samples)
@@ -182,7 +184,8 @@ class TestCVAE:
 
     def test_decode(self, model, dataset):
         """Test the decode function of the model. We check that the output is
-        a ModelOutput and contains the reconstruction."""
+        a ModelOutput and contains the reconstruction.
+        """
         samples = dataset[:10]
 
         embeddings = model.encode(samples)
@@ -196,8 +199,8 @@ class TestCVAE:
 
     def test_generate_from_prior(self, model, dataset):
         """Test the generate_from_prior function of the model. We check that
-        the output is a ModelOutput and contains the latent variable z."""
-
+        the output is a ModelOutput and contains the latent variable z.
+        """
         samples = dataset[:10]
 
         # Define dummy conditioning variables for generation from the prior.
@@ -232,7 +235,8 @@ class TestCVAE:
     def test_predict(self, model, dataset):
         """Test the predict function of the model.
         We check that the output contains the reconstruction and that we can predict
-        using conditioning modalities only. """
+        using conditioning modalities only.
+        """
         samples = dataset[:10]
 
         # Test reconstruction with the data and conditioning modalities
@@ -255,7 +259,7 @@ class TestCVAE:
 
         # Test generation without the data and providing only conditioning modalities
         # This function calls generate_from_prior to generate the latent variable
-        
+
         # Generate 1 sample
         output = model.predict(cond_mod=["label", "color"], inputs=samples)
         assert isinstance(output, ModelOutput)
@@ -365,11 +369,12 @@ class TestCVAE:
     @mark.slow
     def test_checkpoint_saving(self, model, trainer, trainer_config):
         """Test checkpoint saving with the CVAE model.
-        We check that the model and optimizer state dicts are saved correctly and can be reloaded."""
+        We check that the model and optimizer state dicts are saved correctly and can be reloaded.
+        """
         dir_path = trainer_config.output_dir
 
         # Make a training step, save the model and reload it
-        step_1_loss = trainer.train_step(epoch=1)
+        trainer.train_step(epoch=1)
 
         model = deepcopy(trainer.model)
         optimizer = deepcopy(trainer.optimizer)
@@ -415,8 +420,8 @@ class TestCVAE:
             ]
         )
 
-        assert type(model_rec.encoder.cpu()) == type(model.encoder.cpu())
-        assert type(model_rec.decoder.cpu()) == type(model.decoder.cpu())
+        assert model_rec.encoder.cpu() is type(model.encoder.cpu())
+        assert model_rec.decoder.cpu() is type(model.decoder.cpu())
 
         optim_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "optimizer.pt"))
 
@@ -486,7 +491,8 @@ class TestCVAE:
     @mark.slow
     def test_final_model_saving(self, model, trainer, trainer_config):
         """Test the final model saving with the CVAE model.
-        We check that the model is correctly saved and can be reloaded."""
+        We check that the model is correctly saved and can be reloaded.
+        """
         dir_path = trainer_config.output_dir
 
         trainer.train()
@@ -498,7 +504,7 @@ class TestCVAE:
         )
         assert os.path.isdir(training_dir)
 
-        final_dir = os.path.join(training_dir, f"final_model")
+        final_dir = os.path.join(training_dir, "final_model")
         assert os.path.isdir(final_dir)
 
         files_list = os.listdir(final_dir)
@@ -523,5 +529,5 @@ class TestCVAE:
             ]
         )
 
-        assert type(model_rec.encoder.cpu()) == type(model.encoder.cpu())
-        assert type(model_rec.decoder.cpu()) == type(model.decoder.cpu())
+        assert model_rec.encoder.cpu() is type(model.encoder.cpu())
+        assert model_rec.decoder.cpu() is type(model.decoder.cpu())

@@ -18,11 +18,11 @@ class Test_set_inputs_to_device:
         ]
     )
     def inputs(self, request):
-        "Create dictionaries of multimodal data to test the function. "
+        """Create dictionaries of multimodal data to test the function."""
         return request.param
 
     def test_function(self, inputs):
-        """Check that all the tensors in the input dictionary are set to device. """
+        """Check that all the tensors in the input dictionary are set to device."""
         device = "cuda" if torch.cuda.is_available() else "cpu"
         inputs_on_device = set_inputs_to_device(inputs, device)
 
@@ -39,8 +39,9 @@ class Test_set_inputs_to_device:
 
 
 class Test_rsample_from_gaussian:
-    """Test the rsample_from_gaussian function. 
-    We check that the generated latent sample has the expected shape."""
+    """Test the rsample_from_gaussian function.
+    We check that the generated latent sample has the expected shape.
+    """
 
     @pytest.fixture(params=[(5, 10), (10,)])
     def mu_log_var(self, request):
@@ -48,7 +49,7 @@ class Test_rsample_from_gaussian:
         return torch.randn(*request.param), torch.randn(*request.param)
 
     def test(self, mu_log_var):
-        """Check the output shape, depending on inputs parameters. """
+        """Check the output shape, depending on inputs parameters."""
         mu, lv = mu_log_var
 
         # test with N=1

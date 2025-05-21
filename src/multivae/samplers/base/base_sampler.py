@@ -18,8 +18,7 @@ logger.setLevel(logging.INFO)
 
 
 class BaseSampler:
-    """
-    Base class for samplers used to generate from the MultiVae models' joint latent spaces.
+    """Base class for samplers used to generate from the MultiVae models' joint latent spaces.
 
     Args:
         model (BaseMultivae): The model to sample from.
@@ -69,8 +68,8 @@ class BaseSampler:
 
     def save(self, dir_path):
         """Method to save the sampler config. The config is saved a as ``sampler_config.json``
-        file in ``dir_path``"""
-
+        file in ``dir_path``
+        """
         logger.info("Saving model in %s.", dir_path)
 
         os.makedirs(dir_path, exist_ok=True)

@@ -1,5 +1,4 @@
-"""
-**Abstract class**
+"""**Abstract class**
 
 This is the base Sampler architecture module from which all future samplers should inherit.
 All samplers are adapted from the Pythae's samplers implementation for multimodal vaes.

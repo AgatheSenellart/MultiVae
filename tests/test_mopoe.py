@@ -18,6 +18,7 @@ from multivae.trainers.base.base_trainer_config import BaseTrainerConfig
 
 class TestMoPoE:
     """Test class for MoPoE model."""
+
     @pytest.fixture(params=["complete", "incomplete"])
     def dataset(self, request):
         """Create basic dataset"""
@@ -122,7 +123,6 @@ class TestMoPoE:
 
     def test_init(self, model, custom, archi_and_config):
         """Test the MoPoE initialization."""
-
         # check that our custom architectures were passed to the model
         model_config = archi_and_config["model_config"]
         if custom:
@@ -147,7 +147,8 @@ class TestMoPoE:
 
     def test_forward(self, model, dataset):
         """Test the MoPoE forward function.
-        We check that the output is a ModelOutput with the correct tensor shapes inside."""
+        We check that the output is a ModelOutput with the correct tensor shapes inside.
+        """
         output = model(dataset, epoch=2)
         loss = output.loss
         assert isinstance(loss, torch.Tensor)
@@ -163,8 +164,7 @@ class TestMoPoE:
                 output = model(dataset, epoch=2)
 
     def test_encode(self, model, dataset, archi_and_config):
-        """Test the encode method of the MoPoe. """
-
+        """Test the encode method of the MoPoe."""
         latent_dim = archi_and_config["model_config"].latent_dim
         outputs = model.encode(dataset[0])
         # Check the value of 'one_latent_space'
@@ -203,7 +203,8 @@ class TestMoPoE:
 
     def test_predict(self, model, dataset):
         """Test the predict method of the MoPoE model.
-        We check the shape of the reconstructions depending on the parameters. """
+        We check the shape of the reconstructions depending on the parameters.
+        """
         # Test the shape of reconstruction
         Y = model.predict(dataset, cond_mod="mod2")
         assert isinstance(Y, ModelOutput)
@@ -221,22 +222,19 @@ class TestMoPoE:
         assert Y.mod2.shape == (len(dataset) * 10, 3)
 
     def test_random_mixture(self, model):
-        """Test the model random_mixture_selection_component_selection on 
-        a simple example. """
-
+        """Test the model random_mixture_selection_component_selection on
+        a simple example.
+        """
         mus = torch.arange(3 * 2 * 4).reshape(3, 2, 4)
         log_vars = torch.arange(3 * 2 * 4).reshape(3, 2, 4)
         avail = torch.tensor([[1, 0], [0, 1], [0, 0]])
 
-        mu_joint, _ = model.random_mixture_component_selection(
-            mus, log_vars, avail
-        )
+        mu_joint, _ = model.random_mixture_component_selection(mus, log_vars, avail)
 
         assert torch.all(mu_joint == torch.tensor([[0, 1, 2, 3], [12, 13, 14, 15]]))
 
     def test_backward_with_missing(self, model, dataset):
-        """Check that the gradient with regard to missing modalities is null. """
-
+        """Check that the gradient with regard to missing modalities is null."""
         ### Check that the grad with regard to missing modalities is null
         if hasattr(dataset, "masks"):
             # Test that the gradients are null for the missing modalities
@@ -286,7 +284,8 @@ class TestMoPoE:
     @pytest.mark.slow
     def test_train_step(self, trainer):
         """Test the train step with the MoPoE model.
-        Weights sould be updated. """
+        Weights sould be updated.
+        """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
         start_optimizer = trainer.optimizer
         _ = trainer.train_step(epoch=1)
@@ -304,8 +303,9 @@ class TestMoPoE:
 
     @pytest.mark.slow
     def test_eval_step(self, trainer):
-        """Test eval step with the MoPoE model. 
-        Weights should not be updated. """
+        """Test eval step with the MoPoE model.
+        Weights should not be updated.
+        """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         _ = trainer.eval_step(epoch=1)
@@ -322,8 +322,9 @@ class TestMoPoE:
 
     @pytest.mark.slow
     def test_main_train_loop(self, trainer):
-        """Test the main train loop with MoPoE model. 
-        Weights should be updated. """
+        """Test the main train loop with MoPoE model.
+        Weights should be updated.
+        """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         trainer.train()
@@ -340,12 +341,13 @@ class TestMoPoE:
 
     @pytest.mark.slow
     def test_checkpoint_saving(self, model, trainer, training_config):
-        """Test checkpoint saving with the MoPoE model. 
-        Check that the model state dict and custom architectures are saved to folder. """
+        """Test checkpoint saving with the MoPoE model.
+        Check that the model state dict and custom architectures are saved to folder.
+        """
         dir_path = training_config.output_dir
 
         # Make a training step
-        step_1_loss = trainer.train_step(epoch=1)
+        trainer.train_step(epoch=1)
 
         model = deepcopy(trainer.model)
         optimizer = deepcopy(trainer.optimizer)
@@ -391,8 +393,8 @@ class TestMoPoE:
             ]
         )
 
-        assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
-        assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
+        assert model_rec.encoders.cpu() is type(model.encoders.cpu())
+        assert model_rec.decoders.cpu() is type(model.decoders.cpu())
 
         optim_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "optimizer.pt"))
 
@@ -417,9 +419,7 @@ class TestMoPoE:
 
     @pytest.mark.slow
     def test_checkpoint_saving_during_training(self, model, trainer, training_config):
-        
-        """Test the creation of checkpoints during training. 
-        """
+        """Test the creation of checkpoints during training."""
         target_saving_epoch = training_config.steps_saving
 
         dir_path = training_config.output_dir
@@ -463,8 +463,9 @@ class TestMoPoE:
 
     @pytest.mark.slow
     def test_final_model_saving(self, model, trainer, training_config):
-        """Test the final model saving of MoPoE. 
-        We check that the model can be reloaded correctly with AutoModel. """
+        """Test the final model saving of MoPoE.
+        We check that the model can be reloaded correctly with AutoModel.
+        """
         dir_path = training_config.output_dir
 
         trainer.train()
@@ -476,7 +477,7 @@ class TestMoPoE:
         )
         assert os.path.isdir(training_dir)
 
-        final_dir = os.path.join(training_dir, f"final_model")
+        final_dir = os.path.join(training_dir, "final_model")
         assert os.path.isdir(final_dir)
 
         files_list = os.listdir(final_dir)
@@ -501,24 +502,22 @@ class TestMoPoE:
             ]
         )
 
-        assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
-        assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
+        assert model_rec.encoders.cpu() is type(model.encoders.cpu())
+        assert model_rec.decoders.cpu() is type(model.decoders.cpu())
 
     def test_compute_nll(self, model, dataset):
-        """Check the compute_joint_nll method of the MoPoE model. """
-
+        """Check the compute_joint_nll method of the MoPoE model."""
         if hasattr(dataset, "masks"):
             with pytest.raises(AttributeError):
                 nll = model.compute_joint_nll(dataset, K=10, batch_size_K=6)
         else:
             nll = model.compute_joint_nll(dataset, K=10, batch_size_K=6)
             assert nll >= 0
-            assert type(nll) == torch.Tensor
+            assert isinstance(nll, torch.Tensor)
             assert nll.size() == torch.Size([])
 
     def test_compute_joint_nll_from_subset_encoding(self, model, dataset):
-        """Test the compute_joint_nll_from_subset_encoding of the MoPoE model. """
-
+        """Test the compute_joint_nll_from_subset_encoding of the MoPoE model."""
         if hasattr(dataset, "masks"):
             with pytest.raises(AttributeError):
                 nll = model.compute_joint_nll_from_subset_encoding(
@@ -529,18 +528,18 @@ class TestMoPoE:
                 ["mod1", "mod2"], dataset, K=10, batch_size_K=6
             )
             assert nll >= 0
-            assert type(nll) == torch.Tensor
+            assert isinstance(nll, torch.Tensor)
             assert nll.size() == torch.Size([])
 
     def test_compute_nll_paper(self, model, dataset):
-        """Test the compute_joint_nll_paper method. 
-        We check that a positive value is computed. """
-
+        """Test the compute_joint_nll_paper method.
+        We check that a positive value is computed.
+        """
         if hasattr(dataset, "masks"):
             with pytest.raises(AttributeError):
                 nll = model.compute_joint_nll_paper(dataset, K=10, batch_size_K=6)
         else:
             nll = model.compute_joint_nll_paper(dataset, K=10, batch_size_K=6)
             assert nll >= 0
-            assert type(nll) == torch.Tensor
+            assert isinstance(nll, torch.Tensor)
             assert nll.size() == torch.Size([])

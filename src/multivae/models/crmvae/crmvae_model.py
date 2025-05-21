@@ -13,9 +13,7 @@ from .crmvae_config import CRMVAEConfig
 
 
 class CRMVAE(BaseMultiVAE):
-    """
-
-    Main class for the CRMVAE model.
+    """Main class for the CRMVAE model.
 
 
     """
@@ -36,11 +34,9 @@ class CRMVAE(BaseMultiVAE):
         return mean, log_var, z
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
-        """
-        Forward pass of the model. Returns the loss and additional metrics
+        """Forward pass of the model. Returns the loss and additional metrics
         in a ModelOutput Instance.
         """
-
         # Compute latents parameters for q(z|x_i) and q(z|X)
         latents = self._infer_all_latent_parameters(inputs)
         results = {}
@@ -78,7 +74,6 @@ class CRMVAE(BaseMultiVAE):
         # Compute E_{q(z|X)} log p(x_i|z) + E_{q(z|x_i)}(log p(x_i|z))
         loss_rec = 0
         for gen_mod, decoder in self.decoders.items():
-
             for m in ["joint", gen_mod]:
                 # for m in ['joint']:
                 z = z_samples[m]
@@ -132,14 +127,13 @@ class CRMVAE(BaseMultiVAE):
                 embedding=output.embedding, log_covariance=output.log_covariance.clone()
             )
             if hasattr(inputs, "masks"):
-                masked_outputs[m].log_covariance[
-                    (1 - inputs.masks[m].int()).bool()
-                ] = torch.inf
+                masked_outputs[m].log_covariance[(1 - inputs.masks[m].int()).bool()] = (
+                    torch.inf
+                )
         return encoders_outputs, masked_outputs
 
     def _infer_all_latent_parameters(self, inputs: MultimodalBaseDataset, **kwargs):
-        """
-        This function takes all the modalities contained in inputs
+        """This function takes all the modalities contained in inputs
         and compute the product of experts of the modalities encoders.
 
         Args:
@@ -148,7 +142,6 @@ class CRMVAE(BaseMultiVAE):
         Returns:
             dict : Contains the modalities' encoders parameters and the poe parameters.
         """
-
         latents = {}
         enc_mods, masked_mods = self._modality_encode(inputs)
         latents["modalities_no_mask"] = enc_mods
@@ -185,8 +178,7 @@ class CRMVAE(BaseMultiVAE):
         return_mean=False,
         **kwargs,
     ) -> ModelOutput:
-        """
-        Generate encodings conditioning on all modalities or a subset of modalities.
+        """Generate encodings conditioning on all modalities or a subset of modalities.
 
         Args:
             inputs (MultimodalBaseDataset): The dataset to use for the conditional generation.
@@ -202,7 +194,6 @@ class CRMVAE(BaseMultiVAE):
                 one_latent_space (bool) = True
 
         """
-
         # Call super() function to transform to preprocess cond_mod. You obtain a list of
         # the modalities' names to condition on.
         cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
@@ -230,13 +221,11 @@ class CRMVAE(BaseMultiVAE):
         """Estimate the negative joint likelihood.
 
         Args:
-
             inputs (MultimodalBaseDataset) : a batch of samples.
             K (int) : the number of importance samples for the estimation. Default to 1000.
             batch_size_K (int) : Default to 100.
 
         Returns:
-
             The negative log-likelihood summed over the batch.
         """
         self.eval()

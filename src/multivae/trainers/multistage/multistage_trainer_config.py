@@ -2,8 +2,7 @@ from ..base import BaseTrainerConfig
 
 
 class MultistageTrainerConfig(BaseTrainerConfig):
-    """
-    Configuration for a specific trainer that handles the training of the joint VAE models.
+    """Configuration for a specific trainer that handles the training of the joint VAE models.
 
     Parameters:
 

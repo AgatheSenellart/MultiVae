@@ -82,7 +82,6 @@ class IAFSampler(BaseSampler):
                     ... and in range [0-1]
             training_config (BaseTrainerConfig): the training config to use to fit the flow.
         """
-
         train_loader = DataLoader(dataset=train_data, batch_size=100, shuffle=True)
 
         zs = {m: [] for m in self.flows_models}
@@ -162,7 +161,6 @@ class IAFSampler(BaseSampler):
         Returns:
             ~torch.Tensor: The generated images
         """
-
         if not self.is_fitted:
             raise ArithmeticError(
                 "The sampler needs to be fitted by calling sampler.fit() method"
@@ -194,10 +192,8 @@ class IAFSampler(BaseSampler):
         return output
 
     def save(self, dir_path):
+        """Save the config and trained models
         """
-        Save the config and trained models
-        """
-
         super().save(dir_path=dir_path)
 
         if not self.is_fitted:
@@ -225,7 +221,7 @@ class IAFSampler(BaseSampler):
                 self.flows_models[m] = IAF.load_from_folder(os.path.join(dir_path, m))
             except Exception as exc:
                 raise AttributeError(
-                    f"Error when trying to load the flows from the folder.",
+                    "Error when trying to load the flows from the folder.",
                     f"Check that you provided the right path. Exception raised: {exc}",
                 )
 

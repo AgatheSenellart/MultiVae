@@ -18,6 +18,7 @@ from multivae.trainers import BaseTrainer, BaseTrainerConfig
 
 class TestNexus:
     """Class for testing the Nexus model"""
+
     @pytest.fixture(params=["complete", "incomplete"])
     def dataset(self, request):
         """Create a dummy dataset"""
@@ -180,7 +181,7 @@ class TestNexus:
         ]
     )
     def custom_config_archi(self, request):
-        """"Create a model configuration"""
+        """ "Create a model configuration"""
         encoders = dict()
         decoders = dict()
         top_encoders = dict()
@@ -236,7 +237,7 @@ class TestNexus:
         )
 
     def test_model_setup_with_custom_architectures(self, custom_config_archi):
-        """Test the model initialization with custom architectures. """
+        """Test the model initialization with custom architectures."""
         model = Nexus(**custom_config_archi)
 
         if custom_config_archi["model_config"].gammas is not None:
@@ -293,9 +294,9 @@ class TestNexus:
         assert model.joint_encoder == custom_config_archi["joint_encoder"]
 
     def test_model_setup_without_custom_architectures(self, custom_config_archi):
-        """Test the model initialization without custom architectures. 
-        In that case, default architectures should be used. """
-
+        """Test the model initialization without custom architectures.
+        In that case, default architectures should be used.
+        """
         model = Nexus(model_config=custom_config_archi["model_config"])
 
         if custom_config_archi["model_config"].gammas is not None:
@@ -340,9 +341,9 @@ class TestNexus:
         assert isinstance(model.joint_encoder, Encoder_VAE_MLP)
 
     def test_setup_with_wrong_attributes(self, custom_config_archi):
-        """Check that init raises errors when the attributes 
-        are not correct"""
-
+        """Check that init raises errors when the attributes
+        are not correct
+        """
         dict_config = custom_config_archi["model_config"].to_dict()
         dict_config.pop("name")
 
@@ -451,17 +452,19 @@ class TestNexus:
             return Nexus(model_config=custom_config_archi["model_config"])
 
     def test_forward(self, model, dataset):
-        """Test the forward method for Nexus. 
-        We check that the output is a ModelOutput with the loss tensor. """
+        """Test the forward method for Nexus.
+        We check that the output is a ModelOutput with the loss tensor.
+        """
         output = model(dataset, epoch=2)
         loss = output.loss
-        assert type(loss) == torch.Tensor
+        assert isinstance(loss, torch.Tensor)
         assert loss.size() == torch.Size([])
         assert loss.requires_grad
 
     def test_encode(self, model, dataset):
-        """Test the encode function for Nexus. 
-        We check the shape of the latent variables, depending on parameters. """
+        """Test the encode function for Nexus.
+        We check the shape of the latent variables, depending on parameters.
+        """
         for return_mean in [True, False]:
             # Encode one sample
             outputs = model.encode(dataset[0], return_mean=return_mean)
@@ -484,7 +487,7 @@ class TestNexus:
                 dataset, cond_mod="mod3", N=10, return_mean=return_mean
             ).z
             assert embeddings.shape == (10, 4, model.latent_dim)
-            
+
             # Encode the dataset conditioning on a subset of modalities
             embeddings = model.encode(
                 dataset, cond_mod=["mod2", "mod4"], return_mean=return_mean
@@ -492,16 +495,17 @@ class TestNexus:
             assert embeddings.shape == (4, model.latent_dim)
 
     def test_decode(self, model, dataset):
-        """Test the decode method of Nexus. 
-        We check the reconstruction shapes"""
+        """Test the decode method of Nexus.
+        We check the reconstruction shapes
+        """
         # Test decode
         Y = model.decode(model.encode(dataset, cond_mod="mod3", N=10))
         assert Y.mod1.shape == (10, 4, 1, 12, 12)
 
-    def test_predict(self, model ,dataset):
-        """Test the predict method of the model. 
-        We check the reconstruction shapes depending on the parameters. """
-
+    def test_predict(self, model, dataset):
+        """Test the predict method of the model.
+        We check the reconstruction shapes depending on the parameters.
+        """
         # test predict conditioning on one modality
         Y = model.predict(dataset, cond_mod="mod2")
         assert isinstance(Y, ModelOutput)
@@ -520,8 +524,7 @@ class TestNexus:
         assert Y.mod2.shape == (4 * 10, 3, 7, 7)
 
     def test_grad_with_missing_inputs(self, model, dataset):
-        """check that the grad with regard to missing modality is 0"""
-
+        """Check that the grad with regard to missing modality is 0"""
         if hasattr(dataset, "masks"):
             output = model(dataset[2:], epoch=2)
             loss = output.loss
@@ -538,7 +541,6 @@ class TestNexus:
     @pytest.fixture
     def training_config(self, tmp_path_factory):
         """Create training configuration for testing the Nexus Model"""
-
         dir_path = tmp_path_factory.mktemp("dummy_folder")
 
         yield BaseTrainerConfig(
@@ -554,7 +556,7 @@ class TestNexus:
 
     @pytest.fixture
     def trainer(self, model, training_config, dataset):
-        """ Create a trainer for testing the Nexus Model"""
+        """Create a trainer for testing the Nexus Model"""
         trainer = BaseTrainer(
             model=model,
             train_dataset=dataset,
@@ -568,8 +570,8 @@ class TestNexus:
 
     @pytest.mark.slow
     def test_train_step(self, trainer):
-        """Test the train step with Nexus. 
-        The weights should be updated. 
+        """Test the train step with Nexus.
+        The weights should be updated.
         """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
         start_optimizer = trainer.optimizer
@@ -588,8 +590,9 @@ class TestNexus:
 
     @pytest.mark.slow
     def test_eval_step(self, trainer):
-        """Test the eval step with NExus. 
-        The weights should not be updated. """
+        """Test the eval step with NExus.
+        The weights should not be updated.
+        """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         _ = trainer.eval_step(epoch=1)
@@ -627,7 +630,7 @@ class TestNexus:
         dir_path = training_config.output_dir
 
         # Make a training step
-        step_1_loss = trainer.train_step(epoch=1)
+        trainer.train_step(epoch=1)
 
         model = deepcopy(trainer.model)
         optimizer = deepcopy(trainer.optimizer)
@@ -673,8 +676,8 @@ class TestNexus:
             ]
         )
 
-        assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
-        assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
+        assert model_rec.encoders.cpu() is type(model.encoders.cpu())
+        assert model_rec.decoders.cpu() is type(model.decoders.cpu())
 
         optim_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "optimizer.pt"))
 
@@ -745,8 +748,8 @@ class TestNexus:
     @pytest.mark.slow
     def test_final_model_saving(self, model, trainer, training_config):
         """Test the final model saving of the Nexus model and check that we can reload the model
-        with AutoModel. """
-
+        with AutoModel.
+        """
         dir_path = training_config.output_dir
 
         trainer.train()
@@ -758,7 +761,7 @@ class TestNexus:
         )
         assert os.path.isdir(training_dir)
 
-        final_dir = os.path.join(training_dir, f"final_model")
+        final_dir = os.path.join(training_dir, "final_model")
         assert os.path.isdir(final_dir)
 
         files_list = os.listdir(final_dir)
@@ -783,7 +786,5 @@ class TestNexus:
             ]
         )
 
-        assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
-        assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
-
-
+        assert model_rec.encoders.cpu() is type(model.encoders.cpu())
+        assert model_rec.decoders.cpu() is type(model.decoders.cpu())

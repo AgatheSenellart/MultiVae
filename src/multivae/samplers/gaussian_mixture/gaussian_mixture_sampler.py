@@ -21,9 +21,7 @@ logger.setLevel(logging.INFO)
 
 
 class GaussianMixtureSampler(BaseSampler):
-    """
-
-    Fits a Gaussian Mixture in the Multimodal Autoencoder's latent space.
+    """Fits a Gaussian Mixture in the Multimodal Autoencoder's latent space.
     If the model has several latent spaces, it fits a gaussian mixture per latent space.
 
     Args:
@@ -57,7 +55,6 @@ class GaussianMixtureSampler(BaseSampler):
             train_data (MultimodalBaseDataset): The train data needed to retreive the training embeddings
                     and fit the mixture in the latent space. Must be an instance of MultimodalBaseDataset.
         """
-
         train_loader = DataLoader(
             dataset=train_data,
             batch_size=100,
@@ -130,7 +127,6 @@ class GaussianMixtureSampler(BaseSampler):
         Returns:
             ModelOutput similar as the one returned by the encode function or generate_from_prior function.
         """
-
         if not self.is_fitted:
             raise ArithmeticError(
                 "The sampler needs to be fitted by calling sampler.fit() method"

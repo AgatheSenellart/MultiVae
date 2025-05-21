@@ -1,8 +1,6 @@
 """In this file, we reproduce the results of the CMVAE model on the PolyMNIST dataset."""
 
-import torch
 from architectures import Dec, Enc, load_mmnist_classifiers
-from torch import nn
 
 from multivae.data.datasets.mmnist import MMNISTDataset
 from multivae.metrics.coherences import CoherenceEvaluator, CoherenceEvaluatorConfig

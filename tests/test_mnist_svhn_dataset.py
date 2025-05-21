@@ -11,28 +11,34 @@ class TestMNISTSVHN:
     """Test class for MNISTSVHN dataset.
     This test only works locally with the MNISTSVHN downloaded in the ../data folder.
     """
+
     @pytest.fixture
     def input_dataset_test(self):
         """Create the datafolder."""
-        data_path ="../data"
+        data_path = "../data"
         split = "test"
 
         return dict(data_path=data_path, split=split)
 
     def test_create_dataset(self, input_dataset_test):
-        """Test the MnistSVHN dataset. 
-        We check the output and lenght of the dataset."""
+        """Test the MnistSVHN dataset.
+        We check the output and lenght of the dataset.
+        """
         try:
-            mnist = MNIST(
+            MNIST(
                 input_dataset_test["data_path"],
                 train=(input_dataset_test["split"] == "train"),
                 download=False,
             )
-        except:  # If the dataset is not available don't run the test
+        except RuntimeError:  # If the dataset is not available don't run the test
+            print(
+                "The dataset is not found at ../data/"
+                "The test on MnistSvhn dataset will not run."
+            )
             return
 
         dataset = MnistSvhn(**input_dataset_test)
         assert isinstance(dataset, MultimodalBaseDataset)
         sample = dataset[0]
-        assert type(sample) == DatasetOutput
+        assert isinstance(sample, DatasetOutput)
         assert len(dataset) == 50000

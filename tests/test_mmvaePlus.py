@@ -18,9 +18,9 @@ from multivae.trainers.base.base_trainer_config import BaseTrainerConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP
 
 
-
 class TestMMVAEPlus:
     """Test class for the MMVAEPlus model"""
+
     @pytest.fixture(params=["complete", "incomplete"])
     def dataset(self, request):
         """Dummy dataset"""
@@ -43,7 +43,6 @@ class TestMMVAEPlus:
             dataset = IncompleteDataset(data=data, masks=masks, labels=labels)
 
         return dataset
-
 
     @pytest.fixture(params=["dreg_looser", "iwae_looser"])
     def archi_and_config(self, beta, request):
@@ -83,7 +82,7 @@ class TestMMVAEPlus:
 
     @pytest.fixture(params=[True, False])
     def model(self, archi_and_config, request):
-        """Create a model for testing. """
+        """Create a model for testing."""
         custom = request.param
         if custom:
             model = MMVAEPlus(**archi_and_config)
@@ -145,7 +144,6 @@ class TestMMVAEPlus:
 
     def test_predict(self, model, dataset):
         """Test the predict function of the MMVAEPlus model"""
-
         Y = model.predict(dataset, cond_mod="mod2")
         assert isinstance(Y, ModelOutput)
         assert Y.mod1.shape == (len(dataset), 2)
@@ -168,26 +166,28 @@ class TestMMVAEPlus:
 
     def test_backward_with_missing_inputs(self, dataset, model):
         """Check that the gradients towards missing modalities are null."""
-
-        if  isinstance(dataset, IncompleteDataset):
+        if isinstance(dataset, IncompleteDataset):
             # check gradient when modalities are missing
             output = model(dataset[:3], epoch=2)
             loss = output.loss
             loss.backward()
             for param in model.encoders["mod1"].parameters():
                 assert param.grad is None or torch.all(param.grad == 0)
-            
-            # check gradient when no modalities are missing. 
+
+            # check gradient when no modalities are missing.
             output = model(dataset[3:], epoch=2)
             loss = output.loss
             loss.backward()
-            assert not all ([torch.all(param.grad == 0) for param in model.encoders["mod1"].parameters()])
-            
+            assert not all(
+                [
+                    torch.all(param.grad == 0)
+                    for param in model.encoders["mod1"].parameters()
+                ]
+            )
 
     @pytest.fixture
     def training_config(self, tmp_path_factory):
         """Create training configuration for testing"""
-
         dir_path = tmp_path_factory.mktemp("dummy_folder")
 
         yield BaseTrainerConfig(
@@ -216,8 +216,9 @@ class TestMMVAEPlus:
         return trainer
 
     def test_train_step(self, trainer):
-        """Test the train step with the MMVAEplus model. 
-        The weights should be updated after the training step. """
+        """Test the train step with the MMVAEplus model.
+        The weights should be updated after the training step.
+        """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
         start_optimizer = trainer.optimizer
         _ = trainer.train_step(epoch=1)
@@ -235,7 +236,8 @@ class TestMMVAEPlus:
 
     def test_eval_step(self, trainer):
         """Test the eval_step with the MMVAEPLus model.
-        The weights should not be updated after the eval step. """
+        The weights should not be updated after the eval step.
+        """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         _ = trainer.eval_step(epoch=1)
@@ -252,7 +254,8 @@ class TestMMVAEPlus:
 
     def test_main_train_loop(self, trainer):
         """Test the main train loop with the MMVAEPlus model.
-        The weights should be updated after the training step. """
+        The weights should be updated after the training step.
+        """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         trainer.train()
@@ -269,11 +272,12 @@ class TestMMVAEPlus:
 
     def test_checkpoint_saving(self, model, trainer, training_config):
         """Test the checkpoint saving with the MMVAEPlus model.
-        The model and optimizer should be saved in the checkpoint folder. """
+        The model and optimizer should be saved in the checkpoint folder.
+        """
         dir_path = training_config.output_dir
 
         # Make a training step
-        step_1_loss = trainer.train_step(epoch=1)
+        trainer.train_step(epoch=1)
 
         model = deepcopy(trainer.model)
         optimizer = deepcopy(trainer.optimizer)
@@ -319,8 +323,8 @@ class TestMMVAEPlus:
             ]
         )
 
-        assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
-        assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
+        assert model_rec.encoders.cpu() is type(model.encoders.cpu())
+        assert model_rec.decoders.cpu() is type(model.decoders.cpu())
 
         optim_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "optimizer.pt"))
 
@@ -387,8 +391,9 @@ class TestMMVAEPlus:
         )
 
     def test_final_model_saving(self, model, trainer, training_config):
-        """Test final model saving with the MMVAEPlus model. 
-        Check that the model can be reloaded. """
+        """Test final model saving with the MMVAEPlus model.
+        Check that the model can be reloaded.
+        """
         dir_path = training_config.output_dir
 
         trainer.train()
@@ -400,7 +405,7 @@ class TestMMVAEPlus:
         )
         assert os.path.isdir(training_dir)
 
-        final_dir = os.path.join(training_dir, f"final_model")
+        final_dir = os.path.join(training_dir, "final_model")
         assert os.path.isdir(final_dir)
 
         files_list = os.listdir(final_dir)
@@ -425,14 +430,13 @@ class TestMMVAEPlus:
             ]
         )
 
-        assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
-        assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
+        assert model_rec.encoders.cpu() is type(model.encoders.cpu())
+        assert model_rec.decoders.cpu() is type(model.decoders.cpu())
 
     def test_compute_nll(self, model, dataset):
         """Test compute_joint_nll function of the MMVAEPlus model."""
-
         if not hasattr(dataset, "masks"):
             nll = model.compute_joint_nll(dataset, K=10, batch_size_K=6)
             assert nll >= 0
-            assert type(nll) == torch.Tensor
+            assert isinstance(nll, torch.Tensor)
             assert nll.size() == torch.Size([])

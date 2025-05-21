@@ -1,5 +1,4 @@
-r"""
-Implementation of "MMVAE+: Enhancing the Generative Quality of Multimodal VAEs without Compromises"
+r"""Implementation of "MMVAE+: Enhancing the Generative Quality of Multimodal VAEs without Compromises"
 (https://openreview.net/forum?id=sdQGxouELX)
 
 The MMVAE+ model is an aggregated model that uses

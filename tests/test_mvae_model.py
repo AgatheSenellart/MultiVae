@@ -16,6 +16,7 @@ from multivae.trainers import BaseTrainer, BaseTrainerConfig
 
 class TestMVAE:
     """Class for testing the MVAE model."""
+
     @pytest.fixture(params=["complete", "incomplete"])
     def dataset(self, request):
         """Create dummy dataset"""
@@ -38,7 +39,7 @@ class TestMVAE:
             dataset = IncompleteDataset(data=data, masks=masks, labels=labels)
 
         return dataset
-    
+
     @pytest.fixture
     def custom_architectures(self):
         """Create custom architectures for the MVAE model"""
@@ -79,7 +80,7 @@ class TestMVAE:
 
     @pytest.fixture(params=[True, False])
     def model(self, custom_architectures, model_config, request):
-        """Create the model for testing. """
+        """Create the model for testing."""
         custom = request.param
         if custom:
             model = MVAE(model_config, **custom_architectures)
@@ -88,7 +89,7 @@ class TestMVAE:
         return model
 
     def test_init(self, model, dataset, model_config):
-        """Check that the attributes are correctly set during init. """
+        """Check that the attributes are correctly set during init."""
         assert model.k == model_config.k
 
         expected_subsets = [
@@ -102,23 +103,23 @@ class TestMVAE:
         for s in expected_subsets:
             assert s in model.subsets
 
-    def test_forward(self, model ,dataset):
-        """Test the forward method of the model. We check that 
-        the output is a ModelOutput containing the loss. """
+    def test_forward(self, model, dataset):
+        """Test the forward method of the model. We check that
+        the output is a ModelOutput containing the loss.
+        """
         output = model(dataset, epoch=2)
         loss = output.loss
-        assert type(loss) == torch.Tensor
+        assert isinstance(loss, torch.Tensor)
         assert loss.size() == torch.Size([])
         assert loss.requires_grad
-    
-    def test_encode(self, model , dataset):
-        """Test the encode method of the model. 
-        We check that the generated samples have the right shape depending 
-        on the parameters. """
 
+    def test_encode(self, model, dataset):
+        """Test the encode method of the model.
+        We check that the generated samples have the right shape depending
+        on the parameters.
+        """
         # Try encoding and prediction
         for return_mean in [True, False]:
-            
             # Encode one datapoint
             outputs = model.encode(dataset[-1], return_mean=return_mean)
             assert outputs.one_latent_space
@@ -126,7 +127,7 @@ class TestMVAE:
             assert isinstance(outputs, ModelOutput)
             assert embeddings.shape == (1, 5)
 
-            # Encode one datapoint, generate two latent samples. 
+            # Encode one datapoint, generate two latent samples.
             embeddings = model.encode(dataset[-1], N=2, return_mean=return_mean).z
             assert embeddings.shape == (2, 1, 5)
 
@@ -148,9 +149,9 @@ class TestMVAE:
             assert embeddings.shape == (len(dataset), 5)
 
     def test_predict(self, model, dataset):
-        """Test the predict method of MVAE. 
-        We check the reconstructions shapes depending on the parameters. """
-
+        """Test the predict method of MVAE.
+        We check the reconstructions shapes depending on the parameters.
+        """
         # Reconstruct all modalities conditioning on mod2
         Y = model.predict(dataset, cond_mod="mod2")
         assert isinstance(Y, ModelOutput)
@@ -169,9 +170,8 @@ class TestMVAE:
         assert Y.mod1.shape == (len(dataset) * 10, 2)
         assert Y.mod2.shape == (len(dataset) * 10, 3)
 
-
     def test_backward_with_missing(self, model, dataset):
-        """ Check that the grad with regard to missing modalities is null"""
+        """Check that the grad with regard to missing modalities is null"""
         if isinstance(dataset, IncompleteDataset):
             output = model(dataset[:3], epoch=2)
             loss = output.loss
@@ -185,12 +185,9 @@ class TestMVAE:
             for param in model.encoders["mod1"].parameters():
                 assert not torch.all(param.grad == 0)
 
-
-
     @pytest.fixture
     def training_config(self, tmp_path_factory):
-        """Create a training configuration for testing the model. """
-
+        """Create a training configuration for testing the model."""
         dir_path = tmp_path_factory.mktemp("dummy_folder")
 
         yield BaseTrainerConfig(
@@ -219,8 +216,9 @@ class TestMVAE:
         return trainer
 
     def test_train_step(self, trainer):
-        """Test the train step with the MVAE model. 
-        The weights should be updated. """
+        """Test the train step with the MVAE model.
+        The weights should be updated.
+        """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
         start_optimizer = trainer.optimizer
         _ = trainer.train_step(epoch=1)
@@ -237,8 +235,9 @@ class TestMVAE:
         assert trainer.optimizer == start_optimizer
 
     def test_eval_step(self, trainer):
-        """Test the eval_step with the MVAE model. 
-        Weights should not be updated. """
+        """Test the eval_step with the MVAE model.
+        Weights should not be updated.
+        """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         _ = trainer.eval_step(epoch=1)
@@ -254,7 +253,7 @@ class TestMVAE:
         )
 
     def test_main_train_loop(self, trainer):
-        """Test the main training loop with the MVAE model. """
+        """Test the main training loop with the MVAE model."""
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         trainer.train()
@@ -270,12 +269,11 @@ class TestMVAE:
         )
 
     def test_checkpoint_saving(self, model, trainer, training_config):
-        """Test checkpoint saving with the MVAE model.
-        """
+        """Test checkpoint saving with the MVAE model."""
         dir_path = training_config.output_dir
 
         # Make a training step
-        step_1_loss = trainer.train_step(epoch=1)
+        trainer.train_step(epoch=1)
 
         model = deepcopy(trainer.model)
         optimizer = deepcopy(trainer.optimizer)
@@ -321,8 +319,8 @@ class TestMVAE:
             ]
         )
 
-        assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
-        assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
+        assert model_rec.encoders.cpu() is type(model.encoders.cpu())
+        assert model_rec.decoders.cpu() is type(model.decoders.cpu())
 
         optim_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "optimizer.pt"))
 
@@ -346,7 +344,7 @@ class TestMVAE:
         )
 
     def test_checkpoint_saving_during_training(self, model, trainer, training_config):
-        """Test the creation of checkpoints during training. """
+        """Test the creation of checkpoints during training."""
         target_saving_epoch = training_config.steps_saving
 
         dir_path = training_config.output_dir
@@ -389,8 +387,9 @@ class TestMVAE:
         )
 
     def test_final_model_saving(self, model, trainer, training_config):
-        """Test the final model saving. 
-        We check that we can reload the MVAE model with AutoModel. """
+        """Test the final model saving.
+        We check that we can reload the MVAE model with AutoModel.
+        """
         dir_path = training_config.output_dir
 
         trainer.train()
@@ -402,7 +401,7 @@ class TestMVAE:
         )
         assert os.path.isdir(training_dir)
 
-        final_dir = os.path.join(training_dir, f"final_model")
+        final_dir = os.path.join(training_dir, "final_model")
         assert os.path.isdir(final_dir)
 
         files_list = os.listdir(final_dir)
@@ -427,8 +426,8 @@ class TestMVAE:
             ]
         )
 
-        assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
-        assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
+        assert model_rec.encoders.cpu() is type(model.encoders.cpu())
+        assert model_rec.decoders.cpu() is type(model.decoders.cpu())
 
     def test_compute_nll(self, model, dataset):
         """Test the compute_joint_nll function of the MVAE model"""

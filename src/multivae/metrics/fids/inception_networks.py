@@ -1,5 +1,4 @@
-"""
-This implementation of the InceptionV3 network comes from
+"""This implementation of the InceptionV3 network comes from
 https://github.com/mseitzer/pytorch-fid.
 """
 
@@ -140,7 +139,7 @@ class InceptionV3(nn.Module):
             Input tensor of shape Bx3xHxW. Values are expected to be in
             range (0, 1)
 
-        Returns
+        Returns:
         -------
         List of torch.autograd.Variable, corresponding to the selected output
         block, sorted ascending by index
@@ -328,8 +327,7 @@ class FIDInceptionE_2(models.inception.InceptionE):
 
 
 class wrapper_inception(nn.Module):
-    """
-    A simple wrapper for the inception network that returns an output of size (n_batch,n_features).
+    """A simple wrapper for the inception network that returns an output of size (n_batch,n_features).
     """
 
     def __init__(

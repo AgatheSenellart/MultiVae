@@ -1,6 +1,4 @@
-r"""
-
-Multimodal Hierarchical Variational Autoencoder from
+r"""Multimodal Hierarchical Variational Autoencoder from
     'Unified Brain MR-Ultrasound Synthesis using Multi-Modal Hierarchical Representations'
     (Dorent et al, 2O23) (https://arxiv.org/abs/2309.08747)
 

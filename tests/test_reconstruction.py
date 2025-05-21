@@ -1,6 +1,3 @@
-
-
-
 import pytest
 import torch
 
@@ -54,10 +51,10 @@ class TestReconstruction:
 
     def test_reconstruction_subset_compute(
         self, jmvae_model, config_params, output_logger_file, dataset
-    ):  
-        """We check that the reconstruction_from_subset method computes 
-        and returns a tensor. We check that the metric has been added to 
-        the evaluator's metric dict. 
+    ):
+        """We check that the reconstruction_from_subset method computes
+        and returns a tensor. We check that the metric has been added to
+        the evaluator's metric dict.
         """
         config = ReconstructionConfig(metric=config_params["metric"])
 
@@ -69,17 +66,18 @@ class TestReconstruction:
         )
 
         reconstruction_error = evaluator.reconstruction_from_subset(["mnist"])
-        assert isinstance(reconstruction_error,torch.Tensor)
+        assert isinstance(reconstruction_error, torch.Tensor)
         assert reconstruction_error.size() == torch.Size([])
 
         assert (
-            f'{["mnist"]} reconstruction error ({config_params["metric"]})'
+            f"{['mnist']} reconstruction error ({config_params['metric']})"
             in evaluator.metrics
         )
 
     def test_eval(self, jmvae_model, config_params, output_logger_file, dataset):
-        """We check that the eval method computes and returns a dictionary 
-        with all the expected keys. """
+        """We check that the eval method computes and returns a dictionary
+        with all the expected keys.
+        """
         config = ReconstructionConfig(metric=config_params["metric"])
 
         evaluator = Reconstruction(
@@ -94,9 +92,9 @@ class TestReconstruction:
             [
                 key in metrics.keys()
                 for key in [
-                    f'{["mnist"]} reconstruction error ({config_params["metric"]})',
-                    f'{["svhn"]} reconstruction error ({config_params["metric"]})',
-                    f'{list(jmvae_model.encoders.keys())} reconstruction error ({config_params["metric"]})',
+                    f"{['mnist']} reconstruction error ({config_params['metric']})",
+                    f"{['svhn']} reconstruction error ({config_params['metric']})",
+                    f"{list(jmvae_model.encoders.keys())} reconstruction error ({config_params['metric']})",
                 ]
             ]
         )

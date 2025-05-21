@@ -116,7 +116,6 @@ class BaseMultiVAE(BaseModel):
 
     def check_input_dims(self, model_config):
         """Check that the input dimensions are coherent with the provided number of modalities"""
-
         if model_config.input_dims is not None:
             if len(model_config.input_dims.keys()) != model_config.n_modalities:
                 raise AttributeError(
@@ -188,8 +187,7 @@ class BaseMultiVAE(BaseModel):
         return_mean=False,
         **kwargs,
     ) -> ModelOutput:
-        """
-        Generate encodings conditioning on all modalities or a subset of modalities.
+        """Generate encodings conditioning on all modalities or a subset of modalities.
 
         Args:
             inputs (MultimodalBaseDataset): The dataset to use for the conditional generation.
@@ -197,7 +195,6 @@ class BaseMultiVAE(BaseModel):
             N (int) : The number of encodings to sample for each datapoint. Default to 1.
 
         """
-
         # If the input cond_mod is a string : convert it to a list
         if isinstance(cond_mod, str):
             if cond_mod == "all":
@@ -240,7 +237,7 @@ class BaseMultiVAE(BaseModel):
         with torch.no_grad():
             if modalities == "all":
                 modalities = list(self.decoders.keys())
-            elif isinstance(modalities,str):
+            elif isinstance(modalities, str):
                 modalities = [modalities]
 
             try:
@@ -314,8 +311,7 @@ class BaseMultiVAE(BaseModel):
         return output
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
-        """
-        Main forward pass outputing the VAE outputs
+        """Main forward pass outputing the VAE outputs
         This function should output a :class:`~pythae.models.base.base_utils.ModelOutput` instance
         gathering all the model outputs
 
@@ -381,8 +377,7 @@ class BaseMultiVAE(BaseModel):
         raise NotImplementedError
 
     def generate_from_prior(self, n_samples, **kwargs):
-        """
-        Generate latent samples from the prior distribution.
+        """Generate latent samples from the prior distribution.
         This is the base class in which we consider a static standard Normal Prior.
         This may be overwritten in subclasses.
 
@@ -418,7 +413,6 @@ class BaseMultiVAE(BaseModel):
         Returns:
             dict: Contains the negative log-likelihood for each modality in pred_mods.
         """
-
         cnll = {m: [] for m in pred_mods}
 
         for _ in range(k_iwae):

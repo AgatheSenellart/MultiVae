@@ -1,5 +1,6 @@
 from multivae.data.datasets.base import MultimodalBaseDataset
 
+
 class test_dataset_plotting(MultimodalBaseDataset):
     """Dataset to test the transform for plotting function"""
 

@@ -18,6 +18,7 @@ from multivae.trainers.base.base_trainer_config import BaseTrainerConfig
 
 class TestMVTCAE:
     """Main class for testing the MVTCAE model"""
+
     @pytest.fixture(params=["complete", "incomplete"])
     def dataset(self, request):
         """Create dummy dataset"""
@@ -94,20 +95,21 @@ class TestMVTCAE:
         assert model.beta == model_config.beta
 
     def test_forward(self, model, dataset):
-        """Test the forward method of the MVTCAE model. """
+        """Test the forward method of the MVTCAE model."""
         # with one sample
         output = model(dataset, epoch=2)
         assert isinstance(output.loss, torch.Tensor)
         # with more samples
         output = model(dataset, epoch=2)
         loss = output.loss
-        assert type(loss) == torch.Tensor
+        assert isinstance(loss, torch.Tensor)
         assert loss.size() == torch.Size([])
         assert loss.requires_grad
 
     def test_encode(self, model, dataset):
-        """Test the encode function of the MVTCAE model. 
-        We check the shape of the latent variables depending on the parameters. """
+        """Test the encode function of the MVTCAE model.
+        We check the shape of the latent variables depending on the parameters.
+        """
         for return_mean in [True, False]:
             # Try encoding and prediction
             # Encode one sample
@@ -124,23 +126,22 @@ class TestMVTCAE:
                 dataset, cond_mod=["mod2"], return_mean=return_mean
             ).z
             assert embeddings.shape == (len(dataset), 5)
-            # Encode the whole dataset and generate 10 samples. 
+            # Encode the whole dataset and generate 10 samples.
             embeddings = model.encode(
                 dataset, cond_mod="mod3", N=10, return_mean=return_mean
             ).z
             assert embeddings.shape == (10, len(dataset), 5)
 
-            # Encode two modalities. 
+            # Encode two modalities.
             embeddings = model.encode(
                 dataset, cond_mod=["mod2", "mod4"], return_mean=return_mean
             ).z
             assert embeddings.shape == (len(dataset), 5)
 
-
     def test_predict(self, model, dataset):
         """Test the predict method of the MVTCAE model .
-        We check the shape of reconstruction depending on parameters. """
-
+        We check the shape of reconstruction depending on parameters.
+        """
         Y = model.predict(dataset, cond_mod="mod2")
         assert isinstance(Y, ModelOutput)
         assert Y.mod1.shape == (len(dataset), 2)
@@ -155,8 +156,6 @@ class TestMVTCAE:
         assert isinstance(Y, ModelOutput)
         assert Y.mod1.shape == (len(dataset) * 10, 2)
         assert Y.mod2.shape == (len(dataset) * 10, 3)
-
-
 
     def test_backward_with_missing_inputs(self, model, dataset):
         """Check that the grad with regard to missing modalities is null"""
@@ -173,11 +172,9 @@ class TestMVTCAE:
             for param in model.encoders["mod1"].parameters():
                 assert not torch.all(param.grad == 0)
 
-
     @pytest.fixture
     def training_config(self, tmp_path_factory):
-        """Create training config for testing. """
-
+        """Create training config for testing."""
         dir_path = tmp_path_factory.mktemp("dummy_folder")
 
         yield BaseTrainerConfig(
@@ -216,8 +213,8 @@ class TestMVTCAE:
         return trainer
 
     def test_train_step(self, trainer):
-        """Test the train step with the MVTCAE model. 
-        Weights should be updated. 
+        """Test the train step with the MVTCAE model.
+        Weights should be updated.
         """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
         start_optimizer = trainer.optimizer
@@ -235,8 +232,8 @@ class TestMVTCAE:
         assert trainer.optimizer == start_optimizer
 
     def test_eval_step(self, trainer):
-        """Test eval step with the MVTCAE trainer. 
-        Weights should not be updated. 
+        """Test eval step with the MVTCAE trainer.
+        Weights should not be updated.
         """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
@@ -253,8 +250,9 @@ class TestMVTCAE:
         )
 
     def test_main_train_loop(self, trainer):
-        """Test main training loop with the MVTCAE model. 
-        Weights should be updated. """
+        """Test main training loop with the MVTCAE model.
+        Weights should be updated.
+        """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         trainer.train()
@@ -270,12 +268,13 @@ class TestMVTCAE:
         )
 
     def test_checkpoint_saving(self, model, trainer, training_config):
-        """Test checkpoint saving for the MVTCAE model. 
-        The model and optimizer should be saved to the right directory. """
+        """Test checkpoint saving for the MVTCAE model.
+        The model and optimizer should be saved to the right directory.
+        """
         dir_path = training_config.output_dir
 
         # Make a training step
-        step_1_loss = trainer.train_step(epoch=1)
+        trainer.train_step(epoch=1)
 
         model = deepcopy(trainer.model)
         optimizer = deepcopy(trainer.optimizer)
@@ -321,8 +320,8 @@ class TestMVTCAE:
             ]
         )
 
-        assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
-        assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
+        assert model_rec.encoders.cpu() is type(model.encoders.cpu())
+        assert model_rec.decoders.cpu() is type(model.decoders.cpu())
 
         optim_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "optimizer.pt"))
 
@@ -348,7 +347,7 @@ class TestMVTCAE:
     def test_checkpoint_saving_during_training(
         self, model, trainer, training_config, dataset
     ):
-        """Test the creation of checkpoints during training. """
+        """Test the creation of checkpoints during training."""
         target_saving_epoch = training_config.steps_saving
 
         dir_path = training_config.output_dir
@@ -365,7 +364,6 @@ class TestMVTCAE:
 
         assert os.path.isdir(checkpoint_dir)
 
-        
         # try resuming
         new_trainer_ = self.new_trainer(model, training_config, dataset, checkpoint_dir)
 
@@ -374,7 +372,6 @@ class TestMVTCAE:
 
         new_trainer_.train()
 
-   
     def test_final_model_saving(self, model, trainer, training_config):
         """Test final model saving with MVTCAE"""
         dir_path = training_config.output_dir
@@ -388,7 +385,7 @@ class TestMVTCAE:
         )
         assert os.path.isdir(training_dir)
 
-        final_dir = os.path.join(training_dir, f"final_model")
+        final_dir = os.path.join(training_dir, "final_model")
         assert os.path.isdir(final_dir)
 
         files_list = os.listdir(final_dir)
@@ -413,8 +410,8 @@ class TestMVTCAE:
             ]
         )
 
-        assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
-        assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
+        assert model_rec.encoders.cpu() is type(model.encoders.cpu())
+        assert model_rec.decoders.cpu() is type(model.decoders.cpu())
 
     def test_compute_nll(self, model, dataset):
         """Test compute_joint_nll_function for the MVTCAE model."""
@@ -424,11 +421,11 @@ class TestMVTCAE:
         else:
             nll = model.compute_joint_nll(dataset, K=10, batch_size_K=2)
             assert nll >= 0
-            assert type(nll) == torch.Tensor
+            assert isinstance(nll, torch.Tensor)
             assert nll.size() == torch.Size([])
 
             cnll = model.compute_cond_nll(
                 dataset, ["mod1", "mod2"], ["mod3"], k_iwae=10
             )
-            assert type(cnll) == dict
+            assert isinstance(cnll, dict)
             assert "mod3" in cnll.keys()

@@ -1,5 +1,5 @@
-""" Custom encoders and decoders for testing purposes.
-"""
+"""Custom encoders and decoders for testing purposes."""
+
 from typing import List
 
 import numpy as np
@@ -59,7 +59,7 @@ class EncoderTest(BaseEncoder):
 
             if output_layer_levels is not None:
                 if i + 1 in output_layer_levels:
-                    output[f"embedding_layer_{i+1}"] = out
+                    output[f"embedding_layer_{i + 1}"] = out
             if i + 1 == self.depth:
                 output["embedding"] = self.embedding(out)
                 output["log_covariance"] = self.log_var(out)
@@ -119,7 +119,7 @@ class EncoderTestMultilatents(BaseEncoder):
 
             if output_layer_levels is not None:
                 if i + 1 in output_layer_levels:
-                    output[f"embedding_layer_{i+1}"] = out
+                    output[f"embedding_layer_{i + 1}"] = out
             if i + 1 == self.depth:
                 output["embedding"] = self.embedding(out)
                 output["log_covariance"] = self.log_var(out)
@@ -131,6 +131,7 @@ class EncoderTestMultilatents(BaseEncoder):
 
 class DecoderTest(BaseDecoder):
     """A simple MLP decoder, different than the default one."""
+
     def __init__(self, args: dict):
         BaseDecoder.__init__(self)
 
@@ -173,7 +174,7 @@ class DecoderTest(BaseDecoder):
 
             if output_layer_levels is not None:
                 if i + 1 in output_layer_levels:
-                    output[f"reconstruction_layer_{i+1}"] = out
+                    output[f"reconstruction_layer_{i + 1}"] = out
             if i + 1 == self.depth:
                 output["reconstruction"] = out.reshape((z.shape[0],) + self.input_dim)
 

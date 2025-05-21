@@ -7,8 +7,7 @@ from pythae.config import BaseConfig
 
 @dataclass
 class BaseMultiVAEConfig(BaseConfig):
-    """
-    This is the base config for a Multi-Modal VAE model.
+    """This is the base config for a Multi-Modal VAE model.
 
     Parameters:
         n_modalities (int): The number of modalities. Default: None.

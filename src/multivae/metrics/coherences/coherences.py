@@ -16,11 +16,9 @@ from .coherences_config import CoherenceEvaluatorConfig
 
 
 class CoherenceEvaluator(Evaluator):
-    """
-    Class for computing coherences metrics.
+    """Class for computing coherences metrics.
 
     Args:
-
         model (BaseMultiVAE) : The model to evaluate.
         classifiers (dict) : A dictionary containing the pretrained classifiers to use for the coherence evaluation.
         test_dataset (MultimodalBaseDataset) : The dataset to use for computing the metrics.
@@ -51,13 +49,11 @@ class CoherenceEvaluator(Evaluator):
             self.clfs[k] = self.clfs[k].to(self.device).eval()
 
     def cross_coherences(self):
-        """
-        Computes all the coherences from one subset of modalities to another modality.
+        """Computes all the coherences from one subset of modalities to another modality.
 
         Returns:
             float, float: The cross-coherences metric mean and std
         """
-
         modalities = list(self.model.encoders.keys())
         accs = []
         accs_per_class = []
@@ -89,8 +85,8 @@ class CoherenceEvaluator(Evaluator):
             )
             self.metrics.update(
                 {
-                    f"mean_coherence_{i+1}": m,
-                    f"std_coherence_{i+1}": s,
+                    f"mean_coherence_{i + 1}": m,
+                    f"std_coherence_{i + 1}": s,
                 }
             )
 
@@ -104,7 +100,7 @@ class CoherenceEvaluator(Evaluator):
                     )
                     self.metrics.update(
                         {
-                            f"mean_coherence_{i+1}_class_{c}": mean_accs_per_class[i][
+                            f"mean_coherence_{i + 1}_class_{c}": mean_accs_per_class[i][
                                 c
                             ],
                         }
@@ -113,8 +109,7 @@ class CoherenceEvaluator(Evaluator):
         return mean_accs, std_accs
 
     def coherence_from_subset(self, subset: List[str]):
-        """
-        Compute all the coherences generating from the modalities in subset to a modality
+        """Compute all the coherences generating from the modalities in subset to a modality
         that is not in subset.
 
         Args:
@@ -123,7 +118,6 @@ class CoherenceEvaluator(Evaluator):
         Returns:
             dict, float : The dictionary of all coherences from subset, and the mean coherence
         """
-
         pred_mods = [
             m for m in self.model.encoders if (m not in subset) or self.include_recon
         ]
@@ -184,14 +178,12 @@ class CoherenceEvaluator(Evaluator):
         return acc, mean_pair_acc, mean_acc_per_class
 
     def joint_coherence(self):
-        """
-        Generate in all modalities from the prior and compute the percentage of samples where all modalities have the same
+        """Generate in all modalities from the prior and compute the percentage of samples where all modalities have the same
         labels.
 
         Returns:
             float: The joint coherence metric
         """
-
         all_labels = torch.tensor([]).to(self.device)
         samples_to_generate = self.nb_samples_for_joint
 

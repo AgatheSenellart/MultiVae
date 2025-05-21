@@ -7,8 +7,7 @@ from ..base.base_config import BaseMultiVAEConfig
 
 @dataclass
 class MoPoEConfig(BaseMultiVAEConfig):
-    """
-    This class is the configuration class for the MoPoE model, from
+    """This class is the configuration class for the MoPoE model, from
     'Generalized Multimodal ELBO' Sutter 2021 (https://arxiv.org/abs/2105.02470)
 
 

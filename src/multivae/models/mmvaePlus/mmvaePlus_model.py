@@ -26,8 +26,7 @@ logger.setLevel(logging.INFO)
 
 
 class MMVAEPlus(BaseMultiVAE):
-    """
-    The MMVAE+ model.
+    """The MMVAE+ model.
 
     Args:
         model_config (MMVAEPlusConfig): An instance of MMVAEConfig in which any model's
@@ -112,12 +111,10 @@ class MMVAEPlus(BaseMultiVAE):
         self.objective = model_config.loss
 
     def _log_var_to_std(self, log_var):
-        """
-        For latent distributions parameters, transform the log covariance to the
+        """For latent distributions parameters, transform the log covariance to the
         standard deviation of the distribution either applying softmax, softplus
         or simply torch.exp(0.5 * ...) depending on the model configuration.
         """
-
         if self.model_config.prior_and_posterior_dist == "laplace_with_softmax":
             return F.softmax(log_var, dim=-1) * log_var.size(-1) + 1e-6
         elif self.model_config.prior_and_posterior_dist == "normal_with_softplus":
@@ -126,7 +123,6 @@ class MMVAEPlus(BaseMultiVAE):
             return torch.exp(0.5 * log_var)
 
     def _compute_posteriors_and_embeddings(self, inputs, detach, **kwargs):
-
         # Drop unused modalities
         inputs = drop_unused_modalities(inputs)
 
@@ -203,7 +199,6 @@ class MMVAEPlus(BaseMultiVAE):
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs):
         """Compute loss and metrics."""
-
         if self.objective == "dreg_looser":
             # The DreG estimation uses detached posteriors
             embeddings, posteriors, reconstructions = (
@@ -234,8 +229,8 @@ class MMVAEPlus(BaseMultiVAE):
 
     def _compute_k_lws(self, posteriors, embeddings, reconstructions, inputs):
         """Compute the individual likelihoods without any aggregation on k_iwae
-        or the batch."""
-
+        or the batch.
+        """
         if hasattr(inputs, "masks"):
             # Compute the number of available modalities per sample
             n_mods_sample = torch.sum(
@@ -246,7 +241,6 @@ class MMVAEPlus(BaseMultiVAE):
 
         lws = {}
         for mod in embeddings:
-
             u = embeddings[mod]["u"]  # (K, n_batch, latent_dim)
             w = embeddings[mod]["w"]  # (K, n_batch, latent_dim)
             n_mods_sample = n_mods_sample.to(u.device)
@@ -309,8 +303,7 @@ class MMVAEPlus(BaseMultiVAE):
         return lws, n_mods_sample
 
     def _dreg_looser(self, posteriors, embeddings, reconstructions, inputs):
-        """
-        The DreG estimation for IWAE. losses components in lws needs to have been computed on
+        """The DreG estimation for IWAE. losses components in lws needs to have been computed on
         **detached** posteriors.
         """
         lws, n_mods_sample = self._compute_k_lws(
@@ -348,8 +341,7 @@ class MMVAEPlus(BaseMultiVAE):
         return ModelOutput(loss=-lws.sum(), loss_sum=-lws.sum(), metrics=dict())
 
     def _iwae_looser(self, posteriors, embeddings, reconstructions, inputs):
-        """
-        The IWAE loss but with the sum outside of the loss for increased stability.
+        """The IWAE loss but with the sum outside of the loss for increased stability.
         (following Shi et al 2019)
 
         """
@@ -378,8 +370,7 @@ class MMVAEPlus(BaseMultiVAE):
         return_mean=False,
         **kwargs,
     ):
-        """
-        Generate encodings conditioning on all modalities or a subset of modalities.
+        """Generate encodings conditioning on all modalities or a subset of modalities.
 
         Args:
             inputs (MultimodalBaseDataset): The dataset to use for the conditional generation.
@@ -395,7 +386,6 @@ class MMVAEPlus(BaseMultiVAE):
                 'one_latent_space' (bool) = False
                 'modalities_z' (Dict[str,torch.Tensor (n_data, N, latent_dim) ])
         """
-
         # Look up the batchsize
         batch_size = len(list(inputs.data.values())[0])
 
@@ -409,7 +399,6 @@ class MMVAEPlus(BaseMultiVAE):
                 embedding = torch.mean(torch.stack(list_mean), dim=0)
                 z = torch.stack([embedding] * N) if N > 1 else embedding
             else:
-
                 # Choose one of the conditioning modalities at random to sample the shared information.
                 random_mod = np.random.choice(cond_mod)
 
@@ -490,13 +479,11 @@ class MMVAEPlus(BaseMultiVAE):
         """Estimate the negative joint likelihood.
 
         Args:
-
             inputs (MultimodalBaseDataset) : a batch of samples.
             K (int) : the number of importance samples for the estimation. Default to 1000.
             batch_size_K (int) : Default to 100.
 
         Returns:
-
             The negative log-likelihood summed over the batch.
         """
         # Check that the dataset is not incomplete
@@ -511,9 +498,10 @@ class MMVAEPlus(BaseMultiVAE):
         ll = 0
 
         # Set the rescale factors and beta to 1 for the computation of the likelihood
-        rescale_factors, self.rescale_factors = self.rescale_factors.copy(), {
-            m: 1 for m in self.rescale_factors
-        }
+        rescale_factors, self.rescale_factors = (
+            self.rescale_factors.copy(),
+            {m: 1 for m in self.rescale_factors},
+        )
         beta, self.beta = self.model_config.beta, 1
 
         for i in range(n_data):

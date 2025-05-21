@@ -22,8 +22,7 @@ except:
 
 
 class AdaptShapeFID(torch.nn.Module):
-    """
-    Transform an input so that each sample has three dimensions with three channels.
+    """Transform an input so that each sample has three dimensions with three channels.
     (batch_size, 2,h,w). The input is assumed to be batched.
     """
 
@@ -61,8 +60,7 @@ class AdaptShapeFID(torch.nn.Module):
 
 
 class FIDEvaluator(Evaluator):
-    """
-    Class for computing Fréchet inception distance (FID) metrics.
+    """Class for computing Fréchet inception distance (FID) metrics.
 
     Args:
         model (BaseMultiVAE) : The model to evaluate.
@@ -112,8 +110,7 @@ class FIDEvaluator(Evaluator):
             self.inception_transform = None
 
     def get_frechet_distance(self, mod, generate_latent_function):
-        """
-        Calculates the activations of the pool_3 layer for all images.
+        """Calculates the activations of the pool_3 layer for all images.
         """
         self.model.eval()
         activations = [[], []]
@@ -191,9 +188,9 @@ class FIDEvaluator(Evaluator):
             f"Training and test mean vectors have different lengths. mu1 has shape {mu1.shape}"
             f"whereas mu2 has shape {mu2.shape}"
         )
-        assert (
-            sigma1.shape == sigma2.shape
-        ), "Training and test covariances have different dimensions"
+        assert sigma1.shape == sigma2.shape, (
+            "Training and test covariances have different dimensions"
+        )
 
         diff = mu1 - mu2
 
@@ -220,8 +217,7 @@ class FIDEvaluator(Evaluator):
         return diff.dot(diff) + np.trace(sigma1) + np.trace(sigma2) - 2 * tr_covmean
 
     def unconditional_fids(self):
-        """
-        Generate data from prior or sampler fitted in the latent space
+        """Generate data from prior or sampler fitted in the latent space
         and compute the FID for each modality.
 
         Returns:
@@ -252,8 +248,7 @@ class FIDEvaluator(Evaluator):
         return ModelOutput(**self.metrics)
 
     def compute_fid_from_conditional_generation(self, subset, gen_mod):
-        """
-        Generate samples from the conditional distribution conditioned on subset and compute
+        """Generate samples from the conditional distribution conditioned on subset and compute
         Frechet distance for gen_mod.
         """
 
@@ -262,18 +257,16 @@ class FIDEvaluator(Evaluator):
 
         fd = self.get_frechet_distance(gen_mod, generate_function)
         self.logger.info(
-            f"The FD for modality %s computed from subset=%s is %s", gen_mod, subset, fd
+            "The FD for modality %s computed from subset=%s is %s", gen_mod, subset, fd
         )
         subset_name = "_".join(subset)
         self.metrics[f"Conditional FD from {subset_name} to {gen_mod}"] = fd
         return fd
 
     def compute_all_conditional_fids(self, gen_mod):
-        """
-        For all subsets in modalities \gen mod, compute the FID when generating
+        """For all subsets in modalities \gen mod, compute the FID when generating
         images from the subsets.
         """
-
         modalities = [k for k in self.model.encoders if k != gen_mod]
 
         for n in range(1, len(modalities) + 1):

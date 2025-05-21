@@ -15,7 +15,6 @@ class AutoConfig(BaseConfig):
         Returns:
             :class:`BaseMultiVAEConfig`: The created instance
         """
-
         config_dict = cls._dict_from_json(json_path)
         config_name = config_dict.pop("name")
 

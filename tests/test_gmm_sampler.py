@@ -3,7 +3,7 @@ import pytest
 import torch
 from .encoders import EncoderTest, EncoderTestMultilatents
 
-from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
+from multivae.data.datasets.base import MultimodalBaseDataset
 from multivae.models.base.base_config import BaseAEConfig
 from multivae.models.mopoe.mopoe_config import MoPoEConfig
 from multivae.models.mopoe.mopoe_model import MoPoE
@@ -90,7 +90,7 @@ class Test_GMMSampler:
 
     @pytest.fixture(params=[1.0, 1.5, 2.0])
     def beta(self, request):
-        """beta parameter for the MoPoE model."""
+        """Beta parameter for the MoPoE model."""
         beta = request.param
 
         return beta
@@ -129,8 +129,9 @@ class Test_GMMSampler:
             assert gmm_sampler.mod_gmms.keys() == gmm_sampler.model.encoders.keys()
 
     def test_sample_gmm(self, gmm_sampler, dataset):
-        """Check that we can sample new latent codes with the GMM sampler. 
-        We check the output type and the shape of the output."""
+        """Check that we can sample new latent codes with the GMM sampler.
+        We check the output type and the shape of the output.
+        """
         gmm_sampler.fit(dataset)
         output = gmm_sampler.sample(100)
 

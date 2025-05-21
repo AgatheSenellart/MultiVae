@@ -2,7 +2,6 @@
 
 import numpy as np
 import torch
-import torch.nn.functional as F
 from torch import nn
 
 from multivae.models.base import BaseDecoder, BaseEncoder, ModelOutput
@@ -54,7 +53,6 @@ class ResnetBlock(nn.Module):
 
 # Classes
 class Enc(BaseEncoder):
-
     def __init__(self, ndim_w, ndim_u):
         super().__init__()
         self.latent_dim = ndim_u
@@ -116,7 +114,6 @@ class Enc(BaseEncoder):
 
 
 class Dec(BaseDecoder):
-
     def __init__(self, ndim):
         super().__init__()
 
@@ -169,8 +166,7 @@ class Flatten(torch.nn.Module):
 
 
 class ClfImg(nn.Module):
-    """
-    MNIST image-to-digit classifier. Roughly based on the encoder from:
+    """MNIST image-to-digit classifier. Roughly based on the encoder from:
     https://colab.research.google.com/github/smartgeometry-ucl/dl4g/blob/master/variational_autoencoder.ipynb
     """
 

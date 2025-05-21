@@ -1,4 +1,5 @@
 """Tests for the BaseMultiVAE and BaseMultiVAEConfig class."""
+
 import os
 
 import numpy as np
@@ -20,19 +21,22 @@ from multivae.trainers import BaseTrainerConfig
 
 PATH = os.path.dirname(os.path.abspath(__file__))
 
+
 class TestBaseMultiVAEConfig:
     """Test the BaseMultiVAEConfig class."""
+
     @pytest.fixture
     def config_arguments(self):
         return dict(
-                n_modalities=2,
-                latent_dim=5,
-                input_dims=dict(mod1=(2,), mod2=(3,)),
-                decoders_dist=dict(mod1="laplace", mod2="laplace"),
-                decoder_dist_params=dict(mod1={"scale": 0.75}, mod2={"scale": 0.75}),
-                uses_likelihood_rescaling=True,
-                rescale_factors=dict(mod1=0.5, mod2=0.75)
-            )
+            n_modalities=2,
+            latent_dim=5,
+            input_dims=dict(mod1=(2,), mod2=(3,)),
+            decoders_dist=dict(mod1="laplace", mod2="laplace"),
+            decoder_dist_params=dict(mod1={"scale": 0.75}, mod2={"scale": 0.75}),
+            uses_likelihood_rescaling=True,
+            rescale_factors=dict(mod1=0.5, mod2=0.75),
+        )
+
     def test_create_config(self, config_arguments):
         """Check the arguments are correctly set in the config."""
         config = BaseMultiVAEConfig(**config_arguments)
@@ -41,12 +45,16 @@ class TestBaseMultiVAEConfig:
         assert config.latent_dim == config_arguments["latent_dim"]
         assert config.decoders_dist == config_arguments["decoders_dist"]
         assert config.decoder_dist_params == config_arguments["decoder_dist_params"]
-        assert config.uses_likelihood_rescaling == config_arguments["uses_likelihood_rescaling"]
+        assert (
+            config.uses_likelihood_rescaling
+            == config_arguments["uses_likelihood_rescaling"]
+        )
         assert config.rescale_factors == config_arguments["rescale_factors"]
 
 
 class Test_BaseMultiVAE:
     """Test the BaseMultiVAE class."""
+
     @pytest.fixture
     def input_model1(self):
         """Fixture to create a dummy model with two modalities and custom architectures."""
@@ -61,7 +69,8 @@ class Test_BaseMultiVAE:
     @pytest.fixture
     def input_model2(self):
         """Fixture to create a dummy model with two modalities and **no** custom architectures.
-        The default ones will be used."""
+        The default ones will be used.
+        """
         model_config = BaseMultiVAEConfig(
             n_modalities=2, latent_dim=10, input_dims=dict(mod1=(1, 2), mod2=(3, 4, 4))
         )
@@ -69,13 +78,13 @@ class Test_BaseMultiVAE:
         return dict(model_config=model_config)
 
     def test1(self, input_model1):
-        """Test model creation with a first set of inputs. 
-        We verify the type of the attibutes after initialization and the coherence 
-        between model attributes and the model configuration."""
-
+        """Test model creation with a first set of inputs.
+        We verify the type of the attibutes after initialization and the coherence
+        between model attributes and the model configuration.
+        """
         model = BaseMultiVAE(**input_model1)
 
-        assert isinstance(model.encoders,nn.ModuleDict)
+        assert isinstance(model.encoders, nn.ModuleDict)
         assert isinstance(model.encoders["mod1"], Encoder_VAE_MLP)
         assert isinstance(model.encoders["mod2"], Encoder_Conv_AE_MNIST)
         assert isinstance(model.decoders, nn.ModuleDict)
@@ -86,9 +95,10 @@ class Test_BaseMultiVAE:
 
     def test2(self, input_model2):
         """Test model creation with a second set of inputs.(no custom architectures)
-        The default ones will be used. 
-        We verify the type of the attibutes after initialization and the coherence 
-        between model attributes and the model configuration."""
+        The default ones will be used.
+        We verify the type of the attibutes after initialization and the coherence
+        between model attributes and the model configuration.
+        """
         model = BaseMultiVAE(**input_model2)
         # Check if the encoders are the default ones
         # and if the input dimensions are correct
@@ -98,7 +108,7 @@ class Test_BaseMultiVAE:
         assert isinstance(model.encoders["mod2"], Encoder_VAE_MLP)
         assert model.encoders["mod2"].input_dim == (3, 4, 4)
         # Check if the decoders are the default ones
-        assert isinstance(model.decoders,nn.ModuleDict)
+        assert isinstance(model.decoders, nn.ModuleDict)
         assert isinstance(model.decoders["mod1"], Decoder_AE_MLP)
         assert model.decoders["mod1"].input_dim == (1, 2)
         assert isinstance(model.decoders["mod2"], Decoder_AE_MLP)
@@ -110,9 +120,9 @@ class Test_BaseMultiVAE:
     def test_raise_missing_input_dim(self, input_model1):
         """If not all architectures are provided (missing encoders or decoders), the user should provide
         the input dimensions of all the modalities.
-        If not, an AttributeError should be raised."""
-
-        ## Test incomplete input_dims when neither encoders or decoders are provided 
+        If not, an AttributeError should be raised.
+        """
+        ## Test incomplete input_dims when neither encoders or decoders are provided
         # Incomplete input_dims
         model_config = BaseMultiVAEConfig(
             n_modalities=2, latent_dim=10, input_dims=dict(mod2=(3, 4, 4))
@@ -160,7 +170,8 @@ class Test_BaseMultiVAE:
 
     def test_raises_wrong_encoders(self, input_model1):
         """If the encoders/decoders are not instances of BaseEncoder/BaseDecoder,
-          an AttributeError should be raised."""
+        an AttributeError should be raised.
+        """
         # create dummy model
         model = BaseMultiVAE(**input_model1)
 
@@ -175,8 +186,9 @@ class Test_BaseMultiVAE:
             model.set_decoders(decoders)
 
     def test_raises_key_error(self):
-        """When both encoders and input_dims are provided, 
-        the encoders names must match the input_dims names."""
+        """When both encoders and input_dims are provided,
+        the encoders names must match the input_dims names.
+        """
         model_config = BaseMultiVAEConfig(
             n_modalities=1, latent_dim=10, input_dims=dict(wrong_names=(3, 4, 4))
         )
@@ -191,8 +203,9 @@ class Test_BaseMultiVAE:
             BaseMultiVAE(model_config, encoders=encoders, decoders=decoders)
 
     def test_decoders_distributions_functions(self):
-        """ For different decoder distributions, we test that the 
-        recon_log_probs functions work as expected."""
+        """For different decoder distributions, we test that the
+        recon_log_probs functions work as expected.
+        """
         # create dummy model
         model_config = BaseMultiVAEConfig(
             n_modalities=4,
@@ -226,11 +239,10 @@ class Test_BaseMultiVAE:
         assert model.recon_log_probs["mod3"](dumb_x3, dumb_x3).shape == dumb_x3.shape
         assert model.recon_log_probs["mod4"](dumb_x4, dumb_x4).shape == dumb_x4.shape
 
-
     def test_raises_sanity_check_flags(self):
-        """Test that an attribute error is raised when there is a 
-        mismatch between the encoders/decoders or the n_modalities flag."""
-
+        """Test that an attribute error is raised when there is a
+        mismatch between the encoders/decoders or the n_modalities flag.
+        """
         # n_modalities = 2 but only one encoder/decoder is provided
         model_config = BaseMultiVAEConfig(
             n_modalities=2, latent_dim=10, input_dims=dict(mod1=(3, 4, 4), mod2=(3, 4))
@@ -249,9 +261,7 @@ class Test_BaseMultiVAE:
             BaseMultiVAE(model_config, decoders=decoders)
 
         # the encoders/decoders keys don't match
-        encoders = dict(
-            mod_1=Encoder_VAE_MLP(config), mod_2=Encoder_VAE_MLP(config)
-        )
+        encoders = dict(mod_1=Encoder_VAE_MLP(config), mod_2=Encoder_VAE_MLP(config))
 
         decoders = dict(
             wrong_name_1=Decoder_Conv_AE_MNIST(config),
@@ -263,7 +273,8 @@ class Test_BaseMultiVAE:
 
     def test_raises_encode_error(self, input_model1):
         """Test that an error is raised when the encode function is called
-        conditioning on a modality that is not present in the input data."""
+        conditioning on a modality that is not present in the input data.
+        """
         model = BaseMultiVAE(**input_model1)
 
         # Create dummy inputs with the modality mod1 missing
@@ -278,7 +289,8 @@ class Test_BaseMultiVAE:
 
     def test_decode_one_latent(self, input_model1):
         """Test the basic decode function with one latent space.
-        We verify that the output shape is correct."""
+        We verify that the output shape is correct.
+        """
         model = BaseMultiVAE(**input_model1)
 
         out = ModelOutput(
@@ -289,9 +301,10 @@ class Test_BaseMultiVAE:
 
         assert tuple(output.mod1.shape) == (3, 10, 2)
 
-    def test_raise_error_decode_with_wrong_input(self,input_model1):
+    def test_raise_error_decode_with_wrong_input(self, input_model1):
         """Test that an error is raised when the decode function is called
-        with a wrong input (not a ModelOutput)."""
+        with a wrong input (not a ModelOutput).
+        """
         model = BaseMultiVAE(**input_model1)
 
         with pytest.raises(ValueError):
@@ -299,8 +312,8 @@ class Test_BaseMultiVAE:
 
     def test_decode_several_latent(self):
         """Test the decode function with several latent spaces.
-        We verify that the output shape is correct."""
-        
+        We verify that the output shape is correct.
+        """
         # dimension of the additional modality specific space
         mod_latent = np.random.randint(1, 100)
 
@@ -308,12 +321,16 @@ class Test_BaseMultiVAE:
         model_config = BaseMultiVAEConfig(n_modalities=2, latent_dim=10)
         encoder_config = BaseAEConfig(input_dim=(10, 2), latent_dim=10)
         encoders = dict(
-            mod1=Encoder_VAE_MLP(encoder_config), mod2=Encoder_Conv_AE_MNIST(encoder_config)
+            mod1=Encoder_VAE_MLP(encoder_config),
+            mod2=Encoder_Conv_AE_MNIST(encoder_config),
         )
         decoder_config = BaseAEConfig(
             input_dim=(10, 2), latent_dim=mod_latent + model_config.latent_dim
         )
-        decoders = dict(mod1=Decoder_AE_MLP(decoder_config), mod2=Decoder_Conv_AE_MNIST(decoder_config))
+        decoders = dict(
+            mod1=Decoder_AE_MLP(decoder_config),
+            mod2=Decoder_Conv_AE_MNIST(decoder_config),
+        )
 
         model = BaseMultiVAE(model_config, encoders=encoders, decoders=decoders)
 
@@ -325,12 +342,13 @@ class Test_BaseMultiVAE:
         )
 
         output = model.decode(out, modalities="mod1")
-        #check the shape
+        # check the shape
         assert tuple(output.mod1.shape) == (3, 10, 2)
 
     def test_raises_fwd_not_implemented(self, input_model1):
         """Test that an error is raised when the forward function is called
-        but the forward method is not implemented in subclass."""
+        but the forward method is not implemented in subclass.
+        """
         # create dummy model
         model = BaseMultiVAE(**input_model1)
 
@@ -339,7 +357,8 @@ class Test_BaseMultiVAE:
 
     def test_raises_nll_not_implemented(self, input_model1):
         """Test that an error is raised when the compute_joint_nll function is called
-        but the compute_joint_nll method is not implemented in subclass."""
+        but the compute_joint_nll method is not implemented in subclass.
+        """
         model = BaseMultiVAE(**input_model1)
 
         with pytest.raises(NotImplementedError):
@@ -347,14 +366,14 @@ class Test_BaseMultiVAE:
 
     def test_generate_from_prior(self, input_model1):
         """Test the generate_from_prior function.
-        We verify that the output shape is correct."""
+        We verify that the output shape is correct.
+        """
         model = BaseMultiVAE(**input_model1)
         output = model.generate_from_prior(11)
         assert output.z.shape == (11, input_model1["model_config"].latent_dim)
 
     def test_dummy_model_saving(self, input_model1, tmp_path):
         """Test the save function."""
-
         # Create a dummy path and dummy model with custom architectures
         path = tmp_path / "model_save"
         model = BaseMultiVAE(**input_model1)
@@ -374,7 +393,7 @@ class Test_BaseMultiVAE:
 
         with pytest.raises(FileNotFoundError):
             model._load_model_weights_from_folder(tmp_path)
-        
+
         with pytest.raises(FileNotFoundError):
             model._load_custom_archi_from_folder(tmp_path, "encoders")
 
@@ -383,12 +402,14 @@ class Test_BaseMultiVAE:
         with pytest.raises(KeyError):
             model._load_model_weights_from_folder(tmp_path)
 
-        
+
 class TestIntegrateAutoConfig:
     """Test the AutoConfig class."""
+
     def test_autoconfig(self, tmp_path):
         """Test reloading a model configuration from a json file with AutoConfig.
-        Check the reloaded configuration is the same as the original one."""
+        Check the reloaded configuration is the same as the original one.
+        """
         model_config = BaseMultiVAEConfig(n_modalities=14, latent_dim=3)
         model_config.save_json(tmp_path, "model_config")
         reloaded_config = AutoConfig.from_json_file(
@@ -409,6 +430,7 @@ class TestIntegrateAutoConfig:
 
 class TestIntegrateAutoModel:
     """Test the AutoModel class."""
+
     def test_build_automodel(self):
         """Test AutoModel init."""
         _ = AutoModel()

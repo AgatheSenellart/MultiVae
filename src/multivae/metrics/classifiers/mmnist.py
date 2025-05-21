@@ -10,8 +10,7 @@ class Flatten(torch.nn.Module):
 
 
 class ClassifierPolyMNIST(nn.Module):
-    """
-    PolyMNIST classifier.
+    """PolyMNIST classifier.
 
     Trained classifiers can be downloaded from here: https://zenodo.org/record/4899160/files/PolyMNIST.zip
 
@@ -44,15 +43,13 @@ class ClassifierPolyMNIST(nn.Module):
 
 
 def load_mmnist_classifiers(data_path=".data/clf", device="cpu"):
-    """
-    Utility function to load all trained PolyMNISTClassifier for the five modalities.
+    """Utility function to load all trained PolyMNISTClassifier for the five modalities.
 
     If you are using MultiVae MMNISTDataset and you downloaded the data
     through this class, you have a `clf` folder in same folder that was automatically downloaded
     along with the data.
 
     """
-
     clfs = {}
     for i in range(5):
         fp = data_path + "/pretrained_img_to_digit_clf_m" + str(i)

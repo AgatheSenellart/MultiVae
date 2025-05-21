@@ -6,7 +6,6 @@ from pythae.data.datasets import BaseDataset
 from pythae.models.normalizing_flows import MAF, MAFConfig, NFModel
 from pythae.trainers import BaseTrainer, BaseTrainerConfig
 from torch.distributions import MultivariateNormal
-from torch.nn import ModuleDict
 from torch.utils.data import DataLoader
 
 from multivae.data.utils import set_inputs_to_device
@@ -83,7 +82,6 @@ class MAFSampler(BaseSampler):
                     ... and in range [0-1]
             training_config (BaseTrainerConfig): the training config to use to fit the flow.
         """
-
         train_loader = DataLoader(dataset=train_data, batch_size=100, shuffle=True)
 
         zs = {m: [] for m in self.flows_models}
@@ -160,7 +158,6 @@ class MAFSampler(BaseSampler):
         Returns:
             ~torch.Tensor: The generated images
         """
-
         if not self.is_fitted:
             raise ArithmeticError(
                 "The sampler needs to be fitted by calling sampler.fit() method"
@@ -192,10 +189,8 @@ class MAFSampler(BaseSampler):
         return output
 
     def save(self, dir_path):
+        """Save the config and trained models
         """
-        Save the config and trained models
-        """
-
         super().save(dir_path=dir_path)
 
         if not self.is_fitted:
@@ -219,7 +214,6 @@ class MAFSampler(BaseSampler):
             >>> new_sampler = MAFSampler(model, sampler_config) # must be the same model and config
             >>> new_sampler.load_flows_from_folder(dir_path)
         """
-
         for m in self.flows_models:
             try:
                 self.flows_models[m] = MAF.load_from_folder(
@@ -227,7 +221,7 @@ class MAFSampler(BaseSampler):
                 ).to(self.device)
             except Exception as exc:
                 raise AttributeError(
-                    f"Error when trying to load the flows from the folder.",
+                    "Error when trying to load the flows from the folder.",
                     f"Check that you provided the right path. Exception raised: {exc}",
                 )
 

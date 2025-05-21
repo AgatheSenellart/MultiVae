@@ -1,6 +1,5 @@
 """Default architectures for the MultiVAE models."""
 
-import math
 from copy import deepcopy
 from typing import Dict, List
 
@@ -63,7 +62,7 @@ class Encoder_VAE_MLP(BaseEncoder):
 
             if output_layer_levels is not None:
                 if i + 1 in output_layer_levels:
-                    output[f"embedding_layer_{i+1}"] = out
+                    output[f"embedding_layer_{i + 1}"] = out
             if i + 1 == self.depth:
                 output["embedding"] = self.embedding(out)
                 output["log_covariance"] = self.log_var(out)
@@ -72,8 +71,7 @@ class Encoder_VAE_MLP(BaseEncoder):
 
 
 class Encoder_VAE_MLP_Style(BaseMultilatentEncoder):
-    """
-    A basic MLP encoders with two output embeddings :
+    """A basic MLP encoders with two output embeddings :
 
     returns :
         ModelOutput(embedding = ..,
@@ -127,7 +125,7 @@ class Encoder_VAE_MLP_Style(BaseMultilatentEncoder):
 
             if output_layer_levels is not None:
                 if i + 1 in output_layer_levels:
-                    output[f"embedding_layer_{i+1}"] = out
+                    output[f"embedding_layer_{i + 1}"] = out
             if i + 1 == self.depth:
                 output["embedding"] = self.embedding(out)
                 output["log_covariance"] = self.log_var(out)
@@ -148,7 +146,6 @@ def BaseDictEncoders(input_dims: dict, latent_dim: int):
     Returns:
         ~torch.nn.ModuleDict(): A Module Dictionary of Basic MLP Encoders.
     """
-
     encoders = nn.ModuleDict()
     for mod in input_dims:
         config = BaseAEConfig(input_dim=input_dims[mod], latent_dim=latent_dim)
@@ -169,7 +166,6 @@ def BaseDictEncoders_MultiLatents(
     Returns:
         nn.ModuleDict(): A Dictionary of basic MLP encoders.
     """
-
     encoders = nn.ModuleDict()
     for mod in input_dims:
         config = BaseAEConfig(
@@ -212,7 +208,6 @@ def BaseDictDecodersMultiLatents(
     Returns:
         nn.ModuleDict(): A Dictionary of basic MLP decoders.
     """
-
     decoders = nn.ModuleDict()
     for mod in input_dims:
         config = BaseAEConfig(
@@ -259,11 +254,10 @@ class Decoder_AE_MLP(BaseDecoder):
 
 
 class MultipleHeadJointEncoder(BaseJointEncoder):
-    """
-    A default instance of joint encoder created from copying the architectures for the unimodal encoders,
+    """A default instance of joint encoder created from copying the architectures for the unimodal encoders,
     concatenating their outputs and passing them through a unifying Multi-Layer-Perceptron.
 
-        Args:
+    Args:
             dict_encoders (dict): Contains an instance of BaseEncoder for each modality (key).
             args (BaseAEConfig): config dictionary. Contains the latent dim.
             hidden_dim (int) : Default to 512.
@@ -302,13 +296,11 @@ class MultipleHeadJointEncoder(BaseJointEncoder):
         self.latent_dim = args.latent_dim
 
     def forward(self, x: dict):
-        """
-        Implements the encoding of the data contained in x.
+        """Implements the encoding of the data contained in x.
 
         Args:
             x (dict): Contains a tensor for each modality (key).
         """
-
         assert np.all(x.keys() == self.encoders.keys())
 
         modalities_outputs = []
@@ -326,8 +318,7 @@ class MultipleHeadJointEncoder(BaseJointEncoder):
 
 
 class ConditionalDecoderMLP(BaseConditionalDecoder):
-    """
-    Base MLP Conditional Decoder for a single modality.
+    """Base MLP Conditional Decoder for a single modality.
     """
 
     def __init__(
@@ -345,7 +336,6 @@ class ConditionalDecoderMLP(BaseConditionalDecoder):
         )
 
     def forward(self, z, cond_mods: Dict[str, torch.Tensor]):
-
         concatenated = torch.cat(
             [z] + [cond_data.view(z.shape[0], -1) for cond_data in cond_mods.values()],
             dim=1,

@@ -5,8 +5,7 @@ from ..joint_models import BaseJointModelConfig
 
 @dataclass
 class JMVAEConfig(BaseJointModelConfig):
-    """
-    This is the base config for the JMVAE model.
+    """This is the base config for the JMVAE model.
 
     Args:
         n_modalities (int): The number of modalities. Default: None.

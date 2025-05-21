@@ -55,7 +55,6 @@ class TestDMVAE:
     )
     def model_config_and_architectures(self, request):
         """Return model_config and custom architectures for DMVAE model"""
-
         model_config = DMVAEConfig(
             n_modalities=3,
             latent_dim=request.param[0],
@@ -130,7 +129,6 @@ class TestDMVAE:
         model_config = model_config_and_architectures["model_config"]
 
         for return_mean in [True, False]:
-
             # Condition on all modalities
             ## N = 1
             outputs = model.encode(dataset[3], return_mean=return_mean)
@@ -188,9 +186,9 @@ class TestDMVAE:
                 len(dataset),
                 model_config.modalities_specific_dim["mod3"],
             )
+
     def test_predict(self, model, dataset):
         """Test the predict function of the model. Check output types and shapes."""
-
         # Generate 1 sample
         Y = model.predict(dataset, cond_mod="mod2")
         assert isinstance(Y, ModelOutput)
@@ -211,7 +209,6 @@ class TestDMVAE:
 
     def test_generate_from_prior(self, model):
         """Test the generate_from_prior function of the model. Check output types and shapes."""
-
         # Generate 1 latent code
         latents = model.generate_from_prior(n_samples=1)
 
@@ -248,7 +245,6 @@ class TestDMVAE:
 
     def test_grad(self, model, dataset):
         """Check the gradient with regard to the missing modalities is null."""
-
         # Check that the gradient is null for the missing modalities
         output = model(dataset[:3], epoch=2)
         loss = output.loss
@@ -256,7 +252,7 @@ class TestDMVAE:
         if isinstance(dataset, IncompleteDataset):
             for param in model.encoders["mod1"].parameters():
                 assert torch.all(param.grad == 0)
-        
+
         # Check that the gradient when modalities are not missing
         output = model(dataset[-3:], epoch=2)
         loss = output.loss
@@ -267,7 +263,6 @@ class TestDMVAE:
     @pytest.fixture
     def training_config(self, tmp_path_factory):
         """Create a training config for testing."""
-
         dir_path = tmp_path_factory.mktemp("dummy_folder")
 
         yield BaseTrainerConfig(
@@ -298,8 +293,8 @@ class TestDMVAE:
     @pytest.mark.slow
     def test_train_step(self, trainer):
         """Test the train step with the DMVAE model.
-        We check that weights are updated."""
-
+        We check that weights are updated.
+        """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
         start_optimizer = trainer.optimizer
         _ = trainer.train_step(epoch=1)
@@ -318,7 +313,8 @@ class TestDMVAE:
     @pytest.mark.slow
     def test_eval_step(self, trainer):
         """Test eval_step with the DMVAE model.
-        We check that weights are not updated."""
+        We check that weights are not updated.
+        """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         _ = trainer.eval_step(epoch=1)
@@ -336,7 +332,8 @@ class TestDMVAE:
     @pytest.mark.slow
     def test_main_train_loop(self, trainer):
         """Test the main training loop with the DMVAE model.
-        We check that weights are updated."""
+        We check that weights are updated.
+        """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         trainer.train()
@@ -354,12 +351,13 @@ class TestDMVAE:
     @pytest.mark.slow
     def test_checkpoint_saving(self, model, trainer, training_config):
         """Test checkpoint saving with the DMVAE model.
-        We check that the model and optimizer state dicts are saved correctly and 
-        can be reloaded."""
+        We check that the model and optimizer state dicts are saved correctly and
+        can be reloaded.
+        """
         dir_path = training_config.output_dir
 
         # Make a training step
-        step_1_loss = trainer.train_step(epoch=1)
+        trainer.train_step(epoch=1)
 
         model = deepcopy(trainer.model)
         optimizer = deepcopy(trainer.optimizer)
@@ -405,8 +403,8 @@ class TestDMVAE:
             ]
         )
 
-        assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
-        assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
+        assert model_rec.encoders.cpu() is type(model.encoders.cpu())
+        assert model_rec.decoders.cpu() is type(model.decoders.cpu())
 
         optim_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "optimizer.pt"))
 
@@ -432,7 +430,6 @@ class TestDMVAE:
     @pytest.mark.slow
     def test_checkpoint_saving_during_training(self, model, trainer, training_config):
         """Test the creation of the checkpoint during the main training loop."""
-        
         target_saving_epoch = training_config.steps_saving
 
         dir_path = training_config.output_dir
@@ -478,7 +475,8 @@ class TestDMVAE:
     def test_final_model_saving(self, model, trainer, training_config):
         """Test final model saving with the DMVAE model.
         We check that the model and optimizer state dicts are saved correctly and
-        can be reloaded."""
+        can be reloaded.
+        """
         dir_path = training_config.output_dir
 
         trainer.train()
@@ -490,7 +488,7 @@ class TestDMVAE:
         )
         assert os.path.isdir(training_dir)
 
-        final_dir = os.path.join(training_dir, f"final_model")
+        final_dir = os.path.join(training_dir, "final_model")
         assert os.path.isdir(final_dir)
 
         files_list = os.listdir(final_dir)
@@ -515,12 +513,13 @@ class TestDMVAE:
             ]
         )
 
-        assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
-        assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
+        assert model_rec.encoders.cpu() is type(model.encoders.cpu())
+        assert model_rec.decoders.cpu() is type(model.decoders.cpu())
 
     def test_compute_nll(self, model, dataset):
         """Test the compute_nll function of the model.
-        We check that the NLL is computed correctly and is a tensor."""
+        We check that the NLL is computed correctly and is a tensor.
+        """
         if hasattr(dataset, "masks"):
             with pytest.raises(AttributeError):
                 nll = model.compute_nll(dataset, K=10, batch_size_K=2)

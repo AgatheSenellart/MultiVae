@@ -18,9 +18,7 @@ from .mopoe_config import MoPoEConfig
 
 
 class MoPoE(BaseMultiVAE):
-    """
-
-    Implementation for the Mixture of Product of experts model from
+    """Implementation for the Mixture of Product of experts model from
     'Generalized Multimodal ELBO' Sutter 2021 (https://arxiv.org/abs/2105.02470)
 
     This implementation is heavily based on the official one at
@@ -64,8 +62,7 @@ class MoPoE(BaseMultiVAE):
                 self.set_decoders(decoders)
 
     def all_subsets(self):
-        """
-        Returns a list containing all possible subsets of the modalities.
+        """Returns a list containing all possible subsets of the modalities.
         (But the empty one)
         """
         xs = list(self.encoders.keys())
@@ -76,15 +73,14 @@ class MoPoE(BaseMultiVAE):
         return subsets_list
 
     def set_subsets(self, subsets_list):
-        """
-        Builds a dictionary of the subsets.
+        """Builds a dictionary of the subsets.
         The keys are the subset_names created by concatenating the modalities' names.
         The values are the list of modalities names.
         """
         subsets = dict()
-        for k, mod_names in enumerate(subsets_list):
+        for mod_names in subsets_list:
             mods = []
-            for l, mod_name in enumerate(sorted(mod_names)):
+            for mod_name in sorted(mod_names):
                 if (mod_name not in self.encoders.keys()) and (mod_name != ""):
                     raise AttributeError(
                         f"The provided subsets list contains unknown modality name {mod_name}."
@@ -169,7 +165,7 @@ class MoPoE(BaseMultiVAE):
                     full_embedding = torch.cat(
                         [shared_embeddings, style_embeddings], dim=-1
                     )
-                except:
+                except:  # noqa
                     raise AttributeError(
                         " model_config.modality_specific_dims is not None, "
                         f"but encoder output for modality {m_key} doesn't have a "
@@ -221,9 +217,7 @@ class MoPoE(BaseMultiVAE):
     def modality_encode(
         self, inputs: Union[MultimodalBaseDataset, IncompleteDataset], **kwargs
     ):
-        """
-
-        Computes for each modality, the parameters mu and logvar of the
+        """Computes for each modality, the parameters mu and logvar of the
         unimodal posterior.
 
         Args:
@@ -256,10 +250,8 @@ class MoPoE(BaseMultiVAE):
         return poe(mus, logvars)
 
     def subset_mask(self, inputs: IncompleteDataset, subset: Union[list, tuple]):
+        """Returns a filter of the samples available in ALL the modalities contained in subset.
         """
-        Returns a filter of the samples available in ALL the modalities contained in subset.
-        """
-
         filter = torch.tensor(
             True,
         ).to(inputs.masks[subset[0]].device)
@@ -269,15 +261,12 @@ class MoPoE(BaseMultiVAE):
         return filter
 
     def inference(self, inputs: MultimodalBaseDataset, **kwargs):
-        """
-
-        Args:
+        """Args:
             inputs (MultimodalBaseDataset): The data.
 
         Returns:
             dict: all the subset and joint posteriors parameters.
         """
-
         latents = dict()
         enc_mods = self.modality_encode(inputs)
         latents["modalities"] = enc_mods
@@ -357,8 +346,7 @@ class MoPoE(BaseMultiVAE):
         return_mean=False,
         **kwargs,
     ) -> ModelOutput:
-        """
-        Generate encodings conditioning on all modalities or a subset of modalities.
+        """Generate encodings conditioning on all modalities or a subset of modalities.
         We use the product of experts on the conditioning modalities.
 
         Args:
@@ -375,7 +363,6 @@ class MoPoE(BaseMultiVAE):
                 modalities_z (Dict[str,torch.Tensor (n_data, N, latent_dim) ])
 
         """
-
         cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
 
         # Compute the str associated to the subset
@@ -417,15 +404,13 @@ class MoPoE(BaseMultiVAE):
         return ModelOutput(z=z, one_latent_space=True)
 
     def random_mixture_component_selection(self, mus, logvars, availabilities):
-        """
-        Randomly select a subset for each sample among the available subsets.
+        """Randomly select a subset for each sample among the available subsets.
 
         Args:
             mus (tensor): (n_subset,n_samples,latent_dim) the means of subset posterior.
             logvars (tensor): (n_subset,n_samples,latent_dim) the log covariance of subset posterior.
             availabilities (tensor): (n_subset,n_samples) boolean tensor.
         """
-
         probs = availabilities.permute(1, 0)  # n_samples,n_subset
         choice = dist.OneHotCategorical(probs=probs).sample()
 
@@ -437,11 +422,9 @@ class MoPoE(BaseMultiVAE):
         return mus_, logvars_
 
     def deterministic_mixture_component_selection(self, mus, logvars, w_modalities):
-        """
-        Associate a subset mu and log_covariance per sample in a balanced way, so that the proportion
+        """Associate a subset mu and log_covariance per sample in a balanced way, so that the proportion
         of samples per subset correspond to w_modalities.
         """
-
         num_components = mus.shape[0]  # number of components
         num_samples = mus.shape[1]
 
@@ -483,13 +466,11 @@ class MoPoE(BaseMultiVAE):
         MoPoE definition as the joint posterior.
 
         Args:
-
             inputs (MultimodalBaseDataset) : a batch of samples.
             K (int) : the number of importance samples for the estimation. Default to 1000.
             batch_size_K (int) : Default to 100.
 
         Returns:
-
             The negative log-likelihood summed over the batch.
 
 
@@ -565,7 +546,6 @@ class MoPoE(BaseMultiVAE):
 
                     # If we are using modalities specific latent spaces compute the modalities priors and posteriors
                     if self.multiple_latent_spaces:
-
                         lpz += dist.Normal(0, 1).log_prob(private_latents).sum(dim=-1)
                         qz_x = dist.Normal(
                             private_params[mod][0][i],
@@ -610,8 +590,7 @@ class MoPoE(BaseMultiVAE):
         K: int = 1000,
         batch_size_K: int = 100,
     ):
-        """
-        Computes the joint negative log-likelihood using the PoE posterior as importance sampling distribution.
+        """Computes the joint negative log-likelihood using the PoE posterior as importance sampling distribution.
         The result is summed over the input batch.
         """
         # Check that the dataset is complete
@@ -719,7 +698,8 @@ class MoPoE(BaseMultiVAE):
         """Estimates the negative joint likelihood using the PoE posterior as importance sampling distribution.
         The result is summed over the input batch.
 
-        This is the method used in the original paper implementation."""
+        This is the method used in the original paper implementation.
+        """
         entire_subset = list(self.encoders.keys())
         return self._compute_joint_nll_from_subset_encoding(
             entire_subset, inputs, K, batch_size_K

@@ -10,7 +10,6 @@ class CVAEConfig(BaseConfig):
     """This is the configuration class for the Conditional Variational Autoencoder model.
 
     Args:
-
         input_dims (dict[str,tuple]) : The modalities'names (str) and input shapes (tuple).
         latent_dim (int): The dimension of the latent space. Default: 10.
         conditioning_modalities (List[str]): The modalities to condition the model on.

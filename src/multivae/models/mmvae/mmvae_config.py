@@ -7,8 +7,7 @@ from ..base import BaseMultiVAEConfig
 
 @dataclass
 class MMVAEConfig(BaseMultiVAEConfig):
-    """
-    This class is the configuration class for the MMVAE model, from
+    """This class is the configuration class for the MMVAE model, from
     (Variational Mixture-of-Experts Autoencoders
     for Multi-Modal Deep Generative Models, Shi et al 2019,
     https://proceedings.neurips.cc/paper/2019/hash/0ae775a8cb3b499ad1fca944e6f5c836-Abstract.html)

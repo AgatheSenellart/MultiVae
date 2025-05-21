@@ -21,8 +21,7 @@ logger.setLevel(logging.INFO)
 
 
 class MMVAE(BaseMultiVAE):
-    """
-    The Variational Mixture-of-Experts Autoencoder model.
+    """The Variational Mixture-of-Experts Autoencoder model.
 
     Args:
         model_config (MMVAEConfig): An instance of MMVAEConfig in which any model's
@@ -65,12 +64,10 @@ class MMVAE(BaseMultiVAE):
         self.model_name = "MMVAE"
 
     def log_var_to_std(self, log_var):
-        """
-        For latent distributions parameters, transform the log covariance to the
+        """For latent distributions parameters, transform the log covariance to the
         standard deviation of the distribution either applying softmax or not.
         This follows the original implementation.
         """
-
         if self.model_config.prior_and_posterior_dist == "laplace_with_softmax":
             return F.softmax(log_var, dim=-1) * log_var.size(-1) + 1e-6
         else:
@@ -165,8 +162,8 @@ class MMVAE(BaseMultiVAE):
 
         returns :
             dict containing the likelihoods terms (not aggregated)
-            for all modalities."""
-
+            for all modalities.
+        """
         if hasattr(inputs, "masks"):
             # Compute the number of available modalities per sample
             n_mods_sample = torch.sum(
@@ -239,12 +236,10 @@ class MMVAE(BaseMultiVAE):
         return lws, n_mods_sample
 
     def dreg_looser(self, qz_xs, embeddings, reconstructions, inputs):
-        """
-        The DreG estimation for IWAE. losses components in lws needs to have been computed on
+        """The DreG estimation for IWAE. losses components in lws needs to have been computed on
         **detached** posteriors.
 
         """
-
         lws, n_mods_sample = self.compute_k_lws(
             qz_xs, embeddings, reconstructions, inputs
         )
@@ -266,7 +261,6 @@ class MMVAE(BaseMultiVAE):
         # The gradient with respect to \phi is multiplied one more time by wk
         # To achieve that, we register a hook on the latent variables z
         for mod in embeddings:
-
             embeddings[mod].register_hook(
                 lambda grad, w=wk[mod]: w.unsqueeze(-1) * grad
             )
@@ -298,7 +292,6 @@ class MMVAE(BaseMultiVAE):
         return ModelOutput(loss=-lws.sum(), loss_sum=-lws.sum(), metrics={})
 
     def iwae(self, qz_xs, embeddings, reconstructions, inputs):
-
         lws, n_mods_sample = self.compute_k_lws(
             qz_xs, embeddings, reconstructions, inputs
         )
@@ -325,8 +318,7 @@ class MMVAE(BaseMultiVAE):
         return_mean=False,
         **kwargs,
     ):
-        """
-        Generate encodings conditioning on all modalities or a subset of modalities.
+        """Generate encodings conditioning on all modalities or a subset of modalities.
 
         Args:
             inputs (MultimodalBaseDataset): The dataset to use for the conditional generation.
@@ -340,7 +332,6 @@ class MMVAE(BaseMultiVAE):
             ModelOutput instance with fields 'z' (torch.Tensor (n_data, N, latent_dim)),'one_latent_space' (bool) = True
 
         """
-
         cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
 
         if all([s in self.encoders.keys() for s in cond_mod]):
@@ -378,16 +369,13 @@ class MMVAE(BaseMultiVAE):
         """Estimate the negative joint likelihood.
 
         Args:
-
             inputs (MultimodalBaseDataset) : a batch of samples.
             K (int) : the number of importance samples for the estimation. Default to 1000.
             batch_size_K (int) : Default to 100.
 
         Returns:
-
             The negative log-likelihood summed over the batch.
         """
-
         # Check the dataset is not incomplete
         self.eval()
         if hasattr(inputs, "masks"):
@@ -459,8 +447,8 @@ class MMVAE(BaseMultiVAE):
         self, inputs: MultimodalBaseDataset, K: int = 1000, batch_size_K: int = 10
     ):
         """Computes the joint likelihood like in the original dataset, using all Mixture of experts
-        samples and modality rescaling."""
-
+        samples and modality rescaling.
+        """
         self.eval()
 
         lws = []

@@ -5,7 +5,7 @@ import pytest
 import torch
 from .encoders import EncoderTest, EncoderTestMultilatents
 
-from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
+from multivae.data.datasets.base import MultimodalBaseDataset
 from multivae.models import MVTCAE, MMVAEPlus, MMVAEPlusConfig, MVTCAEConfig
 from multivae.models.base.base_config import BaseAEConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP, ModelOutput
@@ -102,7 +102,8 @@ class Test_MAFSampler:
     def model(self, archi_and_config, one_latent_space, request):
         """Create a test model for the MAFSampler.
         For one_latent_space, we use MVTCAE.
-        For multiple_latent_spaces, we use MMVAEPlus."""
+        For multiple_latent_spaces, we use MMVAEPlus.
+        """
         custom = request.param
 
         if one_latent_space:
@@ -125,15 +126,16 @@ class Test_MAFSampler:
             return MAFSamplerConfig(n_made_blocks=1, n_hidden_in_made=1, hidden_size=16)
 
     def test_fit_and_sample(self, maf_sampler_config, model, dataset, tmp_path):
-        """Test the MAFSampler fit function. 
+        """Test the MAFSampler fit function.
         We check that 1) trying to sample before fit raises an error,
         2) after fit, the sampler has the right attributes and trained modules
-        3) the sample function works and returns the right output."""
+        3) the sample function works and returns the right output.
+        """
         sampler = MAFSampler(model, maf_sampler_config)
 
         dir_path = tmp_path / "dummy_folder"
         dir_path.mkdir()
-        # Test that trying to sample before fit raises an error:. 
+        # Test that trying to sample before fit raises an error:.
         with pytest.raises(ArithmeticError):
             sampler.sample(100)
 
@@ -159,10 +161,12 @@ class Test_MAFSampler:
             assert hasattr(output, "modalities_z")
 
         # test save
+
     def test_save_and_load(self, maf_sampler_config, model, dataset, tmp_path):
         """Test the save and load functions of the MAFSampler.
         We check that the save function creates the right files and that
-        the load function loads the models correctly."""
+        the load function loads the models correctly.
+        """
         sampler = MAFSampler(model, maf_sampler_config)
         dir_path = tmp_path / "dummy_folder"
         dir_path.mkdir()

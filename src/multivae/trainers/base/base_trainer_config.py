@@ -9,8 +9,7 @@ from pythae.config import BaseConfig
 
 @dataclass
 class BaseTrainerConfig(BaseConfig):
-    """
-    BaseTrainer config class stating the main training arguments.
+    """BaseTrainer config class stating the main training arguments.
 
     Parameters:
 
@@ -101,7 +100,7 @@ class BaseTrainerConfig(BaseConfig):
             import torch.optim as optim
 
             optimizer_cls = getattr(optim, self.optimizer_cls)
-        except AttributeError as e:
+        except AttributeError:
             raise AttributeError(
                 f"Unable to import `{self.optimizer_cls}` optimizer from 'torch.optim'. "
                 "Check spelling and that it is part of 'torch.optim.Optimizers.'"
@@ -131,7 +130,7 @@ class BaseTrainerConfig(BaseConfig):
                 import torch.optim.lr_scheduler as schedulers
 
                 scheduder_cls = getattr(schedulers, self.scheduler_cls)
-            except AttributeError as e:
+            except AttributeError:
                 raise AttributeError(
                     f"Unable to import `{self.scheduler_cls}` scheduler from "
                     "'torch.optim.lr_scheduler'. Check spelling and that it is part of "

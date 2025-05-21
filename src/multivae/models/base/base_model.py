@@ -1,4 +1,3 @@
-import importlib
 import inspect
 import logging
 import os
@@ -8,20 +7,14 @@ import tempfile
 import warnings
 from copy import deepcopy
 from http.cookiejar import LoadError
-from typing import Union
 
 import cloudpickle
-import numpy as np
 import torch
-import torch.distributions as dist
 import torch.nn as nn
-from pythae.models.base.base_utils import CPU_Unpickler, ModelOutput
-from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
-from torch.nn import functional as F
+from pythae.models.base.base_utils import CPU_Unpickler
 
 from ...data.datasets.base import MultimodalBaseDataset
 from ..auto_model import AutoConfig
-from ..nn.default_architectures import BaseDictDecoders, BaseDictEncoders
 from .base_config import BaseConfig, EnvironmentConfig
 from .base_utils import MODEL_CARD_TEMPLATE, hf_hub_is_available
 
@@ -57,8 +50,7 @@ class BaseModel(nn.Module):
         self.model_custom_architectures = []
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs):
-        """
-        Main forward pass outputing the model outputs
+        """Main forward pass outputing the model outputs
         This function should output a :class:`~pythae.models.base.base_utils.ModelOutput` instance
         gathering all the model outputs
 
@@ -204,7 +196,6 @@ class BaseModel(nn.Module):
             - | a ``model_config.json``, a ``model.pt`` and a ``encoders.pkl`` (resp.
                 ``decoders.pkl``) if a custom encoders (resp. decoders) were provided
         """
-
         model_config = cls._load_model_config_from_folder(dir_path)
         model_weights = cls._load_model_weights_from_folder(dir_path)
 
@@ -324,7 +315,6 @@ class BaseModel(nn.Module):
             - | a ``model_config.json``, a ``model.pt`` and a ``encoder.pkl`` (resp.
                 ``decoder.pkl``) if a custom encoder (resp. decoder) was provided
         """
-
         if not hf_hub_is_available():
             raise ModuleNotFoundError(
                 "`huggingface_hub` package must be installed to load models from the HF hub. "
@@ -357,7 +347,7 @@ class BaseModel(nn.Module):
         ):
             warnings.warn(
                 f"You are trying to load a "
-                f"`{ cls.__name__}` while a "
+                f"`{cls.__name__}` while a "
                 f"`{model_config.name}` is given."
             )
 

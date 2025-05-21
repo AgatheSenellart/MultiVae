@@ -5,7 +5,7 @@ import pytest
 import torch
 from .encoders import EncoderTest, EncoderTestMultilatents
 
-from multivae.data.datasets.base import  MultimodalBaseDataset
+from multivae.data.datasets.base import MultimodalBaseDataset
 from multivae.models import DMVAE, MVAE, DMVAEConfig, MVAEConfig
 from multivae.models.base.base_config import BaseAEConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP, ModelOutput
@@ -20,12 +20,12 @@ class Test_IAFSampler:
     def dataset(self):
         """Dummy dataset"""
         data = dict(
-            mod1=torch.randn(20,2),
-            mod2=torch.randn(20,3),
-            mod3=torch.randn(20,4),
-            mod4=torch.randn(20,4),
+            mod1=torch.randn(20, 2),
+            mod2=torch.randn(20, 3),
+            mod3=torch.randn(20, 4),
+            mod4=torch.randn(20, 4),
         )
-        labels = np.array([0]*10+[1]*10)
+        labels = np.array([0] * 10 + [1] * 10)
         dataset = MultimodalBaseDataset(data, labels)
 
         return dataset
@@ -124,11 +124,11 @@ class Test_IAFSampler:
             return IAFSamplerConfig(n_made_blocks=1, n_hidden_in_made=1, hidden_size=16)
 
     def test_fit_and_sample(self, iaf_sampler_config, model, dataset, tmp_path):
-        """Check the fit method of the IAF sampler. 
+        """Check the fit method of the IAF sampler.
         We check that trying to sample before fit raises an error.
         We check that after training, the IAF sampler has the right attributes.
-        We check that the sample method returns a ModelOutput with the right shape."""
-
+        We check that the sample method returns a ModelOutput with the right shape.
+        """
         sampler = IAFSampler(model, iaf_sampler_config)
 
         dir_path = tmp_path / "dummy_folder"
@@ -141,7 +141,9 @@ class Test_IAFSampler:
         with pytest.raises(AttributeError):
             sampler.load_flows_from_folder(dir_path)
 
-        sampler.fit(dataset, eval_data=dataset, training_config=BaseTrainerConfig(num_epochs=2))
+        sampler.fit(
+            dataset, eval_data=dataset, training_config=BaseTrainerConfig(num_epochs=2)
+        )
 
         assert hasattr(sampler, "flows_models")
 
@@ -161,15 +163,17 @@ class Test_IAFSampler:
             assert hasattr(output, "modalities_z")
 
         # test save
+
     def test_save_and_load(self, iaf_sampler_config, model, dataset, tmp_path):
         """Test the save and load methods of the IAF sampler."""
-
         # Create and fit a sampler
         sampler = IAFSampler(model, iaf_sampler_config)
         dir_path = tmp_path / "dummy_folder_train"
         dir_path.mkdir()
 
-        sampler.fit(dataset, eval_data=dataset, training_config=BaseTrainerConfig(num_epochs=2))
+        sampler.fit(
+            dataset, eval_data=dataset, training_config=BaseTrainerConfig(num_epochs=2)
+        )
 
         # Save the sampler and check that the files are created
         sampler.save(dir_path)

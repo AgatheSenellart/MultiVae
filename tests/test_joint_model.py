@@ -14,7 +14,8 @@ from multivae.models.nn.default_architectures import (
 
 
 class Test_JointModel:
-    """Test BaseJointModel class. """
+    """Test BaseJointModel class."""
+
     @pytest.fixture
     def input_model_1(self):
         """Create custom architectures and configuration for BaseJointModel"""
@@ -29,12 +30,13 @@ class Test_JointModel:
         return dict(encoders=encoders, model_config=model_config, decoders=decoders)
 
     def test_init_1(self, input_model_1):
-        """Test the initialization of BaseJointModel class with  
-        custom architectures and configuration 1. 
-        Check the attributes types and values."""
+        """Test the initialization of BaseJointModel class with
+        custom architectures and configuration 1.
+        Check the attributes types and values.
+        """
         model = BaseJointModel(**input_model_1)
 
-        assert isinstance(model.encoders,nn.ModuleDict)
+        assert isinstance(model.encoders, nn.ModuleDict)
         assert isinstance(model.encoders["mod1"], Encoder_AE_MLP)
         assert isinstance(model.encoders["mod2"], Encoder_AE_MLP)
         assert isinstance(model.decoders, nn.ModuleDict)
@@ -45,9 +47,10 @@ class Test_JointModel:
 
     @pytest.fixture
     def input_model_2(self):
-        """Create a second configuration for testing init. 
+        """Create a second configuration for testing init.
         This time we test without providing custom architectures.
-        The model will use the default architectures."""
+        The model will use the default architectures.
+        """
         model_config = BaseMultiVAEConfig(
             n_modalities=2, latent_dim=10, input_dims=dict(mod1=(7,), mod2=(3,))
         )
@@ -57,7 +60,8 @@ class Test_JointModel:
     def test_init_2(self, input_model_2):
         """Test init of BaseJointModel class without custom architectures.
         We check that the default architectures are used and that the
-        attributes are properly set up."""
+        attributes are properly set up.
+        """
         model = BaseJointModel(**input_model_2)
 
         assert isinstance(model.encoders, nn.ModuleDict)

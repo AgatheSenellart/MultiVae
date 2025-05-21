@@ -1,6 +1,3 @@
-from dataclasses import field
-from typing import Dict, List, Literal
-
 from pydantic.dataclasses import dataclass
 
 from multivae.models.base import BaseMultiVAEConfig
@@ -8,9 +5,7 @@ from multivae.models.base import BaseMultiVAEConfig
 
 @dataclass
 class MHVAEConfig(BaseMultiVAEConfig):
-    """
-
-    This is the configuration class for the Conditional Variational Autoencoder model.
+    """This is the configuration class for the Conditional Variational Autoencoder model.
 
     Parameters:
 

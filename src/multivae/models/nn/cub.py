@@ -30,9 +30,8 @@ class PositionalEncoding(nn.Module):
         self.register_buffer("pe", pe)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Arguments:
-            x: Tensor, shape ``[seq_len, batch_size, embedding_dim]``
+        """Arguments:
+        x: Tensor, shape ``[seq_len, batch_size, embedding_dim]``
         """
         x = x + self.pe[:, : x.size(1)]
         return self.dropout(x)
@@ -50,8 +49,7 @@ class CubTextEncoder(BaseEncoder):
         n_layers: int = 4,
         dropout: float = 0.5,
     ):
-        """
-        A transformer-based encoder for text.
+        """A transformer-based encoder for text.
 
         Parameters:
             latent_dim (int): Dimension of the latent space.
@@ -63,7 +61,6 @@ class CubTextEncoder(BaseEncoder):
             n_layers (int): Number of Encoders layers in the TransformerEncoder. Default: 4
             dropout (float): Dropout rate. Default: 0.5
         """
-
         BaseEncoder.__init__(self)
         self.latent_dim = latent_dim
 
@@ -108,8 +105,7 @@ class CubTextEncoder(BaseEncoder):
 
 class CubTextDecoderMLP(BaseDecoder):
     def __init__(self, args: dict):
-        """
-        A simple MLP decoder for text.
+        """A simple MLP decoder for text.
         """
         BaseDecoder.__init__(self)
 
@@ -144,8 +140,7 @@ class CubTextDecoderMLP(BaseDecoder):
 
 
 class CUB_Resnet_Encoder(BaseEncoder):
-    """
-    Resnet Image encoder based on the one used in
+    """Resnet Image encoder based on the one used in
     "MMVAE+: Enhancing the Generative Quality of Multimodal VAEs without Compromises".
     (https://github.com/epalu/mmvaeplus)
 
@@ -197,8 +192,7 @@ class CUB_Resnet_Encoder(BaseEncoder):
 
 
 class CUB_Resnet_Decoder(BaseDecoder):
-    """
-    Resnet Image Decoder based on the one used in
+    """Resnet Image Decoder based on the one used in
     "MMVAE+: Enhancing the Generative Quality of Multimodal VAEs without Compromises".
     (https://github.com/epalu/mmvaeplus)
 

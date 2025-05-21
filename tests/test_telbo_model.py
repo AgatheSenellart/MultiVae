@@ -17,6 +17,7 @@ from multivae.trainers import BaseTrainerConfig, MultistageTrainer
 
 class TestTELBO:
     """Class for testing the TELBO model"""
+
     @pytest.fixture
     def dataset(self):
         """Dummy dataset to test with"""
@@ -80,8 +81,7 @@ class TestTELBO:
         return model
 
     def test_init(self, model, model_config):
-        """Check the initialization of the model. """
-        
+        """Check the initialization of the model."""
         assert model.warmup == model_config.warmup
 
         if model_config.lambda_factors is not None:
@@ -96,18 +96,18 @@ class TestTELBO:
     def test_forward(self, model, dataset, model_config):
         """Check the forward method of the model.
         We check that the method computes and return a ModelOutput
-        with the expected attributes."""
-
+        with the expected attributes.
+        """
         # Check forward during warmup
         output = model(dataset, epoch=2)
         assert hasattr(output, "recon_loss")
         assert hasattr(output, "KLD")
         loss = output.loss
-        assert isinstance(loss,torch.Tensor)
+        assert isinstance(loss, torch.Tensor)
         assert loss.size() == torch.Size([])
         assert loss.requires_grad
 
-        #Check forward after the warmup
+        # Check forward after the warmup
         output = model(dataset, epoch=model_config.warmup + 2)
         assert not hasattr(output, "KLD")
         loss = output.loss
@@ -117,16 +117,16 @@ class TestTELBO:
 
     def test_encode(self, model, dataset):
         """Test the encode function of the model.
-        We check that the returned embeddings are the right shape, 
-        depending on inputs parameters. """
-
+        We check that the returned embeddings are the right shape,
+        depending on inputs parameters.
+        """
         for return_mean in [True, False]:
             # Encode all modalities
             outputs = model.encode(dataset, return_mean=return_mean)
             assert outputs.one_latent_space
             assert isinstance(outputs, ModelOutput)
             assert outputs.z.shape == (2, 5)
-            
+
             # Generate 2 latent codes per datapoint
             embeddings = model.encode(dataset, N=2, return_mean=return_mean).z
             assert embeddings.shape == (2, 2, 5)
@@ -155,9 +155,9 @@ class TestTELBO:
 
     def test_predict(self, model, dataset):
         """Test the predict function of the model.
-        We check that the returned reconstruction are the right shape, 
-        depending on inputs parameters. """
-
+        We check that the returned reconstruction are the right shape,
+        depending on inputs parameters.
+        """
         Y = model.predict(dataset, cond_mod="mod1")
         assert isinstance(Y, ModelOutput)
         assert Y.mod1.shape == (2, 2)
@@ -196,9 +196,8 @@ class TestTELBO:
         return IncompleteDataset(data, labels=labels, masks=masks)
 
     def test_error_with_incomplete_datasets(self, incomplete_dataset, model):
-        """
-        We check that trying to use the TELBO model on a incomplte dataset
-        raises the appropriate errors. 
+        """We check that trying to use the TELBO model on a incomplte dataset
+        raises the appropriate errors.
         """
         with pytest.raises(AttributeError):
             model(incomplete_dataset)
@@ -207,11 +206,9 @@ class TestTELBO:
         with pytest.raises(AttributeError):
             model.compute_joint_nll(incomplete_dataset, K=10, batch_size_K=2)
 
-
     @pytest.fixture
     def training_config(self, tmp_path_factory):
         """Create a training config to test the model with."""
-
         dir_path = tmp_path_factory.mktemp("dummy_folder")
 
         yield BaseTrainerConfig(
@@ -241,7 +238,7 @@ class TestTELBO:
 
     def test_train_step(self, trainer):
         """Test the train step with the TELBO model.
-        We check that weights are updated. 
+        We check that weights are updated.
         """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
         start_optimizer = trainer.optimizer
@@ -270,8 +267,7 @@ class TestTELBO:
         assert trainer.optimizer != start_optimizer
 
     def test_eval_step(self, trainer):
-        """Test eval_step with the TELBO model. We check that weights are not updated. 
-        """
+        """Test eval_step with the TELBO model. We check that weights are not updated."""
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         _ = trainer.eval_step(epoch=1)
@@ -287,8 +283,9 @@ class TestTELBO:
         )
 
     def test_main_train_loop(self, trainer):
-        """Test the main training loop works correctly with the TELBO 
-        model. """
+        """Test the main training loop works correctly with the TELBO
+        model.
+        """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         trainer.train()
@@ -304,15 +301,15 @@ class TestTELBO:
         )
 
     def test_checkpoint_saving(self, model, trainer, training_config):
-        """We test the checkpoint saving works correctly with the 
-        TELBO model. 
-        We check that all the files are saved and that the model 
-        and optimizer can be correctly reloaded. 
+        """We test the checkpoint saving works correctly with the
+        TELBO model.
+        We check that all the files are saved and that the model
+        and optimizer can be correctly reloaded.
         """
         dir_path = training_config.output_dir
 
         # Make a training step
-        step_1_loss = trainer.train_step(epoch=1)
+        trainer.train_step(epoch=1)
 
         model = deepcopy(trainer.model)
         optimizer = deepcopy(trainer.optimizer)
@@ -359,8 +356,8 @@ class TestTELBO:
             ]
         )
 
-        assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
-        assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
+        assert model_rec.encoders.cpu() is type(model.encoders.cpu())
+        assert model_rec.decoders.cpu() is type(model.decoders.cpu())
 
         optim_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "optimizer.pt"))
 
@@ -385,7 +382,8 @@ class TestTELBO:
 
     def test_checkpoint_saving_during_training(self, model, trainer, training_config):
         """Test the create of the correct training dir and checkpoint
-        during training. """
+        during training.
+        """
         target_saving_epoch = training_config.steps_saving
 
         dir_path = training_config.output_dir
@@ -428,9 +426,10 @@ class TestTELBO:
         )
 
     def test_final_model_saving(self, model, trainer, training_config):
-        """Test the final model saving. 
-        We check that the final_directory is as expected and that the full model 
-        can be realoaded with AutoModel. """
+        """Test the final model saving.
+        We check that the final_directory is as expected and that the full model
+        can be realoaded with AutoModel.
+        """
         dir_path = training_config.output_dir
 
         trainer.train()
@@ -442,7 +441,7 @@ class TestTELBO:
         )
         assert os.path.isdir(training_dir)
 
-        final_dir = os.path.join(training_dir, f"final_model")
+        final_dir = os.path.join(training_dir, "final_model")
         assert os.path.isdir(final_dir)
 
         files_list = os.listdir(final_dir)
@@ -467,12 +466,12 @@ class TestTELBO:
             ]
         )
 
-        assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
-        assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
+        assert model_rec.encoders.cpu() is type(model.encoders.cpu())
+        assert model_rec.decoders.cpu() is type(model.decoders.cpu())
 
     def test_compute_nll(self, model, dataset):
-        """Test the compute_joint_nll function of the TELBO. """
+        """Test the compute_joint_nll function of the TELBO."""
         nll = model.compute_joint_nll(dataset, K=10, batch_size_K=2)
         assert nll >= 0
-        assert type(nll) == torch.Tensor
+        assert isinstance(nll, torch.Tensor)
         assert nll.size() == torch.Size([])

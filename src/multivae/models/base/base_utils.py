@@ -33,16 +33,13 @@ def cross_entropy_(_input, _target, eps=1e-6):
     @param eps: error to add (default: 1e-6)
     @return loss: torch.Tensor same shape as input
     """
-
     _log_input = F.log_softmax(_input + eps, dim=-1)
     loss = _target * _log_input
     return loss
 
 
 def cross_entropy(input, target, eps=1e-6):
-    """
-
-    Wrapper for the cross_entropy loss handling different inputs / targets types.
+    """Wrapper for the cross_entropy loss handling different inputs / targets types.
 
     """
     _input = input
@@ -66,7 +63,6 @@ def cross_entropy(input, target, eps=1e-6):
 
 def set_decoder_dist(dist_name, dist_params):
     """Transforms the distribution name and parameters into a callable log_prob function"""
-
     if dist_name == "normal":
         scale = dist_params.pop("scale", 1.0)
 
@@ -106,17 +102,14 @@ def kl_divergence(
         KL(p,q) = \frac{1}{2}(\log(\frac{\sigma_2²}{\sigma_1²} + \frac{\sigma_1² + (\mu_1 - \mu_2)²}{\sigma_2²} - 1)
 
     Args:
-
         mean (torch.Tensor) : mean of the first gaussian
         log_var (torch.Tensor) : log_covariance of the first gaussian
         prior_mean (torch.Tensor) : mean of the second gaussian
         prior_log_var (torch.Tensor) : log_covariance of the second gaussian
 
     Returns:
-
         torch.Tensor
     """
-
     kl = 0.5 * (
         prior_log_var
         - log_var
@@ -129,8 +122,7 @@ def kl_divergence(
 
 
 def poe(mus, logvars, eps=1e-8):
-    """
-    Compute the Product of Experts (PoE) for a list of Gaussian experts.
+    """Compute the Product of Experts (PoE) for a list of Gaussian experts.
     """
     var = torch.exp(logvars) + eps
     # precision of i-th Gaussian expert at point x
@@ -168,7 +160,6 @@ def rsample_from_gaussian(mu, log_var, N=1, return_mean=False, flatten=False):
         return_mean (bool): If True, each sample is the mean of the distribution.
         flatten (bool): If True, the output is flattened to be of shape (N*n_batch, *latent_dims)
     """
-
     sample_shape = [] if N == 1 else [N]
 
     if return_mean:

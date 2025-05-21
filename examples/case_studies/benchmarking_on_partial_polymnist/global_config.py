@@ -1,5 +1,4 @@
-"""
-Store in this file all the shared variables for the benchmark on mmnist.
+"""Store in this file all the shared variables for the benchmark on mmnist.
 """
 
 import argparse
@@ -14,10 +13,8 @@ from multivae.metrics.fids.fids import FIDEvaluator
 from multivae.metrics.fids.fids_config import FIDEvaluatorConfig
 from multivae.models.base.base_config import BaseAEConfig
 from multivae.models.nn.mmnist import DecoderConvMMNIST, EncoderConvMMNIST_adapted
-from multivae.trainers import BaseTrainer, BaseTrainerConfig
 
 # imports useful for all scripts
-from multivae.trainers.base.callbacks import WandbCallback
 
 # Set your paths
 DATA_PATH = "/home/asenella/data"
@@ -72,11 +69,9 @@ base_training_config = dict(
 
 # Define everything we want to do in the evaluation in one tight function
 def eval_model(model, output_dir, test_data, wandb_path):
-    """
-    In this function, define all the evaluation metrics
+    """In this function, define all the evaluation metrics
     you want to use
     """
-
     # Coherence
     config = CoherenceEvaluatorConfig(batch_size=512, wandb_path=wandb_path)
     coherence_module = CoherenceEvaluator(
@@ -103,7 +98,7 @@ def eval_model(model, output_dir, test_data, wandb_path):
 
 
 def argument_parser():
-    """argument parser for the experiment parameters"""
+    """Argument parser for the experiment parameters"""
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int)
     parser.add_argument("--keep_incomplete", action="store_true")
@@ -133,7 +128,7 @@ def get_datasets(args=None):
 
 
 def model_save_path(model, args):
-    """path manufacturer for saving models in a structured way"""
+    """Path manufacturer for saving models in a structured way"""
     return f"{SAVE_PATH}/{model.model_name}/keep_incomplete_{args.keep_incomplete}/missing_ratio_{args.missing_ratio}/seed_{args.seed}"
 
 

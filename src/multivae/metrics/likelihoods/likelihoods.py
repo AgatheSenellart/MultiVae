@@ -1,6 +1,5 @@
 from pythae.models.base.base_utils import ModelOutput
 
-from multivae.data import MultimodalBaseDataset
 
 from ..base.evaluator_class import Evaluator
 from .likelihoods_config import LikelihoodsEvaluatorConfig
@@ -14,11 +13,9 @@ from multivae.data.utils import set_inputs_to_device
 
 
 class LikelihoodsEvaluator(Evaluator):
-    """
-    Class for computing likelihood metrics.
+    """Class for computing likelihood metrics.
 
     Args:
-
         model (BaseMultiVAE) : The model to evaluate.
         test_dataset (MultimodalBaseDataset) : The dataset to use for computing the metrics.
         output (str) : The folder path to save metrics. The metrics will be saved in a metrics.txt
@@ -61,7 +58,8 @@ class LikelihoodsEvaluator(Evaluator):
 
     def joint_nll_from_subset(self, subset):
         """Only available for the MoPoE model for now. Use a subset posterior
-        instead of the joint posterior as the importance sampling distribution."""
+        instead of the joint posterior as the importance sampling distribution.
+        """
         if hasattr(self.model, "_compute_joint_nll_from_subset_encoding"):
             ll = 0
             nb_batch = 0

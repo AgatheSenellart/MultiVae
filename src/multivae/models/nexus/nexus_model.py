@@ -17,7 +17,6 @@ from multivae.models.nn.default_architectures import (
     nn,
 )
 
-from ...data.datasets.base import MultimodalBaseDataset
 from ..base import BaseMultiVAE
 from ..base.base_utils import rsample_from_gaussian
 from .nexus_config import NexusConfig
@@ -29,13 +28,11 @@ logger.setLevel(logging.INFO)
 
 
 class Nexus(BaseMultiVAE):
-    """
-    The Nexus model from (Vasco et al 2022)
+    """The Nexus model from (Vasco et al 2022)
     "Leveraging hierarchy in multimodal generative models for effective cross-modality inference"
 
 
     Args:
-
         model_config (NexusConfig): An instance of NexusConfig in which any model's parameters is
             made available.
 
@@ -214,8 +211,7 @@ class Nexus(BaseMultiVAE):
     def _aggregate_during_training(
         self, inputs: MultimodalBaseDataset, modalities_msg: dict
     ):
-        "Aggregate the modalities during training. It applies the forced perceptual dropout if the dataset is not already incomplete."
-
+        """Aggregate the modalities during training. It applies the forced perceptual dropout if the dataset is not already incomplete."""
         if self.model_config.aggregator == "mean":
             # With an already incomplete dataset, we don't apply dropout
             if hasattr(inputs, "masks"):
@@ -267,8 +263,7 @@ class Nexus(BaseMultiVAE):
         return_mean=False,
         **kwargs,
     ):
-        """
-        Generate encodings conditioning on all modalities or a subset of modalities.
+        """Generate encodings conditioning on all modalities or a subset of modalities.
 
         Args:
             inputs (MultimodalBaseDataset): The dataset to use for the conditional generation.
@@ -284,7 +279,6 @@ class Nexus(BaseMultiVAE):
                 one_latent_space (bool) = True
 
         """
-
         cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
         modalities_z = {}
         modalities_msg = {}
@@ -385,7 +379,7 @@ class Nexus(BaseMultiVAE):
 
         if bottom_betas.keys() != self.encoders.keys():
             raise AttributeError(
-                "The bottom_betas keys do not match the modalities" "names in encoders."
+                "The bottom_betas keys do not match the modalitiesnames in encoders."
             )
 
         self.bottom_betas = bottom_betas
@@ -395,7 +389,7 @@ class Nexus(BaseMultiVAE):
             self.gammas = {m: 1.0 for m in self.encoders}
         elif gammas.keys() != self.encoders.keys():
             raise AttributeError(
-                "The gammas keys do not match the modalities" "names in encoders."
+                "The gammas keys do not match the modalitiesnames in encoders."
             )
         else:
             self.gammas = gammas
@@ -497,7 +491,6 @@ class Nexus(BaseMultiVAE):
             self.top_encoders[k] = top_encoders[k]
 
     def _set_top_decoders(self, top_decoders, model_config):
-
         # Provide default MLP decoders if None are provided.
         if top_decoders is None:
             top_decoders = self._default_top_decoders(model_config)

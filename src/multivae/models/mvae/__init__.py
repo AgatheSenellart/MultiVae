@@ -1,5 +1,4 @@
-r"""
-Implementation of the MVAE model from "Multimodal Generative Models for Scalable
+r"""Implementation of the MVAE model from "Multimodal Generative Models for Scalable
 Weakly-Supervised Learning" (https://arxiv.org/abs/1802.05335).
 
 

@@ -15,8 +15,7 @@ from .mvae_config import MVAEConfig
 
 
 class MVAE(BaseMultiVAE):
-    """
-    The Multi-modal VAE model.
+    """The Multi-modal VAE model.
 
     Args:
         model_config (MVAEConfig): An instance of MVAEConfig in which any model's
@@ -53,7 +52,8 @@ class MVAE(BaseMultiVAE):
 
     def compute_mu_log_var_subset(self, inputs: MultimodalBaseDataset, subset: list):
         """Computes the parameters of the posterior when conditioning on
-        the modalities contained in subset."""
+        the modalities contained in subset.
+        """
         mus_sub = []
         log_vars_sub = []
         for mod in self.encoders:
@@ -116,8 +116,8 @@ class MVAE(BaseMultiVAE):
         self, inputs: IncompleteDataset, subset: Union[list, tuple]
     ):
         """Returns a filtered dataset containing only the samples that are available
-        in at least one of the modalities contained in subset."""
-
+        in at least one of the modalities contained in subset.
+        """
         filter = torch.tensor(
             False,
         ).to(inputs.masks[subset[0]].device)
@@ -147,7 +147,6 @@ class MVAE(BaseMultiVAE):
                 For each modality, a boolean tensor indicates which samples are available. (The non
                 available samples are assumed to be replaced with zero values in the multimodal dataset entry.)
         """
-
         epoch = kwargs.pop("epoch", 1)
         # The annealing factor is updated each batch, so we need to know the idx of the batch in the epoch
         batch_ratio = kwargs.pop("batch_ratio", 0)
@@ -212,8 +211,7 @@ class MVAE(BaseMultiVAE):
         return_mean=False,
         **kwargs,
     ):
-        """
-        Generate encodings conditioning on all modalities or a subset of modalities.
+        """Generate encodings conditioning on all modalities or a subset of modalities.
 
         Args:
             inputs (MultimodalBaseDataset): The dataset to use for the conditional generation.
@@ -226,7 +224,6 @@ class MVAE(BaseMultiVAE):
             ModelOutput : contains `z` (torch.Tensor (n_data, N, latent_dim)), `one_latent_space` (bool) = True
 
         """
-
         # Call super to perform some checks and preprocess the cond_mod argument
         # you obtain a list of the modalities' names to condition on
         cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
@@ -250,13 +247,11 @@ class MVAE(BaseMultiVAE):
         """Estimate the negative joint likelihood.
 
         Args:
-
             inputs (MultimodalBaseDataset) : a batch of samples.
             K (int) : the number of importance samples for the estimation. Default to 1000.
             batch_size_K (int) : Default to 100.
 
         Returns:
-
             The negative log-likelihood summed over the batch.
         """
         # Check that the dataset is complete

@@ -5,9 +5,7 @@ from ..base.evaluator_config import EvaluatorConfig
 
 @dataclass
 class CoherenceEvaluatorConfig(EvaluatorConfig):
-    """
-
-    Config class for the evaluation of the coherences module.
+    """Config class for the evaluation of the coherences module.
 
     Args:
         batch_size (int) : The batch size to use in the evaluation.

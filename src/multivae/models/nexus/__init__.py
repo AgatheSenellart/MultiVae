@@ -1,5 +1,4 @@
-r"""
-Implementation od the NEXUS model from
+r"""Implementation od the NEXUS model from
 `Leveraging hierarchy in multimodal generative models for effective cross-modality inference
 <https://www.sciencedirect.com/science/article/abs/pii/S0893608021004470>`_
 

@@ -108,11 +108,12 @@ def encoder_resnet_mmnist(request, ae_mmnist_config):
 
 
 class TestMMNISTNets:
-    """Test the forward method of PolyMNIST architectures on a dummy PolyMNIST 
+    """Test the forward method of PolyMNIST architectures on a dummy PolyMNIST
     batch.
-    We check that the output is a ModelOutput and that the embeddings are the right shape."""
-    def test_forward(self, ae_mmnist_config, mmnist_like_data, encoder_resnet_mmnist):
+    We check that the output is a ModelOutput and that the embeddings are the right shape.
+    """
 
+    def test_forward(self, ae_mmnist_config, mmnist_like_data, encoder_resnet_mmnist):
         # Test convolutional networks
         encoder = EncoderConvMMNIST(ae_mmnist_config).to(device)
         decoder = DecoderConvMMNIST(ae_mmnist_config).to(device)
@@ -166,9 +167,11 @@ class TestMMNISTNets:
 
 
 class TestSVHNNets:
-    """Test the forward method of SVHN architectures on a dummy SVHN 
+    """Test the forward method of SVHN architectures on a dummy SVHN
     batch.
-    We check that the output is a ModelOutput and that the embeddings are the right shape."""
+    We check that the output is a ModelOutput and that the embeddings are the right shape.
+    """
+
     def test_forward(self, ae_svhn_config, svhn_like_data):
         encoder = Encoder_VAE_SVHN(ae_svhn_config).to(device)
         decoder = Decoder_VAE_SVHN(ae_svhn_config).to(device)
@@ -190,9 +193,11 @@ class TestSVHNNets:
 
 
 class TestCUBNets:
-    """Test the forward method of CUB architectures on a dummy CUB 
+    """Test the forward method of CUB architectures on a dummy CUB
     batch.
-    We check that the output is a ModelOutput and that the embeddings are the right shape."""
+    We check that the output is a ModelOutput and that the embeddings are the right shape.
+    """
+
     def test_text_forward(self, ae_cub_config, cubtext_like_data):
         encoder = CubTextEncoder(
             ae_cub_config.latent_dim,

@@ -17,7 +17,8 @@ from multivae.trainers.base.base_trainer_config import BaseTrainerConfig
 
 class TestCRMVAE:
     """Test basic functions of the CRMVAE model: setup , encode, decode, forward, predict.
-    Test CRMVAE within the BaseTrainer and check that training works. """
+    Test CRMVAE within the BaseTrainer and check that training works.
+    """
 
     @pytest.fixture(params=["complete", "incomplete"])
     def dataset(self, request):
@@ -91,13 +92,11 @@ class TestCRMVAE:
         return model
 
     def test_setup(self, model, model_config):
-        """Check the attributes of the model are correctly set.
-        """
+        """Check the attributes of the model are correctly set."""
         assert model.model_config == model_config
 
     def test_forward(self, model, dataset):
-        """Check the forward pass of the model.
-        """
+        """Check the forward pass of the model."""
         output = model(dataset[0])
         loss = output.loss
         assert isinstance(loss, torch.Tensor)
@@ -151,7 +150,7 @@ class TestCRMVAE:
         """
         ## Predict conditioning on ALL modalities
         # Generate 1 sample
-        data=dataset[:3] # keep only complete samples
+        data = dataset[:3]  # keep only complete samples
         Y = model.predict(data)
         assert isinstance(Y, ModelOutput)
         assert Y.mod1.shape == (3, 2)
@@ -166,16 +165,14 @@ class TestCRMVAE:
 
         ## Predict conditioning on ONE modality
         # Generate 10 samples and flatten
-        Y = model.predict(dataset, cond_mod=["mod2","mod4"], N=10, flatten=True)
+        Y = model.predict(dataset, cond_mod=["mod2", "mod4"], N=10, flatten=True)
         assert isinstance(Y, ModelOutput)
         assert Y.mod1.shape == (len(dataset) * 10, 2)
         assert Y.mod2.shape == (len(dataset) * 10, 3)
 
     def test_backward_with_missing(self, model, dataset):
         """Check that the grad with regard to missing modalities is null"""
-
         if hasattr(dataset, "masks"):
-
             output = model(dataset[-3:], epoch=2)
             loss = output.loss
             loss.backward()
@@ -225,7 +222,7 @@ class TestCRMVAE:
         )
 
         return trainer
-    
+
     @pytest.mark.slow
     def test_train_step(self, trainer):
         """Test a train step with the CRMVAE model.
@@ -248,7 +245,8 @@ class TestCRMVAE:
 
     def test_eval_step(self, trainer):
         """Test an eval step with the CRMVAE model.
-        We check that the weights are not updated."""
+        We check that the weights are not updated.
+        """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         _ = trainer.eval_step(epoch=1)
@@ -285,8 +283,9 @@ class TestCRMVAE:
     @pytest.mark.slow
     def test_checkpoint_saving(self, model, trainer, training_config):
         """Test checkpoint saving with the CRMVAE model.
-        We check that the model and optimizer state dicts are saved correctly, 
-        and can be reloaded from the checkpoint."""
+        We check that the model and optimizer state dicts are saved correctly,
+        and can be reloaded from the checkpoint.
+        """
         dir_path = training_config.output_dir
 
         # Make a training step
@@ -336,8 +335,8 @@ class TestCRMVAE:
             ]
         )
 
-        assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
-        assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
+        assert model_rec.encoders.cpu() is type(model.encoders.cpu())
+        assert model_rec.decoders.cpu() is type(model.decoders.cpu())
 
         optim_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "optimizer.pt"))
 
@@ -359,12 +358,14 @@ class TestCRMVAE:
                 )
             ]
         )
+
     @pytest.mark.slow
     def test_checkpoint_saving_during_training(
         self, model, trainer, training_config, dataset
-    ):  
+    ):
         """Test the creation of a checkpoint during training with the CRMVAE model.
-        We check that we can resume from the checkpoint with a new trainer."""
+        We check that we can resume from the checkpoint with a new trainer.
+        """
         # Train the model
         target_saving_epoch = training_config.steps_saving
 
@@ -417,11 +418,11 @@ class TestCRMVAE:
 
         new_trainer_.train()
 
-    
     @pytest.mark.slow
     def test_final_model_saving(self, model, trainer, training_config):
         """Test the final modal saving of the CRMVAE model.
-        We check that the model is saved and can be reloaded correctly."""
+        We check that the model is saved and can be reloaded correctly.
+        """
         # Train the model
         dir_path = training_config.output_dir
 
@@ -434,7 +435,7 @@ class TestCRMVAE:
         )
         assert os.path.isdir(training_dir)
 
-        final_dir = os.path.join(training_dir, f"final_model")
+        final_dir = os.path.join(training_dir, "final_model")
         assert os.path.isdir(final_dir)
 
         files_list = os.listdir(final_dir)
@@ -460,8 +461,8 @@ class TestCRMVAE:
             ]
         )
 
-        assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
-        assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
+        assert model_rec.encoders.cpu() is type(model.encoders.cpu())
+        assert model_rec.decoders.cpu() is type(model.decoders.cpu())
 
     @pytest.mark.slow
     def test_compute_nll(self, model, dataset):
@@ -474,11 +475,11 @@ class TestCRMVAE:
         else:
             nll = model.compute_joint_nll(dataset, K=10, batch_size_K=2)
             assert nll >= 0
-            assert type(nll) == torch.Tensor
+            assert isinstance(nll, torch.Tensor)
             assert nll.size() == torch.Size([])
 
             cnll = model.compute_cond_nll(
                 dataset, ["mod1", "mod2"], ["mod3"], k_iwae=10
             )
-            assert type(cnll) == dict
+            assert isinstance(cnll, dict)
             assert "mod3" in cnll.keys()

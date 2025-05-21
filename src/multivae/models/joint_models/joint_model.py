@@ -19,11 +19,9 @@ logger.setLevel(logging.INFO)
 
 
 class BaseJointModel(BaseMultiVAE):
-    """
-    Base Class for models using a joint encoder.
+    """Base Class for models using a joint encoder.
 
     Args:
-
         model_config (BaseJointModelConfig): The configuration of the model.
 
         encoders (Dict[BaseEncoder]): A dictionary containing the modalities names and the encoders for each
@@ -58,12 +56,11 @@ class BaseJointModel(BaseMultiVAE):
         return MultipleHeadJointEncoder(self.encoders, model_config)
 
     def set_joint_encoder(self, joint_encoder):
-        "Checks that the provided joint encoder is an instance of BaseJointEncoder."
-
+        """Checks that the provided joint encoder is an instance of BaseJointEncoder."""
         if not issubclass(type(joint_encoder), BaseJointEncoder):
             raise AttributeError(
                 (
-                    f"The joint encoder must inherit from "
+                    "The joint encoder must inherit from "
                     "~multivae.models.nn.default_architectures.BaseJointEncoder . Refer to documentation."
                 )
             )
@@ -88,16 +85,13 @@ class BaseJointModel(BaseMultiVAE):
         """Estimate the negative joint likelihood.
 
         Args:
-
             inputs (MultimodalBaseDataset) : a batch of samples.
             K (int) : the number of importance samples for the estimation. Default to 1000.
             batch_size_K (int) : Default to 100.
 
         Returns:
-
             The negative log-likelihood summed over the batch.
         """
-
         # Check that the dataset is not incomplete.
         self.eval()
         if hasattr(inputs, "masks"):

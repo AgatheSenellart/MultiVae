@@ -8,16 +8,15 @@ import torch
 from pythae.models.base.base_utils import ModelOutput
 
 from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
-from multivae.data.utils import set_inputs_to_device
 from multivae.models import CMVAE, AutoModel, CMVAEConfig
 from multivae.models.base.base_config import BaseAEConfig
-from multivae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
 from multivae.models.nn.mmnist import DecoderConvMMNIST, EncoderConvMMNIST_multilatents
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 
 
 class TestCMVAE:
     """Test class for CMVAE model."""
+
     @pytest.fixture(
         params=[
             ("complete", True),
@@ -70,7 +69,6 @@ class TestCMVAE:
     )
     def model_config_and_architectures(self, request):
         """Return a test model_config and custom architectures for CMVAE model"""
-
         model_config = CMVAEConfig(
             n_modalities=3,
             latent_dim=request.param[0],
@@ -122,7 +120,6 @@ class TestCMVAE:
 
     def test_setup_model(self, model, model_config_and_architectures):
         """Check that the model's attributes are setup correctly"""
-
         model_config = model_config_and_architectures["model_config"]
 
         # Check parameters setup
@@ -136,7 +133,8 @@ class TestCMVAE:
 
     def test_forward(self, model, dataset):
         """Test the forward function of the model.
-        Check that the output is a ModelOutput and that the loss is a tensor."""
+        Check that the output is a ModelOutput and that the loss is a tensor.
+        """
         output = model(dataset, epoch=2)
         loss = output.loss
         assert isinstance(loss, torch.Tensor)
@@ -146,7 +144,8 @@ class TestCMVAE:
     def test_encode(self, model, dataset, model_config_and_architectures):
         """Test the encode function of the model with different conditionning modalities.
         Check that the output is a ModelOutput with the correct attributes.
-        We verify the shape of the output tensors."""
+        We verify the shape of the output tensors.
+        """
         model_config = model_config_and_architectures["model_config"]
 
         for return_mean in [True, False]:
@@ -205,10 +204,10 @@ class TestCMVAE:
             )
 
     def test_predict(self, model, dataset):
-        """Test the predict function of the model. 
-        We check that the output is a ModelOutput and that the shape of the output tensors is correct."""
-
-        ## Conditioning on ALL modalities for prediction 
+        """Test the predict function of the model.
+        We check that the output is a ModelOutput and that the shape of the output tensors is correct.
+        """
+        ## Conditioning on ALL modalities for prediction
         Y = model.predict(dataset[3:])
         assert isinstance(Y, ModelOutput)
         assert Y.mod1.shape == (3, 3, 28, 28)
@@ -228,14 +227,14 @@ class TestCMVAE:
 
     def test_generate_from_prior(self, model):
         """Test the generate_from_prior function of the model.
-        We check that the output is a ModelOutput and that the shape of the output tensors is correct."""
-
+        We check that the output is a ModelOutput and that the shape of the output tensors is correct.
+        """
         # Generate one sample
         latents = model.generate_from_prior(n_samples=1)
         # Check that the output is a ModelOutput
         assert isinstance(latents, ModelOutput)
         shared = latents.z
-        # Check that the shape the output tensors 
+        # Check that the shape the output tensors
         assert shared.shape == (1, model.latent_dim)
         for k, tensor in latents.modalities_z.items():
             assert tensor.shape == (1, model.model_config.modalities_specific_dim)
@@ -264,8 +263,8 @@ class TestCMVAE:
 
     def test_grad(self, model, dataset):
         """Check that the grad with regard to missing modalities is null and
-        that the rest of the gradients are not"""
-
+        that the rest of the gradients are not
+        """
         # Compute forward on the first 3 samples
         # where the first modality is missing in the incomplete fixture.
         output = model(dataset[:3], epoch=2)
@@ -287,7 +286,6 @@ class TestCMVAE:
 
     def test_predict_clusters(self, model, dataset):
         """Test the predict_clusters function of the model."""
-
         # Test with one sample
         output = model.predict_clusters(dataset[0])
         assert isinstance(output, ModelOutput)
@@ -310,7 +308,6 @@ class TestCMVAE:
     @pytest.fixture
     def training_config(self, tmp_path_factory):
         """Dummy training configuration for test purposes."""
-
         dir_path = tmp_path_factory.mktemp("dummy_folder")
 
         yield BaseTrainerConfig(
@@ -358,7 +355,7 @@ class TestCMVAE:
 
     @pytest.mark.slow
     def test_eval_step(self, trainer):
-        """ Test the eval_step function of the trainer with the CMVAE model."""
+        """Test the eval_step function of the trainer with the CMVAE model."""
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         _ = trainer.eval_step(epoch=1)
@@ -394,11 +391,12 @@ class TestCMVAE:
     def test_checkpoint_saving(self, model, trainer, training_config):
         """Test checkpoint saving with the CMVAE model.
         We check that the checkpoint is created with all the correct files and that we can reload
-        the model and the optimizer from the checkpoint."""
+        the model and the optimizer from the checkpoint.
+        """
         dir_path = training_config.output_dir
 
         # Make a training step
-        step_1_loss = trainer.train_step(epoch=1)
+        trainer.train_step(epoch=1)
 
         model = deepcopy(trainer.model)
         optimizer = deepcopy(trainer.optimizer)
@@ -416,7 +414,7 @@ class TestCMVAE:
             set(files_list)
         )
 
-        # check pickled custom architectures 
+        # check pickled custom architectures
         for archi in model.model_config.custom_architectures:
             assert archi + ".pkl" in files_list
 
@@ -445,8 +443,8 @@ class TestCMVAE:
             ]
         )
 
-        assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
-        assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
+        assert model_rec.encoders.cpu() is type(model.encoders.cpu())
+        assert model_rec.decoders.cpu() is type(model.decoders.cpu())
 
         optim_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "optimizer.pt"))
 
@@ -473,7 +471,8 @@ class TestCMVAE:
     def test_checkpoint_saving_during_training(self, model, trainer, training_config):
         """Test checkpoint saving during training with the CMVAE model.
         We check that the checkpoint is created with all the correct files and that we can reload
-        the model from the checkpoint."""
+        the model from the checkpoint.
+        """
         #
         target_saving_epoch = training_config.steps_saving
 
@@ -520,7 +519,8 @@ class TestCMVAE:
     def test_final_model_saving(self, model, trainer, training_config):
         """Test the final model saving with the CMVAE model.
         We check that the final dir is created with all the correct files and that we can reload
-        the correct model."""
+        the correct model.
+        """
         dir_path = training_config.output_dir
 
         trainer.train()
@@ -532,7 +532,7 @@ class TestCMVAE:
         )
         assert os.path.isdir(training_dir)
 
-        final_dir = os.path.join(training_dir, f"final_model")
+        final_dir = os.path.join(training_dir, "final_model")
         assert os.path.isdir(final_dir)
 
         files_list = os.listdir(final_dir)
@@ -557,17 +557,18 @@ class TestCMVAE:
             ]
         )
 
-        assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
-        assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
+        assert model_rec.encoders.cpu() is type(model.encoders.cpu())
+        assert model_rec.decoders.cpu() is type(model.decoders.cpu())
 
     def test_compute_nll(self, model, dataset):
         """Test the compute_nll function of the model.
-        We check that the output is a tensor and that the shape is correct."""
+        We check that the output is a tensor and that the shape is correct.
+        """
         if hasattr(dataset, "masks"):
             with pytest.raises(AttributeError):
                 nll = model.compute_joint_nll(dataset, K=10, batch_size_K=2)
         else:
             nll = model.compute_joint_nll(dataset, K=10, batch_size_K=2)
             assert nll >= 0
-            assert type(nll) == torch.Tensor
+            assert isinstance(nll, torch.Tensor)
             assert nll.size() == torch.Size([])

@@ -7,9 +7,7 @@ from ..base import BaseMultiVAEConfig
 
 @dataclass
 class CMVAEConfig(BaseMultiVAEConfig):
-    """
-    This class is the configuration class for the CMVAE model.
-
+    """This class is the configuration class for the CMVAE model.
 
     Args:
         n_modalities (int): The number of modalities. Default: None.

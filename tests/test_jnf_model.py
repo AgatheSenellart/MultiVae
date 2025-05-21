@@ -17,6 +17,7 @@ from multivae.trainers import BaseTrainerConfig, MultistageTrainer
 
 class TestJNF:
     """Test class for the JNF model."""
+
     @pytest.fixture
     def dataset(self):
         """Create simple dataset"""
@@ -91,9 +92,9 @@ class TestJNF:
         # tests on model init
         assert model.warmup == model_config.warmup
 
-    def test_forward(self, model , dataset, model_config):
-        """Check the forward function during different training stages. 
-        Check the output type and content. 
+    def test_forward(self, model, dataset, model_config):
+        """Check the forward function during different training stages.
+        Check the output type and content.
         """
         output = model(dataset, epoch=2)
         assert hasattr(output, "metrics")
@@ -115,8 +116,9 @@ class TestJNF:
         assert output.metrics["ljm"] != 0
 
     def test_encode_decode(self, model, dataset):
-        """Test the encode function of JNF. 
-        Check the shape of the output depending on parameters. """
+        """Test the encode function of JNF.
+        Check the shape of the output depending on parameters.
+        """
         for return_mean in [True, False]:
             ## Encode all modalities
             # Generate one latent sample
@@ -149,9 +151,9 @@ class TestJNF:
             assert embeddings.shape == (2, 5)
 
     def test_predict(self, model, dataset):
-        """Test the predict function of the JNF. 
-        Check the shape of the output depeding on parameters."""
-
+        """Test the predict function of the JNF.
+        Check the shape of the output depeding on parameters.
+        """
         # Condition on one modality and reconstruct all
         Y = model.predict(dataset, cond_mod="mod1")
         assert isinstance(Y, ModelOutput)
@@ -172,7 +174,7 @@ class TestJNF:
 
     @pytest.fixture()
     def incomplete_dataset(self):
-        """Dummy incomplete dataset. """
+        """Dummy incomplete dataset."""
         data = dict(
             mod1=torch.Tensor([[1.0, 2.0], [4.0, 5.0]]),
             mod2=torch.Tensor([[67.1, 2.3, 3.0], [1.3, 2.0, 3.0]]),
@@ -193,7 +195,7 @@ class TestJNF:
         return IncompleteDataset(data, labels=labels, masks=masks)
 
     def test_error_with_incomplete_datasets(self, incomplete_dataset, model):
-        """Check that the JNF model raises errors when used on incomplete data. """
+        """Check that the JNF model raises errors when used on incomplete data."""
         with pytest.raises(AttributeError):
             model(incomplete_dataset)
         with pytest.raises(AttributeError):
@@ -201,11 +203,9 @@ class TestJNF:
         with pytest.raises(AttributeError):
             model.compute_joint_nll(incomplete_dataset, K=10, batch_size_K=2)
 
-
     @pytest.fixture
     def training_config(self, tmp_path_factory):
-        """Create training config for test. """
-
+        """Create training config for test."""
         dir_path = tmp_path_factory.mktemp("dummy_folder")
 
         yield BaseTrainerConfig(
@@ -234,9 +234,10 @@ class TestJNF:
         return trainer
 
     def test_train_step(self, trainer):
-        """Test the train step with the JNF model. 
-        Check that the weights are updated and that the optimizer 
-        is reinitialized after warmup. """
+        """Test the train step with the JNF model.
+        Check that the weights are updated and that the optimizer
+        is reinitialized after warmup.
+        """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
         start_optimizer = trainer.optimizer
         _ = trainer.train_step(epoch=1)
@@ -264,8 +265,9 @@ class TestJNF:
         assert trainer.optimizer != start_optimizer
 
     def test_eval_step(self, trainer):
-        """Test eval step with the JNF model. 
-        Check that the weights are not updated. """
+        """Test eval step with the JNF model.
+        Check that the weights are not updated.
+        """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         _ = trainer.eval_step(epoch=1)
@@ -282,7 +284,8 @@ class TestJNF:
 
     def test_main_train_loop(self, trainer):
         """Check training loop wih the JNF model.
-        Check that the weights are updated. """
+        Check that the weights are updated.
+        """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         trainer.train()
@@ -298,12 +301,13 @@ class TestJNF:
         )
 
     def test_checkpoint_saving(self, model, trainer, training_config):
-        """Test checkpoint saving with the JNF model. 
-        Check that the model and optimizer are saved and can be reloaded. """
+        """Test checkpoint saving with the JNF model.
+        Check that the model and optimizer are saved and can be reloaded.
+        """
         dir_path = training_config.output_dir
 
         # Make a training step
-        step_1_loss = trainer.train_step(epoch=1)
+        trainer.train_step(epoch=1)
 
         model = deepcopy(trainer.model)
         optimizer = deepcopy(trainer.optimizer)
@@ -349,8 +353,8 @@ class TestJNF:
             ]
         )
 
-        assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
-        assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
+        assert model_rec.encoders.cpu() is type(model.encoders.cpu())
+        assert model_rec.decoders.cpu() is type(model.decoders.cpu())
 
         optim_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "optimizer.pt"))
 
@@ -374,7 +378,7 @@ class TestJNF:
         )
 
     def test_checkpoint_saving_during_training(self, model, trainer, training_config):
-        """Test the creation of checkpoints during the training of the JNF model """
+        """Test the creation of checkpoints during the training of the JNF model"""
         target_saving_epoch = training_config.steps_saving
 
         dir_path = training_config.output_dir
@@ -417,8 +421,9 @@ class TestJNF:
         )
 
     def test_final_model_saving(self, model, trainer, training_config):
-        """Test final model saving with the JNF model. Check that the model 
-        is saved to the right directory and can be reloaded. """
+        """Test final model saving with the JNF model. Check that the model
+        is saved to the right directory and can be reloaded.
+        """
         dir_path = training_config.output_dir
 
         trainer.train()
@@ -430,7 +435,7 @@ class TestJNF:
         )
         assert os.path.isdir(training_dir)
 
-        final_dir = os.path.join(training_dir, f"final_model")
+        final_dir = os.path.join(training_dir, "final_model")
         assert os.path.isdir(final_dir)
 
         files_list = os.listdir(final_dir)
@@ -455,12 +460,12 @@ class TestJNF:
             ]
         )
 
-        assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
-        assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
+        assert model_rec.encoders.cpu() is type(model.encoders.cpu())
+        assert model_rec.decoders.cpu() is type(model.decoders.cpu())
 
     def test_compute_nll(self, model, dataset):
         """Test the compute_nll function of the JNF model"""
         nll = model.compute_joint_nll(dataset, K=10, batch_size_K=2)
         assert nll >= 0
-        assert type(nll) == torch.Tensor
+        assert isinstance(nll, torch.Tensor)
         assert nll.size() == torch.Size([])

@@ -1,5 +1,4 @@
-r"""
-MVTCAE model from `Multi-View Representation Learning
+r"""MVTCAE model from `Multi-View Representation Learning
 via Total Correlation Objective <https://proceedings.neurips.cc/paper/2021/file/65a99bb7a3115fdede20da98b08a370f-Paper.pdf>`_.
 
 MVTCAE uses a Product-of-Experts in a similar fashion as the MVAE but without the prior:
@@ -27,3 +26,5 @@ A :math:`\beta` factor weighs the regularization, while the :math:`\alpha` param
 
 from .mvtcae_config import MVTCAEConfig
 from .mvtcae_model import MVTCAE
+
+__all__ = ["MVTCAE", "MVTCAEConfig"]

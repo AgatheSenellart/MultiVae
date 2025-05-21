@@ -6,8 +6,7 @@ from pythae.config import BaseConfig
 
 @dataclass
 class BaseSamplerConfig(BaseConfig):
-    """
-    BaseSampler config class.
+    """BaseSampler config class.
     """
 
     pass

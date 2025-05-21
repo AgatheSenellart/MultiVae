@@ -7,9 +7,7 @@ from ..base import BaseMultiVAEConfig
 
 @dataclass
 class MMVAEPlusConfig(BaseMultiVAEConfig):
-    """
-    This class is the configuration class for the MMVAE+ model.
-
+    """This class is the configuration class for the MMVAE+ model.
 
     Args:
         n_modalities (int): The number of modalities. Default: None.

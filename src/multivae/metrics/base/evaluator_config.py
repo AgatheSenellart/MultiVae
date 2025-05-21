@@ -4,9 +4,7 @@ from pythae.models.base.base_config import BaseConfig
 
 @dataclass
 class EvaluatorConfig(BaseConfig):
-    """
-
-    Base config class for the evaluation modules.
+    """Base config class for the evaluation modules.
 
     Args:
         batch_size (int) : The batch size to use in the evaluation. Default to 512

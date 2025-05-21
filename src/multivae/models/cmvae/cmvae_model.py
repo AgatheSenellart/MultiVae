@@ -30,8 +30,7 @@ logger.setLevel(logging.INFO)
 
 
 class CMVAE(BaseMultiVAE):
-    """
-    The CMVAE model from "Deep Generative Clustering with Multimodal Diffusion Variational Autoencoders"
+    """The CMVAE model from "Deep Generative Clustering with Multimodal Diffusion Variational Autoencoders"
     (Palumbo et al, 2023).
     The diffusion decoders are not implemented in this version.
 
@@ -130,19 +129,16 @@ class CMVAE(BaseMultiVAE):
 
     @property
     def pc_params(self):
-        """
-        Parameters of prior distribution on latent clusters.
+        """Parameters of prior distribution on latent clusters.
 
         """
         return F.softmax(self._pc_params, dim=-1)
 
     def _log_var_to_std(self, log_var):
-        """
-        For latent distributions parameters, transform the log covariance to the
+        """For latent distributions parameters, transform the log covariance to the
         standard deviation of the distribution either applying softmax, softplus
         or simply torch.exp(0.5 * ...) depending on the model configuration.
         """
-
         if self.model_config.prior_and_posterior_dist == "laplace_with_softmax":
             return F.softmax(log_var, dim=-1) * log_var.size(-1) + 1e-6
         elif self.model_config.prior_and_posterior_dist == "normal_with_softplus":
@@ -151,7 +147,6 @@ class CMVAE(BaseMultiVAE):
             return torch.exp(0.5 * log_var)
 
     def _compute_posteriors_and_embeddings(self, inputs, detach, **kwargs):
-
         # Drop unused modalities
         inputs = drop_unused_modalities(inputs)
 
@@ -202,9 +197,7 @@ class CMVAE(BaseMultiVAE):
                     w = self.latent_dist(
                         mu_prior_mod,
                         sigma_prior_mod,
-                    ).rsample(
-                        [k_iwae]
-                    )  # K, n_batch, modality_specific_sim
+                    ).rsample([k_iwae])  # K, n_batch, modality_specific_sim
 
                     z_x = torch.cat([u_x, w], dim=-1)
 
@@ -229,7 +222,6 @@ class CMVAE(BaseMultiVAE):
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs):
         """Forward pass of the CMVAE model. Returns the loss on the batch."""
-
         if self.model_config.loss == "dreg_looser":
             posteriors, embeddings, reconstructions = (
                 self._compute_posteriors_and_embeddings(inputs, detach=True, **kwargs)
@@ -253,18 +245,14 @@ class CMVAE(BaseMultiVAE):
         raise NotImplementedError()
 
     def _compute_k_lws(self, posteriors, embeddings, reconstructions, inputs):
-        """
-
-        Compute all losses components without any aggregation on K nor batch
+        """Compute all losses components without any aggregation on K nor batch
 
         Returns:
-
             lws (dict) : the losses for each modality
             embeddings (dict) : the embeddings for each modality
             n_mod_samples (Tensor): the number of available modalities per sample
 
         """
-
         if hasattr(inputs, "masks"):
             # Compute the number of available modalities per sample
             n_mods_sample = torch.sum(
@@ -276,7 +264,6 @@ class CMVAE(BaseMultiVAE):
         lws = {}
 
         for mod in embeddings:
-
             ### Compute log p(w_m) / regularizing prior for the private spaces
             mu = self.w_mean_prior
             sigma = self._log_var_to_std(self.w_logvar_prior)
@@ -358,12 +345,10 @@ class CMVAE(BaseMultiVAE):
         return lws, embeddings, n_mods_sample
 
     def _iwae_looser(self, lws, n_mods_sample):
-        """
-        The IWAE loss with the sum outside of the log for increased stability.
+        """The IWAE loss with the sum outside of the log for increased stability.
         (following Shi et al 2019)
 
         """
-
         lws = torch.stack(list(lws.values()), dim=0)  # n_modalities, K, n_batch
 
         # Take log_mean_exp on K
@@ -420,8 +405,7 @@ class CMVAE(BaseMultiVAE):
         return_mean=False,
         **kwargs,
     ):
-        """
-        Generate encodings conditioning on all modalities or a subset of modalities.
+        """Generate encodings conditioning on all modalities or a subset of modalities.
 
         Args:
             inputs (MultimodalBaseDataset): The dataset to use for the conditional generation.
@@ -439,7 +423,6 @@ class CMVAE(BaseMultiVAE):
 
 
         """
-
         cond_mod = super().encode(inputs, cond_mod, N, return_mean, **kwargs).cond_mod
 
         if all([s in self.encoders.keys() for s in cond_mod]):
@@ -523,7 +506,6 @@ class CMVAE(BaseMultiVAE):
 
     def generate_from_prior(self, n_samples, **kwargs):
         """Generate latent variables sampling from the prior distribution."""
-
         # generate the clusters assignements
 
         clusters = dist.Categorical(logits=self._pc_params).sample(
@@ -637,8 +619,7 @@ class CMVAE(BaseMultiVAE):
             return ModelOutput(clusters=vote_cluster, pc_zs=pc_zs)
 
     def prune_clusters(self, train_data: MultimodalBaseDataset, batch_size=128):
-        """
-        Follows the pruning procedure described in the paper to compute the optimal
+        """Follows the pruning procedure described in the paper to compute the optimal
         number of clusters.
         At the end of this pruning, the model._pc_params will have been
         adapted to correspond to selected clusters.
@@ -650,7 +631,6 @@ class CMVAE(BaseMultiVAE):
         Returns:
             h_values (list): the list of entropy values from 0 to max_clusters.
         """
-
         with torch.no_grad():
             dataloader = DataLoader(train_data, batch_size=batch_size)
 
@@ -754,15 +734,12 @@ class CMVAE(BaseMultiVAE):
         """Estimate the negative joint likelihood.
 
         Args:
-
             inputs (MultimodalBaseDataset) : a batch of samples.
             K (int) : the number of importance samples for the estimation. Default to 1000.
 
         Returns:
-
             The negative log-likelihood summed over the batch.
         """
-
         # Check that the dataset is not incomplete for this computation.
         self.eval()
         if hasattr(inputs, "masks"):
@@ -774,9 +751,10 @@ class CMVAE(BaseMultiVAE):
         n_data = len(list(inputs.data.values())[0])
 
         # Set the rescale factors and beta to one while computing the joint likelihood
-        rescale_factors, self.rescale_factors = self.rescale_factors.copy(), {
-            m: 1 for m in self.rescale_factors
-        }
+        rescale_factors, self.rescale_factors = (
+            self.rescale_factors.copy(),
+            {m: 1 for m in self.rescale_factors},
+        )
         beta, self.model_config.beta = self.model_config.beta, 1
 
         # Start iterating on the data samples
