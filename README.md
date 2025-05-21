@@ -178,7 +178,7 @@ We provide metrics modules that can be used on any MultiVae model for evaluation
 
 # Datasets
 At the time, we provide 7 ready-to-use multimodal datasets with an automatic download option. 
-Click [here](file:///home/asenella/dev/MultiVae/docs/build/datasets/multivae.datasets.html) to see the options. 
+Click [here](https://multivae.readthedocs.io/en/latest/datasets/multivae.datasets.html) to see the options. 
 
 # Monitoring your training with Wandb 
 
