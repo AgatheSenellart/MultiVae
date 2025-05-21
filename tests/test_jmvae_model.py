@@ -14,9 +14,11 @@ from multivae.models import JMVAE, AutoModel, JMVAEConfig
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 
 
-class Test_forward_and_predict:
+class TestJMVAE:
+    """Main class for testing the JMVAE model."""
     @pytest.fixture()
     def dataset(self):
+        """Dummy dataset. """
         data = dict(
             mod1=torch.Tensor([[1.0, 2.0], [4.0, 5.0]]),
             mod2=torch.Tensor([[67.1, 2.3, 3.0], [1.3, 2.0, 3.0]]),
@@ -41,6 +43,7 @@ class Test_forward_and_predict:
         ]
     )
     def config_and_architectures(self, request):
+        """Create configuration for JMVAE."""
         model_config = JMVAEConfig(n_modalities=3, **request.param[0])
 
         if request.param[1]:
@@ -70,37 +73,55 @@ class Test_forward_and_predict:
             decoders = None
         return dict(model_config=model_config, encoders=encoders, decoders=decoders)
 
-    def test_base_functions(self, dataset, config_and_architectures):
+    def test_setup(self, config_and_architectures):
+        """Test initialization of the JMVAE model. Check attributes. """
         model = JMVAE(**config_and_architectures)
 
         # test model setup
         assert model.alpha == config_and_architectures["model_config"].alpha
         assert model.beta == config_and_architectures["model_config"].beta
         assert model.latent_dim == config_and_architectures["model_config"].latent_dim
+    
 
-        # test forward
-        loss = model(dataset, epoch=2, warmup=2).loss
-        assert type(loss) == torch.Tensor
-        assert loss.size() == torch.Size([])
+    def test_forward(self, dataset, config_and_architectures):
+        """Test forward function. Check the output. """
 
-        # test encode and decode
+        model = JMVAE(**config_and_architectures)
+        output = model(dataset, epoch=2, warmup=2)
+        assert isinstance(output, ModelOutput)
+        assert isinstance(output.loss,torch.Tensor)
+        assert output.loss.size() == torch.Size([])
+
+    def test_encode_decode(self, dataset, config_and_architectures):
+        """Test the encode_function. Check that the output is 
+        an instance of ModelOutput and check the shape of the latent embeddings.
+        Check the decode function. """
+
+        model = JMVAE(**config_and_architectures)
         for return_mean in [True, False]:
+
+            ## Encode all modalities
+            # generate one latent sample conditioning on all modalities.
             outputs = model.encode(dataset, return_mean=return_mean)
-            assert outputs.one_latent_space
             embeddings = outputs.z
+
+            assert outputs.one_latent_space
             assert isinstance(outputs, ModelOutput)
             assert embeddings.shape == (2, model.latent_dim)
-
+            
+            # decode in modality mod1 and check the shape
             out_dec = model.decode(outputs, modalities="mod1")
             assert out_dec.mod1.shape == (2, 2)
 
+            # generate 2 latent samples and flatten the output
             outputs = model.encode(dataset, N=2, flatten=True, return_mean=return_mean)
             assert outputs.z.shape == (4, model.latent_dim)
 
             out_dec = model.decode(outputs, modalities="mod1")
             assert out_dec.mod1.shape == (4, 2)
 
-            # Encode conditioning on a subset of modalities
+            ## Encode one modality
+            # generate 1 sample
             embeddings = model.encode(
                 dataset, cond_mod=["mod1"], return_mean=return_mean
             )
@@ -109,11 +130,13 @@ class Test_forward_and_predict:
             out_dec = model.decode(embeddings, modalities="mod1")
             assert out_dec.mod1.shape == (2, 2)
 
+            # generate 10 samples 
             embeddings = model.encode(
                 dataset, cond_mod="mod2", N=10, flatten=False, return_mean=return_mean
             )
             assert embeddings.z.shape == (10, 2, model.latent_dim)
 
+            ## Encode a subset of modalities
             embeddings = model.encode(
                 dataset, cond_mod=["mod2", "mod1"], return_mean=return_mean
             )
@@ -122,7 +145,10 @@ class Test_forward_and_predict:
             out_dec = model.decode(embeddings, modalities="mod1")
             assert out_dec.mod1.shape == (2, 2)
 
-        # test predict
+    def test_predict(self,dataset,  config_and_architectures):   
+        """Test the predict function of JMVAE"""
+
+        model = JMVAE(**config_and_architectures)
         Y = model.predict(dataset, cond_mod="mod1")
         assert isinstance(Y, ModelOutput)
         assert Y.mod1.shape == (2, 2)
@@ -139,6 +165,8 @@ class Test_forward_and_predict:
         assert Y.mod2.shape == (2 * 10, 3)
 
     def test_encoder_raises_error(self, dataset, config_and_architectures):
+        """Check that the encode function raises an error when 
+        the conditioning modalitie don't exist."""
         model = JMVAE(**config_and_architectures)
 
         with pytest.raises(AttributeError):
@@ -146,6 +174,7 @@ class Test_forward_and_predict:
 
     @pytest.fixture()
     def incomplete_dataset(self):
+        """Create an incomplete dataset for testing."""
         data = dict(
             mod1=torch.Tensor([[1.0, 2.0], [4.0, 5.0]]),
             mod2=torch.Tensor([[67.1, 2.3, 3.0], [1.3, 2.0, 3.0]]),
@@ -167,7 +196,9 @@ class Test_forward_and_predict:
 
     def test_error_with_incomplete_datasets(
         self, incomplete_dataset, config_and_architectures
-    ):
+    ):  
+        """Assert that the JMVAE raises error when used on 
+        an incomplete dataset. """
         model = JMVAE(**config_and_architectures)
         with pytest.raises(AttributeError):
             model(incomplete_dataset)
@@ -177,74 +208,9 @@ class Test_forward_and_predict:
             model.compute_joint_nll(incomplete_dataset, K=10, batch_size_K=2)
 
 
-@pytest.mark.slow
-class TestTraining:
-    @pytest.fixture
-    def input_dataset(self):
-        # Create simple small dataset
-        data = dict(
-            mod1=torch.Tensor(
-                [[1.0, 2.0], [4.0, 5.0], [1.0, 2.0], [4.0, 5.0], [3.0, 4.0]]
-            ),
-            mod2=torch.Tensor(
-                [
-                    [67.1, 2.3, 3.0],
-                    [1.3, 2.0, 3.0],
-                    [67.1, 2.3, 3.0],
-                    [1.3, 2.0, 3.0],
-                    [3.0, 4.0, 4.5],
-                ]
-            ),
-        )
-        labels = np.array([0, 1, 0, 0, 1])
-        dataset = MultimodalBaseDataset(data, labels)
-
-        return dataset
-
-    @pytest.fixture
-    def model_config(self, input_dataset):
-        return JMVAEConfig(
-            n_modalities=int(len(input_dataset.data.keys())),
-            latent_dim=5,
-            input_dims=dict(
-                mod1=tuple(input_dataset[0].data["mod1"].shape),
-                mod2=tuple(input_dataset[0].data["mod2"].shape),
-            ),
-        )
-
-    @pytest.fixture
-    def custom_architecture(self):
-        config1 = BaseAEConfig(input_dim=(2,), latent_dim=5)
-        config2 = BaseAEConfig(input_dim=(3,), latent_dim=5)
-
-        encoders = dict(mod1=Encoder_VAE_MLP(config1), mod2=Encoder_VAE_MLP(config2))
-        decoders = dict(mod1=Decoder_AE_MLP(config1), mod2=Decoder_AE_MLP(config2))
-        return {"encoders": encoders, "decoders": decoders}
-
-    @pytest.fixture(
-        params=[
-            True,
-            False,
-        ]
-    )
-    def model(self, model_config, custom_architecture, request):
-        # randomized
-
-        custom = request.param
-
-        if not custom:
-            model = JMVAE(model_config)
-        else:
-            model = JMVAE(
-                model_config,
-                encoders=custom_architecture["encoders"],
-                decoders=custom_architecture["decoders"],
-            )
-        return model
-
     @pytest.fixture
     def training_config(self, tmp_path_factory):
-
+        """Create a training configuration for testing. """
         dir_path = tmp_path_factory.mktemp("dummy_folder")
 
         yield BaseTrainerConfig(
@@ -259,19 +225,27 @@ class TestTraining:
         shutil.rmtree(dir_path)
 
     @pytest.fixture
-    def trainer(self, model, training_config, input_dataset):
+    def model(self, config_and_architectures):
+        return JMVAE(**config_and_architectures)
+
+    @pytest.fixture
+    def trainer(self, model, training_config, dataset):
+        """Create a trainer for testing"""
         trainer = BaseTrainer(
             model=model,
-            train_dataset=input_dataset,
-            eval_dataset=input_dataset,
+            train_dataset=dataset,
+            eval_dataset=dataset,
             training_config=training_config,
         )
 
         trainer.prepare_training()
 
         return trainer
-
+    
+    @pytest.mark.slow
     def test_train_step(self, trainer):
+        """test the train step with the JMVAE model. 
+        Check that the weights are updated. """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         _ = trainer.train_step(epoch=1)
@@ -285,8 +259,10 @@ class TestTraining:
                 for key in start_model_state_dict.keys()
             ]
         )
-
+    @pytest.mark.slow
     def test_eval_step(self, trainer):
+        """Test the eval step with the JMVAE model. Check that the 
+        weights are not updated."""
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         _ = trainer.eval_step(epoch=1)
@@ -302,6 +278,7 @@ class TestTraining:
         )
 
     def test_main_train_loop(self, trainer):
+        """Test main train loop with the JMVAE model."""
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         trainer.train()
@@ -317,6 +294,8 @@ class TestTraining:
         )
 
     def test_checkpoint_saving(self, model, trainer, training_config):
+        """Test checkpoint saving with the JMVAE model. 
+        Check that the model and optimizer are saved and can be reloaded. """
         dir_path = training_config.output_dir
 
         # Make a training step
@@ -391,7 +370,8 @@ class TestTraining:
         )
 
     def test_checkpoint_saving_during_training(self, model, trainer, training_config):
-        #
+        """Test that the checkpoint is ceated during the main train loop. 
+        Check the checkpoint directory and saved files. """
         target_saving_epoch = training_config.steps_saving
 
         dir_path = training_config.output_dir
@@ -434,6 +414,8 @@ class TestTraining:
         )
 
     def test_final_model_saving(self, model, trainer, training_config):
+        """Test final model saving with the JMVAE model.
+        Check that the model is saved and can be reloaded correctly. """
         dir_path = training_config.output_dir
 
         trainer.train()
@@ -473,12 +455,13 @@ class TestTraining:
         assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
         assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
 
-    def test_compute_nll(self, model, input_dataset):
-        nll = model.compute_joint_nll(input_dataset, K=10, batch_size_K=2)
+    def test_compute_nll(self, model, dataset):
+        """Test the compute_nll function for the JMVAE model. """
+        nll = model.compute_joint_nll(dataset, K=10, batch_size_K=2)
         assert nll >= 0
         assert isinstance(nll, torch.Tensor)
         assert nll.size() == torch.Size([])
 
-        cond_ll = model.compute_cond_nll(input_dataset, "mod1", ["mod2"])
+        cond_ll = model.compute_cond_nll(dataset, "mod1", ["mod2"])
         assert isinstance(cond_ll, dict)
         assert cond_ll["mod2"].size() == torch.Size([])

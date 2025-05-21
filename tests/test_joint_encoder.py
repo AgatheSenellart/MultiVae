@@ -1,24 +1,20 @@
-import os
 
-import numpy as np
 import pytest
 import torch
 from pythae.models.base import BaseAEConfig
-from pythae.models.nn.benchmarks.mnist.convnets import (
-    Decoder_Conv_AE_MNIST,
-    Encoder_Conv_AE_MNIST,
-)
+
 from pythae.models.nn.default_architectures import Encoder_AE_MLP
 from torch import nn
 
-from multivae.models.base import BaseMultiVAE, BaseMultiVAEConfig
-from multivae.models.nn.default_architectures import (
-    Decoder_AE_MLP,
-    MultipleHeadJointEncoder,
-)
+from multivae.models.base import  BaseMultiVAEConfig
+from multivae.models.nn.default_architectures import MultipleHeadJointEncoder
+
 
 
 class Test_MultipleHeadJointEncoder:
+    """Test the MultipleHeadJointEncoder class. 
+    We check that the attributes and modules are properly set up
+    during initialization. """
     @pytest.fixture
     def input_model(self):
         model_config = BaseMultiVAEConfig(n_modalities=2, latent_dim=10)

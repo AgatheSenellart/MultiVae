@@ -1,18 +1,17 @@
-from copy import deepcopy
+""" Custom encoders and decoders for testing purposes.
+"""
 from typing import List
 
 import numpy as np
 import torch
-from pythae.models.base import BaseAEConfig
 from pythae.models.base.base_model import BaseDecoder
 from pythae.models.base.base_utils import ModelOutput
 from pythae.models.nn.base_architectures import BaseEncoder
-from pythae.models.nn.default_architectures import Encoder_VAE_MLP
 from torch import nn
 
 
-class Encoder_test(BaseEncoder):
-    """Simple MLPs different than the default one for testing."""
+class EncoderTest(BaseEncoder):
+    """A simple MLP, but different than the default ones."""
 
     def __init__(self, args: dict):
         BaseEncoder.__init__(self)
@@ -68,8 +67,8 @@ class Encoder_test(BaseEncoder):
         return output
 
 
-class Encoder_test_multilatents(BaseEncoder):
-    """Simple MLPs different than the default one for testing."""
+class EncoderTestMultilatents(BaseEncoder):
+    """Encoder for models that use multiple latent spaces."""
 
     def __init__(self, args: dict):
         BaseEncoder.__init__(self)
@@ -130,7 +129,8 @@ class Encoder_test_multilatents(BaseEncoder):
         return output
 
 
-class Decoder_test(BaseDecoder):
+class DecoderTest(BaseDecoder):
+    """A simple MLP decoder, different than the default one."""
     def __init__(self, args: dict):
         BaseDecoder.__init__(self)
 

@@ -15,12 +15,13 @@ from multivae.trainers.base.base_trainer import BaseTrainer
 from multivae.trainers.base.base_trainer_config import BaseTrainerConfig
 
 
-class Test_model:
-    """Test basic functions of the model: setup , encode, decode, forward, predict."""
+class TestCRMVAE:
+    """Test basic functions of the CRMVAE model: setup , encode, decode, forward, predict.
+    Test CRMVAE within the BaseTrainer and check that training works. """
 
     @pytest.fixture(params=["complete", "incomplete"])
     def dataset(self, request):
-        # Create simple small dataset with six modalities
+        """Create simple small dataset with six modalities"""
         data = dict(
             mod1=torch.randn((6, 2)),
             mod2=torch.randn((6, 3)),
@@ -43,7 +44,7 @@ class Test_model:
 
     @pytest.fixture
     def custom_architectures(self):
-        # Create an instance of mvae model
+        """Return encoders, decoders for testing"""
         config1 = BaseAEConfig(input_dim=(2,), latent_dim=5)
         config2 = BaseAEConfig(input_dim=(3,), latent_dim=5)
         config3 = BaseAEConfig(input_dim=(4,), latent_dim=5)
@@ -69,6 +70,7 @@ class Test_model:
 
     @pytest.fixture(params=[1.0, 1.5, 2.0])
     def model_config(self, request):
+        """Create a model config for testing."""
         model_config = CRMVAEConfig(
             n_modalities=4,
             latent_dim=5,
@@ -80,6 +82,7 @@ class Test_model:
 
     @pytest.fixture(params=[True, False])
     def model(self, custom_architectures, model_config, request):
+        """Create a model for testing."""
         custom = request.param
         if custom:
             model = CRMVAE(model_config, **custom_architectures)
@@ -87,12 +90,14 @@ class Test_model:
             model = CRMVAE(model_config)
         return model
 
-    def test(self, model, dataset, model_config):
-
-        # test setup
+    def test_setup(self, model, model_config):
+        """Check the attributes of the model are correctly set.
+        """
         assert model.model_config == model_config
 
-        # Test forward with one sample
+    def test_forward(self, model, dataset):
+        """Check the forward pass of the model.
+        """
         output = model(dataset[0])
         loss = output.loss
         assert isinstance(loss, torch.Tensor)
@@ -104,44 +109,71 @@ class Test_model:
         assert loss.size() == torch.Size([])
         assert loss.requires_grad
 
-        # Try encoding and prediction
+    def test_encode(self, model, dataset):
+        """Check the encode functions of the model.
+        We check the output shape and the type of the output.
+        """
+        ## Encode conditioning on ALL modalities
+        # Generate 1 latent codes
         outputs = model.encode(dataset[0])
         assert outputs.one_latent_space
         embeddings = outputs.z
         assert isinstance(outputs, ModelOutput)
         assert embeddings.shape == (1, 5)
+        # Generate 2 latent codes
         embeddings = model.encode(dataset[0], N=2).z
         assert embeddings.shape == (2, 1, 5)
+
+        ## Encode conditioning on ONE modality
+        # Generate 1 latent codes
         embeddings = model.encode(dataset, cond_mod=["mod2"]).z
         assert embeddings.shape == (len(dataset), 5)
+        # Generate 10 latent codes
         embeddings = model.encode(dataset, cond_mod="mod3", N=10).z
         assert embeddings.shape == (10, len(dataset), 5)
+        ## Encode conditioning on a SUBSET of modalities
+        # Generate 1 latent codes
         embeddings = model.encode(dataset, cond_mod=["mod2", "mod4"]).z
         assert embeddings.shape == (len(dataset), 5)
+        # Generate 10 latent codes
+        embeddings = model.encode(dataset, cond_mod=["mod2", "mod4"], N=10).z
+        assert embeddings.shape == (10, len(dataset), 5)
 
-        # Try encoding with return_mean option
+        # Try encoding with return_mean=True option
         outputs = model.encode(dataset[0], return_mean=True)
         embeddings = outputs.z
         assert isinstance(outputs, ModelOutput)
         assert embeddings.shape == (1, 5)
 
-        Y = model.predict(dataset, cond_mod="mod2")
+    def test_predict(self, model, dataset):
+        """Check the predict functions of the model.
+        We check the output shape and the type of the output.
+        """
+        ## Predict conditioning on ALL modalities
+        # Generate 1 sample
+        data=dataset[:3] # keep only complete samples
+        Y = model.predict(data)
         assert isinstance(Y, ModelOutput)
-        assert Y.mod1.shape == (len(dataset), 2)
-        assert Y.mod2.shape == (len(dataset), 3)
+        assert Y.mod1.shape == (3, 2)
+        assert Y.mod2.shape == (3, 3)
 
+        ## Predict conditioning on ONE modality
+        # Generate 10 samples
         Y = model.predict(dataset, cond_mod="mod2", N=10)
         assert isinstance(Y, ModelOutput)
         assert Y.mod1.shape == (10, len(dataset), 2)
         assert Y.mod2.shape == (10, len(dataset), 3)
 
-        Y = model.predict(dataset, cond_mod="mod2", N=10, flatten=True)
+        ## Predict conditioning on ONE modality
+        # Generate 10 samples and flatten
+        Y = model.predict(dataset, cond_mod=["mod2","mod4"], N=10, flatten=True)
         assert isinstance(Y, ModelOutput)
         assert Y.mod1.shape == (len(dataset) * 10, 2)
         assert Y.mod2.shape == (len(dataset) * 10, 3)
 
     def test_backward_with_missing(self, model, dataset):
         """Check that the grad with regard to missing modalities is null"""
+
         if hasattr(dataset, "masks"):
 
             output = model(dataset[-3:], epoch=2)
@@ -156,80 +188,9 @@ class Test_model:
             for param in model.encoders["mod1"].parameters():
                 assert not torch.all(param.grad == 0)
 
-
-@pytest.mark.slow
-class TestTraining:
-    @pytest.fixture(params=["complete", "incomplete"])
-    def dataset(self, request):
-        # Create simple small dataset with two modalities
-        data = dict(
-            mod1=torch.Tensor([[1.0, 2.0], [4.0, 5.0]]),
-            mod2=torch.Tensor([[67.1, 2.3, 3.0], [1.3, 2.0, 3.0]]),
-            mod3=torch.Tensor([[37, 2, 4, 1], [8, 9, 7, 0]]),
-            mod4=torch.Tensor([[37, 2, 4, 1], [8, 9, 7, 0]]),
-        )
-        labels = np.array([0, 1])
-        if request.param == "complete":
-            dataset = MultimodalBaseDataset(data, labels)
-        else:
-            masks = dict(
-                mod1=torch.Tensor([True, False]),
-                mod2=torch.Tensor([True, False]),
-                mod3=torch.Tensor([True, True]),
-                mod4=torch.Tensor([True, True]),
-            )
-            dataset = IncompleteDataset(data=data, masks=masks, labels=labels)
-
-        return dataset
-
-    @pytest.fixture
-    def custom_architectures(self):
-        # Create an instance of mmvae model
-        config1 = BaseAEConfig(input_dim=(2,), latent_dim=5)
-        config2 = BaseAEConfig(input_dim=(3,), latent_dim=5)
-        config3 = BaseAEConfig(input_dim=(4,), latent_dim=5)
-
-        encoders = dict(
-            mod1=Encoder_VAE_MLP(config1),
-            mod2=Encoder_VAE_MLP(config2),
-            mod3=Encoder_VAE_MLP(config3),
-            mod4=Encoder_VAE_MLP(config3),
-        )
-
-        decoders = dict(
-            mod1=Decoder_AE_MLP(config1),
-            mod2=Decoder_AE_MLP(config2),
-            mod3=Decoder_AE_MLP(config3),
-            mod4=Decoder_AE_MLP(config3),
-        )
-
-        return dict(
-            encoders=encoders,
-            decoders=decoders,
-        )
-
-    @pytest.fixture(params=[0.5, 1.0, 2.0])
-    def model_config(self, request):
-        model_config = CRMVAEConfig(
-            n_modalities=4,
-            latent_dim=5,
-            input_dims=dict(mod1=(2,), mod2=(3,), mod3=(4,), mod4=(4,)),
-            beta=request.param,
-        )
-
-        return model_config
-
-    @pytest.fixture(params=[True, False])
-    def model(self, custom_architectures, model_config, request):
-        custom = request.param
-        if custom:
-            model = CRMVAE(model_config, **custom_architectures)
-        else:
-            model = CRMVAE(model_config)
-        return model
-
     @pytest.fixture
     def training_config(self, tmpdir):
+        """Basic training config for testing"""
         tmpdir.mkdir("dummy_folder")
         dir_path = os.path.join(tmpdir, "dummy_folder")
         return BaseTrainerConfig(
@@ -243,6 +204,7 @@ class TestTraining:
 
     @pytest.fixture
     def trainer(self, model, training_config, dataset):
+        """Basic trainer for testing"""
         trainer = BaseTrainer(
             model=model,
             train_dataset=dataset,
@@ -253,6 +215,7 @@ class TestTraining:
         return trainer
 
     def new_trainer(self, model, training_config, dataset, checkpoint_dir):
+        """Create a new trainer for testing resuming training from checkpoint."""
         trainer = BaseTrainer(
             model=model,
             train_dataset=dataset,
@@ -262,8 +225,12 @@ class TestTraining:
         )
 
         return trainer
-
+    
+    @pytest.mark.slow
     def test_train_step(self, trainer):
+        """Test a train step with the CRMVAE model.
+        We check that the model is training and that the weights are updated.
+        """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
         start_optimizer = trainer.optimizer
         _ = trainer.train_step(epoch=1)
@@ -280,6 +247,8 @@ class TestTraining:
         assert trainer.optimizer == start_optimizer
 
     def test_eval_step(self, trainer):
+        """Test an eval step with the CRMVAE model.
+        We check that the weights are not updated."""
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         _ = trainer.eval_step(epoch=1)
@@ -294,7 +263,11 @@ class TestTraining:
             ]
         )
 
+    @pytest.mark.slow
     def test_main_train_loop(self, trainer):
+        """Test the main training loop with the CRMVAE model.
+        We check that the model is training and that the weights are updated.
+        """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         trainer.train()
@@ -309,11 +282,15 @@ class TestTraining:
             ]
         )
 
+    @pytest.mark.slow
     def test_checkpoint_saving(self, model, trainer, training_config):
+        """Test checkpoint saving with the CRMVAE model.
+        We check that the model and optimizer state dicts are saved correctly, 
+        and can be reloaded from the checkpoint."""
         dir_path = training_config.output_dir
 
         # Make a training step
-        step_1_loss = trainer.train_step(epoch=1)
+        _ = trainer.train_step(epoch=1)
 
         model = deepcopy(trainer.model)
         optimizer = deepcopy(trainer.optimizer)
@@ -382,35 +359,13 @@ class TestTraining:
                 )
             ]
         )
-
+    @pytest.mark.slow
     def test_checkpoint_saving_during_training(
         self, model, trainer, training_config, dataset
-    ):
-        #
-        target_saving_epoch = training_config.steps_saving
-
-        dir_path = training_config.output_dir
-
-        trainer.train()
-
-        training_dir = os.path.join(
-            dir_path, f"CRMVAE_training_{trainer._training_signature}"
-        )
-
-        checkpoint_dir = os.path.join(
-            training_dir, f"checkpoint_epoch_{target_saving_epoch}"
-        )
-
-        # try resuming
-        new_trainer_ = self.new_trainer(model, training_config, dataset, checkpoint_dir)
-
-        assert new_trainer_.best_train_loss == trainer.best_train_loss
-        assert new_trainer_.trained_epochs == target_saving_epoch
-
-        new_trainer_.train()
-
-    def test_resume_from_checkpoint(self, model, trainer, training_config):
-        #
+    ):  
+        """Test the creation of a checkpoint during training with the CRMVAE model.
+        We check that we can resume from the checkpoint with a new trainer."""
+        # Train the model
         target_saving_epoch = training_config.steps_saving
 
         dir_path = training_config.output_dir
@@ -422,6 +377,7 @@ class TestTraining:
         training_dir = os.path.join(
             dir_path, f"CRMVAE_training_{trainer._training_signature}"
         )
+        # Check the creation of the checkpoint dir
         assert os.path.isdir(training_dir)
 
         checkpoint_dir = os.path.join(
@@ -444,7 +400,8 @@ class TestTraining:
         model_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "model.pt"))[
             "model_state_dict"
         ]
-
+        # Check that the checkpoint model is not the same as the current model
+        # (the model has been trained since the checkpoint was saved)
         assert not all(
             [
                 torch.equal(model_rec_state_dict[key], model.state_dict()[key])
@@ -452,7 +409,20 @@ class TestTraining:
             ]
         )
 
+        # try resuming
+        new_trainer_ = self.new_trainer(model, training_config, dataset, checkpoint_dir)
+
+        assert new_trainer_.best_train_loss == trainer.best_train_loss
+        assert new_trainer_.trained_epochs == target_saving_epoch
+
+        new_trainer_.train()
+
+    
+    @pytest.mark.slow
     def test_final_model_saving(self, model, trainer, training_config):
+        """Test the final modal saving of the CRMVAE model.
+        We check that the model is saved and can be reloaded correctly."""
+        # Train the model
         dir_path = training_config.output_dir
 
         trainer.train()
@@ -477,9 +447,10 @@ class TestTraining:
         for archi in model.model_config.custom_architectures:
             assert archi + ".pkl" in files_list
 
-        # check reload full model
+        # check reload full model from the final dir
         model_rec = AutoModel.load_from_folder(os.path.join(final_dir))
 
+        # check the reloaded model is the same as the original model
         assert all(
             [
                 torch.equal(
@@ -492,7 +463,11 @@ class TestTraining:
         assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
         assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
 
+    @pytest.mark.slow
     def test_compute_nll(self, model, dataset):
+        """Test the compute_nll function of the CRMVAE model.
+        We check that the function returns a tensor of the right shape and type.
+        """
         if hasattr(dataset, "masks"):
             with pytest.raises(AttributeError):
                 nll = model.compute_joint_nll(dataset, K=10, batch_size_K=2)

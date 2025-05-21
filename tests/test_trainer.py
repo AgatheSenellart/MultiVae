@@ -3,9 +3,7 @@ import shutil
 
 import pytest
 import torch
-import torch.optim as optim
 from PIL import Image
-from pydantic import ValidationError
 from pythae.models.base import BaseAEConfig
 from pythae.models.nn.benchmarks.mnist.convnets import (
     Decoder_Conv_AE_MNIST,
@@ -19,19 +17,21 @@ from multivae.models import CVAE, JMVAE, TELBO, CVAEConfig, JMVAEConfig, TELBOCo
 from multivae.models.nn.default_architectures import Decoder_AE_MLP
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 from multivae.trainers.base.callbacks import rename_logs
+from .tests_data.utils import test_dataset_plotting
 
 PATH = os.path.dirname(os.path.abspath(__file__))
 
 
 @pytest.fixture(scope="module")
 def training_config(tmp_path_factory):
+    """Create a training config, to test the trainer with."""
     d = tmp_path_factory.mktemp("dummy_folder")
-
     return BaseTrainerConfig(output_dir=str(d), num_epochs=5)
 
 
 @pytest.fixture(params=[0, 20])
 def model_sample_1(request):
+    """Create a first model to test the trainer with."""
     model_config = JMVAEConfig(n_modalities=2, latent_dim=10, warmup=request.param)
     config = BaseAEConfig(input_dim=(1, 28, 28), latent_dim=10)
     encoders = dict(mod1=Encoder_VAE_MLP(config), mod2=Encoder_Conv_VAE_MNIST(config))
@@ -41,8 +41,8 @@ def model_sample_1(request):
 
 @pytest.fixture()
 def model_sample_2():
+    """Create a second model to test the trainer with. """
     model_config = CVAEConfig(
-        n_modalities=2,
         latent_dim=10,
         main_modality="mod1",
         conditioning_modalities=["mod2"],
@@ -53,13 +53,15 @@ def model_sample_2():
 
 @pytest.fixture(params=["jmvae", "cvae"])
 def model_sample(request, model_sample_1, model_sample_2):
+    """Regroups the two models above in one fixture. """
     if request.param == "jmvae":
         return model_sample_1
     return model_sample_2
 
 
 @pytest.fixture
-def train_dataset():
+def train_dataset_1():
+    """Create a training dataset to test the trainer with."""
     return MultimodalBaseDataset(
         data=dict(
             mod1=torch.randn((2, 1, 28, 28)),
@@ -69,19 +71,11 @@ def train_dataset():
     )
 
 
-class test_dataset_2(MultimodalBaseDataset):
-    """Dataset to test the transform for plotting function"""
-
-    def __init__(self, data, labels=None):
-        super().__init__(data, labels)
-
-    def transform_for_plotting(self, tensor, modality):
-        return tensor.flatten()
-
-
 @pytest.fixture
-def dataset2():
-    return test_dataset_2(
+def train_dataset_2():
+    """Create a second training dataset, which has a 'transform_for_plotting'
+    function that will be used during the eval steps of the training. """
+    return test_dataset_plotting(
         data=dict(
             mod1=torch.randn((2, 1, 28, 28)),
             mod2=torch.randn((2, 1, 28, 28)),
@@ -90,9 +84,13 @@ def dataset2():
     )
 
 
-class Test_Set_Trainer:
+class Test_Incompatible_Trainer_Model:
+    """In this test, we check that initializing a BaseTrainer
+    with a model that requires multistage_training raises the appropriate error. """
+
     @pytest.fixture
     def model_two_stage(self):
+        """Create a model that requires two stage training. """
         model_config = TELBOConfig(
             n_modalities=2, latent_dim=10, uses_likelihood_rescaling=False
         )
@@ -104,18 +102,25 @@ class Test_Set_Trainer:
         return TELBO(model_config=model_config, encoders=encoders, decoders=decoders)
 
     def test_setup_with_two_stage_model(
-        self, model_two_stage, training_config, train_dataset
+        self, model_two_stage, training_config, train_dataset_1
     ):
+        """Check that an error is raised when the model is incompatible with the trainer. """
         with pytest.raises(AttributeError) as excinfo:
-            trainer = BaseTrainer(
+            BaseTrainer(
                 model=model_two_stage,
-                train_dataset=train_dataset,
+                train_dataset=train_dataset_1,
                 training_config=training_config,
             )
         assert "MultistageTrainer" in str(excinfo.value)
 
 
 class Test_Set_Training_config:
+    """
+    In this class, we test the initialization of BaseTrainer
+    with different training configurations.
+    In particular, we check that the default parameters
+    are used when the training configuration is None. 
+    """
     @pytest.fixture(
         params=[
             None,
@@ -133,6 +138,7 @@ class Test_Set_Training_config:
         scope="class",
     )
     def training_configs(self, request, tmp_path_factory):
+        """Different training configs to test. """
         if request.param is not None:
             d = tmp_path_factory.mktemp("dummy_folder")
 
@@ -141,10 +147,12 @@ class Test_Set_Training_config:
         else:
             return None
 
-    def test_set_training_config(self, model_sample, train_dataset, training_configs):
+    def test_set_training_config(self, model_sample, train_dataset_1, training_configs):
+        """Check that the training config is correctly set in the init 
+        of BaseTrainer. """
         trainer = BaseTrainer(
             model=model_sample,
-            train_dataset=train_dataset,
+            train_dataset=train_dataset_1,
             training_config=training_configs,
         )
 
@@ -159,11 +167,16 @@ class Test_Set_Training_config:
 
 
 class Test_Build_Optimizer:
+    """In this class, we check that the optimizer is correctly instantiated
+    depending on the parameters in the training configuration. """
+
     def test_wrong_optimizer_cls(self):
+        """Test that wrong optimizers names raises errors."""
         with pytest.raises(AttributeError):
             BaseTrainerConfig(optimizer_cls="WrongOptim")
 
     def test_wrong_optimizer_params(self):
+        """Check that wrong configurations for the optimizer raises an error. """
         with pytest.raises(TypeError):
             BaseTrainerConfig(
                 optimizer_cls="Adam", optimizer_params={"wrong_config": 1}
@@ -174,6 +187,8 @@ class Test_Build_Optimizer:
         scope="class",
     )
     def training_configs_learning_rate(self, tmp_path_factory, request):
+        """Create configurations with different learning rates to test 
+        the optmizer instantiation"""
         d = tmp_path_factory.mktemp("dummy_folder")
         request.param.output_dir = str(d)
         return request.param
@@ -186,6 +201,7 @@ class Test_Build_Optimizer:
         ]
     )
     def optimizer_config(self, request, training_configs_learning_rate):
+        """Create different optimizers names and configs to test the BaseTrainer with."""
         optimizer_config = request.param
 
         # set optim and params to training config
@@ -197,11 +213,13 @@ class Test_Build_Optimizer:
         return optimizer_config
 
     def test_default_optimizer_building(
-        self, model_sample, train_dataset, training_configs_learning_rate
-    ):
+        self, model_sample, train_dataset_1, training_configs_learning_rate
+    ):  
+        """Check that the default optimizer is Adam and that the learning
+        rate is correctly set."""
         trainer = BaseTrainer(
             model=model_sample,
-            train_dataset=train_dataset,
+            train_dataset=train_dataset_1,
             training_config=training_configs_learning_rate,
         )
 
@@ -216,13 +234,15 @@ class Test_Build_Optimizer:
     def test_set_custom_optimizer(
         self,
         model_sample,
-        train_dataset,
+        train_dataset_1,
         training_configs_learning_rate,
         optimizer_config,
     ):
+        """Check that the optimizer instantiated during BaseTrainer init
+        corresponds to the parameters in the configuration."""
         trainer = BaseTrainer(
             model=model_sample,
-            train_dataset=train_dataset,
+            train_dataset=train_dataset_1,
             training_config=training_configs_learning_rate,
         )
 
@@ -247,11 +267,17 @@ class Test_Build_Optimizer:
 
 
 class Test_Build_Scheduler:
+    """Test that the learning rate scheduler that is instantiated in 
+    BaseTrainer corresponds to the parameters in the config.
+    We also check the default scheduler. """
+
     def test_wrong_scheduler_cls(self):
+        """Check that a wrong scheduler name raises an error."""
         with pytest.raises(AttributeError):
             BaseTrainerConfig(scheduler_cls="WrongOptim")
 
     def test_wrong_scheduler_params(self):
+        """Check that a wrong configuration for scheduler raises an error."""
         with pytest.raises(TypeError):
             BaseTrainerConfig(
                 scheduler_cls="ReduceLROnPlateau", scheduler_params={"wrong_config": 1}
@@ -262,6 +288,7 @@ class Test_Build_Scheduler:
         scope="module",
     )
     def training_configs_learning_rate(self, tmp_path_factory, request):
+        """Create different learning rates to test the trainer with. """
         d = tmp_path_factory.mktemp("dummy_folder")
         request.param.output_dir = str(d)
         return request.param
@@ -274,6 +301,7 @@ class Test_Build_Scheduler:
         ]
     )
     def optimizer_config(self, request, training_configs_learning_rate):
+        """Create different optimizer to test the scheduler with. """
         optimizer_config = request.param
 
         # set optim and params to training config
@@ -292,6 +320,7 @@ class Test_Build_Scheduler:
         ]
     )
     def scheduler_config(self, request, training_configs_learning_rate):
+        """Create different scheduler configurations to test the trainer with. """
         scheduler_config = request.param
 
         # set scheduler and params to training config
@@ -303,11 +332,12 @@ class Test_Build_Scheduler:
         return request.param
 
     def test_default_scheduler_building(
-        self, model_sample, train_dataset, training_configs_learning_rate
+        self, model_sample, train_dataset_1, training_configs_learning_rate
     ):
+        """Check that the default scheduler is None. """
         trainer = BaseTrainer(
             model=model_sample,
-            train_dataset=train_dataset,
+            train_dataset=train_dataset_1,
             training_config=training_configs_learning_rate,
         )
 
@@ -319,13 +349,15 @@ class Test_Build_Scheduler:
     def test_set_custom_scheduler(
         self,
         model_sample,
-        train_dataset,
+        train_dataset_1,
         training_configs_learning_rate,
         scheduler_config,
     ):
+        """Check that the instantiated scheduler corresponds to 
+        the parameters in configuration. """
         trainer = BaseTrainer(
             model=model_sample,
-            train_dataset=train_dataset,
+            train_dataset=train_dataset_1,
             training_config=training_configs_learning_rate,
         )
 
@@ -347,6 +379,7 @@ class Test_Build_Scheduler:
 
 
 class Test_Device_Checks:
+    """Test that the device is correctly set in BaseTrainer"""
     def test_set_environ_variable(self):
         os.environ["LOCAL_RANK"] = "1"
         os.environ["WORLD_SIZE"] = "4"
@@ -381,12 +414,12 @@ class Test_Device_Checks:
         return request.param
 
     def test_setup_device_with_no_cuda(
-        self, model_sample, train_dataset, training_configs
+        self, model_sample, train_dataset_1, training_configs
     ):
         trainer = BaseTrainer(
             model=model_sample,
-            train_dataset=train_dataset,
-            eval_dataset=train_dataset,
+            train_dataset=train_dataset_1,
+            eval_dataset=train_dataset_1,
             training_config=training_configs,
         )
 
@@ -395,11 +428,14 @@ class Test_Device_Checks:
 
 
 class Test_set_start_keep_best_epoch:
-    def test(self, model_sample, train_dataset, training_config):
+    """For models with a start_keep_best_epoch parameter
+    in their configuration, we check that this parameter is correctly set
+    in the BaseTrainer. """
+    def test(self, model_sample, train_dataset_1, training_config):
         trainer = BaseTrainer(
             model=model_sample,
-            train_dataset=train_dataset,
-            eval_dataset=train_dataset,
+            train_dataset=train_dataset_1,
+            eval_dataset=train_dataset_1,
             training_config=training_config,
         )
         if isinstance(model_sample, JMVAE):
@@ -407,15 +443,17 @@ class Test_set_start_keep_best_epoch:
 
 
 class TestPredict:
+    """Test the trainer's predict method wich samples generation and log them
+    in a png format (when possible)"""
     def test_predict_samples(
-        self, model_sample, train_dataset, dataset2, training_config
+        self, model_sample, train_dataset_1, train_dataset_2, training_config
     ):
         """Test that samples are generated and that the output contains all modalities"""
 
         trainer = BaseTrainer(
             model=model_sample,
-            train_dataset=train_dataset,
-            eval_dataset=train_dataset,
+            train_dataset=train_dataset_1,
+            eval_dataset=train_dataset_1,
             training_config=training_config,
         )
 
@@ -434,8 +472,8 @@ class TestPredict:
         # Test predict on a dataset with transform_for_plotting option
         trainer = BaseTrainer(
             model=model_sample,
-            train_dataset=dataset2,
-            eval_dataset=dataset2,
+            train_dataset=train_dataset_2,
+            eval_dataset=train_dataset_2,
             training_config=training_config,
         )
         all_recons = trainer.predict(model_sample, epoch=1, n_data=3)
@@ -444,7 +482,7 @@ class TestPredict:
         assert output_with_transform.size != output_without_transform.size
 
         # Test that random_split on a dataset with a transform_for_plotting doesn't raise an issue
-        data1, data2 = random_split(dataset2, [0.5, 0.5])
+        data1, data2 = random_split(train_dataset_2, [0.5, 0.5])
         trainer = BaseTrainer(
             model=model_sample,
             train_dataset=data1,
@@ -458,7 +496,10 @@ class TestPredict:
             assert list(all_recons.keys()) == ["all"]
 
 
-class TestSaving:
+class TestCreateTrainingDir:
+    """ 
+    We check that the training_dir is created and correspond to 
+    expected format.  """
     @pytest.fixture(
         params=[
             BaseTrainerConfig(num_epochs=3, no_cuda=True),
@@ -470,13 +511,13 @@ class TestSaving:
         request.param.output_dir = str(d)
         return request.param
 
-    def test_create_dir(self, model_sample, train_dataset, training_configs):
+    def test_create_dir(self, model_sample, train_dataset_1, training_configs):
         assert not os.path.exists(os.path.join(training_configs.output_dir))
 
         BaseTrainer(
             model=model_sample,
-            train_dataset=train_dataset,
-            eval_dataset=train_dataset,
+            train_dataset=train_dataset_1,
+            eval_dataset=train_dataset_1,
             training_config=training_configs,
         )
 
@@ -484,27 +525,29 @@ class TestSaving:
 
 
 class TestLogging:
+    """Check that the _get_file_logger of the trainer creates the 
+    right log file in the right directory. """
     @pytest.fixture
     def log_output_dir(self):
         return "dummy_log_output_dir"
 
     def test_create_dir(
-        self, tmp_path, model_sample, train_dataset, training_config, log_output_dir
+        self, tmp_path, model_sample, train_dataset_1, training_config, log_output_dir
     ):
         trainer = BaseTrainer(
             model=model_sample,
-            train_dataset=train_dataset,
-            eval_dataset=train_dataset,
+            train_dataset=train_dataset_1,
+            eval_dataset=train_dataset_1,
             training_config=training_config,
         )
 
         # create dummy training signature
         trainer._training_signature = "dummy_signature"
 
-        assert not os.path.exists(os.path.join(tmp_path, "dummy_log_output_dir"))
+        assert not os.path.exists(os.path.join(tmp_path,log_output_dir))
         file_logger = trainer._get_file_logger(os.path.join(tmp_path, log_output_dir))
 
-        assert os.path.exists(os.path.join(tmp_path, "dummy_log_output_dir"))
+        assert os.path.exists(os.path.join(tmp_path, log_output_dir))
         assert os.path.exists(
             os.path.join(
                 tmp_path, "dummy_log_output_dir", f"training_logs_dummy_signature.log"
@@ -513,6 +556,7 @@ class TestLogging:
 
 
 class TestTrainingCallbacks:
+    """Test the rename_logs function."""
     def test_rename_logs(self):
         dummy_metrics = {"train_metric": 12, "eval_metric": 13}
 
@@ -524,22 +568,23 @@ class TestTrainingCallbacks:
 
 
 class TestSavingImages:
+    """Check that images were saved in the right place"""
 
-    def test(self, model_sample, train_dataset, training_config):
+    def test(self, model_sample, train_dataset_1, training_config):
 
         training_config_predict = training_config
         training_config_predict.steps_predict = 1
 
         trainer = BaseTrainer(
             model_sample,
-            train_dataset,
+            train_dataset_1,
             eval_dataset=None,
             training_config=training_config_predict,
         )
 
         trainer.train()
 
-        # check that images were saved in the right place
+        
         if isinstance(model_sample, JMVAE):
             for key in ["mod1", "mod2", "all"]:
                 assert os.path.exists(

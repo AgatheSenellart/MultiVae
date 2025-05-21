@@ -1,21 +1,18 @@
-import os
-from copy import deepcopy
 
-import numpy as np
+
+
 import pytest
 import torch
-from PIL import Image
-from torch import nn
+
 
 from multivae.data.datasets.base import MultimodalBaseDataset
-from multivae.metrics.base import Evaluator, EvaluatorConfig
 from multivae.metrics.reconstruction import Reconstruction, ReconstructionConfig
-from multivae.models import JMVAE, JMVAEConfig, MoPoE, MoPoEConfig
-from multivae.samplers import GaussianMixtureSampler, GaussianMixtureSamplerConfig
+from multivae.models import JMVAE, JMVAEConfig
 
 
 @pytest.fixture
 def jmvae_model():
+    """Create a dummy model, to test the metric with."""
     return JMVAE(
         JMVAEConfig(
             n_modalities=2, input_dims=dict(mnist=(1, 28, 28), svhn=(3, 32, 32))
@@ -25,6 +22,7 @@ def jmvae_model():
 
 @pytest.fixture
 def dataset():
+    """Create a dummy dataset to test the metric with"""
     return MultimodalBaseDataset(
         {"mnist": torch.randn(30, 1, 28, 28), "svhn": torch.randn(30, 3, 32, 32)},
         labels=torch.ones(30),
@@ -33,17 +31,22 @@ def dataset():
 
 @pytest.fixture
 def output_logger_file(tmp_path):
+    """Dummy output dir, to check logging"""
     d = tmp_path / "logger_metrics"
     d.mkdir()
     return d
 
 
 class TestReconstruction:
+    """Test the Reconstruction metric."""
+
     @pytest.fixture(params=["SSIM", "MSE"])
     def config_params(self, request):
+        """We test that both the Mean-Square-Error and SSIM (Structural Similarity Index are well computed)"""
         return {"metric": request.param}
 
     def test_reconstruction_config(self, config_params):
+        """Create a configuration to test with"""
         config = ReconstructionConfig(
             metric=config_params["metric"],
         )
@@ -51,7 +54,11 @@ class TestReconstruction:
 
     def test_reconstruction_subset_compute(
         self, jmvae_model, config_params, output_logger_file, dataset
-    ):
+    ):  
+        """We check that the reconstruction_from_subset method computes 
+        and returns a tensor. We check that the metric has been added to 
+        the evaluator's metric dict. 
+        """
         config = ReconstructionConfig(metric=config_params["metric"])
 
         evaluator = Reconstruction(
@@ -62,7 +69,7 @@ class TestReconstruction:
         )
 
         reconstruction_error = evaluator.reconstruction_from_subset(["mnist"])
-        assert type(reconstruction_error) == torch.Tensor
+        assert isinstance(reconstruction_error,torch.Tensor)
         assert reconstruction_error.size() == torch.Size([])
 
         assert (
@@ -71,6 +78,8 @@ class TestReconstruction:
         )
 
     def test_eval(self, jmvae_model, config_params, output_logger_file, dataset):
+        """We check that the eval method computes and returns a dictionary 
+        with all the expected keys. """
         config = ReconstructionConfig(metric=config_params["metric"])
 
         evaluator = Reconstruction(

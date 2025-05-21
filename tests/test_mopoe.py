@@ -2,26 +2,25 @@ import os
 import shutil
 from copy import deepcopy
 
-import numpy as np
 import pytest
 import torch
-from encoders import Encoder_test, Encoder_test_multilatents
-from pythae.config import BaseConfig
+from .encoders import EncoderTest, EncoderTestMultilatents
 from pythae.models.base.base_utils import ModelOutput
 
 from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
 from multivae.models.auto_model.auto_model import AutoModel
 from multivae.models.base.base_config import BaseAEConfig
 from multivae.models.mopoe import MoPoE, MoPoEConfig
-from multivae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
+from multivae.models.nn.default_architectures import Decoder_AE_MLP
 from multivae.trainers.base.base_trainer import BaseTrainer
 from multivae.trainers.base.base_trainer_config import BaseTrainerConfig
 
 
-class Test_model:
+class TestMoPoE:
+    """Test class for MoPoE model."""
     @pytest.fixture(params=["complete", "incomplete"])
     def dataset(self, request):
-        # Create simple small dataset
+        """Create basic dataset"""
         data = dict(
             mod1=torch.randn((6, 2)),
             mod2=torch.randn((6, 3)),
@@ -43,6 +42,7 @@ class Test_model:
 
     @pytest.fixture(params=["one_latent_space", "multi_latent_spaces"])
     def archi_and_config(self, beta, request):
+        """Create model configurations for test"""
         if request.param == "one_latent_space":
             # Create an instance of mvae model
             config1 = BaseAEConfig(input_dim=(2,), latent_dim=5)
@@ -51,10 +51,10 @@ class Test_model:
             config4 = BaseAEConfig(input_dim=(4,), latent_dim=5)
 
             encoders = dict(
-                mod1=Encoder_test(config1),
-                mod2=Encoder_test(config2),
-                mod3=Encoder_test(config3),
-                mod4=Encoder_test(config4),
+                mod1=EncoderTest(config1),
+                mod2=EncoderTest(config2),
+                mod3=EncoderTest(config3),
+                mod4=EncoderTest(config4),
             )
 
             model_config = MoPoEConfig(
@@ -78,10 +78,10 @@ class Test_model:
             config4 = BaseAEConfig(input_dim=(4,), latent_dim=5, style_dim=3)
 
             encoders = dict(
-                mod1=Encoder_test_multilatents(config1),
-                mod2=Encoder_test_multilatents(config2),
-                mod3=Encoder_test_multilatents(config3),
-                mod4=Encoder_test_multilatents(config4),
+                mod1=EncoderTestMultilatents(config1),
+                mod2=EncoderTestMultilatents(config2),
+                mod3=EncoderTestMultilatents(config3),
+                mod4=EncoderTestMultilatents(config4),
             )
             model_config = MoPoEConfig(
                 n_modalities=4,
@@ -101,23 +101,27 @@ class Test_model:
 
     @pytest.fixture(params=[1.0, 1.5, 2.0])
     def beta(self, request):
+        """Test the model with different beta values"""
         beta = request.param
 
         return beta
 
     @pytest.fixture(params=[True, False])
     def custom(self, request):
+        """Test the model with or without custom architectures"""
         return request.param
 
     @pytest.fixture
     def model(self, archi_and_config, custom):
+        """Create the model for testing"""
         if custom:
             model = MoPoE(**archi_and_config)
         else:
             model = MoPoE(archi_and_config["model_config"])
         return model
 
-    def test_setup(self, model, custom, archi_and_config):
+    def test_init(self, model, custom, archi_and_config):
+        """Test the MoPoE initialization."""
 
         # check that our custom architectures were passed to the model
         model_config = archi_and_config["model_config"]
@@ -126,9 +130,9 @@ class Test_model:
             assert "decoders" in model.model_config.custom_architectures
 
             if model_config.modalities_specific_dim is not None:
-                assert isinstance(model.encoders["mod1"], Encoder_test_multilatents)
+                assert isinstance(model.encoders["mod1"], EncoderTestMultilatents)
             else:
-                assert isinstance(model.encoders["mod1"], Encoder_test)
+                assert isinstance(model.encoders["mod1"], EncoderTest)
 
         # test that the subsets were set as expected
         expected_subsets = [
@@ -142,6 +146,8 @@ class Test_model:
             assert s in list(model.subsets.values())
 
     def test_forward(self, model, dataset):
+        """Test the MoPoE forward function.
+        We check that the output is a ModelOutput with the correct tensor shapes inside."""
         output = model(dataset, epoch=2)
         loss = output.loss
         assert isinstance(loss, torch.Tensor)
@@ -150,13 +156,14 @@ class Test_model:
 
         # test that setting a wrong architectures raises an error in forward
         if model.model_config.modalities_specific_dim is not None:
-            model.encoders["mod1"] = Encoder_test(
+            model.encoders["mod1"] = EncoderTest(
                 BaseAEConfig(input_dim=(2,), latent_dim=5)
             )
             with pytest.raises(AttributeError):
                 output = model(dataset, epoch=2)
 
     def test_encode(self, model, dataset, archi_and_config):
+        """Test the encode method of the MoPoe. """
 
         latent_dim = archi_and_config["model_config"].latent_dim
         outputs = model.encode(dataset[0])
@@ -195,6 +202,8 @@ class Test_model:
             assert torch.all(outputs.z[1:] == outputs.z[0])
 
     def test_predict(self, model, dataset):
+        """Test the predict method of the MoPoE model.
+        We check the shape of the reconstructions depending on the parameters. """
         # Test the shape of reconstruction
         Y = model.predict(dataset, cond_mod="mod2")
         assert isinstance(Y, ModelOutput)
@@ -212,18 +221,21 @@ class Test_model:
         assert Y.mod2.shape == (len(dataset) * 10, 3)
 
     def test_random_mixture(self, model):
+        """Test the model random_mixture_selection_component_selection on 
+        a simple example. """
 
         mus = torch.arange(3 * 2 * 4).reshape(3, 2, 4)
         log_vars = torch.arange(3 * 2 * 4).reshape(3, 2, 4)
         avail = torch.tensor([[1, 0], [0, 1], [0, 0]])
 
-        mu_joint, log_var_joint = model.random_mixture_component_selection(
+        mu_joint, _ = model.random_mixture_component_selection(
             mus, log_vars, avail
         )
 
         assert torch.all(mu_joint == torch.tensor([[0, 1, 2, 3], [12, 13, 14, 15]]))
 
     def test_backward_with_missing(self, model, dataset):
+        """Check that the gradient with regard to missing modalities is null. """
 
         ### Check that the grad with regard to missing modalities is null
         if hasattr(dataset, "masks"):
@@ -243,7 +255,7 @@ class Test_model:
 
     @pytest.fixture
     def training_config(self, tmp_path_factory):
-
+        """Create training config for test"""
         dir_path = tmp_path_factory.mktemp("dummy_folder")
 
         yield BaseTrainerConfig(
@@ -259,6 +271,7 @@ class Test_model:
 
     @pytest.fixture
     def trainer(self, model, training_config, dataset):
+        """Create a trainer for testing the model"""
         trainer = BaseTrainer(
             model=model,
             train_dataset=dataset,
@@ -272,6 +285,8 @@ class Test_model:
 
     @pytest.mark.slow
     def test_train_step(self, trainer):
+        """Test the train step with the MoPoE model.
+        Weights sould be updated. """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
         start_optimizer = trainer.optimizer
         _ = trainer.train_step(epoch=1)
@@ -289,6 +304,8 @@ class Test_model:
 
     @pytest.mark.slow
     def test_eval_step(self, trainer):
+        """Test eval step with the MoPoE model. 
+        Weights should not be updated. """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         _ = trainer.eval_step(epoch=1)
@@ -305,6 +322,8 @@ class Test_model:
 
     @pytest.mark.slow
     def test_main_train_loop(self, trainer):
+        """Test the main train loop with MoPoE model. 
+        Weights should be updated. """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         trainer.train()
@@ -321,6 +340,8 @@ class Test_model:
 
     @pytest.mark.slow
     def test_checkpoint_saving(self, model, trainer, training_config):
+        """Test checkpoint saving with the MoPoE model. 
+        Check that the model state dict and custom architectures are saved to folder. """
         dir_path = training_config.output_dir
 
         # Make a training step
@@ -396,7 +417,9 @@ class Test_model:
 
     @pytest.mark.slow
     def test_checkpoint_saving_during_training(self, model, trainer, training_config):
-        #
+        
+        """Test the creation of checkpoints during training. 
+        """
         target_saving_epoch = training_config.steps_saving
 
         dir_path = training_config.output_dir
@@ -440,6 +463,8 @@ class Test_model:
 
     @pytest.mark.slow
     def test_final_model_saving(self, model, trainer, training_config):
+        """Test the final model saving of MoPoE. 
+        We check that the model can be reloaded correctly with AutoModel. """
         dir_path = training_config.output_dir
 
         trainer.train()
@@ -480,6 +505,7 @@ class Test_model:
         assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
 
     def test_compute_nll(self, model, dataset):
+        """Check the compute_joint_nll method of the MoPoE model. """
 
         if hasattr(dataset, "masks"):
             with pytest.raises(AttributeError):
@@ -491,6 +517,7 @@ class Test_model:
             assert nll.size() == torch.Size([])
 
     def test_compute_joint_nll_from_subset_encoding(self, model, dataset):
+        """Test the compute_joint_nll_from_subset_encoding of the MoPoE model. """
 
         if hasattr(dataset, "masks"):
             with pytest.raises(AttributeError):
@@ -506,6 +533,8 @@ class Test_model:
             assert nll.size() == torch.Size([])
 
     def test_compute_nll_paper(self, model, dataset):
+        """Test the compute_joint_nll_paper method. 
+        We check that a positive value is computed. """
 
         if hasattr(dataset, "masks"):
             with pytest.raises(AttributeError):

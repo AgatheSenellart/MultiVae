@@ -10,10 +10,12 @@ from multivae.data.datasets.base import MultimodalBaseDataset
 from multivae.data.datasets.mmnist import MMNISTDataset
 
 
-class Test:
+class TestMMNISDataset:
+    """Test class for MMNIST dataset.
+    This test only works locally with the MMNIST downloaded in the ../data folder."""
     @pytest.fixture(params=[0.2, 0])
     def input_dataset_test(self, request):
-        data_path = "~/scratch/data"
+        data_path = "../data"
         split = "test"
         missing_ratio = request.param
 

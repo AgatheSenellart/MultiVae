@@ -14,206 +14,14 @@ from multivae.models.base import BaseDecoder, BaseEncoder, ModelOutput
 from multivae.models.mhvae import MHVAE, MHVAEConfig
 from multivae.models.nn.default_architectures import ModelOutput
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
-
-# Architectures for testing
-
-
-class my_input_encoder(BaseEncoder):
-
-    def __init__(self):
-        super().__init__()
-
-        self.conv0 = nn.Conv2d(3, 32, kernel_size=3, stride=2, padding=1, bias=True)
-        self.act_1 = nn.SiLU()
-
-    def forward(self, x):
-
-        x = self.conv0(x)
-        x = self.act_1(x)
-
-        return ModelOutput(embedding=x)
-
-
-class bu_2(BaseEncoder):
-
-    def __init__(self, inchannels, outchannels, latent_dim):
-        super().__init__()
-
-        self.network = nn.Sequential(
-            nn.Conv2d(
-                in_channels=inchannels,
-                out_channels=outchannels,
-                kernel_size=3,
-                stride=2,
-                padding=1,
-                bias=True,
-            ),
-            nn.SiLU(),
-            nn.Flatten(),
-            nn.Linear(2048, 512),
-            nn.ReLU(),
-        )
-
-        self.mu = nn.Linear(512, latent_dim)
-        self.log_var = nn.Linear(512, latent_dim)
-
-    def forward(self, x):
-        h = self.network(x)
-        return ModelOutput(embedding=self.mu(h), log_covariance=self.log_var(h))
-
-
-# Defininin top-down blocks and decoder
-
-
-class td_2(nn.Module):
-
-    def __init__(self, latent_dim):
-        super().__init__()
-
-        self.linear = nn.Sequential(nn.Linear(latent_dim, 2048), nn.ReLU())
-        self.convs = nn.Sequential(
-            nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, padding=1, bias=True),
-            nn.SiLU(),
-        )
-
-    def forward(self, x):
-        h = self.linear(x)
-        h = h.view(h.shape[0], 128, 4, 4)
-        return self.convs(h)
-
-
-class td_1(nn.Module):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self.network = nn.Sequential(
-            nn.ConvTranspose2d(
-                64, 32, kernel_size=3, stride=2, padding=1, output_padding=1, bias=True
-            ),
-            nn.SiLU(),
-        )
-
-    def forward(self, x):
-        return self.network(x)
-
-
-class bu_1(nn.Module):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self.network = nn.Sequential(
-            nn.Conv2d(
-                in_channels=32,
-                out_channels=64,
-                kernel_size=3,
-                stride=2,
-                padding=1,
-                bias=True,
-            ),
-            nn.SiLU(),
-        )
-
-    def forward(self, x):
-        return self.network(x)
-
-
-class add_bu(nn.Module):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self.network = nn.Sequential(
-            nn.Conv2d(
-                in_channels=64,
-                out_channels=64,
-                kernel_size=3,
-                stride=1,
-                padding=1,
-                bias=True,
-            ),
-            nn.SiLU(),
-        )
-
-    def forward(self, x):
-        return self.network(x)
-
-
-class my_input_decoder(BaseDecoder):
-
-    def __init__(self):
-        super().__init__()
-
-        self.network = nn.Sequential(
-            nn.ConvTranspose2d(32, 3, 3, 2, 1, output_padding=1), nn.Sigmoid()
-        )
-
-    def forward(self, x):
-        return ModelOutput(reconstruction=self.network(x))
-
-
-# Defining prior blocks and posterior blocks
-
-
-class prior_block(BaseEncoder):
-
-    def __init__(self, n_channels, wn=False):
-        super().__init__()
-        if wn:
-            self.mu = nn.utils.parametrizations.weight_norm(
-                nn.Conv2d(n_channels, n_channels, 1, 1, 0)
-            )
-            self.logvar = nn.utils.parametrizations.weight_norm(
-                nn.Conv2d(n_channels, n_channels, 1, 1, 0)
-            )
-        else:
-            self.mu = nn.Conv2d(n_channels, n_channels, 1, 1, 0)
-            self.logvar = nn.Conv2d(n_channels, n_channels, 1, 1, 0)
-
-    def forward(self, x):
-        return ModelOutput(embedding=self.mu(x), log_covariance=self.logvar(x))
-
-
-class posterior_block(BaseEncoder):
-
-    def __init__(self, n_channels_before_concat, wn=False):
-        super().__init__()
-        self.network = nn.Sequential(
-            nn.Conv2d(
-                2 * n_channels_before_concat,
-                n_channels_before_concat,
-                3,
-                1,
-                1,
-                bias=True,
-            ),
-            nn.SiLU(),
-        )
-        if wn:
-            self.mu = nn.utils.parametrizations.weight_norm(
-                nn.Conv2d(n_channels_before_concat, n_channels_before_concat, 1, 1, 0)
-            )
-            self.logvar = nn.utils.parametrizations.weight_norm(
-                nn.Conv2d(n_channels_before_concat, n_channels_before_concat, 1, 1, 0)
-            )
-        else:
-            self.mu = nn.Conv2d(
-                n_channels_before_concat, n_channels_before_concat, 1, 1, 0
-            )
-            self.logvar = nn.Conv2d(
-                n_channels_before_concat, n_channels_before_concat, 1, 1, 0
-            )
-
-    def forward(self, x):
-        h = self.network(x)
-        return ModelOutput(embedding=self.mu(h), log_covariance=self.logvar(h))
-
+from .mhvae_test_architectures import *
 
 class Test_MHVAE:
+    """Test the MHVAE class."""
 
     @fixture(params=["complete", "incomplete"])
     def dataset(self, request):
+        """Create a dummy dataset for testing"""
         if request.param == "complete":
             return MultimodalBaseDataset(
                 data=dict(
@@ -235,6 +43,7 @@ class Test_MHVAE:
         params=[[("normal", "normal"), 3, 1.0, 10], [("normal", "laplace"), 4, 2.5, 15]]
     )
     def model_config(self, request):
+        """Create the model configuration"""
 
         return MHVAEConfig(
             n_modalities=2,
@@ -246,10 +55,12 @@ class Test_MHVAE:
 
     @fixture(params=[True, False])
     def wn(self, request):
+        """Test with and without weight_norm in the architectures."""
         return request.param
 
     @fixture(params=[True, False])
     def architectures(self, model_config, wn, request):
+        """Instantiate architectures for testing the model class."""
 
         encoders = dict(m0=my_input_encoder(), m1=my_input_encoder())
         decoders = dict(m0=my_input_decoder(), m1=my_input_decoder())
@@ -311,6 +122,7 @@ class Test_MHVAE:
         )
 
     def test_setup(self, model_config, architectures):
+        """Test the model init. Check attributes and modules. """
 
         model = MHVAE(model_config=model_config, **architectures)
 
@@ -330,11 +142,16 @@ class Test_MHVAE:
 
         return
 
-    @fixture
+    @pytest.fixture
     def model(self, model_config, architectures):
+        """Create model for testing"""
         return MHVAE(model_config=model_config, **architectures)
 
     def test_sanity_check_bottom_up(self, model):
+        """Test the sanity_check_bottom_up method.
+        We check that the method raises an error when the bottom up blocks don't have
+        matching keys with the encoders.
+        We check that an error is raised when the lenght of the bottom up blocks don't match between modalities."""
         wrong_bottom_up = deepcopy(model.bottom_up_blocks)
         with pytest.raises(AttributeError):
             model.sanity_check_bottom_up(model.encoders, wrong_bottom_up.pop("m0"))
@@ -350,6 +167,8 @@ class Test_MHVAE:
         with pytest.raises(AttributeError):
             model.sanity_check_bottom_up(model.encoders, wrong_bottom_up)
 
+        # Check that an error is raised when the last block is not an instance 
+        # of BaseEncoder. 
         wrong_bottom_up = deepcopy(model.bottom_up_blocks)
         wrong_bottom_up["m0"][-1] = wrong_bottom_up["m0"][-2]
         with pytest.raises(AttributeError):
@@ -358,6 +177,9 @@ class Test_MHVAE:
         return
 
     def test_sanity_check_top_down(self, model):
+        """Test the sanity_check_top_down method.
+        We check that the method raises an error when the top down blocks don't have
+        matching lenghts between modalities. """
         wrong_top_bottom = deepcopy(model.top_down_blocks)
         wrong_top_bottom = wrong_top_bottom[:-1]
         with pytest.raises(AttributeError):
@@ -366,6 +188,9 @@ class Test_MHVAE:
         return
 
     def test_check_and_set_posterior_blocks(self, model):
+        """Test the check_and_set_posterior_blocks method.
+        We check that the method raises an error when the posterior blocks don't have
+        matching keys with the encoders or the right number of blocks. """
 
         wrong_posteriors = deepcopy(model.posterior_blocks)
         if isinstance(wrong_posteriors, nn.ModuleList):
@@ -390,6 +215,10 @@ class Test_MHVAE:
                 model.check_and_set_posterior_blocks(wrong_posteriors)
 
     def test_sanity_check_prior_blocks(self, model):
+        """Test the sanity_check_prior_blocks method.
+        We check that the method raises an error when the prior blocks don't have
+        the right number of blocks or the right type of blocks. 
+        Each prior block should be an instance of BaseEncoder. """
 
         wrong_priors = deepcopy(model.prior_blocks)
         wrong_priors = wrong_priors[:-1]
@@ -404,6 +233,8 @@ class Test_MHVAE:
         return
 
     def test_model_without_architectures(self, model_config, architectures):
+        """ The MHVAE model cannot be initialized without encoders or decoders. 
+        We check that the model raises an error when the encoders or decoders are not provided. """
         with pytest.raises(TypeError):
             archi = deepcopy(architectures)
             archi.pop("encoders")
@@ -413,6 +244,8 @@ class Test_MHVAE:
             model = MHVAE(model_config=model_config, **architectures)
 
     def test_forward(self, model, dataset):
+        """Test the forward method of the model.
+        We check that the method returns a ModelOutput with the right shape and attributes."""
 
         samples = dataset[:10]
         output = model(samples)
@@ -424,6 +257,8 @@ class Test_MHVAE:
         return
 
     def test_encode(self, dataset, model):
+        """Test the encode method of the model.
+        We check that the method returns a ModelOutput with the right shape and attributes."""
 
         for return_mean in [True, False]:
             samples = dataset[:10]
@@ -449,6 +284,8 @@ class Test_MHVAE:
             assert hasattr(output, "all_z")
 
     def test_decode(self, model, dataset):
+        """Test the decode method of the model.
+        We check that the method returns a ModelOutput with the right shape and attributes."""
 
         samples = dataset[:10]
 
@@ -462,6 +299,8 @@ class Test_MHVAE:
         return
 
     def test_predict(self, model, dataset):
+        """Test the predict method of the model.
+        We check that the method returns a ModelOutput with the right shape and attributes."""
 
         samples = dataset[:10]
 
@@ -492,6 +331,7 @@ class Test_MHVAE:
         return
 
     def test_no_gradient_towards_missing_mods(self, model, dataset):
+        """Check that gradients are null for missing modalities. """
         if hasattr(dataset, "masks"):
             # Compute loss on incomplete data
             loss = model(dataset[50:]).loss.sum()
@@ -531,6 +371,7 @@ class Test_MHVAE:
 
     @fixture(params=[[32, 64, 3, "Adagrad"], [16, 16, 4, "Adam"]])
     def trainer_config(self, request):
+        """Create a trainer configuration for testing."""
 
         tmp = tempfile.mkdtemp()
 
@@ -547,6 +388,7 @@ class Test_MHVAE:
 
     @fixture
     def trainer(self, trainer_config, model, dataset):
+        """Create a trainer for testing."""
 
         return BaseTrainer(
             model,
@@ -557,6 +399,8 @@ class Test_MHVAE:
 
     @mark.slow
     def test_train_step(self, trainer):
+        """Test train step with the MHVAE model. 
+        The weights should be updated after the step. """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         _ = trainer.train_step(epoch=1)
@@ -573,6 +417,8 @@ class Test_MHVAE:
 
     @mark.slow
     def test_eval_step(self, trainer):
+        """Test eval step with the MHVAE model.
+        The weights should not be updated after the step. """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         _ = trainer.eval_step(epoch=1)
@@ -589,6 +435,8 @@ class Test_MHVAE:
 
     @mark.slow
     def test_main_train_loop(self, trainer):
+        """Test the main training loop with the MHVAE model.
+        The weights should be updated training"""
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         trainer.train()
@@ -605,6 +453,9 @@ class Test_MHVAE:
 
     @mark.slow
     def test_checkpoint_saving(self, model, trainer, trainer_config, wn):
+        """Test checkpoint saving with the MHVAE model.
+        We check that the files are saved to the right directory and that the model
+        and optimizer state dicts are saved correctly and can be reloaded.  """
         dir_path = trainer_config.output_dir
 
         # Make a training step, save the model and reload it
@@ -682,7 +533,9 @@ class Test_MHVAE:
     @mark.slow
     def test_checkpoint_saving_during_training(
         self, model, trainer, trainer_config, wn
-    ):
+    ):  
+        """Test the creation of checkpoints in the main train loop. 
+        Check the directory structure and the files."""
 
         target_saving_epoch = trainer_config.steps_saving
 
@@ -727,6 +580,8 @@ class Test_MHVAE:
 
     @mark.slow
     def test_final_model_saving(self, model, trainer, trainer_config, wn):
+        """Test final model saving after training for the MHVAE model. 
+        We check that the model is correctly saved and can be reloaded."""
         dir_path = trainer_config.output_dir
 
         trainer.train()

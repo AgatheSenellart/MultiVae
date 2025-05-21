@@ -5,156 +5,25 @@ from copy import deepcopy
 import numpy as np
 import pytest
 import torch
-from encoders import Encoder_test, Encoder_test_multilatents
-from pythae.config import BaseConfig
+from .encoders import EncoderTestMultilatents
+
 from pythae.models.base.base_utils import ModelOutput
 
 from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
 from multivae.models.auto_model.auto_model import AutoModel
 from multivae.models.base.base_config import BaseAEConfig
 from multivae.models.mmvaePlus import MMVAEPlus, MMVAEPlusConfig
-from multivae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
 from multivae.trainers.base.base_trainer import BaseTrainer
 from multivae.trainers.base.base_trainer_config import BaseTrainerConfig
+from multivae.models.nn.default_architectures import Decoder_AE_MLP
 
 
-class Test_model:
+
+class TestMMVAEPlus:
+    """Test class for the MMVAEPlus model"""
     @pytest.fixture(params=["complete", "incomplete"])
     def dataset(self, request):
-        # Create simple small dataset
-        data = dict(
-            mod1=torch.Tensor([[1.0, 2.0], [4.0, 5.0]]),
-            mod2=torch.Tensor([[67.1, 2.3, 3.0], [1.3, 2.0, 3.0]]),
-            mod3=torch.Tensor([[37, 2, 4, 1], [8, 9, 7, 0]]),
-            mod4=torch.Tensor([[37, 2, 4, 1], [8, 9, 7, 0]]),
-        )
-        labels = np.array([0, 1])
-        if request.param == "complete":
-            dataset = MultimodalBaseDataset(data, labels)
-        else:
-            masks = dict(
-                mod1=torch.Tensor([True, False]),
-                mod2=torch.Tensor([True, True]),
-                mod3=torch.Tensor([True, True]),
-                mod4=torch.Tensor([True, True]),
-            )
-            dataset = IncompleteDataset(data=data, masks=masks, labels=labels)
-
-        return dataset
-
-    @pytest.fixture(params=["dreg_looser", "iwae_looser"])
-    def archi_and_config(self, beta, request):
-        config1 = BaseAEConfig(input_dim=(2,), latent_dim=5, style_dim=1)
-        config2 = BaseAEConfig(input_dim=(3,), latent_dim=5, style_dim=1)
-        config3 = BaseAEConfig(input_dim=(4,), latent_dim=5, style_dim=1)
-
-        encoders = dict(
-            mod1=Encoder_test_multilatents(config1),
-            mod2=Encoder_test_multilatents(config2),
-            mod3=Encoder_test_multilatents(config3),
-            mod4=Encoder_test_multilatents(config3),
-        )
-        model_config = MMVAEPlusConfig(
-            n_modalities=4,
-            latent_dim=5,
-            input_dims=dict(mod1=(2,), mod2=(3,), mod3=(4,), mod4=(4,)),
-            beta=beta,
-            modalities_specific_dim=1,
-            loss=request.param,
-        )
-        decoders = dict(
-            mod1=Decoder_AE_MLP(BaseAEConfig(input_dim=(2,), latent_dim=6)),
-            mod2=Decoder_AE_MLP(BaseAEConfig(input_dim=(3,), latent_dim=6)),
-            mod3=Decoder_AE_MLP(BaseAEConfig(input_dim=(4,), latent_dim=6)),
-            mod4=Decoder_AE_MLP(BaseAEConfig(input_dim=(4,), latent_dim=6)),
-        )
-
-        return dict(encoders=encoders, decoders=decoders, model_config=model_config)
-
-    @pytest.fixture(params=[1.0, 1.5, 2.0])
-    def beta(self, request):
-        beta = request.param
-        return beta
-
-    @pytest.fixture(params=[True, False])
-    def model(self, archi_and_config, request):
-        custom = request.param
-        if custom:
-            model = MMVAEPlus(**archi_and_config)
-        else:
-            model = MMVAEPlus(archi_and_config["model_config"])
-        return model
-
-    def test(self, model, dataset, archi_and_config):
-        model_config = archi_and_config["model_config"]
-        assert model.beta == model_config.beta
-        if "encoders" in model.model_config.custom_architectures:
-            assert isinstance(model.encoders["mod1"], Encoder_test_multilatents)
-
-        output = model(dataset, epoch=2)
-        loss = output.loss
-        assert isinstance(loss, torch.Tensor)
-        assert loss.size() == torch.Size([])
-        assert loss.requires_grad
-
-        for return_mean in [True, False]:
-            # Try encoding and prediction
-            outputs = model.encode(dataset[0], return_mean=return_mean)
-            assert not outputs.one_latent_space
-
-            embeddings = outputs.z
-            assert isinstance(outputs, ModelOutput)
-            assert embeddings.shape == (1, 5)
-            embeddings = model.encode(dataset[0], N=2, return_mean=return_mean).z
-            assert embeddings.shape == (2, 1, 5)
-            embeddings = model.encode(
-                dataset, cond_mod=["mod2"], return_mean=return_mean
-            ).z
-            assert embeddings.shape == (2, 5)
-            embeddings = model.encode(
-                dataset, cond_mod="mod3", N=10, return_mean=return_mean
-            ).z
-            assert embeddings.shape == (10, 2, 5)
-            embeddings = model.encode(
-                dataset, cond_mod=["mod2", "mod4"], return_mean=return_mean
-            ).z
-            assert embeddings.shape == (2, 5)
-            embeddings = model.encode(
-                dataset, ignore_incomplete=True, return_mean=return_mean
-            ).z
-            assert embeddings.shape == (2, 5)
-
-        if hasattr(dataset, "masks"):
-            with pytest.raises(AttributeError):
-                embeddings = model.encode(dataset, ignore_incomplete=False).z
-            with pytest.raises(AttributeError):
-                embeddings = model.encode(dataset).z
-
-        Y = model.predict(dataset, cond_mod="mod2")
-        assert isinstance(Y, ModelOutput)
-        assert Y.mod1.shape == (2, 2)
-        assert Y.mod2.shape == (2, 3)
-
-        Y = model.predict(dataset, cond_mod="mod2", ignore_incomplete=True)
-        assert isinstance(Y, ModelOutput)
-        assert Y.mod1.shape == (2, 2)
-        assert Y.mod2.shape == (2, 3)
-
-        Y = model.predict(dataset, cond_mod="mod2", N=10)
-        assert isinstance(Y, ModelOutput)
-        assert Y.mod1.shape == (10, 2, 2)
-        assert Y.mod2.shape == (10, 2, 3)
-
-        Y = model.predict(dataset, cond_mod="mod2", N=10, flatten=True)
-        assert isinstance(Y, ModelOutput)
-        assert Y.mod1.shape == (2 * 10, 2)
-        assert Y.mod2.shape == (2 * 10, 3)
-
-
-class Test_backward_with_missing_inputs:
-    @pytest.fixture(params=["incomplete"])
-    def dataset(self, request):
-        # Create simple small dataset
+        """Dummy dataset"""
         data = dict(
             mod1=torch.randn((6, 2)),
             mod2=torch.randn((6, 3)),
@@ -175,24 +44,27 @@ class Test_backward_with_missing_inputs:
 
         return dataset
 
-    @pytest.fixture
-    def archi_and_config(self):
+
+    @pytest.fixture(params=["dreg_looser", "iwae_looser"])
+    def archi_and_config(self, beta, request):
+        """Create custom architectures and configuration for test"""
         config1 = BaseAEConfig(input_dim=(2,), latent_dim=5, style_dim=1)
         config2 = BaseAEConfig(input_dim=(3,), latent_dim=5, style_dim=1)
         config3 = BaseAEConfig(input_dim=(4,), latent_dim=5, style_dim=1)
 
         encoders = dict(
-            mod1=Encoder_test_multilatents(config1),
-            mod2=Encoder_test_multilatents(config2),
-            mod3=Encoder_test_multilatents(config3),
-            mod4=Encoder_test_multilatents(config3),
+            mod1=EncoderTestMultilatents(config1),
+            mod2=EncoderTestMultilatents(config2),
+            mod3=EncoderTestMultilatents(config3),
+            mod4=EncoderTestMultilatents(config3),
         )
         model_config = MMVAEPlusConfig(
             n_modalities=4,
             latent_dim=5,
             input_dims=dict(mod1=(2,), mod2=(3,), mod3=(4,), mod4=(4,)),
-            beta=2.5,
+            beta=beta,
             modalities_specific_dim=1,
+            loss=request.param,
         )
         decoders = dict(
             mod1=Decoder_AE_MLP(BaseAEConfig(input_dim=(2,), latent_dim=6)),
@@ -203,8 +75,15 @@ class Test_backward_with_missing_inputs:
 
         return dict(encoders=encoders, decoders=decoders, model_config=model_config)
 
+    @pytest.fixture(params=[1.0, 1.5, 2.0])
+    def beta(self, request):
+        """Test the model with different beta"""
+        beta = request.param
+        return beta
+
     @pytest.fixture(params=[True, False])
     def model(self, archi_and_config, request):
+        """Create a model for testing. """
         custom = request.param
         if custom:
             model = MMVAEPlus(**archi_and_config)
@@ -212,71 +91,102 @@ class Test_backward_with_missing_inputs:
             model = MMVAEPlus(archi_and_config["model_config"])
         return model
 
+    def test_init(self, model, dataset, archi_and_config):
+        """Test the MMVAEPlus initialization"""
+        model_config = archi_and_config["model_config"]
+        assert model.beta == model_config.beta
+        if "encoders" in model.model_config.custom_architectures:
+            assert isinstance(model.encoders["mod1"], EncoderTestMultilatents)
 
-@pytest.mark.slow
-class TestTraining:
-    @pytest.fixture(params=["complete", "incomplete"])
-    def dataset(self, request):
-        # Create simple small dataset
-        data = dict(
-            mod1=torch.Tensor([[1.0, 2.0], [4.0, 5.0]]),
-            mod2=torch.Tensor([[67.1, 2.3, 3.0], [1.3, 2.0, 3.0]]),
-            mod3=torch.Tensor([[37, 2, 4, 1], [8, 9, 7, 0]]),
-            mod4=torch.Tensor([[37, 2, 4, 1], [8, 9, 7, 0]]),
-        )
-        labels = np.array([0, 1])
-        if request.param == "complete":
-            dataset = MultimodalBaseDataset(data, labels)
-        else:
-            masks = dict(
-                mod1=torch.Tensor([True, False]),
-                mod2=torch.Tensor([True, True]),
-                mod3=torch.Tensor([True, True]),
-                mod4=torch.Tensor([True, True]),
-            )
-            dataset = IncompleteDataset(data=data, masks=masks, labels=labels)
+    def test_forward(self, model, dataset):
+        """Test the forward pass of the MMVAEPlus model"""
+        output = model(dataset, epoch=2)
+        loss = output.loss
+        assert isinstance(loss, torch.Tensor)
+        assert loss.size() == torch.Size([])
+        assert loss.requires_grad
 
-        return dataset
+    def test_encode(self, model, dataset):
+        """Test the encode function of the MMVAEPlus model"""
+        for return_mean in [True, False]:
+            # Encode a single datapoint
+            outputs = model.encode(dataset[-1], return_mean=return_mean)
+            assert not outputs.one_latent_space
+            embeddings = outputs.z
+            assert isinstance(outputs, ModelOutput)
+            assert embeddings.shape == (1, 5)
+            embeddings = model.encode(dataset[-1], N=2, return_mean=return_mean).z
+            assert embeddings.shape == (2, 1, 5)
 
-    @pytest.fixture
-    def archi_and_config(self):
-        config1 = BaseAEConfig(input_dim=(2,), latent_dim=5, style_dim=1)
-        config2 = BaseAEConfig(input_dim=(3,), latent_dim=5, style_dim=1)
-        config3 = BaseAEConfig(input_dim=(4,), latent_dim=5, style_dim=1)
+            # Encode the whole dataset
+            embeddings = model.encode(
+                dataset, cond_mod=["mod2"], return_mean=return_mean
+            ).z
+            assert embeddings.shape == (len(dataset), 5)
+            embeddings = model.encode(
+                dataset, cond_mod="mod3", N=10, return_mean=return_mean
+            ).z
+            assert embeddings.shape == (10, len(dataset), 5)
+            embeddings = model.encode(
+                dataset, cond_mod=["mod2", "mod4"], return_mean=return_mean
+            ).z
+            assert embeddings.shape == (len(dataset), 5)
+            embeddings = model.encode(
+                dataset, ignore_incomplete=True, return_mean=return_mean
+            ).z
+            assert embeddings.shape == (len(dataset), 5)
 
-        encoders = dict(
-            mod1=Encoder_test_multilatents(config1),
-            mod2=Encoder_test_multilatents(config2),
-            mod3=Encoder_test_multilatents(config3),
-            mod4=Encoder_test_multilatents(config3),
-        )
-        model_config = MMVAEPlusConfig(
-            n_modalities=4,
-            latent_dim=5,
-            input_dims=dict(mod1=(2,), mod2=(3,), mod3=(4,), mod4=(4,)),
-            beta=2.5,
-            modalities_specific_dim=1,
-        )
-        decoders = dict(
-            mod1=Decoder_AE_MLP(BaseAEConfig(input_dim=(2,), latent_dim=6)),
-            mod2=Decoder_AE_MLP(BaseAEConfig(input_dim=(3,), latent_dim=6)),
-            mod3=Decoder_AE_MLP(BaseAEConfig(input_dim=(4,), latent_dim=6)),
-            mod4=Decoder_AE_MLP(BaseAEConfig(input_dim=(4,), latent_dim=6)),
-        )
+        # test with incomplete dataset
+        if hasattr(dataset, "masks"):
+            with pytest.raises(AttributeError):
+                embeddings = model.encode(dataset[:3], ignore_incomplete=False).z
+            with pytest.raises(AttributeError):
+                embeddings = model.encode(dataset[:3]).z
 
-        return dict(encoders=encoders, decoders=decoders, model_config=model_config)
+    def test_predict(self, model, dataset):
+        """Test the predict function of the MMVAEPlus model"""
 
-    @pytest.fixture(params=[True, False])
-    def model(self, archi_and_config, request):
-        custom = request.param
-        if custom:
-            model = MMVAEPlus(**archi_and_config)
-        else:
-            model = MMVAEPlus(archi_and_config["model_config"])
-        return model
+        Y = model.predict(dataset, cond_mod="mod2")
+        assert isinstance(Y, ModelOutput)
+        assert Y.mod1.shape == (len(dataset), 2)
+        assert Y.mod2.shape == (len(dataset), 3)
+
+        Y = model.predict(dataset, cond_mod="mod2", ignore_incomplete=True)
+        assert isinstance(Y, ModelOutput)
+        assert Y.mod1.shape == (len(dataset), 2)
+        assert Y.mod2.shape == (len(dataset), 3)
+
+        Y = model.predict(dataset, cond_mod="mod2", N=10)
+        assert isinstance(Y, ModelOutput)
+        assert Y.mod1.shape == (10, len(dataset), 2)
+        assert Y.mod2.shape == (10, len(dataset), 3)
+
+        Y = model.predict(dataset, cond_mod="mod2", N=10, flatten=True)
+        assert isinstance(Y, ModelOutput)
+        assert Y.mod1.shape == (len(dataset) * 10, 2)
+        assert Y.mod2.shape == (len(dataset) * 10, 3)
+
+    def test_backward_with_missing_inputs(self, dataset, model):
+        """Check that the gradients towards missing modalities are null."""
+
+        if  isinstance(dataset, IncompleteDataset):
+            # check gradient when modalities are missing
+            output = model(dataset[:3], epoch=2)
+            loss = output.loss
+            loss.backward()
+            for param in model.encoders["mod1"].parameters():
+                assert param.grad is None or torch.all(param.grad == 0)
+            
+            # check gradient when no modalities are missing. 
+            output = model(dataset[3:], epoch=2)
+            loss = output.loss
+            loss.backward()
+            assert not all ([torch.all(param.grad == 0) for param in model.encoders["mod1"].parameters()])
+            
 
     @pytest.fixture
     def training_config(self, tmp_path_factory):
+        """Create training configuration for testing"""
 
         dir_path = tmp_path_factory.mktemp("dummy_folder")
 
@@ -293,6 +203,7 @@ class TestTraining:
 
     @pytest.fixture
     def trainer(self, model, training_config, dataset):
+        """Create trainer for test"""
         trainer = BaseTrainer(
             model=model,
             train_dataset=dataset,
@@ -305,6 +216,8 @@ class TestTraining:
         return trainer
 
     def test_train_step(self, trainer):
+        """Test the train step with the MMVAEplus model. 
+        The weights should be updated after the training step. """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
         start_optimizer = trainer.optimizer
         _ = trainer.train_step(epoch=1)
@@ -321,6 +234,8 @@ class TestTraining:
         assert trainer.optimizer == start_optimizer
 
     def test_eval_step(self, trainer):
+        """Test the eval_step with the MMVAEPLus model.
+        The weights should not be updated after the eval step. """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         _ = trainer.eval_step(epoch=1)
@@ -336,6 +251,8 @@ class TestTraining:
         )
 
     def test_main_train_loop(self, trainer):
+        """Test the main train loop with the MMVAEPlus model.
+        The weights should be updated after the training step. """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         trainer.train()
@@ -351,6 +268,8 @@ class TestTraining:
         )
 
     def test_checkpoint_saving(self, model, trainer, training_config):
+        """Test the checkpoint saving with the MMVAEPlus model.
+        The model and optimizer should be saved in the checkpoint folder. """
         dir_path = training_config.output_dir
 
         # Make a training step
@@ -425,7 +344,7 @@ class TestTraining:
         )
 
     def test_checkpoint_saving_during_training(self, model, trainer, training_config):
-        #
+        """Test the creation of checkpoints during training with the MMVAEPlus model."""
         target_saving_epoch = training_config.steps_saving
 
         dir_path = training_config.output_dir
@@ -468,6 +387,8 @@ class TestTraining:
         )
 
     def test_final_model_saving(self, model, trainer, training_config):
+        """Test final model saving with the MMVAEPlus model. 
+        Check that the model can be reloaded. """
         dir_path = training_config.output_dir
 
         trainer.train()
@@ -508,6 +429,7 @@ class TestTraining:
         assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
 
     def test_compute_nll(self, model, dataset):
+        """Test compute_joint_nll function of the MMVAEPlus model."""
 
         if not hasattr(dataset, "masks"):
             nll = model.compute_joint_nll(dataset, K=10, batch_size_K=6)

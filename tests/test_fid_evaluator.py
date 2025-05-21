@@ -18,6 +18,7 @@ class TestFIDMetrics:
 
     @pytest.fixture
     def model(self):
+        """Create model for testing."""
         model_config = MVTCAEConfig(
             n_modalities=2,
             input_dims={"m0": (3, 32, 32), "m1": (1, 28, 28)},
@@ -26,6 +27,7 @@ class TestFIDMetrics:
 
     @pytest.fixture
     def dataset(self):
+        """Create a dummy dataset for testing"""
         return MultimodalBaseDataset(
             data={
                 "m0": torch.randn((128, 3, 32, 32)),
@@ -36,6 +38,8 @@ class TestFIDMetrics:
 
     @pytest.fixture(params=[True, False])
     def sampler(self, request, model, dataset):
+        """Create a GaussianMixtureSampler for testing the FIDEvaluator
+        with a custom sampler."""
         if not request.param:
             return None
         else:
@@ -46,6 +50,8 @@ class TestFIDMetrics:
 
     @pytest.fixture(params=[True, False])
     def transform(self, request):
+        """Create custom transform for testing the FIDEvaluator
+          with a custom transform."""
         return AdaptShapeFID(resize=request.param)
 
     def test_adapt_shape(self, transform):
@@ -68,6 +74,7 @@ class TestFIDMetrics:
 
     @pytest.fixture(params=["custom", "default"])
     def encoders_and_config(self, request, transform):
+        """Create custom encoders and config for testing the FIDEvaluator."""
         if request.param == "default":
             return dict(
                 eval_config=FIDEvaluatorConfig(batch_size=64),
@@ -90,6 +97,7 @@ class TestFIDMetrics:
 
     @pytest.fixture
     def fid_model(self, model, dataset, sampler, encoders_and_config):
+        """create instance of FIDEvaluator for testing."""
         return FIDEvaluator(
             model=model,
             test_dataset=dataset,
@@ -98,12 +106,16 @@ class TestFIDMetrics:
             **encoders_and_config,
         )  # Add test with custom encoder
 
-    def test(self, fid_model, encoders_and_config):
+    def test_setup(self, fid_model, encoders_and_config):
+        """Test the setup of the FIDEvaluator."""
 
         assert (fid_model.n_data) == 128
         assert len(fid_model.test_loader) > 0
         assert fid_model.batch_size == encoders_and_config["eval_config"].batch_size
 
+    def test_fid_computation(self, fid_model):
+        """Test the FID computation. We check the output type
+        in different settings."""
         # Test unconditional FID
         output = fid_model.eval()
         assert isinstance(output, ModelOutput)

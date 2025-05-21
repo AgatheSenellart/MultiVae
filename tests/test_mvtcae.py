@@ -16,10 +16,11 @@ from multivae.trainers.base.base_trainer import BaseTrainer
 from multivae.trainers.base.base_trainer_config import BaseTrainerConfig
 
 
-class Test_model:
+class TestMVTCAE:
+    """Main class for testing the MVTCAE model"""
     @pytest.fixture(params=["complete", "incomplete"])
     def dataset(self, request):
-        # Create simple small dataset with six modalities
+        """Create dummy dataset"""
         data = dict(
             mod1=torch.randn((6, 2)),
             mod2=torch.randn((6, 3)),
@@ -31,7 +32,7 @@ class Test_model:
             dataset = MultimodalBaseDataset(data, labels)
         else:
             masks = dict(
-                mod1=torch.Tensor([True] * 3 + [False] * 3),
+                mod1=torch.Tensor([False] * 3 + [True] * 3),
                 mod2=torch.Tensor([True] * 6),
                 mod3=torch.Tensor([True] * 6),
                 mod4=torch.Tensor([True] * 6),
@@ -42,7 +43,7 @@ class Test_model:
 
     @pytest.fixture
     def custom_architectures(self):
-        # Create an instance of mvae model
+        """Create custom architectures for testing"""
         config1 = BaseAEConfig(input_dim=(2,), latent_dim=5)
         config2 = BaseAEConfig(input_dim=(3,), latent_dim=5)
         config3 = BaseAEConfig(input_dim=(4,), latent_dim=5)
@@ -68,6 +69,7 @@ class Test_model:
 
     @pytest.fixture(params=[1.0, 1.5, 2.0])
     def model_config(self, request):
+        """Create the model configuration"""
         model_config = MVTCAEConfig(
             n_modalities=4,
             latent_dim=5,
@@ -79,6 +81,7 @@ class Test_model:
 
     @pytest.fixture(params=[True, False])
     def model(self, custom_architectures, model_config, request):
+        """Create the model"""
         custom = request.param
         if custom:
             model = MVTCAE(model_config, **custom_architectures)
@@ -87,9 +90,11 @@ class Test_model:
         return model
 
     def test_setup(self, model, model_config):
+        """Test the MVTCAE initialization."""
         assert model.beta == model_config.beta
 
     def test_forward(self, model, dataset):
+        """Test the forward method of the MVTCAE model. """
         # with one sample
         output = model(dataset, epoch=2)
         assert isinstance(output.loss, torch.Tensor)
@@ -101,29 +106,40 @@ class Test_model:
         assert loss.requires_grad
 
     def test_encode(self, model, dataset):
+        """Test the encode function of the MVTCAE model. 
+        We check the shape of the latent variables depending on the parameters. """
         for return_mean in [True, False]:
             # Try encoding and prediction
-            outputs = model.encode(dataset[0], return_mean=return_mean)
+            # Encode one sample
+            outputs = model.encode(dataset[-1], return_mean=return_mean)
             assert outputs.one_latent_space
             embeddings = outputs.z
             assert isinstance(outputs, ModelOutput)
             assert embeddings.shape == (1, 5)
-            embeddings = model.encode(dataset[0], N=2, return_mean=return_mean).z
+            embeddings = model.encode(dataset[-1], N=2, return_mean=return_mean).z
             assert embeddings.shape == (2, 1, 5)
+
+            # Encode the whole dataset
             embeddings = model.encode(
                 dataset, cond_mod=["mod2"], return_mean=return_mean
             ).z
             assert embeddings.shape == (len(dataset), 5)
+            # Encode the whole dataset and generate 10 samples. 
             embeddings = model.encode(
                 dataset, cond_mod="mod3", N=10, return_mean=return_mean
             ).z
             assert embeddings.shape == (10, len(dataset), 5)
+
+            # Encode two modalities. 
             embeddings = model.encode(
                 dataset, cond_mod=["mod2", "mod4"], return_mean=return_mean
             ).z
             assert embeddings.shape == (len(dataset), 5)
 
+
     def test_predict(self, model, dataset):
+        """Test the predict method of the MVTCAE model .
+        We check the shape of reconstruction depending on parameters. """
 
         Y = model.predict(dataset, cond_mod="mod2")
         assert isinstance(Y, ModelOutput)
@@ -141,164 +157,26 @@ class Test_model:
         assert Y.mod2.shape == (len(dataset) * 10, 3)
 
 
-class Test_backward_with_missing_inputs:
-    @pytest.fixture(params=["incomplete"])
-    def dataset(self, request):
-        # Create simple small dataset
-        data = dict(
-            mod1=torch.randn((6, 2)),
-            mod2=torch.randn((6, 3)),
-            mod3=torch.randn((6, 4)),
-            mod4=torch.randn((6, 4)),
-        )
-        labels = np.array([0] * 5 + [1])
-        if request.param == "complete":
-            dataset = MultimodalBaseDataset(data, labels)
-        else:
-            masks = dict(
-                mod1=torch.Tensor([False] * 3 + [True] * 3),
-                mod2=torch.Tensor([True] * 6),
-                mod3=torch.Tensor([True] * 6),
-                mod4=torch.Tensor([True] * 6),
-            )
-            dataset = IncompleteDataset(data=data, masks=masks, labels=labels)
 
-        return dataset
+    def test_backward_with_missing_inputs(self, model, dataset):
+        """Check that the grad with regard to missing modalities is null"""
+        if isinstance(dataset, IncompleteDataset):
+            output = model(dataset[:3], epoch=2)
+            loss = output.loss
+            loss.backward()
+            for param in model.encoders["mod1"].parameters():
+                assert torch.all(param.grad == 0)
 
-    @pytest.fixture
-    def custom_architectures(self):
-        # Create an instance of mvae model
-        config1 = BaseAEConfig(input_dim=(2,), latent_dim=5)
-        config2 = BaseAEConfig(input_dim=(3,), latent_dim=5)
-        config3 = BaseAEConfig(input_dim=(4,), latent_dim=5)
+            output = model(dataset[-3:], epoch=2)
+            loss = output.loss
+            loss.backward()
+            for param in model.encoders["mod1"].parameters():
+                assert not torch.all(param.grad == 0)
 
-        encoders = dict(
-            mod1=Encoder_VAE_MLP(config1),
-            mod2=Encoder_VAE_MLP(config2),
-            mod3=Encoder_VAE_MLP(config3),
-            mod4=Encoder_VAE_MLP(config3),
-        )
-
-        decoders = dict(
-            mod1=Decoder_AE_MLP(config1),
-            mod2=Decoder_AE_MLP(config2),
-            mod3=Decoder_AE_MLP(config3),
-            mod4=Decoder_AE_MLP(config3),
-        )
-
-        return dict(
-            encoders=encoders,
-            decoders=decoders,
-        )
-
-    @pytest.fixture(params=[1.0, 1.5, 2.0])
-    def model_config(self, request):
-        model_config = MVTCAEConfig(
-            n_modalities=4,
-            latent_dim=5,
-            input_dims=dict(mod1=(2,), mod2=(3,), mod3=(4,), mod4=(4,)),
-            beta=request.param,
-        )
-
-        return model_config
-
-    @pytest.fixture(params=[True, False])
-    def model(self, custom_architectures, model_config, request):
-        custom = request.param
-        if custom:
-            model = MVTCAE(model_config, **custom_architectures)
-        else:
-            model = MVTCAE(model_config)
-        return model
-
-    def test(self, model, dataset, model_config):
-        ### Check that the grad with regard to missing modalities is null
-        output = model(dataset[:3], epoch=2)
-        loss = output.loss
-        loss.backward()
-        for param in model.encoders["mod1"].parameters():
-            assert torch.all(param.grad == 0)
-
-        output = model(dataset[-3:], epoch=2)
-        loss = output.loss
-        loss.backward()
-        for param in model.encoders["mod1"].parameters():
-            assert not torch.all(param.grad == 0)
-
-
-@pytest.mark.slow
-class TestTraining:
-    @pytest.fixture(params=["complete", "incomplete"])
-    def dataset(self, request):
-        # Create simple small dataset with two modalities
-        data = dict(
-            mod1=torch.Tensor([[1.0, 2.0], [4.0, 5.0]]),
-            mod2=torch.Tensor([[67.1, 2.3, 3.0], [1.3, 2.0, 3.0]]),
-            mod3=torch.Tensor([[37, 2, 4, 1], [8, 9, 7, 0]]),
-            mod4=torch.Tensor([[37, 2, 4, 1], [8, 9, 7, 0]]),
-        )
-        labels = np.array([0, 1])
-        if request.param == "complete":
-            dataset = MultimodalBaseDataset(data, labels)
-        else:
-            masks = dict(
-                mod1=torch.Tensor([True, False]),
-                mod2=torch.Tensor([True, False]),
-                mod3=torch.Tensor([True, True]),
-                mod4=torch.Tensor([True, True]),
-            )
-            dataset = IncompleteDataset(data=data, masks=masks, labels=labels)
-
-        return dataset
-
-    @pytest.fixture
-    def custom_architectures(self):
-        # Create an instance of mmvae model
-        config1 = BaseAEConfig(input_dim=(2,), latent_dim=5)
-        config2 = BaseAEConfig(input_dim=(3,), latent_dim=5)
-        config3 = BaseAEConfig(input_dim=(4,), latent_dim=5)
-
-        encoders = dict(
-            mod1=Encoder_VAE_MLP(config1),
-            mod2=Encoder_VAE_MLP(config2),
-            mod3=Encoder_VAE_MLP(config3),
-            mod4=Encoder_VAE_MLP(config3),
-        )
-
-        decoders = dict(
-            mod1=Decoder_AE_MLP(config1),
-            mod2=Decoder_AE_MLP(config2),
-            mod3=Decoder_AE_MLP(config3),
-            mod4=Decoder_AE_MLP(config3),
-        )
-
-        return dict(
-            encoders=encoders,
-            decoders=decoders,
-        )
-
-    @pytest.fixture(params=[0.5, 1.0, 2.0])
-    def model_config(self, request):
-        model_config = MVTCAEConfig(
-            n_modalities=4,
-            latent_dim=5,
-            input_dims=dict(mod1=(2,), mod2=(3,), mod3=(4,), mod4=(4,)),
-            beta=request.param,
-        )
-
-        return model_config
-
-    @pytest.fixture(params=[True, False])
-    def model(self, custom_architectures, model_config, request):
-        custom = request.param
-        if custom:
-            model = MVTCAE(model_config, **custom_architectures)
-        else:
-            model = MVTCAE(model_config)
-        return model
 
     @pytest.fixture
     def training_config(self, tmp_path_factory):
+        """Create training config for testing. """
 
         dir_path = tmp_path_factory.mktemp("dummy_folder")
 
@@ -315,6 +193,7 @@ class TestTraining:
 
     @pytest.fixture
     def trainer(self, model, training_config, dataset):
+        """Create a trainer for testing"""
         trainer = BaseTrainer(
             model=model,
             train_dataset=dataset,
@@ -325,6 +204,7 @@ class TestTraining:
         return trainer
 
     def new_trainer(self, model, training_config, dataset, checkpoint_dir):
+        """A different trainer to test resuming from checkpoint"""
         trainer = BaseTrainer(
             model=model,
             train_dataset=dataset,
@@ -336,6 +216,9 @@ class TestTraining:
         return trainer
 
     def test_train_step(self, trainer):
+        """Test the train step with the MVTCAE model. 
+        Weights should be updated. 
+        """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
         start_optimizer = trainer.optimizer
         _ = trainer.train_step(epoch=1)
@@ -352,6 +235,9 @@ class TestTraining:
         assert trainer.optimizer == start_optimizer
 
     def test_eval_step(self, trainer):
+        """Test eval step with the MVTCAE trainer. 
+        Weights should not be updated. 
+        """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         _ = trainer.eval_step(epoch=1)
@@ -367,6 +253,8 @@ class TestTraining:
         )
 
     def test_main_train_loop(self, trainer):
+        """Test main training loop with the MVTCAE model. 
+        Weights should be updated. """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         trainer.train()
@@ -382,6 +270,8 @@ class TestTraining:
         )
 
     def test_checkpoint_saving(self, model, trainer, training_config):
+        """Test checkpoint saving for the MVTCAE model. 
+        The model and optimizer should be saved to the right directory. """
         dir_path = training_config.output_dir
 
         # Make a training step
@@ -458,7 +348,7 @@ class TestTraining:
     def test_checkpoint_saving_during_training(
         self, model, trainer, training_config, dataset
     ):
-        #
+        """Test the creation of checkpoints during training. """
         target_saving_epoch = training_config.steps_saving
 
         dir_path = training_config.output_dir
@@ -473,6 +363,9 @@ class TestTraining:
             training_dir, f"checkpoint_epoch_{target_saving_epoch}"
         )
 
+        assert os.path.isdir(checkpoint_dir)
+
+        
         # try resuming
         new_trainer_ = self.new_trainer(model, training_config, dataset, checkpoint_dir)
 
@@ -481,50 +374,9 @@ class TestTraining:
 
         new_trainer_.train()
 
-    def test_resume_from_checkpoint(self, model, trainer, training_config):
-        #
-        target_saving_epoch = training_config.steps_saving
-
-        dir_path = training_config.output_dir
-
-        model = deepcopy(trainer.model)
-
-        trainer.train()
-
-        training_dir = os.path.join(
-            dir_path, f"MVTCAE_training_{trainer._training_signature}"
-        )
-        assert os.path.isdir(training_dir)
-
-        checkpoint_dir = os.path.join(
-            training_dir, f"checkpoint_epoch_{target_saving_epoch}"
-        )
-
-        assert os.path.isdir(checkpoint_dir)
-
-        files_list = os.listdir(checkpoint_dir)
-
-        # check files
-        assert set(["model.pt", "optimizer.pt", "training_config.json"]).issubset(
-            set(files_list)
-        )
-
-        # check pickled custom architectures
-        for archi in model.model_config.custom_architectures:
-            assert archi + ".pkl" in files_list
-
-        model_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "model.pt"))[
-            "model_state_dict"
-        ]
-
-        assert not all(
-            [
-                torch.equal(model_rec_state_dict[key], model.state_dict()[key])
-                for key in model.state_dict().keys()
-            ]
-        )
-
+   
     def test_final_model_saving(self, model, trainer, training_config):
+        """Test final model saving with MVTCAE"""
         dir_path = training_config.output_dir
 
         trainer.train()
@@ -565,6 +417,7 @@ class TestTraining:
         assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
 
     def test_compute_nll(self, model, dataset):
+        """Test compute_joint_nll_function for the MVTCAE model."""
         if hasattr(dataset, "masks"):
             with pytest.raises(AttributeError):
                 nll = model.compute_joint_nll(dataset, K=10, batch_size_K=2)

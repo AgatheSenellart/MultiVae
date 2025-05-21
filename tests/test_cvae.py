@@ -21,9 +21,13 @@ from multivae.models.nn.mmnist import EncoderConvMMNIST
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 
 
-class Test_CVAE:
+class TestCVAE:
+    """Test class for CVAE model.
+    We test the methods of the CVAE model and check training with BaseTrainer."""
+
     @fixture
     def dataset(self):
+        """Create a dummy dataset for testing."""
         return MultimodalBaseDataset(
             data=dict(
                 mnist=torch.randn((100, 3, 28, 28)),
@@ -34,6 +38,7 @@ class Test_CVAE:
 
     @fixture(params=[[10, "normal", {}, 1.0], [14, "laplace", dict(scale=0.5), 2.5]])
     def model_config(self, request):
+        """Create a dummy model config for testing."""
         return CVAEConfig(
             input_dims=dict(mnist=(3, 28, 28), label=(10,), color=(4,)),
             latent_dim=request.param[0],
@@ -46,6 +51,7 @@ class Test_CVAE:
 
     @fixture(params=[True, False])
     def architectures(self, model_config, request):
+        """Create dummy architectures for testing."""
         if request.param:
             prior_network = MultipleHeadJointEncoder(
                 dict_encoders=dict(
@@ -94,6 +100,8 @@ class Test_CVAE:
         return dict(encoder=encoder, decoder=decoder, prior_network=prior_network)
 
     def test_setup(self, model_config, architectures):
+        """ Test the model initialization. We check that the attributes
+         are correctly set and the architectures are the right type.  """
         model = CVAE(model_config=model_config, **architectures)
 
         assert model.latent_dim == model_config.latent_dim
@@ -124,9 +132,12 @@ class Test_CVAE:
 
     @fixture
     def model(self, model_config, architectures):
+        """Create a dummy model for testing."""
         return CVAE(model_config=model_config, **architectures)
 
     def test_forward(self, model, dataset):
+        """Test the forward function of the model. We check that the output is
+        a ModelOutput and contains the loss."""
         samples = dataset[:10]
         output = model(samples)
 
@@ -137,6 +148,10 @@ class Test_CVAE:
         return
 
     def test_encode(self, dataset, model):
+        """Test the encode function of the model. We check that the output is
+        a ModelOutput and contains the latent variable z."""
+
+        # Generate one latent sample per datapoint
         samples = dataset[:10]
         output = model.encode(samples)
 
@@ -147,12 +162,14 @@ class Test_CVAE:
         assert torch.all(output.cond_mod_data["label"] == samples.data["label"])
         assert torch.all(output.cond_mod_data["color"] == samples.data["color"])
 
+        # Generate N=4 latent samples per datapoint
         output = model.encode(samples, N=4)
         assert isinstance(output, ModelOutput)
         assert output.z.shape == (4, 10, model.latent_dim)
         assert hasattr(output, "cond_mod_data")
         assert output.cond_mod_data["label"].shape == (4, *samples.data["label"].shape)
 
+        # Generate N=4 latent samples per datapoint and flatten the output
         output = model.encode(samples, N=4, flatten=True)
         assert isinstance(output, ModelOutput)
         assert output.z.shape == (4 * 10, model.latent_dim)
@@ -164,6 +181,8 @@ class Test_CVAE:
         return
 
     def test_decode(self, model, dataset):
+        """Test the decode function of the model. We check that the output is
+        a ModelOutput and contains the reconstruction."""
         samples = dataset[:10]
 
         embeddings = model.encode(samples)
@@ -176,8 +195,15 @@ class Test_CVAE:
         return
 
     def test_generate_from_prior(self, model, dataset):
+        """Test the generate_from_prior function of the model. We check that
+        the output is a ModelOutput and contains the latent variable z."""
+
         samples = dataset[:10]
+
+        # Define dummy conditioning variables for generation from the prior.
         cond_mod_data = dict(label=samples.data["label"], color=samples.data["color"])
+
+        # Generate one latent sample per datapoint
         output = model.generate_from_prior(cond_mod_data=cond_mod_data)
         assert isinstance(output, ModelOutput)
         assert output.z.shape == (10, model.latent_dim)
@@ -185,12 +211,14 @@ class Test_CVAE:
         assert isinstance(output.cond_mod_data, dict)
         assert torch.all(output.cond_mod_data["label"] == samples.data["label"])
 
+        # Generate N=4 latent samples per datapoint
         output = model.generate_from_prior(cond_mod_data=cond_mod_data, N=4)
         assert isinstance(output, ModelOutput)
         assert output.z.shape == (4, 10, model.latent_dim)
         assert hasattr(output, "cond_mod_data")
         assert output.cond_mod_data["label"].shape == (4, *samples.data["label"].shape)
 
+        # Generate N=4 latent samples per datapoint and flatten the output
         output = model.generate_from_prior(cond_mod_data, N=4, flatten=True)
         assert isinstance(output, ModelOutput)
         assert output.z.shape == (4 * 10, model.latent_dim)
@@ -202,9 +230,12 @@ class Test_CVAE:
         return
 
     def test_predict(self, model, dataset):
+        """Test the predict function of the model.
+        We check that the output contains the reconstruction and that we can predict
+        using conditioning modalities only. """
         samples = dataset[:10]
 
-        # Test reconstruction
+        # Test reconstruction with the data and conditioning modalities
         output = model.predict(cond_mod="all", inputs=samples)
         assert isinstance(output, ModelOutput)
         assert hasattr(output, "mnist")
@@ -222,17 +253,20 @@ class Test_CVAE:
         assert hasattr(output, model.main_modality)
         assert output.mnist.shape == (10, 10, 3, 28, 28)
 
-        # Test generation
+        # Test generation without the data and providing only conditioning modalities
+        # This function calls generate_from_prior to generate the latent variable
+        
+        # Generate 1 sample
         output = model.predict(cond_mod=["label", "color"], inputs=samples)
         assert isinstance(output, ModelOutput)
         assert hasattr(output, "mnist")
         assert output.mnist.shape == samples.data["mnist"].shape
-
+        # Generate 10 samples
         output = model.predict(cond_mod=["label", "color"], inputs=samples, N=10)
         assert isinstance(output, ModelOutput)
         assert hasattr(output, "mnist")
         assert output.mnist.shape == (10, *samples.data["mnist"].shape)
-
+        # Generate 10 samples and flatten the output
         output = model.predict(
             cond_mod=["label", "color"], inputs=samples, N=10, flatten=True
         )
@@ -254,6 +288,7 @@ class Test_CVAE:
 
     @fixture(params=[[32, 64, 3, "Adagrad"], [16, 16, 4, "Adam"]])
     def trainer_config(self, request):
+        """Create a dummy trainer config for testing."""
         tmp = tempfile.mkdtemp()
 
         return BaseTrainerConfig(
@@ -268,6 +303,7 @@ class Test_CVAE:
 
     @fixture
     def trainer(self, trainer_config, model, dataset):
+        """Create a dummy trainer for testing."""
         return BaseTrainer(
             model,
             train_dataset=dataset,
@@ -277,6 +313,7 @@ class Test_CVAE:
 
     @mark.slow
     def test_train_step(self, trainer):
+        """Test train step with the CVAE model."""
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         _ = trainer.train_step(epoch=1)
@@ -293,6 +330,7 @@ class Test_CVAE:
 
     @mark.slow
     def test_eval_step(self, trainer):
+        """Test eval step with the CVAE model."""
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         _ = trainer.eval_step(epoch=1)
@@ -309,6 +347,7 @@ class Test_CVAE:
 
     @mark.slow
     def test_main_train_loop(self, trainer):
+        """Test main training loop with the CVAE model."""
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         trainer.train()
@@ -325,6 +364,8 @@ class Test_CVAE:
 
     @mark.slow
     def test_checkpoint_saving(self, model, trainer, trainer_config):
+        """Test checkpoint saving with the CVAE model.
+        We check that the model and optimizer state dicts are saved correctly and can be reloaded."""
         dir_path = trainer_config.output_dir
 
         # Make a training step, save the model and reload it
@@ -400,6 +441,7 @@ class Test_CVAE:
 
     @mark.slow
     def test_checkpoint_saving_during_training(self, model, trainer, trainer_config):
+        """Test the creation of a checkpoint during training loop with the CVAE model."""
         target_saving_epoch = trainer_config.steps_saving
 
         dir_path = trainer_config.output_dir
@@ -443,6 +485,8 @@ class Test_CVAE:
 
     @mark.slow
     def test_final_model_saving(self, model, trainer, trainer_config):
+        """Test the final model saving with the CVAE model.
+        We check that the model is correctly saved and can be reloaded."""
         dir_path = trainer_config.output_dir
 
         trainer.train()

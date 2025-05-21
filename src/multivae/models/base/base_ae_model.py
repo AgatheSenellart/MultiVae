@@ -232,14 +232,15 @@ class BaseMultiVAE(BaseModel):
             embedding (ModelOutput): contains the latent variables. It must have the same format as the
                 output of the encode function.
             modalities (Union(List, str), Optional): the modalities to decode from z. Default to 'all'.
-        Return
+
+        Returns:
             ModelOutput : containing a tensor per modality name.
         """
         self.eval()
         with torch.no_grad():
             if modalities == "all":
                 modalities = list(self.decoders.keys())
-            elif type(modalities) == str:
+            elif isinstance(modalities,str):
                 modalities = [modalities]
 
             try:
@@ -384,6 +385,12 @@ class BaseMultiVAE(BaseModel):
         Generate latent samples from the prior distribution.
         This is the base class in which we consider a static standard Normal Prior.
         This may be overwritten in subclasses.
+
+        Args:
+            n_samples (int): number of samples to generate
+            **kwargs: additional arguments
+        Returns:
+            ModelOutput: A ModelOutput instance containing the generated samples
         """
         sample_shape = (
             [n_samples, self.latent_dim] if n_samples > 1 else [self.latent_dim]

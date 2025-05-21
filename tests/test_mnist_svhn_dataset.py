@@ -7,15 +7,21 @@ from multivae.data.datasets.mnist_svhn import MnistSvhn
 
 
 @pytest.mark.slow
-class Test:
+class TestMNISTSVHN:
+    """Test class for MNISTSVHN dataset.
+    This test only works locally with the MNISTSVHN downloaded in the ../data folder.
+    """
     @pytest.fixture
-    def input_dataset_test(self, tmp_path):
-        data_path = tmp_path / "data"
+    def input_dataset_test(self):
+        """Create the datafolder."""
+        data_path ="../data"
         split = "test"
 
         return dict(data_path=data_path, split=split)
 
     def test_create_dataset(self, input_dataset_test):
+        """Test the MnistSVHN dataset. 
+        We check the output and lenght of the dataset."""
         try:
             mnist = MNIST(
                 input_dataset_test["data_path"],
