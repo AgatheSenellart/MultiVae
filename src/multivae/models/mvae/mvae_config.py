@@ -6,7 +6,7 @@ from ..base import BaseMultiVAEConfig
 @dataclass
 class MVAEConfig(BaseMultiVAEConfig):
     """Config class for the MVAE model from 'Multimodal Generative Models for Scalable Weakly-Supervised Learning'.
-    https://proceedings.neurips.cc/paper/2018/hash/1102a326d5f7c9e04fc3c89d0ede88c9-Abstract.html
+    https://proceedings.neurips.cc/paper/2018/hash/1102a326d5f7c9e04fc3c89d0ede88c9-Abstract.html.
 
     Args:
         n_modalities (int): The number of modalities. Default: None.

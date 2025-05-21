@@ -29,7 +29,7 @@ logger.setLevel(logging.INFO)
 
 class Nexus(BaseMultiVAE):
     """The Nexus model from (Vasco et al 2022)
-    "Leveraging hierarchy in multimodal generative models for effective cross-modality inference"
+    "Leveraging hierarchy in multimodal generative models for effective cross-modality inference".
 
 
     Args:
@@ -80,7 +80,7 @@ class Nexus(BaseMultiVAE):
         self.check_aggregator(model_config)
 
     def _compute_bottom_elbos(self, inputs: MultimodalBaseDataset, **kwargs):
-        """Passes the inputs through the first level of encoding and compute the bottom elbos"""
+        """Passes the inputs through the first level of encoding and compute the bottom elbos."""
         epoch = kwargs.pop("epoch", 1)
         annealing = min(epoch / self.model_config.warmup, 1.0)
 

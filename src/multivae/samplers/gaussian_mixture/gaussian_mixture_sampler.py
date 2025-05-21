@@ -49,7 +49,7 @@ class GaussianMixtureSampler(BaseSampler):
         self.name = "GaussianMixtureSampler"
 
     def fit(self, train_data: MultimodalBaseDataset, **kwargs):
-        """Method to fit the sampler from the training data
+        """Method to fit the sampler from the training data.
 
         Args:
             train_data (MultimodalBaseDataset): The train data needed to retreive the training embeddings

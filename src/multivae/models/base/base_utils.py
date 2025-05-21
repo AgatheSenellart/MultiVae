@@ -21,12 +21,12 @@ This model was trained with multivae. It can be downloaded or reloaded using the
 
 
 def hf_hub_is_available():
-    """Function to check if the huggingface_hub library is available"""
+    """Function to check if the huggingface_hub library is available."""
     return importlib.util.find_spec("huggingface_hub") is not None
 
 
 def cross_entropy_(_input, _target, eps=1e-6):
-    """k-Class Cross Entropy (Log Softmax + Log Loss)
+    """k-Class Cross Entropy (Log Softmax + Log Loss).
 
     @param input: torch.Tensor (size K x bs x ...) The last dimension contains logit probabilities for each class.
     @param target: torch.Tensor (size bs x ...) The last dimension true probabilities (0 or 1) for each class.
@@ -39,9 +39,7 @@ def cross_entropy_(_input, _target, eps=1e-6):
 
 
 def cross_entropy(input, target, eps=1e-6):
-    """Wrapper for the cross_entropy loss handling different inputs / targets types.
-
-    """
+    """Wrapper for the cross_entropy loss handling different inputs / targets types."""
     _input = input
     _target = target
     if isinstance(input, dict):
@@ -62,7 +60,7 @@ def cross_entropy(input, target, eps=1e-6):
 
 
 def set_decoder_dist(dist_name, dist_params):
-    """Transforms the distribution name and parameters into a callable log_prob function"""
+    """Transforms the distribution name and parameters into a callable log_prob function."""
     if dist_name == "normal":
         scale = dist_params.pop("scale", 1.0)
 
@@ -95,7 +93,7 @@ def kl_divergence(
     prior_mean: torch.Tensor,
     prior_log_var: torch.Tensor,
 ):
-    """Compute the explicit Kullback-Leibler divergence between two gaussians.
+    r"""Compute the explicit Kullback-Leibler divergence between two gaussians.
 
     .. math::
 
@@ -122,8 +120,7 @@ def kl_divergence(
 
 
 def poe(mus, logvars, eps=1e-8):
-    """Compute the Product of Experts (PoE) for a list of Gaussian experts.
-    """
+    """Compute the Product of Experts (PoE) for a list of Gaussian experts."""
     var = torch.exp(logvars) + eps
     # precision of i-th Gaussian expert at point x
     T = 1.0 / var

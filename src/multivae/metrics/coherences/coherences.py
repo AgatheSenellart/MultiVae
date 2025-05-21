@@ -226,7 +226,7 @@ class CoherenceEvaluator(Evaluator):
         return joint_coherence
 
     def eval(self):
-        """Compute all cross-modal coherences and the joint coherence"""
+        """Compute all cross-modal coherences and the joint coherence."""
         self.cross_coherences()
         self.joint_coherence()
 

@@ -158,7 +158,7 @@ class MMVAE(BaseMultiVAE):
         return loss_output
 
     def compute_k_lws(self, qz_xs, embeddings, reconstructions, inputs):
-        """Compute likelihood terms for all modalities and for all k
+        """Compute likelihood terms for all modalities and for all k.
 
         returns :
             dict containing the likelihoods terms (not aggregated)

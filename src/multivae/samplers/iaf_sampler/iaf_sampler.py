@@ -192,8 +192,7 @@ class IAFSampler(BaseSampler):
         return output
 
     def save(self, dir_path):
-        """Save the config and trained models
-        """
+        """Save the config and trained models."""
         super().save(dir_path=dir_path)
 
         if not self.is_fitted:

@@ -44,7 +44,7 @@ class BaseSampler:
         self.name = "BaseSampler"
 
     def fit(self, train_data: MultimodalBaseDataset, **kwargs):
-        """Function to be called to fit the sampler before sampling"""
+        """Function to be called to fit the sampler before sampling."""
         return
 
     def sample(
@@ -68,7 +68,7 @@ class BaseSampler:
 
     def save(self, dir_path):
         """Method to save the sampler config. The config is saved a as ``sampler_config.json``
-        file in ``dir_path``
+        file in ``dir_path``.
         """
         logger.info("Saving model in %s.", dir_path)
 

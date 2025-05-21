@@ -115,7 +115,7 @@ class BaseMultiVAE(BaseModel):
         # reconstruction loss as the log probability.
 
     def check_input_dims(self, model_config):
-        """Check that the input dimensions are coherent with the provided number of modalities"""
+        """Check that the input dimensions are coherent with the provided number of modalities."""
         if model_config.input_dims is not None:
             if len(model_config.input_dims.keys()) != model_config.n_modalities:
                 raise AttributeError(
@@ -313,7 +313,7 @@ class BaseMultiVAE(BaseModel):
     def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
         """Main forward pass outputing the VAE outputs
         This function should output a :class:`~pythae.models.base.base_utils.ModelOutput` instance
-        gathering all the model outputs
+        gathering all the model outputs.
 
         Args:
             inputs (BaseDataset): The training data with labels, masks etc...
@@ -328,7 +328,7 @@ class BaseMultiVAE(BaseModel):
         raise NotImplementedError()
 
     def update(self):
-        """Method that allows model update during the training (at the end of a training epoch)
+        """Method that allows model update during the training (at the end of a training epoch).
 
         If needed, this method must be implemented in a child class.
 
@@ -343,7 +343,7 @@ class BaseMultiVAE(BaseModel):
         return BaseDictDecoders(self.input_dims, model_config.latent_dim)
 
     def set_encoders(self, encoders: dict) -> None:
-        """Set the encoders of the model"""
+        """Set the encoders of the model."""
         self.encoders = nn.ModuleDict()
         for modality in encoders:
             encoder = encoders[modality]
@@ -358,7 +358,7 @@ class BaseMultiVAE(BaseModel):
             self.encoders[modality] = encoder
 
     def set_decoders(self, decoders: dict) -> None:
-        """Set the decoders of the model"""
+        """Set the decoders of the model."""
         self.decoders = nn.ModuleDict()
         for modality in decoders:
             decoder = decoders[modality]
@@ -400,9 +400,9 @@ class BaseMultiVAE(BaseModel):
         pred_mods: Union[list, tuple],
         k_iwae=1000,
     ):
-        """Compute the conditional likelihood :math: `ln p(x_{pred}|x_{cond})`` with MonteCarlo Sampling and the approximation :
+        r"""Compute the conditional likelihood :math: `ln p(x_{pred}|x_{cond})`` with MonteCarlo Sampling and the approximation :
         .. math::
-                \ln p(x_{pred)|x_{cond}) = \frac{1}{K}\sum_{z^{(i)} ~ q(z^{(i)}|x_{cond}), i=1}^{K} \ln p(x_{pred}|z^{(i)})
+                \ln p(x_{pred)|x_{cond}) = \frac{1}{K}\sum_{z^{(i)} ~ q(z^{(i)}|x_{cond}), i=1}^{K} \ln p(x_{pred}|z^{(i)}).
 
         Args:
             inputs (MultimodalBaseDataset): the data to compute the likelihood on.

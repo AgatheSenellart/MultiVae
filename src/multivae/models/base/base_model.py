@@ -52,7 +52,7 @@ class BaseModel(nn.Module):
     def forward(self, inputs: MultimodalBaseDataset, **kwargs):
         """Main forward pass outputing the model outputs
         This function should output a :class:`~pythae.models.base.base_utils.ModelOutput` instance
-        gathering all the model outputs
+        gathering all the model outputs.
 
         Args:
             inputs (BaseDataset): The training data with labels, masks etc...
@@ -67,7 +67,7 @@ class BaseModel(nn.Module):
         raise NotImplementedError()
 
     def update(self):
-        """Method that allows model update during the training (at the end of a training epoch)
+        """Method that allows model update during the training (at the end of a training epoch).
 
         If needed, this method must be implemented in a child class.
 
@@ -181,7 +181,7 @@ class BaseModel(nn.Module):
 
     @classmethod
     def load_from_folder(cls, dir_path: str):
-        """Class method to be used to load the model from a specific folder
+        """Class method to be used to load the model from a specific folder.
 
         Args:
             dir_path (str): The path where the model should have been be saved.
@@ -213,7 +213,7 @@ class BaseModel(nn.Module):
     def push_to_hf_hub(self, hf_hub_path: str):  # pragma: no cover
         """Method allowing to save your model directly on the huggung face hub.
         You will need to have the `huggingface_hub` package installed and a valid Hugging Face
-        account. You can install the package using
+        account. You can install the package using.
 
         .. code-block:: bash
 
@@ -299,7 +299,7 @@ class BaseModel(nn.Module):
 
     @classmethod
     def load_from_hf_hub(cls, hf_hub_path: str, allow_pickle=False):  # pragma: no cover
-        """Class method to be used to load a pretrained model from the Hugging Face hub
+        """Class method to be used to load a pretrained model from the Hugging Face hub.
 
         Args:
             hf_hub_path (str): The path where the model should have been be saved on the

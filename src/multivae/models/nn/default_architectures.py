@@ -318,8 +318,7 @@ class MultipleHeadJointEncoder(BaseJointEncoder):
 
 
 class ConditionalDecoderMLP(BaseConditionalDecoder):
-    """Base MLP Conditional Decoder for a single modality.
-    """
+    """Base MLP Conditional Decoder for a single modality."""
 
     def __init__(
         self, latent_dim: int, cond_data_dims: Dict[str, tuple], data_dim: tuple

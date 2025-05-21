@@ -16,7 +16,7 @@ FID_WEIGHTS_URL = "https://github.com/mseitzer/pytorch-fid/releases/download/fid
 
 
 class InceptionV3(nn.Module):
-    """Pretrained InceptionV3 network returning feature maps"""
+    """Pretrained InceptionV3 network returning feature maps."""
 
     # Index of default block of inception to return,
     # corresponds to output of final average pooling
@@ -39,7 +39,7 @@ class InceptionV3(nn.Module):
         use_fid_inception=True,
         path_state_dict="./state_dict.pth",
     ):
-        """Build pretrained InceptionV3
+        """Build pretrained InceptionV3.
 
         Parameters
         ----------
@@ -131,7 +131,7 @@ class InceptionV3(nn.Module):
             param.requires_grad = requires_grad
 
     def forward(self, inp):
-        """Get Inception feature maps
+        """Get Inception feature maps.
 
         Parameters
         ----------
@@ -165,7 +165,7 @@ class InceptionV3(nn.Module):
 
 
 def fid_inception_v3(PATH_STATE_DICT):
-    """Build pretrained Inception model for FID computation
+    """Build pretrained Inception model for FID computation.
 
     The Inception model for FID computation uses a different set of weights
     and has a slightly different structure than torchvision's Inception.
@@ -200,7 +200,7 @@ def fid_inception_v3(PATH_STATE_DICT):
 
 
 class FIDInceptionA(models.inception.InceptionA):
-    """InceptionA block patched for FID computation"""
+    """InceptionA block patched for FID computation."""
 
     def __init__(self, in_channels, pool_features):
         super(FIDInceptionA, self).__init__(in_channels, pool_features)
@@ -227,7 +227,7 @@ class FIDInceptionA(models.inception.InceptionA):
 
 
 class FIDInceptionC(models.inception.InceptionC):
-    """InceptionC block patched for FID computation"""
+    """InceptionC block patched for FID computation."""
 
     def __init__(self, in_channels, channels_7x7):
         super(FIDInceptionC, self).__init__(in_channels, channels_7x7)
@@ -257,7 +257,7 @@ class FIDInceptionC(models.inception.InceptionC):
 
 
 class FIDInceptionE_1(models.inception.InceptionE):
-    """First InceptionE block patched for FID computation"""
+    """First InceptionE block patched for FID computation."""
 
     def __init__(self, in_channels):
         super(FIDInceptionE_1, self).__init__(in_channels)
@@ -292,7 +292,7 @@ class FIDInceptionE_1(models.inception.InceptionE):
 
 
 class FIDInceptionE_2(models.inception.InceptionE):
-    """Second InceptionE block patched for FID computation"""
+    """Second InceptionE block patched for FID computation."""
 
     def __init__(self, in_channels):
         super(FIDInceptionE_2, self).__init__(in_channels)
@@ -327,8 +327,7 @@ class FIDInceptionE_2(models.inception.InceptionE):
 
 
 class wrapper_inception(nn.Module):
-    """A simple wrapper for the inception network that returns an output of size (n_batch,n_features).
-    """
+    """A simple wrapper for the inception network that returns an output of size (n_batch,n_features)."""
 
     def __init__(
         self, dims=2048, device="cuda", path_state_dict="../fid_model/model.pt"

@@ -364,7 +364,7 @@ class BaseTrainer:
             self.scheduler.step()
 
     def prepare_training(self):
-        """Sets up the trainer for training"""
+        """Sets up the trainer for training."""
         # set random seed
         set_seed(self.training_config.seed)
 
@@ -388,7 +388,7 @@ class BaseTrainer:
         self._best_model = deepcopy(self.model)
 
     def resume_training(self, checkpoint):
-        """Sets up the trainer for training"""
+        """Sets up the trainer for training."""
         with open(os.path.join(checkpoint, "info_checkpoint.json"), "r") as fp:
             dict_checkpoint = json.load(fp)
 
@@ -433,7 +433,7 @@ class BaseTrainer:
         return best_train_loss, best_eval_loss
 
     def train(self, log_output_dir: str = None):
-        """This function is the main training function
+        """This function is the main training function.
 
         Args:
             log_output_dir (str): The path in which the log will be stored
@@ -578,7 +578,7 @@ class BaseTrainer:
         self.callback_handler.on_train_end(self.training_config)
 
     def eval_step(self, epoch: int):
-        """Perform an evaluation step
+        """Perform an evaluation step.
 
         Parameters:
             epoch (int): The current epoch number
@@ -704,7 +704,7 @@ class BaseTrainer:
         return epoch_loss, epoch_model_metrics
 
     def save_model(self, model: BaseModel, dir_path: str):
-        """This method saves the final model along with the config files
+        """This method saves the final model along with the config files.
 
         Args:
             model (BaseMultiVAE): The model to be saved
@@ -726,7 +726,7 @@ class BaseTrainer:
         self.callback_handler.on_save(self.training_config, dir_path=dir_path)
 
     def save_checkpoint(self, model: BaseModel, dir_path, epoch: int):
-        """Saves a checkpoint alowing to restart training from here
+        """Saves a checkpoint alowing to restart training from here.
 
         Args:
             dir_path (str): The folder where the checkpoint should be saved

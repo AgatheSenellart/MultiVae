@@ -8,7 +8,7 @@ class MVTCAEConfig(BaseMultiVAEConfig):
     """This is the base config class for the MVTCAE model from
     'Multi-View Representation Learning via Total Correlation Objective' Neurips 2021.
     The code is based on the original implementation that can be found here :
-    https://github.com/gr8joo/MVTCAE/blob/master/run_epochs.py
+    https://github.com/gr8joo/MVTCAE/blob/master/run_epochs.py.
 
     Args:
         n_modalities (int): The number of modalities. Default: None.

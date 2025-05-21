@@ -21,7 +21,7 @@ from .dmvae_config import DMVAEConfig
 
 class DMVAE(BaseMultiVAE):
     """The DMVAE model from the paper
-    'Private-Shared Disentangled Multimodal VAE for Learning of Latent Representations'
+    'Private-Shared Disentangled Multimodal VAE for Learning of Latent Representations'.
 
     Mihee Lee, Vladimir Pavlovic
 

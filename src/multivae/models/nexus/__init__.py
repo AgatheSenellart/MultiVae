@@ -1,6 +1,6 @@
 r"""Implementation od the NEXUS model from
 `Leveraging hierarchy in multimodal generative models for effective cross-modality inference
-<https://www.sciencedirect.com/science/article/abs/pii/S0893608021004470>`_
+<https://www.sciencedirect.com/science/article/abs/pii/S0893608021004470>`_.
 
 This model uses two levels of latent variables : the first level is modality-specific
 :math:`z_i` ans the second level is shared :math:`z_{\sigma}`.

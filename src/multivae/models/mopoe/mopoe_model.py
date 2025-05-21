@@ -19,7 +19,7 @@ from .mopoe_config import MoPoEConfig
 
 class MoPoE(BaseMultiVAE):
     """Implementation for the Mixture of Product of experts model from
-    'Generalized Multimodal ELBO' Sutter 2021 (https://arxiv.org/abs/2105.02470)
+    'Generalized Multimodal ELBO' Sutter 2021 (https://arxiv.org/abs/2105.02470).
 
     This implementation is heavily based on the official one at
     https://github.com/thomassutter/MoPoE
@@ -63,7 +63,7 @@ class MoPoE(BaseMultiVAE):
 
     def all_subsets(self):
         """Returns a list containing all possible subsets of the modalities.
-        (But the empty one)
+        (But the empty one).
         """
         xs = list(self.encoders.keys())
         # note we return an iterator rather than a list
@@ -250,8 +250,7 @@ class MoPoE(BaseMultiVAE):
         return poe(mus, logvars)
 
     def subset_mask(self, inputs: IncompleteDataset, subset: Union[list, tuple]):
-        """Returns a filter of the samples available in ALL the modalities contained in subset.
-        """
+        """Returns a filter of the samples available in ALL the modalities contained in subset."""
         filter = torch.tensor(
             True,
         ).to(inputs.masks[subset[0]].device)

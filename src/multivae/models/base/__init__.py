@@ -1,5 +1,4 @@
-"""**Abstract class**
-"""
+"""**Abstract class**."""
 
 from pythae.models.base.base_utils import ModelOutput
 from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder

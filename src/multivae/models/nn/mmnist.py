@@ -70,8 +70,7 @@ class EncoderConvMMNIST(BaseEncoder):
 
 
 class EncoderConvMMNIST_adapted(BaseEncoder):
-    """Simple convolutional encoder with no linear layers at the end.
-    """
+    """Simple convolutional encoder with no linear layers at the end."""
 
     def __init__(self, model_config: BaseAEConfig):
         super(EncoderConvMMNIST_adapted, self).__init__()
@@ -105,8 +104,7 @@ class EncoderConvMMNIST_adapted(BaseEncoder):
 
 
 class EncoderConvMMNIST_multilatents(BaseEncoder):
-    """Adapt so that it works with multiple latent spaces models.
-    """
+    """Adapt so that it works with multiple latent spaces models."""
 
     def __init__(self, model_config: BaseAEConfig):
         super(EncoderConvMMNIST_multilatents, self).__init__()
@@ -168,7 +166,7 @@ class EncoderConvMMNIST_multilatents(BaseEncoder):
 
 class DecoderConvMMNIST(BaseDecoder):
     """Adopted from:
-    https://www.cs.toronto.edu/~lczhang/360/lec/w05/autoencoder.html
+    https://www.cs.toronto.edu/~lczhang/360/lec/w05/autoencoder.html.
     """
 
     def __init__(self, model_config: BaseAEConfig):
@@ -209,7 +207,7 @@ class DecoderConvMMNIST(BaseDecoder):
 
 class ResnetBlock(nn.Module):
     """Resnet block for the PolyMNIST dataset.
-    Adapted from https://github.com/epalu/mmvaeplus
+    Adapted from https://github.com/epalu/mmvaeplus.
     """
 
     def __init__(
@@ -248,7 +246,7 @@ class ResnetBlock(nn.Module):
 
 
 class EncoderResnetMMNIST(BaseEncoder):
-    """Resnet encoder for PolyMNIST adapted from https://github.com/epalu/mmvaeplus"""
+    """Resnet encoder for PolyMNIST adapted from https://github.com/epalu/mmvaeplus."""
 
     def __init__(self, private_latent_dim, shared_latent_dim):
         super().__init__()
@@ -315,12 +313,11 @@ class EncoderResnetMMNIST(BaseEncoder):
 
 
 class DecoderResnetMMNIST(BaseDecoder):
-    """Resnet decoder for PolyMNIST from https://github.com/epalu/mmvaeplus
-    """
+    """Resnet decoder for PolyMNIST from https://github.com/epalu/mmvaeplus."""
 
     def __init__(self, latent_dim):
         """Args:
-        latent_dim : total latent dimension (private + shared)
+        latent_dim : total latent dimension (private + shared).
         """
         super().__init__()
 

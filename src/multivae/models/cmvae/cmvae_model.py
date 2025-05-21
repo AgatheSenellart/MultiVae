@@ -129,9 +129,7 @@ class CMVAE(BaseMultiVAE):
 
     @property
     def pc_params(self):
-        """Parameters of prior distribution on latent clusters.
-
-        """
+        """Parameters of prior distribution on latent clusters."""
         return F.softmax(self._pc_params, dim=-1)
 
     def _log_var_to_std(self, log_var):
@@ -245,7 +243,7 @@ class CMVAE(BaseMultiVAE):
         raise NotImplementedError()
 
     def _compute_k_lws(self, posteriors, embeddings, reconstructions, inputs):
-        """Compute all losses components without any aggregation on K nor batch
+        """Compute all losses components without any aggregation on K nor batch.
 
         Returns:
             lws (dict) : the losses for each modality
@@ -346,7 +344,7 @@ class CMVAE(BaseMultiVAE):
 
     def _iwae_looser(self, lws, n_mods_sample):
         """The IWAE loss with the sum outside of the log for increased stability.
-        (following Shi et al 2019)
+        (following Shi et al 2019).
 
         """
         lws = torch.stack(list(lws.values()), dim=0)  # n_modalities, K, n_batch
@@ -544,7 +542,7 @@ class CMVAE(BaseMultiVAE):
         return ModelOutput(z=z_shared, one_latent_space=False, modalities_z=style_z)
 
     def predict_clusters(self, inputs: MultimodalBaseDataset, **kwargs):
-        """Returns the clusters for all samples in inputs
+        """Returns the clusters for all samples in inputs.
 
         Returns:
             ModelOutput: with fields: clusters and pc_zs (dict).

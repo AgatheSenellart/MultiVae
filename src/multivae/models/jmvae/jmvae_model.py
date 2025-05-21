@@ -194,8 +194,7 @@ class JMVAE(BaseJointModel):
     def _sample_from_poe_subset_exact(
         self, subset: list, data: dict, N=1, return_mean=False, flatten=False
     ):
-        """Sample from the product of experts for infering from a subset of modalities.
-        """
+        """Sample from the product of experts for infering from a subset of modalities."""
         # Get all the experts' means and logvars
         mus, logvars = [], []
         for mod in subset:

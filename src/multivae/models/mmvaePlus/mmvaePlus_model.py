@@ -342,7 +342,7 @@ class MMVAEPlus(BaseMultiVAE):
 
     def _iwae_looser(self, posteriors, embeddings, reconstructions, inputs):
         """The IWAE loss but with the sum outside of the loss for increased stability.
-        (following Shi et al 2019)
+        (following Shi et al 2019).
 
         """
         # Get all individual likelihoods

@@ -13,10 +13,7 @@ from .crmvae_config import CRMVAEConfig
 
 
 class CRMVAE(BaseMultiVAE):
-    """Main class for the CRMVAE model.
-
-
-    """
+    """Main class for the CRMVAE model."""
 
     def __init__(
         self, model_config: CRMVAEConfig, encoders: dict = None, decoders: dict = None

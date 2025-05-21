@@ -34,7 +34,7 @@ class AdaptShapeFID(torch.nn.Module):
             self.resize = None
 
     def forward(self, x):
-        """Adapt the shape of x"""
+        """Adapt the shape of x."""
         if len(x.shape) == 1:  # (n_data,)
             x = x.unsqueeze(1)
         if len(x.shape) == 2:  # (n_data, n)
@@ -110,8 +110,7 @@ class FIDEvaluator(Evaluator):
             self.inception_transform = None
 
     def get_frechet_distance(self, mod, generate_latent_function):
-        """Calculates the activations of the pool_3 layer for all images.
-        """
+        """Calculates the activations of the pool_3 layer for all images."""
         self.model.eval()
         activations = [[], []]
         with torch.no_grad():
@@ -264,7 +263,7 @@ class FIDEvaluator(Evaluator):
         return fd
 
     def compute_all_conditional_fids(self, gen_mod):
-        """For all subsets in modalities \gen mod, compute the FID when generating
+        """For all subsets in modalities gen_mod, compute the FID when generating
         images from the subsets.
         """
         modalities = [k for k in self.model.encoders if k != gen_mod]

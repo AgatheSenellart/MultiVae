@@ -1,5 +1,5 @@
 """Training Callbacks for training monitoring integrated in `pythae` (inspired from
-https://github.com/huggingface/transformers/blob/master/src/transformers/trainer_callback.py)
+https://github.com/huggingface/transformers/blob/master/src/transformers/trainer_callback.py).
 """
 
 import importlib
@@ -54,69 +54,53 @@ def rename_logs(logs):
 
 
 class TrainingCallback:
-    """Base class for creating training callbacks
-    """
+    """Base class for creating training callbacks."""
 
     def on_init_end(self, training_config: BaseTrainerConfig, **kwargs):
-        """Event called at the end of the initialization of the [`Trainer`].
-        """
+        """Event called at the end of the initialization of the [`Trainer`]."""
 
     def on_train_begin(self, training_config: BaseTrainerConfig, **kwargs):
-        """Event called at the beginning of training.
-        """
+        """Event called at the beginning of training."""
 
     def on_train_end(self, training_config: BaseTrainerConfig, **kwargs):
-        """Event called at the end of training.
-        """
+        """Event called at the end of training."""
 
     def on_epoch_begin(self, training_config: BaseTrainerConfig, **kwargs):
-        """Event called at the beginning of an epoch.
-        """
+        """Event called at the beginning of an epoch."""
 
     def on_epoch_end(self, training_config: BaseTrainerConfig, **kwargs):
-        """Event called at the end of an epoch.
-        """
+        """Event called at the end of an epoch."""
 
     def on_train_step_begin(self, training_config: BaseTrainerConfig, **kwargs):
-        """Event called at the beginning of a training step.
-        """
+        """Event called at the beginning of a training step."""
 
     def on_train_step_end(self, training_config: BaseTrainerConfig, **kwargs):
-        """Event called at the end of a training step.
-        """
+        """Event called at the end of a training step."""
 
     def on_eval_step_begin(self, training_config: BaseTrainerConfig, **kwargs):
-        """Event called at the beginning of a evaluation step.
-        """
+        """Event called at the beginning of a evaluation step."""
 
     def on_eval_step_end(self, training_config: BaseTrainerConfig, **kwargs):
-        """Event called at the end of a evaluation step.
-        """
+        """Event called at the end of a evaluation step."""
 
     def on_evaluate(self, training_config: BaseTrainerConfig, **kwargs):
-        """Event called after an evaluation phase.
-        """
+        """Event called after an evaluation phase."""
 
     def on_prediction_step(self, training_config: BaseTrainerConfig, **kwargs):
-        """Event called after a prediction phase.
-        """
+        """Event called after a prediction phase."""
 
     def on_save(self, training_config: BaseTrainerConfig, **kwargs):
-        """Event called after a checkpoint save.
-        """
+        """Event called after a checkpoint save."""
 
     def on_save_checkpoint(self, training_config: BaseTrainerConfig, **kwargs):
-        """Event called after a checkpoint save.
-        """
+        """Event called after a checkpoint save."""
 
     def on_log(self, training_config: BaseTrainerConfig, logs, **kwargs):
-        """Event called after logging the last logs.
-        """
+        """Event called after logging the last logs."""
 
 
 class CallbackHandler:
-    """Class to handle list of Callback.
-    """
+    """Class to handle list of Callback."""
 
     def __init__(self, callbacks, model):
         self.callbacks = []
@@ -190,8 +174,7 @@ class CallbackHandler:
 
 
 class MetricConsolePrinterCallback(TrainingCallback):
-    """A :class:`TrainingCallback` printing the training logs in the console.
-    """
+    """A :class:`TrainingCallback` printing the training logs in the console."""
 
     def __init__(self):
         self.logger = logging.getLogger(__name__)
@@ -222,8 +205,7 @@ class MetricConsolePrinterCallback(TrainingCallback):
 
 
 class ProgressBarCallback(TrainingCallback):
-    """A :class:`TrainingCallback` printing the training progress bar.
-    """
+    """A :class:`TrainingCallback` printing the training progress bar."""
 
     def __init__(self):
         self.train_progress_bar = None
