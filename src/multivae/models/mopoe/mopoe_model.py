@@ -22,7 +22,19 @@ class MoPoE(BaseMultiVAE):
     'Generalized Multimodal ELBO' Sutter 2021 (https://arxiv.org/abs/2105.02470).
 
     This implementation is heavily based on the official one at
-    https://github.com/thomassutter/MoPoE
+    https://github.com/thomassutter/MoPoE.
+
+    Args:
+        model_config (MoPoEConfig): Contains all the parameters for the model.
+        encoders (dict): Contains the encoder for each modality. When using 
+            modalities' specific latent spaces, the encoders must be instances 
+            of ~multivae.models.nn.base_architectures.BaseMultilatentEncoder. Else,
+            the encoders must be instances of ~pythae.models.nn.base_architectures.BaseEncoder.
+            When None are provided, default MLP architectures are used.
+        decoders (dict): Contains the decoder for each modality. Each decoder must be an 
+            instance of ~pythae.models.nn.base_architectures.BaseDecoder. When using modalities's
+            specific latent spaces, the decoder takes as input the concatenation of both 
+            latent codes. When None are provided, default MLP architectures are used.
 
     """
 

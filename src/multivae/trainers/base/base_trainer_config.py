@@ -11,8 +11,7 @@ from pythae.config import BaseConfig
 class BaseTrainerConfig(BaseConfig):
     """BaseTrainer config class stating the main training arguments.
 
-    Parameters:
-
+    Args:
         output_dir (str): The directory where model checkpoints, configs and final
             model will be stored. Default: None.
         per_device_train_batch_size (int): The number of training samples per batch and per device.
@@ -73,6 +72,7 @@ class BaseTrainerConfig(BaseConfig):
     drop_last: bool = False
 
     def __post_init__(self):
+        """Performs some checks on the training parameters."""
         super().__post_init__()
         env_local_rank = int(os.environ.get("LOCAL_RANK", -1))
         if self.local_rank == -1 and env_local_rank != -1:

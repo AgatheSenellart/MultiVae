@@ -24,7 +24,7 @@ select = ["D"]
 
 # On top of the Google convention, disable `D417`, which requires
 # documentation for every function parameter.
-ignore = ["D417"]
+ignore = ["D417", "D205", "D102", "D107", "D100"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

@@ -12,6 +12,7 @@ from .reconstruction_config import ReconstructionConfig
 
 class Reconstruction(Evaluator):
     """Class for computing reconstruction metrics.
+    
     Available metrics are:
 
         - MSE (Mean Squared Error): https://en.wikipedia.org/wiki/Mean_squared_error

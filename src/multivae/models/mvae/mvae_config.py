@@ -11,7 +11,7 @@ class MVAEConfig(BaseMultiVAEConfig):
     Args:
         n_modalities (int): The number of modalities. Default: None.
         latent_dim (int): The dimension of the latent space. Default: None.
-        input_dims (dict[str,tuple]) : The modalities'names (str) and input shapes (tuple).
+        input_dims (dict[str,tuple]): The modalities'names (str) and input shapes (tuple).
         uses_likelihood_rescaling (bool): To mitigate modality collapse, it is possible to use likelihood rescaling.
             (see : https://proceedings.mlr.press/v162/javaloy22a.html).
             The inputs_dim must be provided to compute the likelihoods rescalings. It is used in a number of models
@@ -30,12 +30,12 @@ class MVAEConfig(BaseMultiVAEConfig):
             joint ELBO but also the unimodal ELBOs and k random subset elbos. This is useful when training with
             a complete dataset but should be set to False when the dataset is already incomplete.
             Default to True.
-        k (int) : The number of subsets to use in the objective. The MVAE objective is the sum
+        k (int): The number of subsets to use in the objective. The MVAE objective is the sum
             of the unimodal ELBOs, the joint ELBO and of k random subset ELBOs. Default to 0.
-        warmup (int) : If warmup > 0, the MVAE model uses annealing during the first warmup epochs.
+        warmup (int): If warmup > 0, the MVAE model uses annealing during the first warmup epochs.
             In the objective, the KL terms are weighted by a factor beta that is linearly brought
             to 1 during the first warmup epochs. Default to 10.
-        beta (float) : The scaling factor for the divergence term. Default to 1.
+        beta (float): The scaling factor for the divergence term. Default to 1.
 
 
     """

@@ -580,7 +580,7 @@ class BaseTrainer:
     def eval_step(self, epoch: int):
         """Perform an evaluation step.
 
-        Parameters:
+        Args:
             epoch (int): The current epoch number
 
         Returns:
@@ -642,7 +642,7 @@ class BaseTrainer:
     def train_step(self, epoch: int):
         """The trainer performs training loop over the train_loader.
 
-        Parameters:
+        Args:
             epoch (int): The current epoch number
 
         Returns:

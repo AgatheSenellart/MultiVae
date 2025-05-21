@@ -9,7 +9,7 @@ from pythae.config import BaseConfig
 class BaseMultiVAEConfig(BaseConfig):
     """This is the base config for a Multi-Modal VAE model.
 
-    Parameters:
+    Args:
         n_modalities (int): The number of modalities. Default: None.
         latent_dim (int): The dimension of the latent space. Default: None.
         input_dims (dict[str,tuple]) : The modalities'names (str) and input shapes (tuple).
@@ -43,6 +43,7 @@ class BaseMultiVAEConfig(BaseConfig):
 
 @dataclass
 class EnvironmentConfig(BaseConfig):
+    """Base environment config to save python version."""
     python_version: str = "3.8"
 
 
@@ -51,7 +52,7 @@ class BaseAEConfig(BaseConfig):
     """This is the base configuration instance of encoders/decoders models deriving from
     :class:`~pythae.config.BaseConfig`.
 
-    Parameters:
+    Args:
         input_dim (tuple): The input_data dimension (channels X x_dim X y_dim)
         latent_dim (int): The latent space dimension. Default: None.
         style_dim (int) : For models with private latent spaces for each modality. Default: 0.

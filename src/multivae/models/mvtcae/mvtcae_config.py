@@ -28,8 +28,8 @@ class MVTCAEConfig(BaseMultiVAEConfig):
             computing the log-probability.
             For instance, with normal or laplace distribution, you can pass the scale in this dictionary with
             :code:`decoder_dist_params =  {'mod1' : {"scale" : 0.75}}`.
-        alpha (float) : The parameter that ponderates the total correlation ratio in the loss. Default to 0.1
-        beta (float) : The parameter that weights the sum of all KLs. Default to 2.5.
+        alpha (float): The parameter that ponderates the total correlation ratio in the loss. Default to 0.1
+        beta (float): The parameter that weights the sum of all KLs. Default to 2.5.
     """
 
     alpha: float = 0.1

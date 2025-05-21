@@ -19,6 +19,7 @@ from multivae.models.nn.base_architectures import (
 
 
 class Encoder_VAE_MLP(BaseEncoder):
+    """Simple MLP encoder."""
     def __init__(self, args: dict, n_hidden=1):
         BaseEncoder.__init__(self)
         self.input_dim = args.input_dim
@@ -71,16 +72,19 @@ class Encoder_VAE_MLP(BaseEncoder):
 
 
 class Encoder_VAE_MLP_Style(BaseMultilatentEncoder):
-    """A basic MLP encoders with two output embeddings :
+    """A basic MLP encoders with two output embeddings.
 
-    returns :
+    Args:
+        args (BaseAEConfig): Contains input_dim, latent_dim, style_dim.
+
+    Returns :
         ModelOutput(embedding = ..,
                     style_embedding = ..,
                     log_covariance = ..,
                     style_log_covariance = ..,)
     """
 
-    def __init__(self, args: dict):
+    def __init__(self, args: BaseAEConfig):
         BaseMultilatentEncoder.__init__(self)
         self.input_dim = args.input_dim
         self.latent_dim = args.latent_dim

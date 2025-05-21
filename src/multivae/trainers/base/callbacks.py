@@ -19,18 +19,12 @@ logger = logging.getLogger(__name__)
 
 
 def wandb_is_available():
+    """Check if wandb logger is available."""
     return importlib.util.find_spec("wandb") is not None
 
 
-def mlflow_is_available():
-    return importlib.util.find_spec("mlflow") is not None
-
-
-def comet_is_available():
-    return importlib.util.find_spec("comet_ml") is not None
-
-
 def load_wandb_path_from_folder(path):
+    """To load the wandb_path from a trained model."""
     with open(os.path.join(path, "wandb_info.json")) as fp:
         wandb_info = json.load(fp)
 
@@ -38,6 +32,9 @@ def load_wandb_path_from_folder(path):
 
 
 def rename_logs(logs):
+    """Renames the logs train_metric to train/metric, which is more
+    suited for wandb.
+    """
     train_prefix = "train_"
     eval_prefix = "eval_"
 
@@ -270,6 +267,7 @@ class WandbCallback(TrainingCallback):  # pragma: no cover
         .. code-block::
 
             $ wandb login
+
     """
 
     def __init__(self):

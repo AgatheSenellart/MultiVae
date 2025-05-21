@@ -53,6 +53,7 @@ class MultistageTrainer(BaseTrainer):
     def prepare_train_step(self, epoch, best_train_loss, best_eval_loss):
         """Function to operate changes between train_steps such as resetting the optimizer and
         the best losses values.
+        
         """
         if epoch in self.model.reset_optimizer_epochs:
             logger.info(f"Epoch {epoch} : reset the optimizer and losses.")

@@ -13,7 +13,18 @@ from .crmvae_config import CRMVAEConfig
 
 
 class CRMVAE(BaseMultiVAE):
-    """Main class for the CRMVAE model."""
+    """Main class for the CRMVAE model proposed in https://openreview.net/forum?id=Rn8u4MYgeNJ.
+    
+    Args:
+        model_config (CRMVAEConfig): An instance of CRMVAEConfig containing
+            all the parameters for the model.
+        encoders (Dict[str, ~pythae.models.nn.base_architectures.BaseEncoder]): A dictionary containing
+            the modalities names and the encoders for each modality. Each encoder is an instance of
+            Pythae's BaseEncoder. Default: None.
+        decoders (Dict[str, ~pythae.models.nn.base_architectures.BaseDecoder]): A dictionary containing
+            the modalities names and the decoders for each modality. Each decoder is an instance of
+            Pythae's BaseDecoder.
+    """
 
     def __init__(
         self, model_config: CRMVAEConfig, encoders: dict = None, decoders: dict = None
