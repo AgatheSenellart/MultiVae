@@ -356,8 +356,8 @@ class TestTELBO:
             ]
         )
 
-        assert model_rec.encoders.cpu() is type(model.encoders.cpu())
-        assert model_rec.decoders.cpu() is type(model.decoders.cpu())
+        assert isinstance(model_rec.encoders.cpu(), type(model.encoders.cpu()))
+        assert isinstance(model_rec.decoders.cpu(), type(model.decoders.cpu()))
 
         optim_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "optimizer.pt"))
 
@@ -466,8 +466,8 @@ class TestTELBO:
             ]
         )
 
-        assert model_rec.encoders.cpu() is type(model.encoders.cpu())
-        assert model_rec.decoders.cpu() is type(model.decoders.cpu())
+        assert isinstance(model_rec.encoders.cpu(), type(model.encoders.cpu()))
+        assert isinstance(model_rec.decoders.cpu(), type(model.decoders.cpu()))
 
     def test_compute_nll(self, model, dataset):
         """Test the compute_joint_nll function of the TELBO."""

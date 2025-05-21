@@ -420,8 +420,8 @@ class TestCVAE:
             ]
         )
 
-        assert model_rec.encoder.cpu() is type(model.encoder.cpu())
-        assert model_rec.decoder.cpu() is type(model.decoder.cpu())
+        assert isinstance(model_rec.encoder.cpu(), type(model.encoder.cpu()))
+        assert isinstance(model_rec.decoder.cpu(), type(model.decoder.cpu()))
 
         optim_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "optimizer.pt"))
 
@@ -529,5 +529,5 @@ class TestCVAE:
             ]
         )
 
-        assert model_rec.encoder.cpu() is type(model.encoder.cpu())
-        assert model_rec.decoder.cpu() is type(model.decoder.cpu())
+        assert isinstance(model_rec.encoder.cpu(), type(model.encoder.cpu()))
+        assert isinstance(model_rec.decoder.cpu(), type(model.decoder.cpu()))

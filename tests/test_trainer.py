@@ -562,6 +562,8 @@ class TestLogging:
         trainer._training_signature = "dummy_signature"
 
         assert not os.path.exists(os.path.join(tmp_path, log_output_dir))
+        trainer._get_file_logger(os.path.join(tmp_path, log_output_dir))
+
 
         assert os.path.exists(os.path.join(tmp_path, log_output_dir))
         assert os.path.exists(
