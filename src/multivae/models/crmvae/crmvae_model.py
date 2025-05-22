@@ -135,9 +135,9 @@ class CRMVAE(BaseMultiVAE):
                 embedding=output.embedding, log_covariance=output.log_covariance.clone()
             )
             if hasattr(inputs, "masks"):
-                masked_outputs[m].log_covariance[(1 - inputs.masks[m].int()).bool()] = (
-                    torch.inf
-                )
+                masked_outputs[m].log_covariance[
+                    (1 - inputs.masks[m].int()).bool()
+                ] = torch.inf
         return encoders_outputs, masked_outputs
 
     def _infer_all_latent_parameters(self, inputs: MultimodalBaseDataset, **kwargs):

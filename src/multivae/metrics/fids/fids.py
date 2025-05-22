@@ -187,9 +187,9 @@ class FIDEvaluator(Evaluator):
             f"Training and test mean vectors have different lengths. mu1 has shape {mu1.shape}"
             f"whereas mu2 has shape {mu2.shape}"
         )
-        assert sigma1.shape == sigma2.shape, (
-            "Training and test covariances have different dimensions"
-        )
+        assert (
+            sigma1.shape == sigma2.shape
+        ), "Training and test covariances have different dimensions"
 
         diff = mu1 - mu2
 

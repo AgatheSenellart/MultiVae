@@ -195,7 +195,9 @@ class CMVAE(BaseMultiVAE):
                     w = self.latent_dist(
                         mu_prior_mod,
                         sigma_prior_mod,
-                    ).rsample([k_iwae])  # K, n_batch, modality_specific_sim
+                    ).rsample(
+                        [k_iwae]
+                    )  # K, n_batch, modality_specific_sim
 
                     z_x = torch.cat([u_x, w], dim=-1)
 
