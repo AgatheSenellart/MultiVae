@@ -4,7 +4,6 @@ from typing import Dict, Union
 import numpy as np
 import torch
 import torch.distributions as dist
-import torch.nn.functional as F
 from pythae.models.base.base_utils import ModelOutput
 from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
 from pythae.models.normalizing_flows.base import BaseNF
@@ -24,11 +23,9 @@ logger.setLevel(logging.INFO)
 
 
 class JNF(BaseJointModel):
-    """
-    The JNF model.
+    """The JNF model.
 
     Args:
-
         model_config (JNFConfig): Contains parameters for the JNF model.
 
         encoders (Dict[str, ~pythae.models.nn.base_architectures.BaseEncoder]): A dictionary
@@ -111,7 +108,6 @@ class JNF(BaseJointModel):
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs):
         """Forward pass of the JNF model. Returns the loss and metrics."""
-
         # Check that the dataset is not incomplete
         super().forward(inputs)
 
@@ -193,8 +189,7 @@ class JNF(BaseJointModel):
         return_mean=False,
         **kwargs,
     ) -> ModelOutput:
-        """
-        Generate encodings conditioning on all modalities or a subset of modalities.
+        """Generate encodings conditioning on all modalities or a subset of modalities.
 
         Args:
             inputs (MultimodalBaseDataset): The dataset to use for the conditional generation.
@@ -222,7 +217,6 @@ class JNF(BaseJointModel):
 
 
         """
-
         mcmc_steps = kwargs.pop("mcmc_steps", 100)
         n_lf = kwargs.pop("n_lf", 10)
         eps_lf = kwargs.pop("eps_lf", 0.01)

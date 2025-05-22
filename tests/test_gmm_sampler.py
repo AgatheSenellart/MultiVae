@@ -1,9 +1,8 @@
 import numpy as np
 import pytest
 import torch
-from encoders import Encoder_test, Encoder_test_multilatents
 
-from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
+from multivae.data.datasets.base import MultimodalBaseDataset
 from multivae.models.base.base_config import BaseAEConfig
 from multivae.models.mopoe.mopoe_config import MoPoEConfig
 from multivae.models.mopoe.mopoe_model import MoPoE
@@ -13,12 +12,15 @@ from multivae.samplers.gaussian_mixture import (
     GaussianMixtureSamplerConfig,
 )
 
+from .encoders import EncoderTest, EncoderTestMultilatents
+
 
 class Test_GMMSampler:
+    """Test the GaussianMixtureSampler class."""
 
     @pytest.fixture
     def dataset(self):
-        # Create simple small dataset
+        """Create simple small dataset"""
         data = dict(
             mod1=torch.Tensor([[1.0, 2.0], [4.0, 5.0]]),
             mod2=torch.Tensor([[67.1, 2.3, 3.0], [1.3, 2.0, 3.0]]),
@@ -32,6 +34,7 @@ class Test_GMMSampler:
 
     @pytest.fixture(params=["one_latent_space", "multi_latent_spaces"])
     def archi_and_config(self, beta, request):
+        """Create architectures and configs for test model."""
         if request.param == "one_latent_space":
             # Create an instance of mvae model
             config1 = BaseAEConfig(input_dim=(2,), latent_dim=5)
@@ -39,10 +42,10 @@ class Test_GMMSampler:
             config3 = BaseAEConfig(input_dim=(4,), latent_dim=5)
 
             encoders = dict(
-                mod1=Encoder_test(config1),
-                mod2=Encoder_test(config2),
-                mod3=Encoder_test(config3),
-                mod4=Encoder_test(config3),
+                mod1=EncoderTest(config1),
+                mod2=EncoderTest(config2),
+                mod3=EncoderTest(config3),
+                mod4=EncoderTest(config3),
             )
 
             model_config = MoPoEConfig(
@@ -65,17 +68,16 @@ class Test_GMMSampler:
             config3 = BaseAEConfig(input_dim=(4,), latent_dim=5, style_dim=3)
 
             encoders = dict(
-                mod1=Encoder_test_multilatents(config1),
-                mod2=Encoder_test_multilatents(config2),
-                mod3=Encoder_test_multilatents(config3),
-                mod4=Encoder_test_multilatents(config3),
+                mod1=EncoderTestMultilatents(config1),
+                mod2=EncoderTestMultilatents(config2),
+                mod3=EncoderTestMultilatents(config3),
+                mod4=EncoderTestMultilatents(config3),
             )
             model_config = MoPoEConfig(
                 n_modalities=4,
                 latent_dim=5,
                 input_dims=dict(mod1=(2,), mod2=(3,), mod3=(4,), mod4=(4,)),
                 beta=beta,
-                use_modality_specific_spaces=True,
                 modalities_specific_dim=dict(mod1=4, mod2=2, mod3=3, mod4=3),
             )
             decoders = dict(
@@ -89,12 +91,14 @@ class Test_GMMSampler:
 
     @pytest.fixture(params=[1.0, 1.5, 2.0])
     def beta(self, request):
+        """Beta parameter for the MoPoE model."""
         beta = request.param
 
         return beta
 
     @pytest.fixture(params=[True, False])
     def model(self, archi_and_config, request):
+        """Create a MoPoE model for testing the GMM sampler."""
         custom = request.param
         if custom:
             model = MoPoE(**archi_and_config)
@@ -104,10 +108,12 @@ class Test_GMMSampler:
 
     @pytest.fixture(params=[4, 10])
     def gmm_config(self, request):
+        """Create a GMM config for testing the GMM sampler."""
         return GaussianMixtureSamplerConfig(n_components=request.param)
 
     @pytest.fixture
     def gmm_sampler(self, gmm_config, model):
+        """Create a GMM sampler."""
         sampler = GaussianMixtureSampler(model, gmm_config)
         return sampler
 
@@ -124,6 +130,9 @@ class Test_GMMSampler:
             assert gmm_sampler.mod_gmms.keys() == gmm_sampler.model.encoders.keys()
 
     def test_sample_gmm(self, gmm_sampler, dataset):
+        """Check that we can sample new latent codes with the GMM sampler.
+        We check the output type and the shape of the output.
+        """
         gmm_sampler.fit(dataset)
         output = gmm_sampler.sample(100)
 

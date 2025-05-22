@@ -7,8 +7,7 @@ from ..base import BaseSamplerConfig
 class GaussianMixtureSamplerConfig(BaseSamplerConfig):
     """Gaussian mixture sampler config class.
 
-    Parameters:
-
+    Args:
         n_components (int): The number of Gaussians in the mixture. Default to 10
     """
 

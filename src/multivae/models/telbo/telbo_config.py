@@ -7,8 +7,7 @@ from ..joint_models import BaseJointModelConfig
 
 @dataclass
 class TELBOConfig(BaseJointModelConfig):
-    """
-    Configuration class for the TELBO model from (arXiv:1705.10762 [cs, stat])
+    """Configuration class for the TELBO model from (arXiv:1705.10762 [cs, stat])
     "Generative Models of Visually Grounded Imagination" (Vedantam et al,2018).
 
 

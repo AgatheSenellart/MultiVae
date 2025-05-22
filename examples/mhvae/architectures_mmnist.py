@@ -25,7 +25,6 @@ class my_input_encoder(BaseEncoder):
         )
 
     def forward(self, x):
-
         x = self.network(x)
 
         return ModelOutput(embedding=x)
@@ -40,7 +39,6 @@ bu_1 = nn.Sequential(
 
 
 class bu_2(BaseEncoder):
-
     def __init__(self, latent_dim):
         super().__init__()
 
@@ -73,7 +71,6 @@ class bu_2(BaseEncoder):
 
 
 class td_2(nn.Module):
-
     def __init__(self, latent_dim):
         super().__init__()
 
@@ -100,7 +97,6 @@ td_1 = nn.Sequential(
 
 
 class my_input_decoder(BaseDecoder):
-
     def __init__(self):
         super().__init__()
 
@@ -119,7 +115,6 @@ class my_input_decoder(BaseDecoder):
 
 
 class prior_block(BaseEncoder):
-
     def __init__(self, n_channels):
         super().__init__()
 
@@ -133,7 +128,6 @@ class prior_block(BaseEncoder):
 
 
 class posterior_block(BaseEncoder):
-
     def __init__(self, n_channels_before_concat):
         super().__init__()
         self.network = nn.Sequential(

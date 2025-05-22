@@ -7,9 +7,7 @@ from ..base.evaluator_config import EvaluatorConfig
 
 @dataclass
 class ReconstructionConfig(EvaluatorConfig):
-    """
-
-    Config class for a quantitative evaluation of the reconstruction quality.
+    """Config class for a quantitative evaluation of the reconstruction quality.
 
     Args:
         batch_size (int) : The batch size to use in the evaluation.

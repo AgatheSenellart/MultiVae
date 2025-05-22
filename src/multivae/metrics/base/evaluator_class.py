@@ -13,8 +13,7 @@ from .evaluator_config import EvaluatorConfig
 
 
 class Evaluator:
-    """
-    Base class for computing metrics.
+    """Base class for computing metrics.
 
     Args:
         model (BaseMultiVAE) : The model to evaluate.
@@ -100,7 +99,6 @@ class Evaluator:
 
     def finish(self):
         """Removes handlers and finish the wandb run."""
-
         self.logger.removeHandler(self.console_handler)
         if hasattr(self, "file_handler"):
             self.logger.removeHandler(self.file_handler)

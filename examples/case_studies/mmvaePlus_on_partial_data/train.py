@@ -1,7 +1,4 @@
-"""
-This is the main file for training the MMVAE +  model on PolyMNIST with missing data.
-
-"""
+"""This is the main file for training the MMVAE +  model on PolyMNIST with missing data."""
 
 import argparse
 

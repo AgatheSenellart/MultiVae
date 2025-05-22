@@ -1,6 +1,4 @@
-"""
-
-Sampler fitting an Masked Autoregressive Flow in the multimodal variational autoencoder's latent space.
+"""Sampler fitting an Masked Autoregressive Flow in the multimodal variational autoencoder's latent space.
 This class is simply adapted from Pythae's iaf_sampler for the multimodal case.
 
 

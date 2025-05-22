@@ -1,20 +1,25 @@
+"""Architectures for the PolyMNIST dataset."""
+
 import numpy as np
 import torch
 from pythae.models.base.base_utils import ModelOutput
-from pythae.models.nn.benchmarks.utils import ResBlock
 from torch import nn
 
 from multivae.models.base.base_config import BaseAEConfig
 
-from .base_architectures import BaseDecoder, BaseEncoder, BaseMultilatentEncoder
+from .base_architectures import BaseDecoder, BaseEncoder
 
 
 class Flatten(torch.nn.Module):
+    """Simple transform to flatten."""
+
     def forward(self, x):
         return x.view(x.size(0), -1)
 
 
 class Unflatten(torch.nn.Module):
+    """Simple transform to reverse flatten."""
+
     def __init__(self, ndims):
         super(Unflatten, self).__init__()
         self.ndims = ndims
@@ -29,8 +34,7 @@ class Unflatten(torch.nn.Module):
 
 
 class EncoderConvMMNIST(BaseEncoder):
-    """
-    Convolutional encoder for the PolyMNIST dataset.
+    """Convolutional encoder for the PolyMNIST dataset.
 
     Adapted from:
     https://www.cs.toronto.edu/~lczhang/360/lec/w05/autoencoder.html
@@ -72,9 +76,7 @@ class EncoderConvMMNIST(BaseEncoder):
 
 
 class EncoderConvMMNIST_adapted(BaseEncoder):
-    """
-    Simple convolutional encoder with no linear layers at the end.
-    """
+    """Simple convolutional encoder with no linear layers at the end."""
 
     def __init__(self, model_config: BaseAEConfig):
         super(EncoderConvMMNIST_adapted, self).__init__()
@@ -108,9 +110,7 @@ class EncoderConvMMNIST_adapted(BaseEncoder):
 
 
 class EncoderConvMMNIST_multilatents(BaseEncoder):
-    """
-    Adapt so that it works with multiple latent spaces models.
-    """
+    """Adapt so that it works with multiple latent spaces models."""
 
     def __init__(self, model_config: BaseAEConfig):
         super(EncoderConvMMNIST_multilatents, self).__init__()
@@ -171,9 +171,8 @@ class EncoderConvMMNIST_multilatents(BaseEncoder):
 
 
 class DecoderConvMMNIST(BaseDecoder):
-    """
-    Adopted from:
-    https://www.cs.toronto.edu/~lczhang/360/lec/w05/autoencoder.html
+    """Adopted from:
+    https://www.cs.toronto.edu/~lczhang/360/lec/w05/autoencoder.html.
     """
 
     def __init__(self, model_config: BaseAEConfig):
@@ -213,9 +212,8 @@ class DecoderConvMMNIST(BaseDecoder):
 
 
 class ResnetBlock(nn.Module):
-    """
-    Resnet block for the PolyMNIST dataset.
-    Adapted from https://github.com/epalu/mmvaeplus
+    """Resnet block for the PolyMNIST dataset.
+    Adapted from https://github.com/epalu/mmvaeplus.
     """
 
     def __init__(
@@ -254,7 +252,7 @@ class ResnetBlock(nn.Module):
 
 
 class EncoderResnetMMNIST(BaseEncoder):
-    """Resnet encoder for PolyMNIST adapted from https://github.com/epalu/mmvaeplus"""
+    """Resnet encoder for PolyMNIST adapted from https://github.com/epalu/mmvaeplus."""
 
     def __init__(self, private_latent_dim, shared_latent_dim):
         super().__init__()
@@ -297,7 +295,6 @@ class EncoderResnetMMNIST(BaseEncoder):
         self.fc_lv_u = nn.Linear(self.nf0 * s0 * s0, shared_latent_dim)
 
     def forward(self, x):
-
         out_u = self.conv_img_u(x)
         out_u = self.resnet_u(out_u)
         out_u = out_u.view(out_u.size()[0], self.nf0 * self.s0 * self.s0)
@@ -322,14 +319,11 @@ class EncoderResnetMMNIST(BaseEncoder):
 
 
 class DecoderResnetMMNIST(BaseDecoder):
-    """
-    Resnet decoder for PolyMNIST from https://github.com/epalu/mmvaeplus
-    """
+    """Resnet decoder for PolyMNIST from https://github.com/epalu/mmvaeplus."""
 
     def __init__(self, latent_dim):
-        """
-        Args:
-            latent_dim : total latent dimension (private + shared)
+        """Args:
+        latent_dim : total latent dimension (private + shared).
         """
         super().__init__()
 
@@ -360,7 +354,6 @@ class DecoderResnetMMNIST(BaseDecoder):
         )
 
     def forward(self, z):
-
         out = self.fc(z).view(-1, self.nf0, self.s0, self.s0)
         out = self.resnet(out)
         out = self.conv_img(out)

@@ -20,9 +20,8 @@ from .dmvae_config import DMVAEConfig
 
 
 class DMVAE(BaseMultiVAE):
-    """
-    The DMVAE model from the paper
-    'Private-Shared Disentangled Multimodal VAE for Learning of Latent Representations'
+    """The DMVAE model from the paper
+    'Private-Shared Disentangled Multimodal VAE for Learning of Latent Representations'.
 
     Mihee Lee, Vladimir Pavlovic
 
@@ -93,11 +92,9 @@ class DMVAE(BaseMultiVAE):
         )
 
     def _infer_latent_parameters(self, inputs, subset=None):
-        """
-        Compute the latent parameters for the shared and private latent spaces,
+        """Compute the latent parameters for the shared and private latent spaces,
         taking the product-of-experts on the subset.
         """
-
         # if no subset is provided, use all available modalities
         if subset is None:
             subset = list(inputs.data.keys())
@@ -157,7 +154,6 @@ class DMVAE(BaseMultiVAE):
                 For each modality, a boolean tensor indicates which samples are available. (The non
                 available samples are assumed to be replaced with zero values in the multimodal dataset entry.)
         """
-
         (
             joint_mu,
             joint_lv,
@@ -185,7 +181,6 @@ class DMVAE(BaseMultiVAE):
         return ModelOutput(loss=loss.mean(), metrics=metrics)
 
     def _compute_elbo(self, q_mu, q_lv, private_params, inputs):
-
         shared_z = rsample_from_gaussian(q_mu, q_lv)
 
         # Compute reconstructions
@@ -241,8 +236,7 @@ class DMVAE(BaseMultiVAE):
         return_mean=False,
         **kwargs,
     ):
-        """
-        Generate encodings conditioning on all modalities or a subset of modalities.
+        """Generate encodings conditioning on all modalities or a subset of modalities.
 
         Args:
             inputs (MultimodalBaseDataset): The dataset to use for the conditional generation.
@@ -257,7 +251,6 @@ class DMVAE(BaseMultiVAE):
                 'one_latent_space' (bool) = False
                 'modalities_z' (dict[str,torch.Tensor (N, n_data,mod_latent_dim)])
         """
-
         # Call super to perform some checks and preprocess the cond_mod argument
         # you obtain a list of the modalities' names to condition on
         cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
@@ -289,14 +282,12 @@ class DMVAE(BaseMultiVAE):
         return ModelOutput(z=z, one_latent_space=False, modalities_z=modalities_z)
 
     def generate_from_prior(self, n_samples, **kwargs):
-        """
-        Generates latent variables from the prior for the shared latent spaces and
+        """Generates latent variables from the prior for the shared latent spaces and
         for each modality specific latent space.
 
         Args:
             n_samples
         """
-
         device = self.device if self.device is not None else "cpu"
 
         # Generate shared latent variable
@@ -326,13 +317,11 @@ class DMVAE(BaseMultiVAE):
         """Estimate the negative joint likelihood.
 
         Args:
-
             inputs (MultimodalBaseDataset) : a batch of samples.
             K (int) : the number of importance samples for the estimation. Default to 1000.
             batch_size_K (int) : Default to 100.
 
         Returns:
-
             The negative log-likelihood summed over the batch.
         """
         # Check that the dataset is complete
@@ -370,8 +359,9 @@ class DMVAE(BaseMultiVAE):
                 for mod in inputs.data:
                     # Sample from the modality specific latent space
                     mu_private, logvar_private = private_params[mod]
-                    mu_private, sigma_private = mu_private[i], torch.exp(
-                        0.5 * logvar_private[i]
+                    mu_private, sigma_private = (
+                        mu_private[i],
+                        torch.exp(0.5 * logvar_private[i]),
                     )
                     private_latents = dist.Normal(mu_private, sigma_private).rsample(
                         [len(shared_latents)]

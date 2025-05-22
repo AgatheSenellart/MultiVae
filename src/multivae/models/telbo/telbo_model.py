@@ -1,7 +1,6 @@
 from typing import Dict, Union
 
 import torch
-import torch.distributions as dist
 from pythae.models.base.base_utils import ModelOutput
 from pythae.models.nn.base_architectures import BaseDecoder, BaseEncoder
 
@@ -13,11 +12,9 @@ from .telbo_config import TELBOConfig
 
 
 class TELBO(BaseJointModel):
-    """
-    The Triple ELBO VAE model.
+    """The Triple ELBO VAE model.
 
     Args:
-
         model_config (TELBOConfig): An instance of TELBOConfig in which any model's parameters is
             made available.
 
@@ -25,7 +22,7 @@ class TELBO(BaseJointModel):
             the modalities names and the encoders for each modality. Each encoder is an instance of
             Pythae's BaseEncoder. Default: None.
 
-        decoder (Dict[str, ~pythae.models.nn.base_architectures.BaseDecoder]): A dictionary containing
+        decoders (Dict[str, ~pythae.models.nn.base_architectures.BaseDecoder]): A dictionary containing
             the modalities names and the decoders for each modality. Each decoder is an instance of
             Pythae's BaseDecoder.
 
@@ -60,13 +57,13 @@ class TELBO(BaseJointModel):
 
     def _set_torch_no_grad_on_joint_vae(self):
         """Function used to freeze the parameters of the joint
-        encoder and decoders after the warmup."""
+        encoder and decoders after the warmup.
+        """
         self.joint_encoder.requires_grad_(False)
         self.decoders.requires_grad_(False)
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs):
         """Forward pass of the model."""
-
         # Check that the dataset is not incomplete
         super().forward(inputs)
 
@@ -134,8 +131,7 @@ class TELBO(BaseJointModel):
         return_mean=False,
         **kwargs,
     ) -> ModelOutput:
-        """
-        Generate encodings conditioning on all modalities or a subset of modalities.
+        """Generate encodings conditioning on all modalities or a subset of modalities.
 
         Args:
             inputs (MultimodalBaseDataset): The dataset to use for the conditional generation.
@@ -151,7 +147,6 @@ class TELBO(BaseJointModel):
                 one_latent_space (bool) = True
 
         """
-
         self.eval()
         # Transform to list and check that dataset is complete
         cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod

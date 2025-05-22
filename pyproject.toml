@@ -9,3 +9,24 @@ line_length = 88
 [tool.black]
 line-length = 88
 target-version = ['py38', 'py39', 'py310']
+
+[tool.ruff]
+builtins = ["_"]
+
+[tool.ruff.lint]
+# Enable all `pydocstyle` rules, limiting to those that adhere to the
+# Google convention via `convention = "google"`, below.
+select = ["D"]
+
+# On top of the Google convention, disable `D417`, which requires
+# documentation for every function parameter.
+ignore = ["D417", "D205", "D102", "D107", "D100"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.11.10",
+]
+

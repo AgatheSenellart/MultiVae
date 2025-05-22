@@ -1,5 +1,4 @@
-r"""
-Implementation of the Joint Multimodal VAE model from the paper "Joint Multimodal Learning with Deep
+r"""Implementation of the Joint Multimodal VAE model from the paper "Joint Multimodal Learning with Deep
 Generative Models" (http://arxiv.org/abs/1611.01891).
 
 The JMVAE model is one of the first multimodal variational autoencoders models.

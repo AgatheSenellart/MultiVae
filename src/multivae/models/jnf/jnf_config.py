@@ -1,5 +1,3 @@
-from typing import Literal
-
 from pydantic.dataclasses import dataclass
 
 from ..joint_models import BaseJointModelConfig
@@ -7,8 +5,7 @@ from ..joint_models import BaseJointModelConfig
 
 @dataclass
 class JNFConfig(BaseJointModelConfig):
-    """
-    This is the base config for the JNF model.
+    """This is the base config for the JNF model.
 
     Args:
         n_modalities (int): The number of modalities. Default: None.

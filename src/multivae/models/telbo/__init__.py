@@ -1,5 +1,5 @@
 r"""Implementation the TELBO algorithm from "Generative Models of Visually Grounded Imagination"
-(https://arxiv.org/abs/1705.10762)
+(https://arxiv.org/abs/1705.10762).
 
 
 The TELBO model use a joint encoder :math:`q_{\phi}(z|X)` as the JMVAE but uses the following Triple ELBO loss:

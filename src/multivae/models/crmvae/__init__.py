@@ -1,5 +1,4 @@
-r"""
-The CRMVAE model proposed in https://openreview.net/forum?id=Rn8u4MYgeNJ.
+r"""The CRMVAE model proposed in https://openreview.net/forum?id=Rn8u4MYgeNJ.
 
 It builds upon the MVTCAE model by adding unimodal reconstruction terms.
 

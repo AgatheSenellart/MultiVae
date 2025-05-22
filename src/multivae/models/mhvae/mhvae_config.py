@@ -1,6 +1,3 @@
-from dataclasses import field
-from typing import Dict, List, Literal
-
 from pydantic.dataclasses import dataclass
 
 from multivae.models.base import BaseMultiVAEConfig
@@ -8,12 +5,9 @@ from multivae.models.base import BaseMultiVAEConfig
 
 @dataclass
 class MHVAEConfig(BaseMultiVAEConfig):
-    """
+    """This is the configuration class for the Conditional Variational Autoencoder model.
 
-    This is the configuration class for the Conditional Variational Autoencoder model.
-
-    Parameters:
-
+    Args:
         n_modalities (int): The number of modalities. Default: None.
         latent_dim (int): The dimension of the latent space. Default: None.
         input_dims (dict[str,tuple]) : The modalities'names (str) and input shapes (tuple).

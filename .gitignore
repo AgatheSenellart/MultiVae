@@ -152,3 +152,4 @@ examples/tutorial_notebooks/trained_maf_sampler/*
 
 scratch/
 data/
+uv.lock

@@ -33,7 +33,6 @@ class MVTCAE(BaseMultiVAE):
     def __init__(
         self, model_config: MVTCAEConfig, encoders: dict = None, decoders: dict = None
     ):
-
         super().__init__(model_config, encoders, decoders)
 
         self.alpha = model_config.alpha
@@ -42,7 +41,6 @@ class MVTCAE(BaseMultiVAE):
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
         """Forward pass of the model that returns the loss."""
-
         # Compute latents parameters for all subsets
         latents = self._inference(inputs)
         results = {}
@@ -134,8 +132,7 @@ class MVTCAE(BaseMultiVAE):
         return encoders_outputs
 
     def _inference(self, inputs: MultimodalBaseDataset, **kwargs):
-        """
-        This function takes all the modalities contained in inputs
+        """This function takes all the modalities contained in inputs
         and compute the product of experts of the modalities encoders.
 
         Args:
@@ -144,7 +141,6 @@ class MVTCAE(BaseMultiVAE):
         Returns:
             dict : Contains the modalities' encoders parameters and the poe parameters.
         """
-
         latents = {}
         enc_mods = self._modality_encode(inputs)
         latents["modalities"] = enc_mods
@@ -180,8 +176,7 @@ class MVTCAE(BaseMultiVAE):
         return_mean=False,
         **kwargs,
     ) -> ModelOutput:
-        """
-        Generate encodings conditioning on all modalities or a subset of modalities.
+        """Generate encodings conditioning on all modalities or a subset of modalities.
 
         Args:
             inputs (MultimodalBaseDataset): The dataset to use for the conditional generation.
@@ -197,7 +192,6 @@ class MVTCAE(BaseMultiVAE):
                 one_latent_space (bool) = True
 
         """
-
         # Call super() function to transform to preprocess cond_mod. You obtain a list of
         # the modalities' names to condition on.
         cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
@@ -226,13 +220,11 @@ class MVTCAE(BaseMultiVAE):
         """Estimate the negative joint likelihood.
 
         Args:
-
             inputs (MultimodalBaseDataset) : a batch of samples.
             K (int) : the number of importance samples for the estimation. Default to 1000.
             batch_size_K (int) : Default to 100.
 
         Returns:
-
             The negative log-likelihood summed over the batch.
         """
         # Check that the dataset is complete

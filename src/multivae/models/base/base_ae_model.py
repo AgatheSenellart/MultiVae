@@ -115,8 +115,7 @@ class BaseMultiVAE(BaseModel):
         # reconstruction loss as the log probability.
 
     def check_input_dims(self, model_config):
-        """Check that the input dimensions are coherent with the provided number of modalities"""
-
+        """Check that the input dimensions are coherent with the provided number of modalities."""
         if model_config.input_dims is not None:
             if len(model_config.input_dims.keys()) != model_config.n_modalities:
                 raise AttributeError(
@@ -188,8 +187,7 @@ class BaseMultiVAE(BaseModel):
         return_mean=False,
         **kwargs,
     ) -> ModelOutput:
-        """
-        Generate encodings conditioning on all modalities or a subset of modalities.
+        """Generate encodings conditioning on all modalities or a subset of modalities.
 
         Args:
             inputs (MultimodalBaseDataset): The dataset to use for the conditional generation.
@@ -197,7 +195,6 @@ class BaseMultiVAE(BaseModel):
             N (int) : The number of encodings to sample for each datapoint. Default to 1.
 
         """
-
         # If the input cond_mod is a string : convert it to a list
         if isinstance(cond_mod, str):
             if cond_mod == "all":
@@ -232,14 +229,15 @@ class BaseMultiVAE(BaseModel):
             embedding (ModelOutput): contains the latent variables. It must have the same format as the
                 output of the encode function.
             modalities (Union(List, str), Optional): the modalities to decode from z. Default to 'all'.
-        Return
+
+        Returns:
             ModelOutput : containing a tensor per modality name.
         """
         self.eval()
         with torch.no_grad():
             if modalities == "all":
                 modalities = list(self.decoders.keys())
-            elif type(modalities) == str:
+            elif isinstance(modalities, str):
                 modalities = [modalities]
 
             try:
@@ -313,10 +311,9 @@ class BaseMultiVAE(BaseModel):
         return output
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
-        """
-        Main forward pass outputing the VAE outputs
+        """Main forward pass outputing the VAE outputs
         This function should output a :class:`~pythae.models.base.base_utils.ModelOutput` instance
-        gathering all the model outputs
+        gathering all the model outputs.
 
         Args:
             inputs (BaseDataset): The training data with labels, masks etc...
@@ -331,7 +328,7 @@ class BaseMultiVAE(BaseModel):
         raise NotImplementedError()
 
     def update(self):
-        """Method that allows model update during the training (at the end of a training epoch)
+        """Method that allows model update during the training (at the end of a training epoch).
 
         If needed, this method must be implemented in a child class.
 
@@ -346,7 +343,7 @@ class BaseMultiVAE(BaseModel):
         return BaseDictDecoders(self.input_dims, model_config.latent_dim)
 
     def set_encoders(self, encoders: dict) -> None:
-        """Set the encoders of the model"""
+        """Set the encoders of the model."""
         self.encoders = nn.ModuleDict()
         for modality in encoders:
             encoder = encoders[modality]
@@ -361,7 +358,7 @@ class BaseMultiVAE(BaseModel):
             self.encoders[modality] = encoder
 
     def set_decoders(self, decoders: dict) -> None:
-        """Set the decoders of the model"""
+        """Set the decoders of the model."""
         self.decoders = nn.ModuleDict()
         for modality in decoders:
             decoder = decoders[modality]
@@ -380,10 +377,15 @@ class BaseMultiVAE(BaseModel):
         raise NotImplementedError
 
     def generate_from_prior(self, n_samples, **kwargs):
-        """
-        Generate latent samples from the prior distribution.
+        """Generate latent samples from the prior distribution.
         This is the base class in which we consider a static standard Normal Prior.
         This may be overwritten in subclasses.
+
+        Args:
+            n_samples (int): number of samples to generate
+            **kwargs: additional arguments
+        Returns:
+            ModelOutput: A ModelOutput instance containing the generated samples
         """
         sample_shape = (
             [n_samples, self.latent_dim] if n_samples > 1 else [self.latent_dim]
@@ -398,9 +400,9 @@ class BaseMultiVAE(BaseModel):
         pred_mods: Union[list, tuple],
         k_iwae=1000,
     ):
-        """Compute the conditional likelihood :math: `ln p(x_{pred}|x_{cond})`` with MonteCarlo Sampling and the approximation :
+        r"""Compute the conditional likelihood :math: `ln p(x_{pred}|x_{cond})`` with MonteCarlo Sampling and the approximation :
         .. math::
-                \ln p(x_{pred)|x_{cond}) = \frac{1}{K}\sum_{z^{(i)} ~ q(z^{(i)}|x_{cond}), i=1}^{K} \ln p(x_{pred}|z^{(i)})
+                \ln p(x_{pred)|x_{cond}) = \frac{1}{K}\sum_{z^{(i)} ~ q(z^{(i)}|x_{cond}), i=1}^{K} \ln p(x_{pred}|z^{(i)}).
 
         Args:
             inputs (MultimodalBaseDataset): the data to compute the likelihood on.
@@ -411,7 +413,6 @@ class BaseMultiVAE(BaseModel):
         Returns:
             dict: Contains the negative log-likelihood for each modality in pred_mods.
         """
-
         cnll = {m: [] for m in pred_mods}
 
         for _ in range(k_iwae):

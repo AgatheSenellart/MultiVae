@@ -11,8 +11,8 @@ from .reconstruction_config import ReconstructionConfig
 
 
 class Reconstruction(Evaluator):
-    """
-    Class for computing reconstruction metrics.
+    """Class for computing reconstruction metrics.
+
     Available metrics are:
 
         - MSE (Mean Squared Error): https://en.wikipedia.org/wiki/Mean_squared_error
@@ -21,7 +21,6 @@ class Reconstruction(Evaluator):
 
 
     Args:
-
         model (BaseMultiVAE) : The model to evaluate.
         test_dataset (MultimodalBaseDataset) : The dataset to use for computing the metrics.
         output (str) : The folder path to save metrics. The metrics will be saved in a metrics.txt file.
@@ -38,13 +37,10 @@ class Reconstruction(Evaluator):
         self.metric_name = eval_config.metric
 
     def reconstruction_from_subset(self, subset: List[str]):
-        """
-
-        Take a subset of modalities as input and compute reconstructions for those
+        """Take a subset of modalities as input and compute reconstructions for those
         modalities.
 
         """
-
         if self.metric_name in self.metrics_dict:
             metric = self.metrics_dict[self.metric_name]().to(self.device)
             for batch in self.test_loader:
@@ -83,7 +79,6 @@ class Reconstruction(Evaluator):
 
     def eval(self):
         """Compute metrics for joint reconstruction and unimodal reconstruction."""
-
         # Joint reconstruction with all modalities
         self.reconstruction_from_subset(list(self.model.encoders.keys()))
 

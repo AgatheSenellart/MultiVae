@@ -42,7 +42,6 @@ samplers = [maf_sampler, gmm_sampler, None]
 classifiers = load_mmnist_classifiers(CLASSIFIER_PATH, device="cpu")
 
 for sampler in samplers:
-
     config = CoherenceEvaluatorConfig(batch_size=128)
     module_eval = CoherenceEvaluator(
         model, classifiers, test_data, eval_config=config, sampler=sampler

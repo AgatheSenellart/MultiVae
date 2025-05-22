@@ -1,4 +1,4 @@
-from typing import Dict, Union
+from typing import Union
 
 from pydantic.dataclasses import dataclass
 
@@ -7,8 +7,7 @@ from ..base import BaseMultiVAEConfig
 
 @dataclass
 class DMVAEConfig(BaseMultiVAEConfig):
-    """
-    Config class for the DMVAE model from "Private-Shared Disentangled Multimodal VAE for Learning of Latent
+    """Config class for the DMVAE model from "Private-Shared Disentangled Multimodal VAE for Learning of Latent
     Representations".
 
 

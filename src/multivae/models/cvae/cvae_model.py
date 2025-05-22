@@ -4,8 +4,7 @@ import torch
 import torch.distributions as dist
 
 from multivae.data.datasets.base import MultimodalBaseDataset
-from multivae.models.base import BaseModel
-from multivae.models.base.base_model import ModelOutput
+from multivae.models.base import BaseModel, ModelOutput
 from multivae.models.base.base_utils import kl_divergence, set_decoder_dist
 from multivae.models.nn.base_architectures import (
     BaseConditionalDecoder,
@@ -22,11 +21,9 @@ from .cvae_config import CVAEConfig
 
 
 class CVAE(BaseModel):
-    """
-    Main class for the Conditional Variational Autoencoder.
+    """Main class for the Conditional Variational Autoencoder.
 
     Args:
-
         model_config (CVAEConfig): the model configuration class.
         encoder (BaseEncoder): The encoder network.
         decoder (BaseConditionalDecoder): The conditional decoder network.
@@ -137,8 +134,7 @@ class CVAE(BaseModel):
         )
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs) -> ModelOutput:
-        """
-        Forward pass of the Conditional Variational Autoencoder.
+        """Forward pass of the Conditional Variational Autoencoder.
 
         Args:
             inputs (dict): A dictionary containing the input data for each modality.
@@ -146,7 +142,6 @@ class CVAE(BaseModel):
         Returns:
             ModelOutput : A ModelOutput instance containing the loss and metrics.
         """
-
         # Encode the input data
         output = self.encoder(inputs.data)
         embedding, log_var = output.embedding, output.log_covariance
@@ -279,7 +274,6 @@ class CVAE(BaseModel):
         Returns:
             A ModelOutput instance containing the embeddings.
         """
-
         flatten = kwargs.pop("flatten", False)
 
         # Look up the batch size and the device of the input data
@@ -326,11 +320,11 @@ class CVAE(BaseModel):
     ) -> ModelOutput:
         """Reconstruct from the input or from the conditioning modalities.
 
-
         Args:
             inputs (MultimodalBaseDataset) : The data to use for prediction.
             cond_mod (Union[str, list]) : Either 'all' to perform reconstruction or the list of conditioning modalities to generate from the prior.
             N (int) : number of samples per datapoint to sample from the posterior or prior.
+
         Returns:
             ModelOutput : A ModelOutput instance containing the reconstruction / generation.
 

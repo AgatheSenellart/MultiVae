@@ -1,7 +1,6 @@
 import os
 import warnings
 
-import numpy as np
 import pytest
 import torch
 from pythae.data.datasets import DatasetOutput
@@ -10,10 +9,14 @@ from multivae.data.datasets.base import MultimodalBaseDataset
 from multivae.data.datasets.mmnist import MMNISTDataset
 
 
-class Test:
+class TestMMNISDataset:
+    """Test class for MMNIST dataset.
+    This test only works locally with the MMNIST downloaded in the ../data folder.
+    """
+
     @pytest.fixture(params=[0.2, 0])
     def input_dataset_test(self, request):
-        data_path = "~/scratch/data"
+        data_path = "../data"
         split = "test"
         missing_ratio = request.param
 
@@ -26,7 +29,7 @@ class Test:
             dataset = MMNISTDataset(**input_dataset_test)
             assert isinstance(dataset, MultimodalBaseDataset)
             sample = dataset[0]
-            assert type(sample) == DatasetOutput
+            assert isinstance(sample, DatasetOutput)
             assert isinstance(sample.data["m0"], torch.Tensor)
             assert torch.min(sample.data["m0"]) >= 0
             assert torch.max(sample.data["m0"]) <= 1
@@ -54,7 +57,7 @@ class Test:
                     )
                     assert not torch.all(sample.data[m][sample.masks[m]] == 0)
 
-                    assert torch.all(sample.masks["m0"] == True)
+                    assert torch.all(sample.masks["m0"])
                     assert not torch.all(sample.masks["m0"] == sample.masks["m1"])
         else:
             warnings.warn(

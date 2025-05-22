@@ -5,9 +5,7 @@ from ..base.evaluator_config import EvaluatorConfig
 
 @dataclass
 class VisualizationConfig(EvaluatorConfig):
-    """
-
-    Config class for the visualization module.
+    """Config class for the visualization module.
 
     Args:
         batch_size (int) : The batch size to use in the evaluation. Default to 20

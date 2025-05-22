@@ -1,18 +1,17 @@
-from copy import deepcopy
+"""Custom encoders and decoders for testing purposes."""
+
 from typing import List
 
 import numpy as np
 import torch
-from pythae.models.base import BaseAEConfig
 from pythae.models.base.base_model import BaseDecoder
 from pythae.models.base.base_utils import ModelOutput
 from pythae.models.nn.base_architectures import BaseEncoder
-from pythae.models.nn.default_architectures import Encoder_VAE_MLP
 from torch import nn
 
 
-class Encoder_test(BaseEncoder):
-    """Simple MLPs different than the default one for testing."""
+class EncoderTest(BaseEncoder):
+    """A simple MLP, but different than the default ones."""
 
     def __init__(self, args: dict):
         BaseEncoder.__init__(self)
@@ -60,7 +59,7 @@ class Encoder_test(BaseEncoder):
 
             if output_layer_levels is not None:
                 if i + 1 in output_layer_levels:
-                    output[f"embedding_layer_{i+1}"] = out
+                    output[f"embedding_layer_{i + 1}"] = out
             if i + 1 == self.depth:
                 output["embedding"] = self.embedding(out)
                 output["log_covariance"] = self.log_var(out)
@@ -68,8 +67,8 @@ class Encoder_test(BaseEncoder):
         return output
 
 
-class Encoder_test_multilatents(BaseEncoder):
-    """Simple MLPs different than the default one for testing."""
+class EncoderTestMultilatents(BaseEncoder):
+    """Encoder for models that use multiple latent spaces."""
 
     def __init__(self, args: dict):
         BaseEncoder.__init__(self)
@@ -120,7 +119,7 @@ class Encoder_test_multilatents(BaseEncoder):
 
             if output_layer_levels is not None:
                 if i + 1 in output_layer_levels:
-                    output[f"embedding_layer_{i+1}"] = out
+                    output[f"embedding_layer_{i + 1}"] = out
             if i + 1 == self.depth:
                 output["embedding"] = self.embedding(out)
                 output["log_covariance"] = self.log_var(out)
@@ -130,7 +129,9 @@ class Encoder_test_multilatents(BaseEncoder):
         return output
 
 
-class Decoder_test(BaseDecoder):
+class DecoderTest(BaseDecoder):
+    """A simple MLP decoder, different than the default one."""
+
     def __init__(self, args: dict):
         BaseDecoder.__init__(self)
 
@@ -173,7 +174,7 @@ class Decoder_test(BaseDecoder):
 
             if output_layer_levels is not None:
                 if i + 1 in output_layer_levels:
-                    output[f"reconstruction_layer_{i+1}"] = out
+                    output[f"reconstruction_layer_{i + 1}"] = out
             if i + 1 == self.depth:
                 output["reconstruction"] = out.reshape((z.shape[0],) + self.input_dim)
 

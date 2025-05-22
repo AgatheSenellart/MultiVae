@@ -1,9 +1,9 @@
+"""Architectures for the CUB dataset."""
+
 import math
 
 import numpy as np
 import torch
-import torch.utils.data
-import torch.utils.data.distributed
 from torch import nn
 from torch.nn import functional as F
 
@@ -14,7 +14,7 @@ from multivae.models.base import BaseDecoder, BaseEncoder, ModelOutput
 
 
 class PositionalEncoding(nn.Module):
-    """Taken from torch/examples"""
+    """Taken from torch/examples."""
 
     def __init__(self, d_model: int, dropout: float = 0.1, max_len: int = 5000):
         super().__init__()
@@ -30,15 +30,27 @@ class PositionalEncoding(nn.Module):
         self.register_buffer("pe", pe)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Arguments:
-            x: Tensor, shape ``[seq_len, batch_size, embedding_dim]``
+        """Arguments:
+        x: Tensor, shape ``[seq_len, batch_size, embedding_dim]``.
         """
         x = x + self.pe[:, : x.size(1)]
         return self.dropout(x)
 
 
 class CubTextEncoder(BaseEncoder):
+    """A transformer-based encoder for text.
+
+    Args:
+        latent_dim (int): Dimension of the latent space.
+        max_sentence_length (int): Maximum length of the input sentences.
+        ntokens (int): Vocabulary size.
+        embed_size (int): Size of the token embedding vectors. Default: 512
+        nhead (int): Number of head in the MultiHeadAttention module. Default: 4
+        ff_size (int): Number of units in the feedforward layers. Default: 1024
+        n_layers (int): Number of Encoders layers in the TransformerEncoder. Default: 4
+        dropout (float): Dropout rate. Default: 0.5
+    """
+
     def __init__(
         self,
         latent_dim,
@@ -50,20 +62,6 @@ class CubTextEncoder(BaseEncoder):
         n_layers: int = 4,
         dropout: float = 0.5,
     ):
-        """
-        A transformer-based encoder for text.
-
-        Parameters:
-            latent_dim (int): Dimension of the latent space.
-            max_sentence_length (int): Maximum length of the input sentences.
-            ntokens (int): Vocabulary size.
-            embed_size (int): Size of the token embedding vectors. Default: 512
-            nhead (int): Number of head in the MultiHeadAttention module. Default: 4
-            ff_size (int): Number of units in the feedforward layers. Default: 1024
-            n_layers (int): Number of Encoders layers in the TransformerEncoder. Default: 4
-            dropout (float): Dropout rate. Default: 0.5
-        """
-
         BaseEncoder.__init__(self)
         self.latent_dim = latent_dim
 
@@ -107,10 +105,10 @@ class CubTextEncoder(BaseEncoder):
 
 
 class CubTextDecoderMLP(BaseDecoder):
+    """Simple MLP decoder for CUB text."""
+
     def __init__(self, args: dict):
-        """
-        A simple MLP decoder for text.
-        """
+        """A simple MLP decoder for text."""
         BaseDecoder.__init__(self)
 
         self.input_dim = args.input_dim
@@ -144,10 +142,9 @@ class CubTextDecoderMLP(BaseDecoder):
 
 
 class CUB_Resnet_Encoder(BaseEncoder):
-    """
-    Resnet Image encoder based on the one used in
+    """Resnet Image encoder based on the one used in
     "MMVAE+: Enhancing the Generative Quality of Multimodal VAEs without Compromises".
-    (https://github.com/epalu/mmvaeplus)
+    (https://github.com/epalu/mmvaeplus).
 
     Args:
         latent_dim (int)
@@ -197,10 +194,9 @@ class CUB_Resnet_Encoder(BaseEncoder):
 
 
 class CUB_Resnet_Decoder(BaseDecoder):
-    """
-    Resnet Image Decoder based on the one used in
+    """Resnet Image Decoder based on the one used in
     "MMVAE+: Enhancing the Generative Quality of Multimodal VAEs without Compromises".
-    (https://github.com/epalu/mmvaeplus)
+    (https://github.com/epalu/mmvaeplus).
 
     Args:
         latent_dim (int)
@@ -251,6 +247,8 @@ class CUB_Resnet_Decoder(BaseDecoder):
 
 
 class ResnetBlock(nn.Module):
+    """Base residual block for resnets architectures."""
+
     def __init__(self, fin, fout, fhidden=None, is_bias=True):
         super().__init__()
         # Attributes
@@ -290,5 +288,6 @@ class ResnetBlock(nn.Module):
 
 
 def actvn(x):
+    """Activation function."""
     out = F.leaky_relu(x, 2e-1)
     return out

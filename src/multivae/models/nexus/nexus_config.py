@@ -7,11 +7,9 @@ from ..base import BaseMultiVAEConfig
 
 @dataclass
 class NexusConfig(BaseMultiVAEConfig):
-    """
-    This is the base config for the Nexus model from (Vasco et al 2022)
+    """This is the base config for the Nexus model from (Vasco et al 2022).
 
     Args:
-
         n_modalities (int): The number of modalities. Default: None.
         latent_dim (int): The dimension of the latent space. Default: None.
         input_dims (dict[str,tuple]) : The modalities'names (str) and input shapes (tuple).

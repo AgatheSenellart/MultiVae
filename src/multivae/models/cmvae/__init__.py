@@ -1,6 +1,5 @@
-r"""
-Implementation of "Deep Generative Clustering with Multimodal Diffusion Variational Autoencoders"
-(Palumbo et al, 2023)(https://openreview.net/forum?id=k5THrhXDV3)
+r"""Implementation of "Deep Generative Clustering with Multimodal Diffusion Variational Autoencoders"
+(Palumbo et al, 2023)(https://openreview.net/forum?id=k5THrhXDV3).
 
 This model builds on the MMVAE+ by adding a Mixture-of-Gaussians prior on the shared latent space.
 The generative model is as follows:

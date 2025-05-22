@@ -172,8 +172,7 @@ class Flatten(torch.nn.Module):
 
 
 class ClfImg(nn.Module):
-    """
-    MNIST image-to-digit classifier. Roughly based on the encoder from:
+    """MNIST image-to-digit classifier. Roughly based on the encoder from:
     https://colab.research.google.com/github/smartgeometry-ucl/dl4g/blob/master/variational_autoencoder.ipynb
     """
 

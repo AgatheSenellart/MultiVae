@@ -3,11 +3,9 @@ from itertools import combinations
 from typing import Union
 
 import torch
-import torch.distributions as dist
 
 from multivae.data.datasets.base import MultimodalBaseDataset
-from multivae.models.base import BaseMultiVAE
-from multivae.models.base.base_model import ModelOutput
+from multivae.models.base import BaseMultiVAE, ModelOutput
 from multivae.models.nn.base_architectures import BaseEncoder
 
 from ..base.base_utils import kl_divergence, poe, rsample_from_gaussian
@@ -21,7 +19,6 @@ logger.setLevel(logging.INFO)
 
 class MHVAE(BaseMultiVAE):
     """MHVAE model.
-
 
     Args:
         model_config (MHVAEConfig) : the model configuration.
@@ -57,7 +54,6 @@ class MHVAE(BaseMultiVAE):
         posterior_blocks: Union[list, dict],
         prior_blocks: list,
     ):
-
         # Super method sets up the base fields as well as encoders / decoders
 
         super().__init__(model_config, encoders, decoders)
@@ -81,20 +77,18 @@ class MHVAE(BaseMultiVAE):
         )
 
     def _subsets(self):
+        """Returns :
+        subsets (list) : all the possible subsets of the modalities.
         """
-        Returns :
-            subsets (list) : all the possible subsets of the modalities.
-        """
-
         subsets = []
         for i in range(1, self.n_modalities + 1):
             subsets += combinations(list(self.encoders.keys()), r=i)
         return subsets
 
     def _adapt_log_var_to_missing_data(self, dict_params, inputs):
-        """
-        For incomplete datasets, we set the variance of missing modalities posterior to infinity
+        """For incomplete datasets, we set the variance of missing modalities posterior to infinity
         so that it doesn't contribute to the PoE.
+
         Returns:
             list of mean
             list of variance
@@ -107,8 +101,7 @@ class MHVAE(BaseMultiVAE):
         return list_means, list_log_vars
 
     def subset_encode(self, z_deepest_params, skips, subset, inputs, return_mean=False):
-        """
-        Compute all the latent variables and KL divergences for a given subset of modalities.
+        """Compute all the latent variables and KL divergences for a given subset of modalities.
 
         Args:
             z_deepest_params (Dict[str, ModelOutput]): dictionary containing the mean and logvar of the deepest latent variable
@@ -155,8 +148,7 @@ class MHVAE(BaseMultiVAE):
 
         # Sample the rest of the z
         for i in range(self.n_latent - 1, 0, -1):
-
-            h = self.top_down_blocks[i - 1](z_dict[f"z_{i+1}"])
+            h = self.top_down_blocks[i - 1](z_dict[f"z_{i + 1}"])
 
             # Compute p(z_l|z>l)
             prior_params = self.prior_blocks[i - 1](h)
@@ -195,16 +187,15 @@ class MHVAE(BaseMultiVAE):
 
     def _get_posterior_block(self, mod, i):
         """Returns the posterior block for a given modality and level.
-        Handles the case where the weights are shared between modalities."""
+        Handles the case where the weights are shared between modalities.
+        """
         if self.share_posterior_weights:
             return self.posterior_blocks[i]
 
         return self.posterior_blocks[mod][i]
 
     def _loss_subset(self, inputs, z_l_deepest_params, skips, subset):
-        """
-
-        Compute the negative ELBO loss using a subset of modalities for the posterior.
+        """Compute the negative ELBO loss using a subset of modalities for the posterior.
 
         Args:
             inputs (MultimodalBaseDataset): the input data.
@@ -218,7 +209,6 @@ class MHVAE(BaseMultiVAE):
             loss (torch.Tensor): the negative ELBO loss.
             kl_dict (Dict[str, torch.Tensor]): dictionary containing all the KL divergences at each level.
         """
-
         # get all the latent variables and KLs in the hierarchy
         z_dict, kl_dict = self.subset_encode(z_l_deepest_params, skips, subset, inputs)
 
@@ -249,9 +239,7 @@ class MHVAE(BaseMultiVAE):
         return loss, kl_dict
 
     def forward(self, inputs: MultimodalBaseDataset, **kwargs):
-        """
-
-        Compute the average negative ELBO loss using all possible subsets of modalities for the posterior.
+        """Compute the average negative ELBO loss using all possible subsets of modalities for the posterior.
 
         Args:
             inputs (MultimodalBaseDataset): the input data.
@@ -260,7 +248,6 @@ class MHVAE(BaseMultiVAE):
             ModelOutput: a ModelOutput instance containing the mean loss and the KL divergences for monitoring.
 
         """
-
         z_l_deepest_params, skips = self.modality_encode(inputs.data)
 
         subsets = self._subsets()
@@ -275,8 +262,7 @@ class MHVAE(BaseMultiVAE):
         return ModelOutput(loss=loss, loss_sum=loss, metrics=kl_dict)
 
     def encode(self, inputs, cond_mod="all", N=1, return_mean=False, **kwargs):
-        """
-        Encode the input data conditioning on the modalities in cond_mod
+        """Encode the input data conditioning on the modalities in cond_mod
             and return the latent variables.
 
         Args:
@@ -290,7 +276,6 @@ class MHVAE(BaseMultiVAE):
         Returns:
             ModelOutput: a ModelOutput instance containing the latent variables.
         """
-
         cond_mod = super().encode(inputs, cond_mod, N, **kwargs).cond_mod
 
         z_ls_params, skips = self.modality_encode(inputs.data)
@@ -318,7 +303,6 @@ class MHVAE(BaseMultiVAE):
 
         if not flatten and N > 1:
             for k in z_dict:
-
                 z_dict[k] = z_dict[k].reshape(N, n_data, *z_dict[k].shape[1:])
         # Set the masks back to the original value (before it was replicated)
         if hasattr(inputs, "masks") and N > 1:
@@ -327,8 +311,7 @@ class MHVAE(BaseMultiVAE):
         return ModelOutput(z=z_dict["z_1"], all_z=z_dict, one_latent_space=True)
 
     def modality_encode(self, data: dict):
-        """
-        Encode each modality on its own.
+        """Encode each modality on its own.
 
         Args:
             data (Dict[str, torch.Tensor]): the input data for each modality.
@@ -339,7 +322,6 @@ class MHVAE(BaseMultiVAE):
 
             skips : a dictionary containing a list of tensors for each modality.
         """
-
         # Apply all bottom_up layers, save the intermediate results
         skips = {mod: [] for mod in data}
         z_ls_params = {}
@@ -363,7 +345,6 @@ class MHVAE(BaseMultiVAE):
 
     def sanity_check_bottom_up(self, encoders, bottom_up_blocks):
         """Check the coherence of the bottom_up_blocks with the encoders."""
-
         # Check the number of modalities
         if self.n_modalities != len(bottom_up_blocks.keys()):
             raise AttributeError(
@@ -392,22 +373,20 @@ class MHVAE(BaseMultiVAE):
 
     def sanity_check_top_down_blocks(self, top_down_blocks):
         """Check the coherence of the top_down_blocks with the model configuration."""
-
         if len(top_down_blocks) != self.n_latent - 1:
             raise AttributeError(
-                f"There must be {self.n_latent-1} modules in top_down_blocks."
+                f"There must be {self.n_latent - 1} modules in top_down_blocks."
             )
 
     def check_and_set_posterior_blocks(self, posterior_blocks):
         """Check the coherence of the posterior_blocks with the model configuration."""
-
         # Shared weights : a list of modules was provided
         if isinstance(posterior_blocks, (list, torch.nn.ModuleList)):
             logger.info("Shared weights for the posterior blocks")
             self.share_posterior_weights = True
             if len(posterior_blocks) != self.n_latent - 1:
                 raise AttributeError(
-                    f"There must be {self.n_latent-1} modules in posterior_blocks."
+                    f"There must be {self.n_latent - 1} modules in posterior_blocks."
                 )
             for block in posterior_blocks:
                 if not isinstance(block, BaseEncoder):
@@ -428,7 +407,7 @@ class MHVAE(BaseMultiVAE):
             for m, p in posterior_blocks.items():
                 if len(p) != self.n_latent - 1:
                     raise AttributeError(
-                        f"There must be {self.n_latent-1} modules in posterior_blocks[{m}]."
+                        f"There must be {self.n_latent - 1} modules in posterior_blocks[{m}]."
                     )
                 for block in p:
                     if not isinstance(block, BaseEncoder):
@@ -443,9 +422,8 @@ class MHVAE(BaseMultiVAE):
 
     def sanity_check_prior_blocks(self, prior_blocks):
         """Check the coherence of the prior_blocks with the model configuration."""
-
         if len(prior_blocks) != self.n_latent - 1:
-            raise AttributeError(f"There must be {self.n_latent-1} modules in prior.")
+            raise AttributeError(f"There must be {self.n_latent - 1} modules in prior.")
         for block in prior_blocks:
             if not isinstance(block, BaseEncoder):
                 raise AttributeError(
@@ -458,7 +436,6 @@ class MHVAE(BaseMultiVAE):
 
     def set_bottom_up_blocks(self, bottom_up_blocks):
         """Set the bottom_up_blocks attribute."""
-
         self.bottom_up_blocks = torch.nn.ModuleDict()
         for mod in bottom_up_blocks:
             self.bottom_up_blocks[mod] = torch.nn.ModuleList(bottom_up_blocks[mod])

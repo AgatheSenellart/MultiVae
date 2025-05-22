@@ -13,14 +13,14 @@ logger.setLevel(logging.INFO)
 
 
 class AutoModel(nn.Module):
-    "Utils class allowing to reload any :class:`multivae.models` automatically"
+    """Utils class allowing to reload any :class:`multivae.models` automatically."""
 
     def __init__(self) -> None:
         super().__init__()
 
     @classmethod
     def load_from_folder(cls, dir_path: str):
-        """Class method to be used to load the model from a specific folder
+        """Class method to be used to load the model from a specific folder.
 
         Args:
             dir_path (str): The path where the model should have been be saved.
@@ -120,7 +120,7 @@ class AutoModel(nn.Module):
         cls, hf_hub_path: str, allow_pickle: bool = False
     ):  # pragma: no cover
         """Class method to be used to load a automaticaly a pretrained model from the Hugging Face
-        hub
+        hub.
 
         Args:
             hf_hub_path (str): The path where the model should have been be saved on the
@@ -136,7 +136,6 @@ class AutoModel(nn.Module):
             - | a ``model_config.json``, a ``model.pt`` and a ``encoder.pkl`` (resp.
                 ``decoder.pkl``) if a custom encoder (resp. decoder) was provided
         """
-
         if not hf_hub_is_available():
             raise ModuleNotFoundError(
                 "`huggingface_hub` package must be installed to load models from the HF hub. "
@@ -147,7 +146,7 @@ class AutoModel(nn.Module):
         else:
             from huggingface_hub import hf_hub_download
 
-        logger.info(f"Downloading config file ...")
+        logger.info("Downloading config file ...")
 
         config_path = hf_hub_download(repo_id=hf_hub_path, filename="model_config.json")
         dir_path = os.path.dirname(config_path)

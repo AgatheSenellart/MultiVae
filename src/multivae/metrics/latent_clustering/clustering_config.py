@@ -7,9 +7,7 @@ from ..base.evaluator_config import EvaluatorConfig
 
 @dataclass
 class ClusteringConfig(EvaluatorConfig):
-    """
-
-    Config class for the clustering module.
+    """Config class for the clustering module.
 
     Args:
         batch_size (int) : The batch size to use in the evaluation. Default to 512

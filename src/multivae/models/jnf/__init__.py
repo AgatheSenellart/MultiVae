@@ -1,5 +1,4 @@
-r"""
-Joint Normalizing Flows (JNF) from https://arxiv.org/abs/2502.03952
+r"""Joint Normalizing Flows (JNF) from https://arxiv.org/abs/2502.03952.
 
 JNF uses a joint encoder to model :math:`q_{\phi}(z|X)` and surrogate unimodal encoders :math:`q_{\phi_j}(z|x_j)` for :math:`1\leq j\leq M`.
 

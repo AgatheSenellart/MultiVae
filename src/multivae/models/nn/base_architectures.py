@@ -1,7 +1,7 @@
 from typing import Dict
 
 import torch
-from pythae.models.base.base_model import BaseDecoder, BaseEncoder, ModelOutput
+from pythae.models.base.base_model import BaseDecoder, BaseEncoder
 
 
 class BaseJointEncoder(BaseEncoder):
@@ -17,7 +17,7 @@ class BaseJointEncoder(BaseEncoder):
         :class:`~pythae.models.base.base_utils.ModelOutput`.
         If you decide to provide your own joint encoder network, you must make sure your
         model inherit from this class by setting and then defining your forward function as
-        such:
+        below.
 
         .. code-block::
 
@@ -40,7 +40,7 @@ class BaseJointEncoder(BaseEncoder):
             ...         )
             ...         return output
 
-        Parameters:
+        Args:
             x (dict): Multimodal input to encode : a dictionary that contains modalities' names as keys and modalities' data as values.
 
         Returns:
@@ -65,7 +65,7 @@ class BaseMultilatentEncoder(BaseEncoder):
         If you decide to provide your own encoder network in a model that uses multiple
         latent spaces, you must make sure your
         model inherits from this class by setting and then defining your forward function as
-        such:
+        below.
 
         .. code-block::
 
@@ -90,11 +90,11 @@ class BaseMultilatentEncoder(BaseEncoder):
             ...         )
             ...         return output
 
-        Parameters:
+        Args:
             x (torch.Tensor): Input data
 
         Returns:
-            output (~pythae.models.base.base_utils.ModelOutput): The output of the encoder
+            output (~pythae.models.base.base_utils.ModelOutput): The output of the encoder.
         """
         raise NotImplementedError()
 
@@ -112,7 +112,7 @@ class BaseConditionalDecoder(BaseDecoder):
         :class:`~pythae.models.base.base_utils.ModelOutput` with the reconstruction.
         If you decide to provide your own decoder network, you must make sure your
         model inherit from this class by setting and then defining your forward function as
-        such:
+        below.
 
         .. code-block::
 
@@ -133,11 +133,11 @@ class BaseConditionalDecoder(BaseDecoder):
             ...         )
             ...         return output
 
-        Parameters:
+        Args:
             z (torch.Tensor): Latent variable
             cond_mods (Dic[str, torch.Tensor]): Conditioning data.
 
         Returns:
-            output (~pythae.models.base.base_utils.ModelOutput): The output of the decoder
+            output (~pythae.models.base.base_utils.ModelOutput): The output of the decoder.
         """
         raise NotImplementedError()

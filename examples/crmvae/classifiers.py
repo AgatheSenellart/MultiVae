@@ -90,7 +90,6 @@ class ResnetBlock(nn.Module):
 
 def load_classifiers(data_path, device="cpu"):
     """Function to load all pretrained classifiers."""
-
     clfs = {}
     for i in range(5):
         fp = data_path + f"/m{i}/classifier.pt"
@@ -105,7 +104,6 @@ def load_classifiers(data_path, device="cpu"):
 
 
 if __name__ == "__main__":
-
     import argparse
 
     parser = argparse.ArgumentParser()
@@ -150,7 +148,6 @@ if __name__ == "__main__":
     for i in tqdm(range(NUM_EPOCHS)):
         epoch_loss = 0
         for batch in tqdm(train_loader):
-
             optimizer.zero_grad()
 
             data = batch.data[MOD].to(DEVICE)
@@ -185,7 +182,6 @@ if __name__ == "__main__":
     total = 0
     correct = 0
     for batch in test_loader:
-
         data = batch.data[MOD].to(DEVICE)
         labels = batch.labels.to(DEVICE)
 

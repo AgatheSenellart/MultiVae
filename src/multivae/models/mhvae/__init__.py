@@ -1,8 +1,6 @@
-r"""
-
-Multimodal Hierarchical Variational Autoencoder from
+r"""Multimodal Hierarchical Variational Autoencoder from
     'Unified Brain MR-Ultrasound Synthesis using Multi-Modal Hierarchical Representations'
-    (Dorent et al, 2O23) (https://arxiv.org/abs/2309.08747)
+    (Dorent et al, 2O23) (https://arxiv.org/abs/2309.08747).
 
     The MHVAE is a hierarchical VAE that can handle multiple modalities.
     The latent variable is partitioned into disjoint groups :math:`z = \set{z_1, z_2, ..., z_L}`

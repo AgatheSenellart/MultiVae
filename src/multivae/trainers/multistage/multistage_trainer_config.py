@@ -2,11 +2,9 @@ from ..base import BaseTrainerConfig
 
 
 class MultistageTrainerConfig(BaseTrainerConfig):
-    """
-    Configuration for a specific trainer that handles the training of the joint VAE models.
+    """Configuration for a specific trainer that handles the training of the joint VAE models.
 
-    Parameters:
-
+    Args:
         output_dir (str): The directory where model checkpoints, configs and final
             model will be stored. Default: None.
         per_device_train_batch_size (int): The number of training samples per batch and per device.

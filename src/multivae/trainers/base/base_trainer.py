@@ -17,7 +17,7 @@ from torchvision.utils import make_grid
 
 from ...data import MultimodalBaseDataset
 from ...data.datasets.utils import adapt_shape
-from ...data.utils import get_batch_size, set_inputs_to_device
+from ...data.utils import set_inputs_to_device
 from ...models import BaseModel, BaseMultiVAE
 from .base_trainer_config import BaseTrainerConfig
 from .callbacks import (
@@ -142,7 +142,7 @@ class BaseTrainer:
         self._run_model_sanity_check(model, train_loader)
 
         if self.is_main_process:
-            logger.info("Model passed sanity check !\n" "Ready for training.\n")
+            logger.info("Model passed sanity check !\nReady for training.\n")
 
         # Assert that the trainer is suited for the chosen model
         self.checktrainer(model)
@@ -171,7 +171,6 @@ class BaseTrainer:
 
     def _setup_devices(self):
         """Sets up the devices to perform distributed training."""
-
         if dist.is_available() and dist.is_initialized() and self.local_rank == -1:
             logger.warning(
                 "torch.distributed process group is initialized, but local_rank == -1. "
@@ -365,7 +364,7 @@ class BaseTrainer:
             self.scheduler.step()
 
     def prepare_training(self):
-        """Sets up the trainer for training"""
+        """Sets up the trainer for training."""
         # set random seed
         set_seed(self.training_config.seed)
 
@@ -389,7 +388,7 @@ class BaseTrainer:
         self._best_model = deepcopy(self.model)
 
     def resume_training(self, checkpoint):
-        """Sets up the trainer for training"""
+        """Sets up the trainer for training."""
         with open(os.path.join(checkpoint, "info_checkpoint.json"), "r") as fp:
             dict_checkpoint = json.load(fp)
 
@@ -428,21 +427,19 @@ class BaseTrainer:
         self._best_model = deepcopy(self.model)
 
     def prepare_train_step(self, epoch, best_train_loss, best_eval_loss):
-        """
-        Function to operate changes between train_steps such as resetting the optimizer and
+        """Function to operate changes between train_steps such as resetting the optimizer and
         the best losses values.
         """
         return best_train_loss, best_eval_loss
 
     def train(self, log_output_dir: str = None):
-        """This function is the main training function
+        """This function is the main training function.
 
         Args:
             log_output_dir (str): The path in which the log will be stored
             start_epoch (int) : The first epoch to do. Is useful in case of restarting a
                 training after saving a checkpoint. Default to 1.
         """
-
         self.callback_handler.on_train_begin(
             training_config=self.training_config, model_config=self.model_config
         )
@@ -581,15 +578,14 @@ class BaseTrainer:
         self.callback_handler.on_train_end(self.training_config)
 
     def eval_step(self, epoch: int):
-        """Perform an evaluation step
+        """Perform an evaluation step.
 
-        Parameters:
+        Args:
             epoch (int): The current epoch number
 
         Returns:
             (torch.Tensor): The evaluation loss
         """
-
         self.callback_handler.on_eval_step_begin(
             training_config=self.training_config,
             eval_loader=self.eval_loader,
@@ -646,7 +642,7 @@ class BaseTrainer:
     def train_step(self, epoch: int):
         """The trainer performs training loop over the train_loader.
 
-        Parameters:
+        Args:
             epoch (int): The current epoch number
 
         Returns:
@@ -708,13 +704,12 @@ class BaseTrainer:
         return epoch_loss, epoch_model_metrics
 
     def save_model(self, model: BaseModel, dir_path: str):
-        """This method saves the final model along with the config files
+        """This method saves the final model along with the config files.
 
         Args:
             model (BaseMultiVAE): The model to be saved
             dir_path (str): The folder where the model and config files should be saved
         """
-
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
 
@@ -731,12 +726,12 @@ class BaseTrainer:
         self.callback_handler.on_save(self.training_config, dir_path=dir_path)
 
     def save_checkpoint(self, model: BaseModel, dir_path, epoch: int):
-        """Saves a checkpoint alowing to restart training from here
+        """Saves a checkpoint alowing to restart training from here.
 
         Args:
             dir_path (str): The folder where the checkpoint should be saved
-            epochs_signature (int): The epoch number"""
-
+            epochs_signature (int): The epoch number
+        """
         checkpoint_dir = os.path.join(dir_path, f"checkpoint_epoch_{epoch}")
 
         if not os.path.exists(checkpoint_dir):
@@ -781,7 +776,6 @@ class BaseTrainer:
 
     def predict(self, model: BaseModel, epoch: int, n_data=8):
         """For BaseMultiVaE models, compute self and cross reconstructions during training."""
-
         model.eval()
 
         predict_dataset = (

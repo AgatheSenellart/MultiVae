@@ -1,7 +1,6 @@
-r"""
-Implementation of the DMVAE model from
+r"""Implementation of the DMVAE model from
 "Private-Shared Disentangled Multimodal VAE for Learning of Latent
-Representations" (Lee & Pavlovic 2021)(https://par.nsf.gov/servlets/purl/10297662)
+Representations" (Lee & Pavlovic 2021)(https://par.nsf.gov/servlets/purl/10297662).
 
 This model is an aggregated model with a shared latent variable :math:`z_s` and modality-specific latent variables :math:`z_{p_i}`.
 The joint posterior is a Product-Of-Experts:

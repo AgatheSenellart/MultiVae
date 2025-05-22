@@ -1,7 +1,6 @@
-r"""
-Implementation of the Variational Mixture-of-Experts Autoencoder model from the paper "Variational Mixture-of-Experts Autoencoders for
+r"""Implementation of the Variational Mixture-of-Experts Autoencoder model from the paper "Variational Mixture-of-Experts Autoencoders for
 Multi-Modal Deep Generative Models"
-(https://arxiv.org/abs/1911.03393)
+(https://arxiv.org/abs/1911.03393).
 
 The MMVAE model uses a mixture-of-experts (MoE) aggregation. It also uses a k-samples IWAE lower bound.
 The MMVAE loss writes as follows:

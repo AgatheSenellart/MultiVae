@@ -1,6 +1,5 @@
-r"""
-Implementation of "MMVAE+: Enhancing the Generative Quality of Multimodal VAEs without Compromises"
-(https://openreview.net/forum?id=sdQGxouELX)
+r"""Implementation of "MMVAE+: Enhancing the Generative Quality of Multimodal VAEs without Compromises"
+(https://openreview.net/forum?id=sdQGxouELX).
 
 The MMVAE+ model is an aggregated model that uses
 multiple latent spaces : :math:`z` is the latent code *shared* accross modalities and :math:`w_j` is private latent code of modality :math:`j \in [|1 , M|]`.

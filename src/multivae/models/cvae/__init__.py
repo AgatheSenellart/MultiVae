@@ -1,6 +1,4 @@
-r"""
-Conditional Variational Autoencoder model (https://arxiv.org/abs/1906.02691).
-
+r"""Conditional Variational Autoencoder model (https://arxiv.org/abs/1906.02691).
 
 This model is used to model the distribution of :math:`y` knowing :math:`x`.
 The general generative model is:

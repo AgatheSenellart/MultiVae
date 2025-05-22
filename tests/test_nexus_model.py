@@ -5,27 +5,24 @@ from copy import deepcopy
 import numpy as np
 import pytest
 import torch
-from encoders import Decoder_test, Encoder_test
 from pythae.models.base import BaseAEConfig
 from pythae.models.base.base_utils import ModelOutput
-from pythae.models.nn.benchmarks.mnist.convnets import (
-    Decoder_Conv_AE_MNIST,
-    Encoder_Conv_AE_MNIST,
-)
-from pythae.models.normalizing_flows import IAF, IAFConfig
 from torch import nn
 
 from multivae.data.datasets.base import IncompleteDataset, MultimodalBaseDataset
-from multivae.data.utils import set_inputs_to_device
 from multivae.models import AutoModel, Nexus, NexusConfig
 from multivae.models.nn.default_architectures import Decoder_AE_MLP, Encoder_VAE_MLP
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 
+from .encoders import DecoderTest, EncoderTest
 
-class Test_forward_encode_and_predict:
+
+class TestNexus:
+    """Class for testing the Nexus model"""
+
     @pytest.fixture(params=["complete", "incomplete"])
     def dataset(self, request):
-        # Create simple small dataset
+        """Create a dummy dataset"""
         data = dict(
             mod1=torch.Tensor(np.random.random((4, 1, 12, 12))),
             mod2=torch.Tensor(np.random.random((4, 3, 7, 7))),
@@ -185,40 +182,41 @@ class Test_forward_encode_and_predict:
         ]
     )
     def custom_config_archi(self, request):
+        """ "Create a model configuration"""
         encoders = dict()
         decoders = dict()
         top_encoders = dict()
         top_decoders = dict()
         for m in request.param["modalities_specific_dim"]:
-            encoders[m] = Encoder_test(
+            encoders[m] = EncoderTest(
                 BaseAEConfig(
                     input_dim=request.param["input_dims"][m],
                     latent_dim=request.param["modalities_specific_dim"][m],
                 )
             )
 
-            decoders[m] = Decoder_test(
+            decoders[m] = DecoderTest(
                 BaseAEConfig(
                     input_dim=request.param["input_dims"][m],
                     latent_dim=request.param["modalities_specific_dim"][m],
                 )
             )
 
-            top_encoders[m] = Encoder_test(
+            top_encoders[m] = EncoderTest(
                 BaseAEConfig(
                     input_dim=(request.param["modalities_specific_dim"][m],),
                     latent_dim=request.param["msg_dim"],
                 )
             )
 
-            top_decoders[m] = Decoder_test(
+            top_decoders[m] = DecoderTest(
                 BaseAEConfig(
                     input_dim=(request.param["modalities_specific_dim"][m],),
                     latent_dim=request.param["latent_dim"],
                 )
             )
 
-        joint_encoder = Encoder_test(
+        joint_encoder = EncoderTest(
             BaseAEConfig(
                 input_dim=(request.param["msg_dim"],),
                 latent_dim=request.param["latent_dim"],
@@ -240,6 +238,7 @@ class Test_forward_encode_and_predict:
         )
 
     def test_model_setup_with_custom_architectures(self, custom_config_archi):
+        """Test the model initialization with custom architectures."""
         model = Nexus(**custom_config_archi)
 
         if custom_config_archi["model_config"].gammas is not None:
@@ -296,6 +295,9 @@ class Test_forward_encode_and_predict:
         assert model.joint_encoder == custom_config_archi["joint_encoder"]
 
     def test_model_setup_without_custom_architectures(self, custom_config_archi):
+        """Test the model initialization without custom architectures.
+        In that case, default architectures should be used.
+        """
         model = Nexus(model_config=custom_config_archi["model_config"])
 
         if custom_config_archi["model_config"].gammas is not None:
@@ -340,7 +342,9 @@ class Test_forward_encode_and_predict:
         assert isinstance(model.joint_encoder, Encoder_VAE_MLP)
 
     def test_setup_with_wrong_attributes(self, custom_config_archi):
-
+        """Check that init raises errors when the attributes
+        are not correct
+        """
         dict_config = custom_config_archi["model_config"].to_dict()
         dict_config.pop("name")
 
@@ -442,50 +446,74 @@ class Test_forward_encode_and_predict:
 
     @pytest.fixture(params=["custom_architectures", "default_architectures"])
     def model(self, custom_config_archi, request):
+        """Create the model"""
         if request.param == "custom_architectures":
             return Nexus(**custom_config_archi)
         else:
             return Nexus(model_config=custom_config_archi["model_config"])
 
     def test_forward(self, model, dataset):
+        """Test the forward method for Nexus.
+        We check that the output is a ModelOutput with the loss tensor.
+        """
         output = model(dataset, epoch=2)
         loss = output.loss
-        assert type(loss) == torch.Tensor
+        assert isinstance(loss, torch.Tensor)
         assert loss.size() == torch.Size([])
         assert loss.requires_grad
 
-        # Try encoding and prediction
+    def test_encode(self, model, dataset):
+        """Test the encode function for Nexus.
+        We check the shape of the latent variables, depending on parameters.
+        """
         for return_mean in [True, False]:
+            # Encode one sample
             outputs = model.encode(dataset[0], return_mean=return_mean)
             assert outputs.one_latent_space
-            embeddings = outputs.z
             assert isinstance(outputs, ModelOutput)
-            assert embeddings.shape == (1, model.latent_dim)
+            assert outputs.z.shape == (1, model.latent_dim)
+
+            # Encode one sample, generate two latent codes
             embeddings = model.encode(dataset[0], N=2, return_mean=return_mean).z
             assert embeddings.shape == (2, 1, model.latent_dim)
+
+            # Encode the dataset conditioning on 1 modality
             embeddings = model.encode(
                 dataset, cond_mod=["mod2"], return_mean=return_mean
             ).z
             assert embeddings.shape == (4, model.latent_dim)
+
+            # Encode the dataset conditioning on one modality/ generate 10 latents
             embeddings = model.encode(
                 dataset, cond_mod="mod3", N=10, return_mean=return_mean
             ).z
             assert embeddings.shape == (10, 4, model.latent_dim)
+
+            # Encode the dataset conditioning on a subset of modalities
             embeddings = model.encode(
                 dataset, cond_mod=["mod2", "mod4"], return_mean=return_mean
             ).z
             assert embeddings.shape == (4, model.latent_dim)
 
+    def test_decode(self, model, dataset):
+        """Test the decode method of Nexus.
+        We check the reconstruction shapes
+        """
         # Test decode
         Y = model.decode(model.encode(dataset, cond_mod="mod3", N=10))
         assert Y.mod1.shape == (10, 4, 1, 12, 12)
 
-        # Test predict
+    def test_predict(self, model, dataset):
+        """Test the predict method of the model.
+        We check the reconstruction shapes depending on the parameters.
+        """
+        # test predict conditioning on one modality
         Y = model.predict(dataset, cond_mod="mod2")
         assert isinstance(Y, ModelOutput)
         assert Y.mod1.shape == (4, 1, 12, 12)
         assert Y.mod2.shape == (4, 3, 7, 7)
 
+        # test predic conditioning on one modality, generating 10 recontructions
         Y = model.predict(dataset, cond_mod="mod2", N=10)
         assert isinstance(Y, ModelOutput)
         assert Y.mod1.shape == (10, 4, 1, 12, 12)
@@ -497,8 +525,7 @@ class Test_forward_encode_and_predict:
         assert Y.mod2.shape == (4 * 10, 3, 7, 7)
 
     def test_grad_with_missing_inputs(self, model, dataset):
-        # check that the grad with regard to missing modality is 0
-
+        """Check that the grad with regard to missing modality is 0"""
         if hasattr(dataset, "masks"):
             output = model(dataset[2:], epoch=2)
             loss = output.loss
@@ -512,109 +539,9 @@ class Test_forward_encode_and_predict:
             for param in model.encoders["mod1"].parameters():
                 assert not torch.all(param.grad == 0)
 
-
-class Test_training:
-    @pytest.fixture(params=["complete", "incomplete"])
-    def dataset(self, request):
-        # Create simple small dataset
-        data = dict(
-            mod1=torch.Tensor(np.random.random((4, 1, 12, 12))),
-            mod2=torch.Tensor(np.random.random((4, 3, 7, 7))),
-        )
-        labels = np.array([0, 1, 0, 1])
-        if request.param == "complete":
-            dataset = MultimodalBaseDataset(data, labels)
-        else:
-            masks = dict(
-                mod1=torch.Tensor([True, True, False, False]),
-                mod2=torch.Tensor([True, True, True, True]),
-            )
-            dataset = IncompleteDataset(data=data, masks=masks, labels=labels)
-
-        return dataset
-
-    @pytest.fixture(
-        params=[
-            dict(
-                n_modalities=2,
-                input_dims=dict(
-                    mod1=(1, 12, 12),
-                    mod2=(3, 7, 7),
-                ),
-                modalities_specific_dim=dict(mod1=3, mod2=4),
-                gammas=dict(mod1=1.2, mod2=1.3),
-                bottom_betas=dict(mod1=2.0, mod2=1.0),
-                msg_dim=14,
-                latent_dim=3,
-                uses_likelihood_rescaling=True,
-            )
-        ]
-    )
-    def custom_config_archi(self, request):
-        encoders = dict()
-        decoders = dict()
-        top_encoders = dict()
-        top_decoders = dict()
-        for m in request.param["modalities_specific_dim"]:
-            encoders[m] = Encoder_test(
-                BaseAEConfig(
-                    input_dim=request.param["input_dims"][m],
-                    latent_dim=request.param["modalities_specific_dim"][m],
-                )
-            )
-
-            decoders[m] = Decoder_test(
-                BaseAEConfig(
-                    input_dim=request.param["input_dims"][m],
-                    latent_dim=request.param["modalities_specific_dim"][m],
-                )
-            )
-
-            top_encoders[m] = Encoder_test(
-                BaseAEConfig(
-                    input_dim=(request.param["modalities_specific_dim"][m],),
-                    latent_dim=request.param["msg_dim"],
-                )
-            )
-
-            top_decoders[m] = Decoder_test(
-                BaseAEConfig(
-                    input_dim=(request.param["modalities_specific_dim"][m],),
-                    latent_dim=request.param["latent_dim"],
-                )
-            )
-
-        joint_encoder = Encoder_test(
-            BaseAEConfig(
-                input_dim=(request.param["msg_dim"],),
-                latent_dim=request.param["latent_dim"],
-            )
-        )
-
-        model_config = NexusConfig(**request.param)
-
-        for key in request.param:
-            assert model_config.to_dict()[key] == request.param[key]
-
-        return dict(
-            encoders=encoders,
-            decoders=decoders,
-            top_encoders=top_encoders,
-            top_decoders=top_decoders,
-            joint_encoder=joint_encoder,
-            model_config=model_config,
-        )
-
-    @pytest.fixture(params=["custom_architectures", "default_architectures"])
-    def model(self, custom_config_archi, request):
-        if request.param == "custom_architectures":
-            return Nexus(**custom_config_archi)
-        else:
-            return Nexus(model_config=custom_config_archi["model_config"])
-
     @pytest.fixture
     def training_config(self, tmp_path_factory):
-
+        """Create training configuration for testing the Nexus Model"""
         dir_path = tmp_path_factory.mktemp("dummy_folder")
 
         yield BaseTrainerConfig(
@@ -630,6 +557,7 @@ class Test_training:
 
     @pytest.fixture
     def trainer(self, model, training_config, dataset):
+        """Create a trainer for testing the Nexus Model"""
         trainer = BaseTrainer(
             model=model,
             train_dataset=dataset,
@@ -643,6 +571,9 @@ class Test_training:
 
     @pytest.mark.slow
     def test_train_step(self, trainer):
+        """Test the train step with Nexus.
+        The weights should be updated.
+        """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
         start_optimizer = trainer.optimizer
         _ = trainer.train_step(epoch=1)
@@ -660,6 +591,9 @@ class Test_training:
 
     @pytest.mark.slow
     def test_eval_step(self, trainer):
+        """Test the eval step with NExus.
+        The weights should not be updated.
+        """
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         _ = trainer.eval_step(epoch=1)
@@ -676,6 +610,7 @@ class Test_training:
 
     @pytest.mark.slow
     def test_main_train_loop(self, trainer):
+        """Test main train loop with NExus"""
         start_model_state_dict = deepcopy(trainer.model.state_dict())
 
         trainer.train()
@@ -692,10 +627,11 @@ class Test_training:
 
     @pytest.mark.slow
     def test_checkpoint_saving(self, model, trainer, training_config):
+        """Test checkpoint saving of the Nexus Model"""
         dir_path = training_config.output_dir
 
         # Make a training step
-        step_1_loss = trainer.train_step(epoch=1)
+        trainer.train_step(epoch=1)
 
         model = deepcopy(trainer.model)
         optimizer = deepcopy(trainer.optimizer)
@@ -741,8 +677,8 @@ class Test_training:
             ]
         )
 
-        assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
-        assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
+        assert isinstance(model_rec.encoders.cpu(), type(model.encoders.cpu()))
+        assert isinstance(model_rec.decoders.cpu(), type(model.decoders.cpu()))
 
         optim_rec_state_dict = torch.load(os.path.join(checkpoint_dir, "optimizer.pt"))
 
@@ -767,6 +703,7 @@ class Test_training:
 
     @pytest.mark.slow
     def test_checkpoint_saving_during_training(self, model, trainer, training_config):
+        """Test the creation of chekpoints during training"""
         #
         target_saving_epoch = training_config.steps_saving
 
@@ -811,6 +748,9 @@ class Test_training:
 
     @pytest.mark.slow
     def test_final_model_saving(self, model, trainer, training_config):
+        """Test the final model saving of the Nexus model and check that we can reload the model
+        with AutoModel.
+        """
         dir_path = training_config.output_dir
 
         trainer.train()
@@ -822,7 +762,7 @@ class Test_training:
         )
         assert os.path.isdir(training_dir)
 
-        final_dir = os.path.join(training_dir, f"final_model")
+        final_dir = os.path.join(training_dir, "final_model")
         assert os.path.isdir(final_dir)
 
         files_list = os.listdir(final_dir)
@@ -847,12 +787,5 @@ class Test_training:
             ]
         )
 
-        assert type(model_rec.encoders.cpu()) == type(model.encoders.cpu())
-        assert type(model_rec.decoders.cpu()) == type(model.decoders.cpu())
-
-
-# #     def test_compute_nll(self, model, dataset):
-# #         nll = model.compute_joint_nll(dataset, K=10, batch_size_K=2)
-# #         assert nll >= 0
-# #         assert type(nll) == torch.Tensor
-# #         assert nll.size() == torch.Size([])
+        assert isinstance(model_rec.encoders.cpu(), type(model.encoders.cpu()))
+        assert isinstance(model_rec.decoders.cpu(), type(model.decoders.cpu()))

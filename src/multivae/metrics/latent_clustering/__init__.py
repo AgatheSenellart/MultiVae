@@ -1,5 +1,4 @@
-"""
-This module performs latent clustering with k-means in the latent space
+"""This module performs latent clustering with k-means in the latent space
 and returns the clustering accuracy.
 
 Basic code example:

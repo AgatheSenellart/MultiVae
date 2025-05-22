@@ -51,14 +51,14 @@ class MultistageTrainer(BaseTrainer):
         )
 
     def prepare_train_step(self, epoch, best_train_loss, best_eval_loss):
-        """
-        Function to operate changes between train_steps such as resetting the optimizer and
+        """Function to operate changes between train_steps such as resetting the optimizer and
         the best losses values.
+
         """
         if epoch in self.model.reset_optimizer_epochs:
             logger.info(f"Epoch {epoch} : reset the optimizer and losses.")
             logger.info(
-                f"Keeping the best model obtained until here for the rest of training."
+                "Keeping the best model obtained until here for the rest of training."
             )
             self.save_checkpoint(self._best_model, self.training_dir, epoch - 1)
             self.model = deepcopy(self._best_model).train()
