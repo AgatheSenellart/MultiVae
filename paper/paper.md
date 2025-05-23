@@ -64,10 +64,8 @@ These models learn a latent representation $z$ of all modalities in a lower dime
 A key differentiator of multimodal VAEs relies in the choice of the encoder $q_{\phi}(z|X)$. They fall into three main categories: *Aggregated models* [@wu:2018; @shi:2019; @sutter:2021] use a mean or product operation to combine modalities, *Joint models* [@suzuki:2016; @vedantam:2018; @senellart:2023] use a neural network taking all modalities as input, and *Coordinated models* [@wang_deep_2017; @tian:2019] use separate latent spaces with additional similarity constraints. 
 
 ![Different types of multimodal VAEs \label{types_vae}](mvae_models_diagrams.png){width=100%}
-MultiVae unifies these approaches in a modular and extensible way. 
 
-Notably, aggregated models offer a natural way of *learning* on incomplete datasets: for an incomplete sample $X$, the encoding $z$ and the objective function can be computed using only available modalities.
-MultiVae is the first library to provide implementations of these models with built-in support for missing data, using masks during loss computation.
+MultiVae unifies these approaches in a modular and extensible way. Notably, aggregated models offer a natural way of *learning* on incomplete datasets: for an incomplete sample $X$, the encoding $z$ and the objective function can be computed using only available modalities. MultiVae is the first library to provide implementations of these models with built-in support for missing data, using masks during loss computation.
 
 ## Data Augmentation
 Another application of VAEs is Data Augmentation (DA): by sampling new latent codes $z$ and decoding them, *fully synthetic multimodal* samples can be generated to augment a dataset. 
