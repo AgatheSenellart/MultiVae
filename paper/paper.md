@@ -87,29 +87,29 @@ Related libraries contain implementations of Multimodal VAEs: the [Multimodal VA
 We list models and features in each work. Symbol ($\checkmark$*) indicates that the implementation includes additional options unavailable in the others.
 
 
-|Models/ Features           |Ours     |[@Aguila2023]|[@sejnova:2024]| [@suzuki2023pixyz]
+|Models/ Features           |Ours     |@Aguila2023|@sejnova:2024| @suzuki2023pixyz
 |---------------------------|-------|-------|-------|-------|
-|JMVAE[@suzuki:2016]       | 	$\checkmark$* |	$\checkmark$| |$\checkmark$|
-|MVAE[@wu:2018]             | 	$\checkmark$*|	$\checkmark$|$\checkmark$|$\checkmark$|
-|MMVAE[@shi:2019]           |	$\checkmark$*|	$\checkmark$|$\checkmark$| |
-|MoPoE[@sutter:2021]        |	$\checkmark$*|	$\checkmark$|$\checkmark$| |
-|DMVAE[@lee:2021]           |	$\checkmark$|	$\checkmark$*|$\checkmark$||
-|MVTCAE[@hwang2021multi]    |	$\checkmark$|	$\checkmark$|||
-|MMVAE+[@palumbo_mmvae_2023]|	$\checkmark$*|	$\checkmark$|||
-|CMVAE[@palumbo2024deep]    |	$\checkmark$||||
-|Nexus[@vasco2022leveraging]|	$\checkmark$||||
-|CVAE[@kingma]              |	$\checkmark$|||$\checkmark$|
-|MHVAE[@dorent:2023]        |	$\checkmark$||||
-|TELBO[@vedantam:2018]      |	$\checkmark$||||
-|JNF[@senellart:2023]       |	$\checkmark$||||
-|CRMVAE[@suzuki:2023:mitigating]|$\checkmark$||||
-|MCVAE[@antelmi:2019]||	$\checkmark$|||
+|JMVAE [@suzuki:2016]       | 	$\checkmark$* |	$\checkmark$| |$\checkmark$|
+|MVAE [@wu:2018]             | 	$\checkmark$*|	$\checkmark$|$\checkmark$|$\checkmark$|
+|MMVAE [@shi:2019]           |	$\checkmark$*|	$\checkmark$|$\checkmark$| |
+|MoPoE [@sutter:2021]        |	$\checkmark$*|	$\checkmark$|$\checkmark$| |
+|DMVAE [@lee:2021]           |	$\checkmark$|	$\checkmark$*|$\checkmark$||
+|MVTCAE [@hwang2021multi]    |	$\checkmark$|	$\checkmark$|||
+|MMVAE+ [@palumbo_mmvae_2023]|	$\checkmark$*|	$\checkmark$|||
+|CMVAE [@palumbo2024deep]    |	$\checkmark$||||
+|Nexus [@vasco2022leveraging]|	$\checkmark$||||
+|CVAE [@kingma]              |	$\checkmark$|||$\checkmark$|
+|MHVAE [@dorent:2023]        |	$\checkmark$||||
+|TELBO [@vedantam:2018]      |	$\checkmark$||||
+|JNF [@senellart:2023]       |	$\checkmark$||||
+|CRMVAE [@suzuki:2023:mitigating]|$\checkmark$||||
+|MCVAE [@antelmi:2019]||	$\checkmark$|||
 |mAAE||	$\checkmark$|||
-|DVCCA[@wang_deep_2017]||	$\checkmark$|||
-|DCCAE[@dccae]|| $\checkmark$|||
+|DVCCA [@wang_deep_2017]||	$\checkmark$|||
+|DCCAE [@dccae]|| $\checkmark$|||
 |mWAE||	$\checkmark$|||
-|mmJSD[@sutter:mmjsd]||	$\checkmark$|||
-|gPoE[@aguila:poe]||	$\checkmark$|||
+|mmJSD [@sutter:mmjsd]||	$\checkmark$|||
+|gPoE [@aguila:poe]||	$\checkmark$|||
 |Support of Incomplete datasets|	$\checkmark$||||
 |GMM Sampler|	$\checkmark$||||
 |MAF Sampler, IAF Sampler|	$\checkmark$||||
