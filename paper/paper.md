@@ -10,21 +10,18 @@ authors:
   - name: Agathe Senellart
     orcid: 0009-0000-3176-6461
     corresponding: true
-    affiliation: "1, 2, 3" # (Multiple affiliations must be quoted)
+    affiliation: "1" # (Multiple affiliations must be quoted)
   - name: Clément Chadebec
     equal-contrib: false # (This is how you can denote equal contributions between multiple authors)
-    affiliation: "1, 2, 3"
+    affiliation: "1"
   - name: Stéphanie Allassonnière
     equal-contrib: false # (This is how you can denote equal contributions between multiple authors)
-    affiliation: "1, 2, 3"
+    affiliation: "1"
   
 affiliations:
- - name: Université de Paris-Cité
+ - name: Université Paris Cité, Inria, Inserm, HeKA, F-75015 Paris, France
    index: 1
- - name: Inria
-   index: 2
- - name: Inserm
-   index: 3
+ 
 date: 3 March 2025
 bibliography: [./paper.bib]
 
@@ -57,13 +54,11 @@ Multimodal VAEs aim to:
 (1) Learn a shared representation from multiple modalities;
 (2) Generate one missing modality from available ones.
 
-
 These models learn a latent representation $z$ of all modalities in a lower dimensional space and learn to *decode* $z$ to generate each modality. Let $X = (x_1, x_2, ... x_M)$ contain $M$ modalities. In the VAE setting, we define an *encoder* distribution $q_{\phi}(z|X)$ projecting the observations to the latent space, and decoders distributions $(p_{\theta}(x_i|z))_{1 \leq i \leq M}$ translating the latent code $z$ back to observations. Those distributions are parameterized by neural networks that are trained to minimize an objective function derived from variational inference. See @kingma to learn more about the VAE framework and @suzuki_survey_2022 for a survey on multimodal VAEs. 
 
+A key differentiator of multimodal VAEs relies in the choice of the encoder $q_{\phi}(z|X)$. They fall into three main categories, depicted in \autoref{fig:typesvae}. *Aggregated models* [@wu:2018; @shi:2019; @sutter:2021] use a mean or product operation to combine modalities, *Joint models* [@suzuki:2016; @vedantam:2018; @senellart:2023] use a neural network taking all modalities as input, and *Coordinated models* [@wang_deep_2017; @tian:2019] use separate latent spaces with additional similarity constraints.
 
-A key differentiator of multimodal VAEs relies in the choice of the encoder $q_{\phi}(z|X)$. They fall into three main categories: *Aggregated models* [@wu:2018; @shi:2019; @sutter:2021] use a mean or product operation to combine modalities, *Joint models* [@suzuki:2016; @vedantam:2018; @senellart:2023] use a neural network taking all modalities as input, and *Coordinated models* [@wang_deep_2017; @tian:2019] use separate latent spaces with additional similarity constraints. 
-
-![Different types of multimodal VAEs \label{types_vae}](mvae_models_diagrams.png){width=100%}
+![Different types of multimodal VAEs.\label{fig:typesvae}](mvae_models_diagrams.png){width=100%}
 
 MultiVae unifies these approaches in a modular and extensible way. Notably, aggregated models offer a natural way of *learning* on incomplete datasets: for an incomplete sample $X$, the encoding $z$ and the objective function can be computed using only available modalities. MultiVae is the first library to provide implementations of these models with built-in support for missing data, using masks during loss computation.
 
@@ -117,7 +112,6 @@ We list models and features in each work. Symbol ($\checkmark$*) indicates that 
 |Model sharing via Hugging Face |	$\checkmark$||||
 
 # Code Quality and Documentation
-
 MultiVae is available on [GitHub](https://github.com/AgatheSenellart/MultiVae) and Pypi, with full documentation at [https://multivae.readthedocs.io/](https://multivae.readthedocs.io/).
 The code is unit-tested with 94% coverage. We provide **tutorials** either as notebooks or scripts allowing users to get started easily. To further showcase how to use our library for research applications, we provide detailed *case studies* in the documentation.
 
