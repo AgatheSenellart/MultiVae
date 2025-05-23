@@ -118,9 +118,8 @@ We list models and features in each work. Symbol ($\checkmark$*) indicates that 
 |Model sharing via Hugging Face |	$\checkmark$||||
 
 # Code Quality and Documentation
-MultiVae is available on [Github](https://github.com/AgatheSenellart/MultiVae) and Pypi, with full documentation at (https://multivae.readthedocs.io/).
-The code is unit-tested with 94% coverage. 
- We provide **tutorials** either as notebooks or scripts allowing users to get started easily. To further showcase how to use our library for research applications, we provide detailed *case studies* in the documentation.
+MultiVae is available on [Github](https://github.com/AgatheSenellart/MultiVae) and Pypi, with full documentation at [https://multivae.readthedocs.io/](https://multivae.readthedocs.io/).
+The code is unit-tested with 94% coverage. We provide **tutorials** either as notebooks or scripts allowing users to get started easily. To further showcase how to use our library for research applications, we provide detailed *case studies* in the documentation.
 
 
 # Acknowledgements
