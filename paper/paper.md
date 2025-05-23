@@ -10,21 +10,18 @@ authors:
   - name: Agathe Senellart
     orcid: 0009-0000-3176-6461
     corresponding: true
-    affiliation: "1, 2, 3" # (Multiple affiliations must be quoted)
+    affiliation: "1" # (Multiple affiliations must be quoted)
   - name: Clément Chadebec
     equal-contrib: false # (This is how you can denote equal contributions between multiple authors)
-    affiliation: "1, 2, 3"
+    affiliation: "1"
   - name: Stéphanie Allassonnière
     equal-contrib: false # (This is how you can denote equal contributions between multiple authors)
-    affiliation: "1, 2, 3"
+    affiliation: "1"
   
 affiliations:
- - name: Université de Paris-Cité
+ - name: Université Paris Cité, Inria, Inserm, HeKA, F-75015 Paris, France
    index: 1
- - name: Inria
-   index: 2
- - name: Inserm
-   index: 3
+ 
 date: 3 March 2025
 bibliography: [./paper.bib]
 
