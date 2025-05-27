@@ -12,17 +12,14 @@
 }
 
 @article{suzuki:2016,
-	title = {Joint {Multimodal} {Learning} with {Deep} {Generative} {Models}},
-	url = {http://arxiv.org/abs/1611.01891},
-	abstract = {We investigate deep generative models that can exchange multiple modalities bi-directionally, e.g., generating images from corresponding texts and vice versa. Recently, some studies handle multiple modalities on deep generative models, such as variational autoencoders (VAEs). However, these models typically assume that modalities are forced to have a conditioned relation, i.e., we can only generate modalities in one direction. To achieve our objective, we should extract a joint representation that captures high-level concepts among all modalities and through which we can exchange them bi-directionally. As described herein, we propose a joint multimodal variational autoencoder (JMVAE), in which all modalities are independently conditioned on joint representation. In other words, it models a joint distribution of modalities. Furthermore, to be able to generate missing modalities from the remaining modalities properly, we develop an additional method, JMVAE-kl, that is trained by reducing the divergence between JMVAE's encoder and prepared networks of respective modalities. Our experiments show that our proposed method can obtain appropriate joint representation from multiple modalities and that it can generate and reconstruct them more properly than conventional VAEs. We further demonstrate that JMVAE can generate multiple modalities bi-directionally.},
-	urldate = {2022-04-15},
-	journal = {arXiv:1611.01891 [cs, stat]},
-	author = {Suzuki, Masahiro and Nakayama, Kotaro and Matsuo, Yutaka},
-	month = nov,
-	year = {2016},
-	note = {arXiv: 1611.01891},
-	keywords = {Computer Science - Machine Learning, Statistics - Machine Learning},
-	file = {arXiv Fulltext PDF:/Users/agathe/Zotero/storage/8FFNR92S/Suzuki et al. - 2016 - Joint Multimodal Learning with Deep Generative Mod.pdf:application/pdf;arXiv.org Snapshot:/Users/agathe/Zotero/storage/A5F38V4M/1611.html:text/html},
+	title={Joint Multimodal Learning with Deep Generative Models}, 
+	author={Masahiro Suzuki and Kotaro Nakayama and Yutaka Matsuo},
+	year={2016},
+	eprint={1611.01891},
+	archivePrefix={arXiv},
+	primaryClass={stat.ML},
+	url={https://arxiv.org/abs/1611.01891},
+	doi={10.48550/arXiv.1611.01891}
 }
 
 @article{papamakarios_masked_nodate,
@@ -80,6 +77,7 @@ url={https://openreview.net/forum?id=sdQGxouELX}
 	month = may,
 	year = {2014},
 	note = {arXiv:1312.6114 [cs, stat]},
+	doi={10.61603/ceas.v2i1.33},
 	keywords = {Computer Science - Machine Learning, Statistics - Machine Learning},
 	file = {Kingma and Welling - 2014 - Auto-Encoding Variational Bayes.pdf:/Users/agathe/Zotero/storage/9YS7YFSU/Kingma and Welling - 2014 - Auto-Encoding Variational Bayes.pdf:application/pdf},
 }
@@ -142,7 +140,8 @@ url={https://openreview.net/forum?id=sdQGxouELX}
   volume={146},
   pages={238--255},
   year={2022},
-  publisher={Elsevier}
+  publisher={Elsevier},
+  doi={10.1016/j.neunet.2021.11.019}
 }
 
 @misc{wandb,
@@ -359,7 +358,7 @@ url={https://openreview.net/forum?id=Rn8u4MYgeNJ}
 }
 
 
-@inproceedings{dccae,
+@InProceedings{dccae,
   title = 	 {On Deep Multi-View Representation Learning},
   author = 	 {Wang, Weiran and Arora, Raman and Livescu, Karen and Bilmes, Jeff},
   booktitle = 	 {Proceedings of the 32nd International Conference on Machine Learning},
@@ -375,4 +374,7 @@ url={https://openreview.net/forum?id=Rn8u4MYgeNJ}
   url = 	 {https://proceedings.mlr.press/v37/wangb15.html},
   abstract = 	 {We consider learning representations (features) in the setting in which we have access to multiple unlabeled views of the data for representation learning while only one view is available at test time. Previous work on this problem has proposed several techniques based on deep neural networks, typically involving either autoencoder-like networks with a reconstruction objective or paired feedforward networks with a correlation-based objective. We analyze several techniques based on prior work, as well as new variants, and compare them experimentally on visual, speech, and language domains. To our knowledge this is the first head-to-head comparison of a variety of such techniques on multiple tasks. We find an advantage for correlation-based representation learning, while the best results on most tasks are obtained with our new variant, deep canonically correlated autoencoders (DCCAE).}
 }
+
+
+
 
