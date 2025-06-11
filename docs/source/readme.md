@@ -19,6 +19,9 @@
     <a href="https://codecov.io/gh/AgatheSenellart/MultiVae" > 
         <img src="https://codecov.io/gh/AgatheSenellart/MultiVae/branch/main/graph/badge.svg?token=0077GYjHKo"/> 
     </a>
+    <a style="border-width:0" href="https://doi.org/10.21105/joss.07996">
+  <img src="https://joss.theoj.org/papers/10.21105/joss.07996/status.svg" alt="DOI badge" >
+    </a>
 </p>
 
 # Implemented models 
@@ -320,22 +323,15 @@ Here we provide details on the results we managed to reproduce.
 Note that we also tried to reproduce results for the Nexus model, but didn't obtain similar results as the ones presented in the original paper. If you spot a difference between our implementation and theirs, please reach out to us. 
 
 # Citation
+If you have used our package in your research, please cite our JOSS paper: 
+[MultiVae: A Python package for Multimodal Variational Autoencoders on Partial Datasets.](https://joss.theoj.org/papers/10.21105/joss.07996#)
 
-If you have used our package in your research, please consider citing our paper presenting the package : 
 
-MultiVae : A Python library for Multimodal Generative Autoencoders (2023, Agathe Senellart, Clément Chadebec and Stéphanie Allassonnière)
+You can find the bibtex citation below:
 
-Bibtex entry :
-````
-@preprint{senellart:hal-04207151,
-  TITLE = {{MultiVae: A Python library for Multimodal Generative Autoencoders}},
-  AUTHOR = {Senellart, Agathe and Chadebec, Clement and Allassonniere, Stephanie},
-  URL = {https://hal.science/hal-04207151},
-  YEAR = {2023},
-}
-
-````
-
+```
+@article{Senellart2025, doi = {10.21105/joss.07996}, url = {https://doi.org/10.21105/joss.07996}, year = {2025}, publisher = {The Open Journal}, volume = {10}, number = {110}, pages = {7996}, author = {Agathe Senellart and Clément Chadebec and Stéphanie Allassonnière}, title = {MultiVae: A Python package for Multimodal Variational Autoencoders on Partial Datasets.}, journal = {Journal of Open Source Software} } 
+```
 # Issues ? Questions ?
 
 If you encounter any issues using our package or if you would like to request features, don't hesitate to open an issue [here](https://github.com/AgatheSenellart/MultiVae/issues) and we will do our best to fix it !

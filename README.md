@@ -9,14 +9,17 @@
 	<a href='https://multivae.readthedocs.io/en/latest/?badge=latest'>
     	<img src='https://readthedocs.org/projects/multivae/badge/?version=latest' alt='Documentation Status' />
 	</a>
-    <!-- <a href='https://opensource.org/licenses/Apache-2.0'>
-	    <img src='https://img.shields.io/github/license/clementchadebec/benchmark_VAE?color=blue' /> -->
+    <a href='https://opensource.org/licenses/Apache-2.0'>
+	    <img src='https://img.shields.io/github/license/clementchadebec/benchmark_VAE?color=blue' />
 	</a>
     <a>
 	    <img src='https://img.shields.io/badge/code%20style-black-black' />
 	</a>
     <a href="https://codecov.io/gh/AgatheSenellart/MultiVae" > 
         <img src="https://codecov.io/gh/AgatheSenellart/MultiVae/branch/main/graph/badge.svg?token=0077GYjHKo"/> 
+    </a>
+    <a style="border-width:0" href="https://doi.org/10.21105/joss.07996">
+  <img src="https://joss.theoj.org/papers/10.21105/joss.07996/status.svg" alt="DOI badge" >
     </a>
 </p>
 
@@ -350,20 +353,15 @@ Note that we also tried to reproduce results for the Nexus model, but didn't obt
 
 [(Back to top)](#table-of-contents)
 
-If you have used our package in your research, please consider citing our paper presenting the package : 
+If you have used our package in your research, please cite our JOSS paper: 
+[MultiVae: A Python package for Multimodal Variational Autoencoders on Partial Datasets.](https://joss.theoj.org/papers/10.21105/joss.07996#)
 
-MultiVae : A Python library for Multimodal Generative Autoencoders (2023, Agathe Senellart, Clément Chadebec and Stéphanie Allassonnière)
 
-Bibtex entry :
-````
-@preprint{senellart:hal-04207151,
-  TITLE = {{MultiVae: A Python library for Multimodal Generative Autoencoders}},
-  AUTHOR = {Senellart, Agathe and Chadebec, Clement and Allassonniere, Stephanie},
-  URL = {https://hal.science/hal-04207151},
-  YEAR = {2023},
-}
+You can find the bibtex citation below:
 
-````
+```
+@article{Senellart2025, doi = {10.21105/joss.07996}, url = {https://doi.org/10.21105/joss.07996}, year = {2025}, publisher = {The Open Journal}, volume = {10}, number = {110}, pages = {7996}, author = {Agathe Senellart and Clément Chadebec and Stéphanie Allassonnière}, title = {MultiVae: A Python package for Multimodal Variational Autoencoders on Partial Datasets.}, journal = {Journal of Open Source Software} } 
+```
 
 # Issues ? Questions ?
 
