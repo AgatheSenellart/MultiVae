@@ -347,6 +347,11 @@ class BaseTrainer:
         loss = model_output.loss
 
         self.optimizer.zero_grad()
+        if self.training_config.gradient_clipping_max_norm is not None:
+            torch.nn.utils.clip_grad_norm_(
+                self.model.parameters(),
+                self.training_config.gradient_clipping_max_norm,
+            )
         loss.backward()
         self.optimizer.step()
 

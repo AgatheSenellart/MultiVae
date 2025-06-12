@@ -72,6 +72,7 @@ class BaseTrainerConfig(BaseConfig):
     master_addr: str = field(default="localhost")
     master_port: str = field(default="12345")
     drop_last: bool = False
+    gradient_clipping_max_norm: Union[float, None] = None
 
     def __post_init__(self):
         super().__post_init__()
