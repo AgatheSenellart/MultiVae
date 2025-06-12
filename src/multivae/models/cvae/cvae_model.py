@@ -368,6 +368,7 @@ class CVAE(BaseModel):
         output_decoder = self.decode(embeddings)
 
         output = ModelOutput()
+        output['embedding']= embeddings.z
         output[self.main_modality] = output_decoder.reconstruction
 
         return output
