@@ -65,7 +65,9 @@ def cross_entropy(input, target, eps=1e-6):
 
 
 def set_decoder_dist(dist_name, dist_params):
-    """Transforms the distribution name and parameters into a callable log_prob function"""
+    """Transforms the distribution name and parameters into a callable log_prob function.
+    The log_prob function is -reconstruction_loss. 
+    """
 
     if dist_name == "normal":
         scale = dist_params.pop("scale", 1.0)
@@ -86,6 +88,10 @@ def set_decoder_dist(dist_name, dist_params):
 
     elif dist_name == "categorical":
         log_prob = cross_entropy
+
+    elif dist_name == "bce":
+        def log_prob(recon, target):
+            return - F.binary_cross_entropy_with_logits(recon, target, reduction="none")
 
     else:
         raise ValueError("The distribution type 'dist' is not supported")

@@ -28,6 +28,6 @@ class CVAEConfig(BaseConfig):
     input_dims: Dict[str, tuple] = None
     latent_dim: int = 10
     beta: float = 1.0
-    decoder_dist: Literal["normal", "laplace", "bernoulli", "categorical"] = "normal"
+    decoder_dist: Literal["normal", "laplace", "bernoulli", "categorical", "bce"] = "normal"
     decoder_dist_params: dict = field(default_factory=lambda: {})
     custom_architectures: list = field(default_factory=lambda: [])
