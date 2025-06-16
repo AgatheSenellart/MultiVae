@@ -7,7 +7,6 @@ import json
 import logging
 import os
 import warnings
-import torch
 from typing import Literal
 from torchvision.utils import save_image
 import tempfile
@@ -593,3 +592,83 @@ class MLFlowCallback(TrainingCallback):  # pragma: no cover
             and self._mlflow.active_run() is not None
         ):
             self._mlflow.end_run()
+
+
+class TensorboardCallback(TrainingCallback):  # pragma: no cover
+    """
+    A :class:`TrainingCallback` integrating the experiment tracking tool
+    `tensorboard` (https://docs.pytorch.org/docs/stable//tensorboard.html).
+
+    It allows users to store their configs, monitor their trainings
+    and compare runs through a graphic interface.
+    """
+
+    def __init__(self):
+        from torch.utils.tensorboard.writer import SummaryWriter
+        self._summary_writer = SummaryWriter
+
+
+    def setup(
+        self,
+        logging_dir:str = None,
+        **kwargs,
+    ):
+        """
+        
+
+        args:
+            
+            logging_dir (str): The path where to save the logs. 
+                This must be an absolute path.
+        """
+
+
+        self.is_initialized = True
+        self.writer = self._summary_writer(log_dir=logging_dir)
+
+    def on_train_begin(self, training_config, **kwargs):
+        if not self.is_initialized:
+            self.setup(**kwargs)
+
+    def on_log(self, training_config: BaseTrainerConfig, logs, **kwargs):
+        global_step = kwargs.pop("global_step", None)
+
+        logs = rename_logs(logs)
+        for k, v in logs.items():
+            if isinstance(v, (int, float)):
+                self.writer.add_scalar(k,v,global_step=global_step)
+                self.writer.flush()
+
+    def on_train_end(self, training_config: BaseTrainerConfig, **kwargs):
+        self.writer.close()
+
+    def on_prediction_step(self, training_config: BaseTrainerConfig, **kwargs):
+        """Log all metrics or media contained in the metrics dictionary"""
+
+        global_step = kwargs.pop("global_step", None)
+
+        metrics_media = kwargs.pop("metrics_media", {})
+
+        images = metrics_media.pop('images',{})
+
+        # Save the images to tensorboard
+        for key, image in images.items():
+            self.writer.add_image(
+                key, image, global_step=global_step, dataformats="CHW"
+            )
+        self.writer.flush()
+        
+        # Log other metrics
+        for k, v in metrics_media.items():
+            if isinstance(v, (int, float)):
+                self.writer.add_scalar(k, v, global_step=global_step)
+
+    def on_save(self, training_config: BaseTrainerConfig, **kwargs):
+        return
+
+    def __del__(self):
+        # if the previous run is not terminated correctly, the fluent API will
+        # not let you start a new run before the previous one is killed
+        if self.is_initialized:
+            self.writer.close()
+            self.is_initialized = False
