@@ -183,6 +183,24 @@ class CVAE(BaseModel):
         metrics = {"kl": kl_div, "recon_loss": recon_loss}
 
         return ModelOutput(loss=loss, metrics=metrics)
+    
+    def prior_log_prob(self, z, inputs) -> torch.Tensor:
+        # Compute parameters of the prior p(z|conditioning_modality)
+        cond_mod_data = {mod: inputs.data[mod] for mod in self.conditioning_modalities}
+
+        if self.prior_network is None:
+            prior_mean = torch.zeros_like(z)
+            prior_log_var = torch.zeros_like(z)
+
+        else:
+            output = self.prior_network(cond_mod_data)
+            prior_mean, prior_log_var = output.embedding, output.log_covariance
+
+        lp= dist.Normal(prior_mean, torch.exp(0.5 * prior_log_var)).log_prob(z).sum(-1)
+        return lp, prior_mean, prior_log_var
+
+
+
 
     def encode(
         self, inputs: MultimodalBaseDataset, N: int = 1,
