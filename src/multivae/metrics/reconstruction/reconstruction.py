@@ -37,7 +37,8 @@ class Reconstruction(Evaluator):
         self.metric_name = eval_config.metric
 
     def reconstruction_from_subset(self, subset: List[str]):
-        """Take a subset of modalities as input and compute reconstructions for those
+        """
+        Take a subset of modalities as input and compute reconstructions metrics for those
         modalities.
 
         """
@@ -49,7 +50,7 @@ class Reconstruction(Evaluator):
                 for mod in subset:
                     preds = output[mod]
                     target = batch.data[mod]
-                    reconstruction_error = metric(preds, target)
+                    metric(preds, target)
 
             mean_recon_error = metric.compute()
 
