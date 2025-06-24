@@ -108,15 +108,21 @@ class CoherenceEvaluator(Evaluator):
 
         return mean_accs, std_accs
 
-    def coherence_from_subset(self, subset: List[str]):
+    def coherence_from_subset(
+        self, subset: List[str], return_accuracies_per_labels=False
+    ):
         """Compute all the coherences generating from the modalities in subset to a modality
         that is not in subset.
 
         Args:
             subset (List[str]): The subset of modalities to consider.
+            return_accuracies_per_labels (bool): If true, the detailed accuracies per class
+                are returned. Default to False.
 
         Returns:
-            dict, float : The dictionary of all coherences from subset, and the mean coherence
+            dict: The dictionary the detailed coherences of each modalities generated from the subset.
+            float: The mean coherence accross subsets.
+            (array): If return_accuracies_per_labels is set to True, an array with the detailed accuracies per class is returned.
         """
         pred_mods = [
             m for m in self.model.encoders if (m not in subset) or self.include_recon
@@ -175,7 +181,11 @@ class CoherenceEvaluator(Evaluator):
         self.logger.info("Mean subset %s accuracies : %s", subset, str(mean_pair_acc))
         mean_acc_per_class = np.mean(np.stack(list(acc_per_class.values())), axis=0)
 
-        return acc, mean_pair_acc, mean_acc_per_class
+        if return_accuracies_per_labels:
+            return acc, mean_pair_acc, mean_acc_per_class
+
+        else:
+            return acc, mean_pair_acc
 
     def joint_coherence(self):
         """Generate in all modalities from the prior and compute the percentage of samples where all modalities have the same
@@ -226,7 +236,11 @@ class CoherenceEvaluator(Evaluator):
         return joint_coherence
 
     def eval(self):
-        """Compute all cross-modal coherences and the joint coherence."""
+        """Compute all cross-modal coherences and the joint coherence.
+
+        Returns:
+            ModelOutput: contains all detailed metrics for cross-modal and joint coherence.
+        """
         self.cross_coherences()
         self.joint_coherence()
 
