@@ -11,12 +11,16 @@ import PIL
 import torch
 from torch.distributions import Bernoulli
 from torchvision.datasets import MNIST
+from skimage.filters import sato
 
 from .base import DatasetOutput, MultimodalBaseDataset
 
 
-class MnistLabels(MultimodalBaseDataset):  # pragma: no cover
-    """Mnist-Labels dataset. The first modality is the image and the second modality is the label."""
+class MnistContourLabels(MultimodalBaseDataset):  # pragma: no cover
+    """
+    Mnist-Labels-Contour dataset. 
+    The first modality is the image, the second modality is the label and a third possible modality
+    is the filtered sato mnist_image."""
 
     def __init__(
         self,
@@ -24,7 +28,9 @@ class MnistLabels(MultimodalBaseDataset):  # pragma: no cover
         split: Literal["train", "test"] = "train",
         download=False,
         random_binarized=True,
-        dtype=torch.float32,
+        dtype=torch.float32, 
+        include_labels=True, 
+        include_contours= False
     ):
         """
         Class to wrap the MnistLabels dataset for MultiVae use.
@@ -50,14 +56,24 @@ class MnistLabels(MultimodalBaseDataset):  # pragma: no cover
         )
         self.labels_one_hot = self.labels_one_hot.unsqueeze(1)
         self.random_binarized = random_binarized
+        self.include_labels = include_labels
+        self.include_contours = include_contours
 
     def __getitem__(self, index):
         if self.random_binarized:
             images = Bernoulli(self.images[index]).sample()
         else:
             images = self.images[index]
+        
+        data =  dict(images=images)
+        
+        if self.include_labels:
+            data['labels']=self.labels_one_hot[index]
+        if self.include_contours:
+            data['contours']=torch.tensor(sato(images.numpy()[0],sigmas=[1])).unsqueeze(0)
+        
         return DatasetOutput(
-            data=dict(images=images, labels=self.labels_one_hot[index]),
+            data=data,
             labels=self.labels[index],
         )
 
