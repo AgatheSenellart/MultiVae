@@ -164,6 +164,10 @@ class TestCoherences:
             eval_config=config,
         )
 
+        subset_dict, mean_acc = evaluator.coherence_from_subset(["mnist"])
+        assert 0 <= mean_acc <= 1
+        assert isinstance(subset_dict, dict)
+
         (
             subset_dict,
             mean_acc,
@@ -172,7 +176,6 @@ class TestCoherences:
             ["mnist"], return_accuracies_per_labels=True
         )
 
-        assert 0 <= mean_acc <= 1
         assert isinstance(mean_acc_per_class, np.ndarray)
         assert len(mean_acc_per_class) == config.num_classes
         assert np.all(mean_acc_per_class >= 0) and np.all(mean_acc_per_class <= 1)
