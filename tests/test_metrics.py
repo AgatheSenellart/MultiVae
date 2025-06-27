@@ -168,7 +168,9 @@ class TestCoherences:
             subset_dict,
             mean_acc,
             mean_acc_per_class,
-        ) = evaluator.coherence_from_subset(["mnist"], return_accuracies_per_labels=True)
+        ) = evaluator.coherence_from_subset(
+            ["mnist"], return_accuracies_per_labels=True
+        )
 
         assert 0 <= mean_acc <= 1
         assert isinstance(mean_acc_per_class, np.ndarray)

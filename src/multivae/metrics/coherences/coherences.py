@@ -70,7 +70,7 @@ class CoherenceEvaluator(Evaluator):
                     subset_dict,
                     mean_acc,
                     mean_acc_per_class,
-                ) = self.coherence_from_subset(s,return_accuracies_per_labels=True)
+                ) = self.coherence_from_subset(s, return_accuracies_per_labels=True)
                 self.metrics.update(subset_dict)
                 accs[-1].append(mean_acc)
                 accs_per_class[-1].append(mean_acc_per_class)
