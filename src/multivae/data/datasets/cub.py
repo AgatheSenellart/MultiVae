@@ -7,13 +7,11 @@ import tempfile
 from collections import Counter, OrderedDict, defaultdict
 
 import matplotlib.pyplot as plt
-import nltk
 import numpy as np
 import PIL
 import torch
 import torch.nn as nn
 from nltk.tokenize import sent_tokenize, word_tokenize
-from pythae.data.datasets import DatasetOutput
 from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset
 from torchvision import datasets, transforms
