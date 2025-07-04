@@ -119,7 +119,7 @@ def kl_divergence(
     return kl.sum(dim=-1)
 
 
-def poe(mus, logvars, eps=1e-8):
+def poe(mus, logvars, eps=1e-5):
     """Compute the Product of Experts (PoE) for a list of Gaussian experts."""
     var = torch.exp(logvars) + eps
     # precision of i-th Gaussian expert at point x

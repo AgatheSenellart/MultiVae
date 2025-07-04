@@ -1,7 +1,7 @@
 """
 Multimodal dataset wrapper for the MNIST labels dataset.
 """
-
+import os
 import io
 from typing import Literal
 
@@ -58,6 +58,29 @@ class MnistContourLabels(MultimodalBaseDataset):  # pragma: no cover
         self.random_binarized = random_binarized
         self.include_labels = include_labels
         self.include_contours = include_contours
+        if self.include_contours:
+            self._get_all_contours(self.images, data_path, split)
+
+    def _get_all_contours(self, images, data_path, split):
+
+        contour_path = os.path.join(data_path, 'MNIST', f'contours_{split}.pt')
+
+        if os.path.exists(contour_path):
+            self.contours = torch.load(contour_path)
+            return
+        print('building contours')
+        contours = []
+        for image in images:
+            contours.append(torch.tensor(sato(image[0].numpy(),sigmas=[1])).unsqueeze(0))
+        contours = torch.stack(contours)
+
+        # normalize to have values between 0 and 1
+        max = torch.max(contours)
+        min = torch.min(contours)
+
+        self.contours = (contours - min)/(max-min)
+        os.makedirs(os.path.join(data_path, 'MNIST'), exist_ok=True)
+        torch.save(self.contours, contour_path)
 
     def __getitem__(self, index):
         if self.random_binarized:
@@ -70,7 +93,7 @@ class MnistContourLabels(MultimodalBaseDataset):  # pragma: no cover
         if self.include_labels:
             data['labels']=self.labels_one_hot[index]
         if self.include_contours:
-            data['contours']=torch.tensor(sato(images.numpy()[0],sigmas=[1])).unsqueeze(0)
+            data['contours']=self.contours[index]
         
         return DatasetOutput(
             data=data,
