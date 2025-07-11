@@ -180,7 +180,7 @@ class CVAE(BaseModel):
 
         loss = recon_loss + kl_div * self.model_config.beta
 
-        metrics = {"kl": kl_div, "recon_loss": recon_loss}
+        metrics = {"kl": kl_div.item(), "recon_loss": recon_loss.item()}
 
         return ModelOutput(loss=loss, metrics=metrics)
     
