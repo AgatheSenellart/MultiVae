@@ -269,25 +269,25 @@ class CVAE(BaseModel):
                 >>> output.reconstruction
 
         """
-        with torch.no_grad():
-            z = embedding.z
-            cond_mod_data = embedding.cond_mod_data
+    
+        z = embedding.z
+        cond_mod_data = embedding.cond_mod_data
 
-            if len(z.shape) == 3:
-                N, l, d = z.shape
-                z = z.reshape(l * N, d)
-                cond_mod_data = {
-                    m: cond_mod_data[m].reshape(N * l, *cond_mod_data[m].shape[2:])
-                    for m in cond_mod_data
-                }
+        if len(z.shape) == 3:
+            N, l, d = z.shape
+            z = z.reshape(l * N, d)
+            cond_mod_data = {
+                m: cond_mod_data[m].reshape(N * l, *cond_mod_data[m].shape[2:])
+                for m in cond_mod_data
+            }
 
-                output = self.decoder(z, cond_mod_data)
-                output.reconstruction = output.reconstruction.reshape(
-                    N, l, *output.reconstruction.shape[1:]
-                )
-                return output
-            else:
-                return self.decoder(z, cond_mod_data)
+            output = self.decoder(z, cond_mod_data)
+            output.reconstruction = output.reconstruction.reshape(
+                N, l, *output.reconstruction.shape[1:]
+            )
+            return output
+        else:
+            return self.decoder(z, cond_mod_data)
 
     def generate_from_prior(
         self, cond_mod_data: Dict[str, torch.Tensor], N: int = 1, **kwargs
