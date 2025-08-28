@@ -70,9 +70,9 @@ def set_decoder_dist(dist_name, dist_params):
     """
 
     if dist_name == "normal":
-        scale = dist_params.pop("scale", 1.0)
+        default_scale = dist_params.pop("scale", 1.0)
 
-        def log_prob(recon, target):
+        def log_prob(recon, target, scale=default_scale):
             return dist.Normal(recon, scale).log_prob(target)
 
     elif dist_name == "bernoulli":

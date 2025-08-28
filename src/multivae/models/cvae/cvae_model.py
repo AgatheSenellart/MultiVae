@@ -2,6 +2,7 @@ from typing import Dict, Union
 
 import torch
 import torch.distributions as dist
+import torch.nn.functional as F
 
 from multivae.data.datasets.base import MultimodalBaseDataset
 from multivae.models.base import BaseModel
@@ -20,6 +21,11 @@ from multivae.models.nn.default_architectures import (
 
 from .cvae_config import CVAEConfig
 
+def softclip(tensor, min):
+    """ Clips the tensor values at the minimum value min in a softway. Taken from Handful of Trials """
+    result_tensor = min + F.softplus(tensor - min)
+
+    return result_tensor
 
 class CVAE(BaseModel):
     """
@@ -60,6 +66,9 @@ class CVAE(BaseModel):
         self._set_encoder(encoder, model_config)
         self._set_decoder(decoder, model_config)
         self._set_prior_network(prior_network)
+
+        if self.model_config.sigma_variation=='sigma_vae':
+            self.log_sigma = torch.nn.Parameter(torch.tensor([0.0]), requires_grad=True)
 
     def _set_encoder(self, encoder, model_config):
         if encoder is None:
@@ -169,9 +178,25 @@ class CVAE(BaseModel):
         output = self.decoder(z, cond_mod_data)
         recon = output.reconstruction
 
-        recon_loss = (
-            -self.recon_log_prob(recon, inputs.data[self.main_modality]).mean(0).sum()
-        )
+        if self.model_config.sigma_variation is None:
+            recon_loss = (
+                -self.recon_log_prob(recon, inputs.data[self.main_modality]).mean(0).sum()
+            )
+        else:
+            if self.model_config.sigma_variation=='sigma_vae':
+                log_sigma = self.log_sigma
+            elif self.model_config.sigma_variation=='optimal_sigma_vae':
+                # ici il n'y a pas de detach/ item() donc ça participe au gradient. À vérifier du coup. 
+                dims = range(len(recon.shape)) # Sum on all dimensions and batch
+                log_sigma = ((recon - inputs.data[self.main_modality]) ** 2).mean(list(dims),keepdim=True).sqrt().log()
+                self.log_sigma=log_sigma.item()
+            else: 
+                raise AttributeError()
+            
+            scale = torch.exp(softclip(log_sigma,1e-6))
+            recon_loss = (
+                -self.recon_log_prob(recon, inputs.data[self.main_modality], scale=scale).mean(0).sum()
+            )
 
         # Compute the KL divergence between the posterior and the prior
         kl_div = kl_divergence(embedding, log_var, prior_mean, prior_log_var).mean(0)
@@ -181,6 +206,10 @@ class CVAE(BaseModel):
         loss = recon_loss + kl_div * self.model_config.beta
 
         metrics = {"kl": kl_div.item(), "recon_loss": recon_loss.item()}
+        if self.model_config.sigma_variation=='sigma_vae':
+            metrics['log_sigma'] = self.log_sigma.detach().item()
+        elif self.model_config.sigma_variation=='optimal_sigma_vae':
+            metrics['log_sigma'] = self.log_sigma
 
         return ModelOutput(loss=loss, metrics=metrics)
     
