@@ -1,4 +1,4 @@
-from typing import Dict, Union
+from typing import Dict, Union, Optional
 
 import torch
 import torch.distributions as dist
@@ -16,7 +16,7 @@ from multivae.models.nn.base_architectures import (
 from multivae.models.nn.default_architectures import (
     BaseDictEncoders,
     ConditionalDecoderMLP,
-    MultipleHeadJointEncoder,
+    MultipleHeadJointEncoder
 )
 
 from .cvae_config import CVAEConfig
@@ -30,6 +30,8 @@ def softclip(tensor, min):
 class CVAE(BaseModel):
     """
     Main class for the Conditional Variational Autoencoder.
+    This class can also be used without covariates to implement a simple VAE. 
+
 
     Args:
 
@@ -180,7 +182,7 @@ class CVAE(BaseModel):
 
         if self.model_config.sigma_variation is None:
             recon_loss = (
-                -self.recon_log_prob(recon, inputs.data[self.main_modality]).mean(0).sum()
+                -self.recon_log_prob(recon, inputs.data[self.main_modality]).sum()
             )
         else:
             if self.model_config.sigma_variation=='sigma_vae':
@@ -195,11 +197,11 @@ class CVAE(BaseModel):
             
             scale = torch.exp(softclip(log_sigma,1e-6))
             recon_loss = (
-                -self.recon_log_prob(recon, inputs.data[self.main_modality], scale=scale).mean(0).sum()
+                -self.recon_log_prob(recon, inputs.data[self.main_modality], scale=scale).sum()
             )
 
         # Compute the KL divergence between the posterior and the prior
-        kl_div = kl_divergence(embedding, log_var, prior_mean, prior_log_var).mean(0)
+        kl_div = kl_divergence(embedding, log_var, prior_mean, prior_log_var).sum()
 
         # Compute the total loss
 
@@ -319,7 +321,7 @@ class CVAE(BaseModel):
             return self.decoder(z, cond_mod_data)
 
     def generate_from_prior(
-        self, cond_mod_data: Dict[str, torch.Tensor], N: int = 1, **kwargs
+        self,  N: int = 1, cond_mod_data: Optional[Dict[str, torch.Tensor]]=None,**kwargs
     ) -> ModelOutput:
         """Generates latent variables from the prior, conditioning on cond_mod_data.
 
@@ -334,14 +336,18 @@ class CVAE(BaseModel):
 
         flatten = kwargs.pop("flatten", False)
 
-        # Look up the batch size and the device of the input data
-        batch_size = list(cond_mod_data.values())[0].shape[0]
-        device = list(cond_mod_data.values())[0].device
 
         if self.prior_network is None:
-            prior_mean = torch.zeros((batch_size, self.latent_dim))
-            prior_log_var = torch.zeros((batch_size, self.latent_dim))
+
+            device = 'cuda' if torch.cuda.is_available() else 'cpu'
+            prior_mean = torch.zeros( (self.latent_dim,))
+            prior_log_var = torch.zeros((self.latent_dim,))
         else:
+            if cond_mod_data is None:
+                raise AttributeError('The prior is conditional but cond_mod_data is None')
+            # Look up the batch size and the device of the input data
+
+            device = list(cond_mod_data.values())[0].device
             output = self.prior_network(cond_mod_data)
             prior_mean, prior_log_var = output.embedding, output.log_covariance
 
@@ -351,19 +357,22 @@ class CVAE(BaseModel):
         )
 
         if N > 1 and not flatten:
-            cond_mod_data = {
-                m: torch.stack([cond_mod_data[m]] * N)
-                for m in self.conditioning_modalities
-            }
+            if cond_mod_data is not None:
+                cond_mod_data = {
+                    m: torch.stack([cond_mod_data[m]] * N)
+                    for m in self.conditioning_modalities
+                }
 
         elif N > 1 and flatten:
-            cond_mod_data = {
-                m: torch.cat([cond_mod_data[m]] * N)
-                for m in self.conditioning_modalities
-            }
-            z = z.reshape(N * prior_mean.shape[0], prior_mean.shape[1])
+            if cond_mod_data is not None:
+                cond_mod_data = {
+                    m: torch.cat([cond_mod_data[m]] * N)
+                    for m in self.conditioning_modalities
+                }
+                z = z.reshape(N * prior_mean.shape[0], prior_mean.shape[1])
         else:
-            cond_mod_data = {m: cond_mod_data[m] for m in self.conditioning_modalities}
+            if cond_mod_data is not None:
+                cond_mod_data = {m: cond_mod_data[m] for m in self.conditioning_modalities}
 
         z = z.to(device)
 

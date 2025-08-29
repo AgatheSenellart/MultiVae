@@ -4,8 +4,33 @@ from multivae.models import CVAE, CVAEConfig
 from multivae.trainers import BaseTrainer, BaseTrainerConfig
 from multivae.trainers.base.callbacks import WandbCallback, TensorboardCallback
 from pathlib import Path
-from multivae.metrics import Visualization, VisualizationConfig
+from multivae.metrics import Visualization, VisualizationConfig, Reconstruction, ReconstructionConfig, FIDEvaluator, FIDEvaluatorConfig
 from argparse import ArgumentParser
+from multivae.models.nn.base_architectures import BaseJointEncoder, BaseConditionalDecoder
+from multivae.models.nn.default_architectures import Encoder_VAE_MLP, Decoder_AE_MLP, BaseAEConfig
+
+# Define architectures that ignores the covariates to have a simple VAE without conditioning. 
+
+class my_encoder(BaseJointEncoder):
+    """Simple MLP architectures, ignoring the covariates"""
+
+    def __init__(self, latent_dim, input_dim):
+        super().__init__()
+        self.network = Encoder_VAE_MLP(BaseAEConfig(input_dim=input_dim,latent_dim=latent_dim),n_hidden=2)
+
+    def forward(self, inputs):
+        return self.network(inputs['images'])
+    
+class my_decoder(BaseConditionalDecoder):
+    """Simple MLP architectures, ignoring the covariates"""
+
+
+    def __init__(self, latent_dim, input_dim):
+        super().__init__()
+        self.network = Decoder_AE_MLP(BaseAEConfig(latent_dim=latent_dim, input_dim=input_dim))
+
+    def forward(self, z ,cond_mods):
+        return self.network(z)
 
 if __name__=='__main__':
     
@@ -20,6 +45,7 @@ if __name__=='__main__':
     DATA_PATH = '/home/asenella/data'
     # Set the paths where you want the models to be saved
     SAVE_PATH = '/home/asenella/experiments/cvae_mnist_labels'
+    FID_PATH = '/home/asenella/data/fid'
 
     trainset = MnistLabels(DATA_PATH,split='train',download=False )
     trainset, evalset = random_split(trainset, [0.8, 0.2])
@@ -30,14 +56,15 @@ if __name__=='__main__':
     model_config = CVAEConfig(
         latent_dim=16,
         input_dims=dict(images=(1, 28, 28), labels=(10,)),
-        # conditioning_modalities=['labels'],
-        conditioning_modalities=[],
+        conditioning_modalities=['labels'],
         main_modality='images',
         decoder_dist='normal',
         sigma_variation=args.sigma_variation
     )
+
+    
         
-    model = CVAE(model_config)
+    model = CVAE(model_config,encoder=my_encoder(latent_dim=16, input_dim=(1,28,28)), decoder=my_decoder(latent_dim=16, input_dim=(1,28,28)))
 
     # Set the trainer
     trainer_config = BaseTrainerConfig(
@@ -45,7 +72,7 @@ if __name__=='__main__':
         learning_rate=1e-3,
         per_device_eval_batch_size=128,
         per_device_train_batch_size=128,
-        num_epochs=30,
+        num_epochs=2,
         steps_predict=1 # log images every 1 epoch
         )
 
@@ -64,12 +91,34 @@ if __name__=='__main__':
 
     trainer.train()
 
-    # Save some metrics and visualizations
+    ###  Save some metrics and visualizations
+
+    best_model = trainer._best_model
+    w_path = wandb_cb.run.path
+    output_dir = Path(trainer.training_dir)
+
+    # Visualizations
+    vis_config= VisualizationConfig(batch_size=64, wandb_path=w_path)
     vis_module = Visualization(
-        model=trainer._best_model,
+        model=best_model,
         test_dataset=testset,
-        output=Path(trainer.training_dir) / 'visualisations'
+        output=output_dir,
+        eval_config=vis_config
         )
 
     vis_module.reconstruction(modality='images')
     vis_module.unconditional_samples()
+
+    # Reconstruction MSE
+    recon_config = ReconstructionConfig(batch_size=64, 
+                                        wandb_path=w_path,
+                                        metric='MSE'
+                                        )
+    Reconstruction(
+        model=best_model, 
+        eval_config=recon_config,
+        test_dataset=evalset,
+        output=output_dir
+    )
+
+    
