@@ -42,19 +42,17 @@ if __name__=='__main__':
 
     # Get the data
     # Set the path where you want the data to be downloaded 
-    DATA_PATH = '/home/asenella/data'
+    DATA_PATH = '/scratch/asenella/data'
     # Set the paths where you want the models to be saved
-    SAVE_PATH = '/home/asenella/experiments/cvae_mnist_labels'
-    FID_PATH = '/home/asenella/data/fid'
-
-    trainset = MnistLabels(DATA_PATH,split='train',download=False )
+    SAVE_PATH = '/scratch/asenella/experiments/cvae_mnist_labels'
+    trainset = MnistLabels(DATA_PATH,split='train',download=False, random_binarized=False)
     trainset, evalset = random_split(trainset, [0.8, 0.2])
-    testset = MnistLabels(DATA_PATH,split='test',download=False )
+    testset = MnistLabels(DATA_PATH,split='test',download=False,random_binarized=False )
 
 
     # Set the model config
     model_config = CVAEConfig(
-        latent_dim=16,
+        latent_dim=8,
         input_dims=dict(images=(1, 28, 28), labels=(10,)),
         conditioning_modalities=['labels'],
         main_modality='images',
@@ -64,7 +62,8 @@ if __name__=='__main__':
 
     
         
-    model = CVAE(model_config,encoder=my_encoder(latent_dim=16, input_dim=(1,28,28)), decoder=my_decoder(latent_dim=16, input_dim=(1,28,28)))
+    model = CVAE(model_config,encoder=my_encoder(latent_dim=model_config.latent_dim, input_dim=(1,28,28)), 
+    decoder=my_decoder(latent_dim=model_config.latent_dim, input_dim=(1,28,28)))
 
     # Set the trainer
     trainer_config = BaseTrainerConfig(
@@ -72,7 +71,7 @@ if __name__=='__main__':
         learning_rate=1e-3,
         per_device_eval_batch_size=128,
         per_device_train_batch_size=128,
-        num_epochs=2,
+        num_epochs=150,
         steps_predict=1 # log images every 1 epoch
         )
 
@@ -108,17 +107,23 @@ if __name__=='__main__':
 
     vis_module.reconstruction(modality='images')
     vis_module.unconditional_samples()
+    vis_module.log_to_wandb()
+    vis_module.finish()
 
     # Reconstruction MSE
     recon_config = ReconstructionConfig(batch_size=64, 
                                         wandb_path=w_path,
                                         metric='MSE'
                                         )
-    Reconstruction(
+    recon = Reconstruction(
         model=best_model, 
         eval_config=recon_config,
         test_dataset=evalset,
         output=output_dir
     )
+
+    recon.eval()
+    recon.log_to_wandb()
+    recon.finish()
 
     

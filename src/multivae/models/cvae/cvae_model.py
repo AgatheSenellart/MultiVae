@@ -195,7 +195,7 @@ class CVAE(BaseModel):
             else: 
                 raise AttributeError()
             
-            scale = torch.exp(softclip(log_sigma,1e-6))
+            scale = torch.exp(softclip(log_sigma,-6))
             recon_loss = (
                 -self.recon_log_prob(recon, inputs.data[self.main_modality], scale=scale).sum()
             )
