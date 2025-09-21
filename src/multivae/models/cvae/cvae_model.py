@@ -48,6 +48,7 @@ class CVAE(BaseModel):
         encoder: Union[BaseEncoder, None] = None,
         decoder: Union[BaseConditionalDecoder, None] = None,
         prior_network: Union[BaseJointEncoder, None] = None,
+        **kwargs
     ):
         super().__init__(model_config)
 
