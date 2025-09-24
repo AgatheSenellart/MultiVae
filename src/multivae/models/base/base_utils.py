@@ -133,6 +133,33 @@ def kl_divergence(
 
     return kl.sum(dim=-1)
 
+def sparse_compute_logvar(mu, log_alpha):
+	    return log_alpha + 2 * torch.log(torch.abs(mu) + 1e-8)
+
+def sparse_compute_log_alpha(mu, logvar):
+	# clamp because dropout rate p in 0-99%, where p = alpha/(alpha+1)
+	return (logvar - 2 * torch.log(torch.abs(mu) + 1e-8)).clamp(min=-8, max=8)
+
+
+
+def sparse_kl_divergence(mean:torch.Tensor, log_var: torch.Tensor):
+    """
+
+    from https://gitlab.inria.fr/epione_ML/mcvae/-/blob/master/src/mcvae/distributions/kl_utilities.py?ref_type=heads
+
+
+	Paragraph 4.2 from:
+	Variational Dropout Sparsifies Deep Neural Networks
+	Molchanov, Dmitry; Ashukha, Arsenii; Vetrov, Dmitry
+	https://arxiv.org/abs/1701.05369
+	https://github.com/senya-ashukha/variational-dropout-sparsifies-dnn/blob/master/KL%20approximation.ipynb
+	"""
+	log_alpha = sparse_compute_log_alpha(mean, log_var)
+	k1, k2, k3 = 0.63576, 1.8732, 1.48695
+	neg_KL = k1 * torch.sigmoid(k2 + k3 * log_alpha) - 0.5 * torch.log1p(torch.exp(-log_alpha)) - k1
+	return -neg_KL.sum(dim=-1)
+
+
 
 def poe(mus, logvars, eps=1e-8):
     """

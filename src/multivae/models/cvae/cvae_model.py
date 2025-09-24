@@ -7,7 +7,8 @@ import torch.nn.functional as F
 from multivae.data.datasets.base import MultimodalBaseDataset
 from multivae.models.base import BaseModel
 from multivae.models.base.base_model import ModelOutput
-from multivae.models.base.base_utils import kl_divergence, set_decoder_dist
+from multivae.models.base.base_utils import (kl_divergence,
+                                            set_decoder_dist, sparse_kl_divergence, sparse_compute_logvar)
 from multivae.models.nn.base_architectures import (
     BaseConditionalDecoder,
     BaseEncoder,
@@ -55,9 +56,6 @@ class CVAE(BaseModel):
         self.latent_dim = model_config.latent_dim
         self.model_name = "CVAE"
 
-        if model_config.decoder_dist_params is None:
-            model_config.decoder_dist_params = {}
-
         self._set_decoder_dist(
             model_config.decoder_dist, model_config.decoder_dist_params
         )
@@ -69,9 +67,14 @@ class CVAE(BaseModel):
         self._set_encoder(encoder, model_config)
         self._set_decoder(decoder, model_config)
         self._set_prior_network(prior_network)
-
+        
+        # sigmaVAE variation
         if self.model_config.sigma_variation=='sigma_vae':
             self.log_sigma = torch.nn.Parameter(torch.tensor([0.0]), requires_grad=True)
+
+        # sparseVAE variation
+        if self.model_config.sparse:
+            self.log_alpha = torch.nn.Parameter(torch.FloatTensor(1, self.latent_dim).normal_(0, 0.01))
 
     def _set_encoder(self, encoder, model_config):
         if encoder is None:
@@ -160,8 +163,7 @@ class CVAE(BaseModel):
         """
 
         # Encode the input data
-        output = self.encoder(inputs.data)
-        embedding, log_var = output.embedding, output.log_covariance
+        embedding, log_var = self.get_mu_log_var(inputs)
 
         # Sample from the posterior
         z = dist.Normal(embedding, torch.exp(0.5 * log_var)).rsample()
@@ -202,11 +204,18 @@ class CVAE(BaseModel):
             )
 
         # Compute the KL divergence between the posterior and the prior
-        kl_div = kl_divergence(embedding, log_var, prior_mean, prior_log_var).sum()
+        if self.model_config.sparse:
+            kl_div = sparse_kl_divergence(embedding, log_var).sum()
+        else:
+            kl_div = kl_divergence(embedding, log_var, prior_mean, prior_log_var).sum()
 
         # Compute the total loss
 
         loss = recon_loss + kl_div * self.model_config.beta
+
+        # take the mean over the batch instead of the sum
+        if self.model_config.mean_over_batch:
+            loss = loss / len(z)
 
         metrics = {"kl": kl_div.item(), "recon_loss": recon_loss.item()}
         if self.model_config.sigma_variation=='sigma_vae':
@@ -232,6 +241,15 @@ class CVAE(BaseModel):
         return lp, prior_mean, prior_log_var
 
 
+
+    def get_mu_log_var(self, inputs: MultimodalBaseDataset):
+        output = self.encoder(inputs.data)
+        embedding, log_var = output.embedding, output.log_covariance
+
+        if self.model_config.sparse:
+            log_var = sparse_compute_logvar(embedding, self.log_alpha)
+
+        return embedding, log_var
 
 
     def encode(
@@ -262,8 +280,7 @@ class CVAE(BaseModel):
 
         """
         
-        output = self.encoder(inputs.data)
-        mean, log_var = output.embedding, output.log_covariance
+        mean, log_var = self.get_mu_log_var(inputs)
         scale = torch.exp(0.5 * log_var)
         sample_shape = [] if N == 1 else [N]
 
@@ -429,3 +446,6 @@ class CVAE(BaseModel):
         output[self.main_modality] = output_decoder.reconstruction
 
         return output
+    
+    
+
