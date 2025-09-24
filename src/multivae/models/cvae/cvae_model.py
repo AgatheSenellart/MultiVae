@@ -227,9 +227,6 @@ class CVAE(BaseModel):
     
     def prior_log_prob(self, z, inputs) -> torch.Tensor:
         
-        if self.model_config.sparse:
-            raise NotImplementedError()
-
         # Compute parameters of the prior p(z|conditioning_modality)
         cond_mod_data = {mod: inputs.data[mod] for mod in self.conditioning_modalities}
 
