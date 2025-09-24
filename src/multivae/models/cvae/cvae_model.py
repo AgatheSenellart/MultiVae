@@ -226,6 +226,10 @@ class CVAE(BaseModel):
         return ModelOutput(loss=loss, metrics=metrics)
     
     def prior_log_prob(self, z, inputs) -> torch.Tensor:
+        
+        if self.model_config.sparse:
+            raise NotImplementedError()
+
         # Compute parameters of the prior p(z|conditioning_modality)
         cond_mod_data = {mod: inputs.data[mod] for mod in self.conditioning_modalities}
 
@@ -351,7 +355,9 @@ class CVAE(BaseModel):
         Returns:
             A ModelOutput instance containing the embeddings.
         """
-
+        if self.model_config.sparse:
+            raise NotImplementedError()
+        
         flatten = kwargs.pop("flatten", False)
 
 
