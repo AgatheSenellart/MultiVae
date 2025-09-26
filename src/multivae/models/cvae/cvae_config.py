@@ -37,6 +37,7 @@ class CVAEConfig(BaseConfig):
     decoder_dist_params: dict = field(default_factory=lambda: {})
     custom_architectures: list = field(default_factory=lambda: [])
     sparse: bool = False
+    log_sigma_init: Optional[float] = -2.0
     mean_over_batch: bool=False
 
     def __post_init__(self):
@@ -49,6 +50,4 @@ class CVAEConfig(BaseConfig):
                 raise AttributeError(f"The sigma_variation {self.sigma_variation}"
                                      "can only be used with decoder_dist = 'normal'.")
 
-            if self.sparse:
-                raise AttributeError(f"The sigma variation can not be used with the sparse-VAE")
             

@@ -70,7 +70,7 @@ class CVAE(BaseModel):
         
         # sigmaVAE variation
         if self.model_config.sigma_variation=='sigma_vae':
-            self.log_sigma = torch.nn.Parameter(torch.tensor([0.0]), requires_grad=True)
+            self.log_sigma = torch.nn.Parameter(torch.tensor([self.model_config.log_sigma_init]), requires_grad=True)
 
         # sparseVAE variation
         if self.model_config.sparse:
