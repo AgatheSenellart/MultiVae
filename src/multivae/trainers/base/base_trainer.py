@@ -331,6 +331,8 @@ class BaseTrainer:
             inputs = next(iter(loader))
             train_dataset = set_inputs_to_device(inputs, device=self.device)
             model(train_dataset)
+            model.zero_grad()
+            torch.cuda.empty_cache()
 
         except Exception as e:
             raise Exception(
