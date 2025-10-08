@@ -673,13 +673,18 @@ class BaseTrainer:
         for inputs in self.train_loader:
             inputs = set_inputs_to_device(inputs, device=self.device)
 
+            if hasattr(self.training_config,'beta_schedule'):
+                beta_epoch=self.training_config.beta_schedule[epoch]
+            else:
+                beta_epoch=None
+
             model_output = self.model(
                 inputs,
                 epoch=epoch,
                 dataset_size=len(self.train_loader.dataset),
                 uses_ddp=self.distributed,
                 batch_ratio=(batch_idx) / len(self.train_loader),
-                beta=self.training_config.beta_schedule[epoch]
+                beta=beta_epoch
             )
 
             self._optimizers_step(model_output)
