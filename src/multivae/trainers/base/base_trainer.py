@@ -679,6 +679,7 @@ class BaseTrainer:
                 dataset_size=len(self.train_loader.dataset),
                 uses_ddp=self.distributed,
                 batch_ratio=(batch_idx) / len(self.train_loader),
+                beta=self.training_config.beta_schedule[epoch]
             )
 
             self._optimizers_step(model_output)

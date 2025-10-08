@@ -161,6 +161,7 @@ class CVAE(BaseModel):
         Returns:
             ModelOutput : A ModelOutput instance containing the loss and metrics.
         """
+        beta = kwargs.pop('beta', 1)*self.model_config.beta
 
         # Encode the input data
         embedding, log_var = self.get_mu_log_var(inputs)
@@ -211,13 +212,13 @@ class CVAE(BaseModel):
 
         # Compute the total loss
 
-        loss = recon_loss + kl_div * self.model_config.beta
+        loss = recon_loss + kl_div * beta
 
         # take the mean over the batch instead of the sum
         if self.model_config.mean_over_batch:
             loss = loss / len(z)
 
-        metrics = {"kl": kl_div.item(), "recon_loss": recon_loss.item()}
+        metrics = {"kl": kl_div.item(), "recon_loss": recon_loss.item(), "beta": beta}
         if self.model_config.sigma_variation=='sigma_vae':
             metrics['log_sigma'] = self.log_sigma.detach().item()
         elif self.model_config.sigma_variation=='optimal_sigma_vae':
@@ -450,5 +451,11 @@ class CVAE(BaseModel):
 
         return output
     
+    def get_p_dropouts(self):
+        if self.model_config.sparse:
+            log_alpha = self.log_alpha.flatten()
+            alpha = torch.exp(log_alpha)
+            p = alpha/(1+alpha)
+            return p.detach().numpy()
     
 

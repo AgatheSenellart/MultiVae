@@ -1,10 +1,11 @@
 import os
 from dataclasses import field
-from typing import Union
+from typing import Union, Literal, Optional
 
 import torch.nn as nn
 from pydantic.dataclasses import dataclass
 from pythae.config import BaseConfig
+import multivae.trainers.base.beta_schedulers as beta_schedulers
 
 
 @dataclass
@@ -73,6 +74,9 @@ class BaseTrainerConfig(BaseConfig):
     master_port: str = field(default="12345")
     drop_last: bool = False
     gradient_clipping_max_norm: Union[float, None] = None
+    beta_schedule_fct: Optional[Literal['frange_cycle_linear','frange_cycle_sigmoid','frange']]=None
+    beta_schedule_params: Optional[dict]=None
+
 
     def __post_init__(self):
         super().__post_init__()
@@ -149,3 +153,7 @@ class BaseTrainerConfig(BaseConfig):
                         f"Got {self.scheduler_params} as parameters.\n"
                         f"Exception raised: {type(e)} with message: " + str(e)
                     ) from e
+
+        if self.beta_schedule_fct is not None:
+            fct = getattr(beta_schedulers, self.beta_schedule_fct)
+            self.beta_schedule = fct(**self.beta_schedule_params,n_epochs=self.num_epochs)
