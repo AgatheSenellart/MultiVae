@@ -676,7 +676,7 @@ class BaseTrainer:
             if hasattr(self.training_config,'beta_schedule'):
                 beta_epoch=self.training_config.beta_schedule[epoch]
             else:
-                beta_epoch=None
+                beta_epoch=1
 
             model_output = self.model(
                 inputs,
