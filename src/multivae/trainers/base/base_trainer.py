@@ -674,7 +674,7 @@ class BaseTrainer:
             inputs = set_inputs_to_device(inputs, device=self.device)
 
             if hasattr(self.training_config,'beta_schedule'):
-                beta_epoch=self.training_config.beta_schedule[epoch]
+                beta_epoch=self.training_config.beta_schedule[epoch-1]
             else:
                 beta_epoch=1
 
