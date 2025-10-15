@@ -388,6 +388,7 @@ class BaseTrainer:
         self.trained_epochs = 0
         self.best_train_loss = torch.inf
         self.best_eval_loss = torch.inf
+        self.metrics_best_model = {}
         # set up the best_model
         self._best_model = deepcopy(self.model)
 
@@ -395,6 +396,9 @@ class BaseTrainer:
         """Sets up the trainer for training"""
         with open(os.path.join(checkpoint, "info_checkpoint.json"), "r") as fp:
             dict_checkpoint = json.load(fp)
+
+        with open(os.path.join(checkpoint, "metrics_best_model.json"), "r") as fp:
+            self.metrics_best_model = json.load(fp)
 
         # set random seed
         set_seed(self.training_config.seed)
@@ -491,6 +495,7 @@ class BaseTrainer:
             epoch_train_loss, epoch_metrics = self.train_step(epoch)
             metrics = {"train_" + k: epoch_metrics[k] for k in epoch_metrics}
             metrics["train_epoch_loss"] = epoch_train_loss
+            torch.cuda.empty_cache()
 
             if self.eval_dataset is not None:
                 epoch_eval_loss, epoch_eval_metrics = self.eval_step(epoch)
@@ -500,6 +505,7 @@ class BaseTrainer:
                     {"eval_" + k: epoch_eval_metrics[k] for k in epoch_eval_metrics},
                 )
                 self._schedulers_step(epoch_eval_loss)
+                torch.cuda.empty_cache()
 
             else:
                 epoch_eval_loss = self.best_eval_loss
@@ -508,6 +514,7 @@ class BaseTrainer:
                 # save the model, don't keep track of the best loss
                 best_model = deepcopy(self.model)
                 self._best_model = best_model
+                self.metrics_best_model = metrics
                 logger.info("New model saved!")
 
             elif (
@@ -517,6 +524,7 @@ class BaseTrainer:
                 self.best_eval_loss = epoch_eval_loss
                 best_model = deepcopy(self.model)
                 self._best_model = best_model
+                self.metrics_best_model = metrics
                 logger.info("New best model on eval saved!")
 
             elif (
@@ -526,6 +534,7 @@ class BaseTrainer:
                 self.best_train_loss = epoch_train_loss
                 best_model = deepcopy(self.model)
                 self._best_model = best_model
+                self.metrics_best_model = metrics
                 logger.info("New best model on train saved!")
 
             # If steps_predict is not None, compute reconstruction images
@@ -546,7 +555,8 @@ class BaseTrainer:
                 images = metrics_media.pop('images', {})
                 for key, image in images.items():
                     save_image(image, os.path.join(self.training_dir, f'{key}.png'))
-                    
+                torch.cuda.empty_cache()
+
 
             self.callback_handler.on_epoch_end(training_config=self.training_config)
 
@@ -740,6 +750,9 @@ class BaseTrainer:
 
         # save training config
         self.training_config.save_json(dir_path, "training_config")
+        # save metrics
+        with open(f'{dir_path}/metrics_best_model.json', mode='w+') as fp:
+            json.dump(self.metrics_best_model, fp)
 
         self.callback_handler.on_save(self.training_config, dir_path=dir_path)
 
@@ -777,6 +790,10 @@ class BaseTrainer:
 
         # save training config
         self.training_config.save_json(checkpoint_dir, "training_config")
+
+        # save metrics
+        with open(f'{dir_path}/metrics_best_model.json', mode='w+') as fp:
+            json.dump(self.metrics_best_model, fp)
 
         # save info about checkpoint
         info = dict(
