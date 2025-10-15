@@ -617,6 +617,7 @@ class BaseTrainer:
                         epoch=epoch,
                         dataset_size=len(self.eval_loader.dataset),
                         uses_ddp=self.distributed,
+                        use_mean_embedding=True
                     )
 
             except RuntimeError:
@@ -625,6 +626,7 @@ class BaseTrainer:
                     epoch=epoch,
                     dataset_size=len(self.eval_loader.dataset),
                     uses_ddp=self.distributed,
+                    use_mean_embedding=True
                 )
 
             loss = (

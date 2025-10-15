@@ -162,12 +162,16 @@ class CVAE(BaseModel):
             ModelOutput : A ModelOutput instance containing the loss and metrics.
         """
         beta = kwargs.pop('beta', 1)*self.model_config.beta
+        use_mean_embedding = kwargs.pop('use_mean_embedding', False)
 
         # Encode the input data
         embedding, log_var = self.get_mu_log_var(inputs)
 
         # Sample from the posterior
-        z = dist.Normal(embedding, torch.exp(0.5 * log_var)).rsample()
+        if use_mean_embedding:
+            z = embedding
+        else:
+            z = dist.Normal(embedding, torch.exp(0.5 * log_var)).rsample()
 
         # Compute parameters of the prior p(z|conditioning_modality)
         cond_mod_data = {mod: inputs.data[mod] for mod in self.conditioning_modalities}
