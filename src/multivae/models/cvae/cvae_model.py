@@ -74,7 +74,7 @@ class CVAE(BaseModel):
 
         # sparseVAE variation
         if self.model_config.sparse:
-            self.log_alpha = torch.nn.Parameter(torch.FloatTensor(1, self.latent_dim).normal_(0, 0.01))
+            self.log_alpha = torch.nn.Parameter(torch.FloatTensor(1, self.latent_dim).normal_(self.model_config.log_alpha_init, 0.01))
 
     def _set_encoder(self, encoder, model_config):
         if encoder is None:

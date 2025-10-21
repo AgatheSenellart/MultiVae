@@ -39,6 +39,7 @@ class CVAEConfig(BaseConfig):
     sparse: bool = False
     log_sigma_init: Optional[float] = -2.0
     mean_over_batch: bool=False
+    log_alpha_init: Optional[float] = 0.0
 
     def __post_init__(self):
         super().__post_init__()
