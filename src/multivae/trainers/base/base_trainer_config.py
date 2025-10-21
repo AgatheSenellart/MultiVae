@@ -170,3 +170,12 @@ class BaseTrainerConfig(BaseConfig):
                 self.scheduler_params=None # don't use this scheduler with beta scheduling, doesn't make sense. 
                 
                 logger.info('Since beta_schedule_fct is not None, scheduler_cls="ReduceLROnPlateau" is ignored !')
+
+            if self.scheduler_cls == 'CosineAnnealingLR':
+                t_max = self.num_epochs//self.beta_schedule_params['n_cycle']
+                # Check that the period matches the period for the beta scheduling and corrects it if not
+                if self.scheduler_params['T_max'] != t_max:
+                     
+                    logger.warning(f'T_max does not match the n_cycle parameter, changing T_max to {t_max}')
+
+                logger.info('Setting Cosine learning rate scheduler with T_max = %s', t_max)
