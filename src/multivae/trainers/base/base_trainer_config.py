@@ -165,11 +165,11 @@ class BaseTrainerConfig(BaseConfig):
             fct = getattr(beta_schedulers, self.beta_schedule_fct)
             self.beta_schedule = fct(**self.beta_schedule_params,n_epochs=self.num_epochs)
             
-            if self.scheduler_cls == 'ReduceLROnPlateau':
+            if 'cycle' in self.beta_schedule_fct and self.scheduler_cls == 'ReduceLROnPlateau':
                 self.scheduler_cls=None
                 self.scheduler_params=None # don't use this scheduler with beta scheduling, doesn't make sense. 
                 
-                logger.info('Since beta_schedule_fct is not None, scheduler_cls="ReduceLROnPlateau" is ignored !')
+                logger.info('Since beta_schedule_fct is cyclic, scheduler_cls="ReduceLROnPlateau" is ignored !')
 
             if self.scheduler_cls == 'CosineAnnealingLR':
                 t_max = self.num_epochs//self.beta_schedule_params['n_cycle']
