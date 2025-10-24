@@ -357,8 +357,12 @@ class BaseTrainer:
         loss.backward()
         self.optimizer.step()
 
-    def _schedulers_step(self, metrics=None):
+    def _schedulers_step(self,epoch, metrics=None):
         if self.scheduler is None:
+            pass
+
+        elif self.training_config.start_lr_scheduler_epoch > epoch:
+            logger.info('Not taking a scheduler step yet.')
             pass
 
         elif isinstance(self.scheduler, lr_scheduler.ReduceLROnPlateau):
@@ -504,12 +508,12 @@ class BaseTrainer:
                     metrics,
                     {"eval_" + k: epoch_eval_metrics[k] for k in epoch_eval_metrics},
                 )
-                self._schedulers_step(epoch_eval_loss)
+                self._schedulers_step(epoch,epoch_eval_loss)
                 torch.cuda.empty_cache()
 
             else:
                 epoch_eval_loss = self.best_eval_loss
-                self._schedulers_step(epoch_train_loss)
+                self._schedulers_step(epoch,epoch_train_loss)
             if epoch <= self.start_keep_best_epoch:
                 # save the model, don't keep track of the best loss
                 best_model = deepcopy(self.model)

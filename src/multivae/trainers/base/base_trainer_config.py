@@ -83,6 +83,7 @@ class BaseTrainerConfig(BaseConfig):
     gradient_clipping_max_norm: Union[float, None] = None
     beta_schedule_fct: Optional[Literal['frange_cycle_linear','frange_cycle_sigmoid','frange']]=None
     beta_schedule_params: Optional[dict]=None
+    start_lr_scheduler_epoch: Optional[int]=0
 
 
     def __post_init__(self):
