@@ -228,7 +228,7 @@ class CVAE(BaseModel):
         elif self.model_config.sigma_variation=='optimal_sigma_vae':
             metrics['log_sigma'] = self.log_sigma
 
-        return ModelOutput(loss=loss, metrics=metrics)
+        return ModelOutput(loss=loss, metrics=metrics,embedding=z)
     
     def prior_log_prob(self, z, inputs) -> torch.Tensor:
         
