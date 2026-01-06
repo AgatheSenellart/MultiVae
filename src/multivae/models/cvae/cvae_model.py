@@ -250,7 +250,7 @@ class CVAE(BaseModel):
             "kl": kl_div.item(),
             "recon_loss": recon_loss.item(),
             "beta": beta,
-            "ssim": ssim_.item(),
+            "ssim": ssim_.item() if isinstance(ssim_,torch.Tensor) else ssim_,
         }
         if self.model_config.sigma_variation == "sigma_vae":
             metrics["log_sigma"] = self.log_sigma.detach().item()
