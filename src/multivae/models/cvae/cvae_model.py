@@ -1,4 +1,4 @@
-from typing import Dict, Union, Optional
+from typing import Dict, Optional, Union
 
 import torch
 import torch.distributions as dist
@@ -7,8 +7,12 @@ import torch.nn.functional as F
 from multivae.data.datasets.base import MultimodalBaseDataset
 from multivae.models.base import BaseModel
 from multivae.models.base.base_model import ModelOutput
-from multivae.models.base.base_utils import (kl_divergence,
-                                            set_decoder_dist, sparse_kl_divergence, sparse_compute_logvar)
+from multivae.models.base.base_utils import (
+    kl_divergence,
+    set_decoder_dist,
+    sparse_compute_logvar,
+    sparse_kl_divergence,
+)
 from multivae.models.nn.base_architectures import (
     BaseConditionalDecoder,
     BaseEncoder,
@@ -17,21 +21,25 @@ from multivae.models.nn.base_architectures import (
 from multivae.models.nn.default_architectures import (
     BaseDictEncoders,
     ConditionalDecoderMLP,
-    MultipleHeadJointEncoder
+    MultipleHeadJointEncoder,
 )
 
 from .cvae_config import CVAEConfig
 
+from multivae.models.base.base_ssim import ssim
+
+
 def softclip(tensor, min):
-    """ Clips the tensor values at the minimum value min in a softway. Taken from Handful of Trials """
+    """Clips the tensor values at the minimum value min in a softway. Taken from Handful of Trials"""
     result_tensor = min + F.softplus(tensor - min)
 
     return result_tensor
 
+
 class CVAE(BaseModel):
     """
     Main class for the Conditional Variational Autoencoder.
-    This class can also be used without covariates to implement a simple VAE. 
+    This class can also be used without covariates to implement a simple VAE.
 
 
     Args:
@@ -49,7 +57,7 @@ class CVAE(BaseModel):
         encoder: Union[BaseEncoder, None] = None,
         decoder: Union[BaseConditionalDecoder, None] = None,
         prior_network: Union[BaseJointEncoder, None] = None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(model_config)
 
@@ -67,14 +75,20 @@ class CVAE(BaseModel):
         self._set_encoder(encoder, model_config)
         self._set_decoder(decoder, model_config)
         self._set_prior_network(prior_network)
-        
+
         # sigmaVAE variation
-        if self.model_config.sigma_variation=='sigma_vae':
-            self.log_sigma = torch.nn.Parameter(torch.tensor([self.model_config.log_sigma_init]), requires_grad=True)
+        if self.model_config.sigma_variation == "sigma_vae":
+            self.log_sigma = torch.nn.Parameter(
+                torch.tensor([self.model_config.log_sigma_init]), requires_grad=True
+            )
 
         # sparseVAE variation
         if self.model_config.sparse:
-            self.log_alpha = torch.nn.Parameter(torch.FloatTensor(1, self.latent_dim).normal_(self.model_config.log_alpha_init, 0.01))
+            self.log_alpha = torch.nn.Parameter(
+                torch.FloatTensor(1, self.latent_dim).normal_(
+                    self.model_config.log_alpha_init, 0.01
+                )
+            )
 
     def _set_encoder(self, encoder, model_config):
         if encoder is None:
@@ -161,8 +175,8 @@ class CVAE(BaseModel):
         Returns:
             ModelOutput : A ModelOutput instance containing the loss and metrics.
         """
-        beta = kwargs.pop('beta', 1)*self.model_config.beta
-        use_mean_embedding = kwargs.pop('use_mean_embedding', False)
+        beta = kwargs.pop("beta", 1) * self.model_config.beta
+        use_mean_embedding = kwargs.pop("use_mean_embedding", False)
 
         # Encode the input data
         embedding, log_var = self.get_mu_log_var(inputs)
@@ -189,24 +203,29 @@ class CVAE(BaseModel):
         recon = output.reconstruction
 
         if self.model_config.sigma_variation is None:
-            recon_loss = (
-                -self.recon_log_prob(recon, inputs.data[self.main_modality]).sum()
-            )
+            recon_loss = -self.recon_log_prob(
+                recon, inputs.data[self.main_modality]
+            ).sum()
         else:
-            if self.model_config.sigma_variation=='sigma_vae':
+            if self.model_config.sigma_variation == "sigma_vae":
                 log_sigma = self.log_sigma
-            elif self.model_config.sigma_variation=='optimal_sigma_vae':
-                # ici il n'y a pas de detach/ item() donc ça participe au gradient. À vérifier du coup. 
-                dims = range(len(recon.shape)) # Sum on all dimensions and batch
-                log_sigma = ((recon - inputs.data[self.main_modality]) ** 2).mean(list(dims),keepdim=True).sqrt().log()
-                self.log_sigma=log_sigma.item()
-            else: 
+            elif self.model_config.sigma_variation == "optimal_sigma_vae":
+                # ici il n'y a pas de detach/ item() donc ça participe au gradient. À vérifier du coup.
+                dims = range(len(recon.shape))  # Sum on all dimensions and batch
+                log_sigma = (
+                    ((recon - inputs.data[self.main_modality]) ** 2)
+                    .mean(list(dims), keepdim=True)
+                    .sqrt()
+                    .log()
+                )
+                self.log_sigma = log_sigma.item()
+            else:
                 raise AttributeError()
-            
-            scale = torch.exp(softclip(log_sigma,-6))
-            recon_loss = (
-                -self.recon_log_prob(recon, inputs.data[self.main_modality], scale=scale).sum()
-            )
+
+            scale = torch.exp(softclip(log_sigma, -6))
+            recon_loss = -self.recon_log_prob(
+                recon, inputs.data[self.main_modality], scale=scale
+            ).sum()
 
         # Compute the KL divergence between the posterior and the prior
         if self.model_config.sparse:
@@ -214,24 +233,33 @@ class CVAE(BaseModel):
         else:
             kl_div = kl_divergence(embedding, log_var, prior_mean, prior_log_var).sum()
 
+        if self.model_config.lbd_ssim > 0:
+            ssim_ = ssim(recon, inputs.data[self.main_modality]).sum()
+        else:
+            ssim_ = 0
+
         # Compute the total loss
 
-        loss = recon_loss + kl_div * beta
+        loss = recon_loss + kl_div * beta - self.model_config.lbd_ssim * ssim_
 
         # take the mean over the batch instead of the sum
         if self.model_config.mean_over_batch:
             loss = loss / len(z)
 
-        metrics = {"kl": kl_div.item(), "recon_loss": recon_loss.item(), "beta": beta}
-        if self.model_config.sigma_variation=='sigma_vae':
-            metrics['log_sigma'] = self.log_sigma.detach().item()
-        elif self.model_config.sigma_variation=='optimal_sigma_vae':
-            metrics['log_sigma'] = self.log_sigma
+        metrics = {"kl": kl_div.item(), "recon_loss": recon_loss.item(), "beta": beta, "ssim": ssim_.item()}
+        if self.model_config.sigma_variation == "sigma_vae":
+            metrics["log_sigma"] = self.log_sigma.detach().item()
+        elif self.model_config.sigma_variation == "optimal_sigma_vae":
+            metrics["log_sigma"] = self.log_sigma
 
-        return ModelOutput(loss=loss, metrics=metrics,embedding=z)
-    
+        return ModelOutput(
+            loss=loss,
+            metrics=metrics,
+            embedding=z,
+            reconstruction=recon,
+        )
+
     def prior_log_prob(self, z, inputs) -> torch.Tensor:
-        
         # Compute parameters of the prior p(z|conditioning_modality)
         cond_mod_data = {mod: inputs.data[mod] for mod in self.conditioning_modalities}
 
@@ -243,10 +271,8 @@ class CVAE(BaseModel):
             output = self.prior_network(cond_mod_data)
             prior_mean, prior_log_var = output.embedding, output.log_covariance
 
-        lp= dist.Normal(prior_mean, torch.exp(0.5 * prior_log_var)).log_prob(z).sum(-1)
+        lp = dist.Normal(prior_mean, torch.exp(0.5 * prior_log_var)).log_prob(z).sum(-1)
         return lp, prior_mean, prior_log_var
-
-
 
     def get_mu_log_var(self, inputs: MultimodalBaseDataset):
         output = self.encoder(inputs.data)
@@ -257,12 +283,13 @@ class CVAE(BaseModel):
 
         return embedding, log_var
 
-
     def encode(
-        self, inputs: MultimodalBaseDataset, N: int = 1,
-        return_mean = False,
-        flatten = False,
-        **kwargs
+        self,
+        inputs: MultimodalBaseDataset,
+        N: int = 1,
+        return_mean=False,
+        flatten=False,
+        **kwargs,
     ) -> ModelOutput:
         """Generate latent code by encoding the data and sampling from the
         posterior distribution.
@@ -285,7 +312,7 @@ class CVAE(BaseModel):
 
 
         """
-        
+
         mean, log_var = self.get_mu_log_var(inputs)
         scale = torch.exp(0.5 * log_var)
         sample_shape = [] if N == 1 else [N]
@@ -324,7 +351,7 @@ class CVAE(BaseModel):
                 >>> output.reconstruction
 
         """
-    
+
         z = embedding.z
         cond_mod_data = embedding.cond_mod_data
 
@@ -345,7 +372,10 @@ class CVAE(BaseModel):
             return self.decoder(z, cond_mod_data)
 
     def generate_from_prior(
-        self,  N: int = 1, cond_mod_data: Optional[Dict[str, torch.Tensor]]=None,**kwargs
+        self,
+        N: int = 1,
+        cond_mod_data: Optional[Dict[str, torch.Tensor]] = None,
+        **kwargs,
     ) -> ModelOutput:
         """Generates latent variables from the prior, conditioning on cond_mod_data.
 
@@ -359,18 +389,18 @@ class CVAE(BaseModel):
         """
         if self.model_config.sparse:
             raise NotImplementedError()
-        
+
         flatten = kwargs.pop("flatten", False)
 
-
         if self.prior_network is None:
-
-            device = 'cuda' if torch.cuda.is_available() else 'cpu'
-            prior_mean = torch.zeros( (self.latent_dim,))
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            prior_mean = torch.zeros((self.latent_dim,))
             prior_log_var = torch.zeros((self.latent_dim,))
         else:
             if cond_mod_data is None:
-                raise AttributeError('The prior is conditional but cond_mod_data is None')
+                raise AttributeError(
+                    "The prior is conditional but cond_mod_data is None"
+                )
             # Look up the batch size and the device of the input data
 
             device = list(cond_mod_data.values())[0].device
@@ -398,7 +428,9 @@ class CVAE(BaseModel):
                 z = z.reshape(N * prior_mean.shape[0], prior_mean.shape[1])
         else:
             if cond_mod_data is not None:
-                cond_mod_data = {m: cond_mod_data[m] for m in self.conditioning_modalities}
+                cond_mod_data = {
+                    m: cond_mod_data[m] for m in self.conditioning_modalities
+                }
 
         z = z.to(device)
 
@@ -409,7 +441,7 @@ class CVAE(BaseModel):
         inputs: MultimodalBaseDataset,
         cond_mod: Union[str, list] = "all",
         N=1,
-        use_mean_embedding = False,
+        use_mean_embedding=False,
         **kwargs,
     ) -> ModelOutput:
         """Reconstruct from the input or from the conditioning modalities.
@@ -436,7 +468,9 @@ class CVAE(BaseModel):
             or set(cond_mod) == set([self.main_modality])
             or set(cond_mod) == set([self.main_modality] + self.conditioning_modalities)
         ):
-            embeddings = self.encode(inputs, N, return_mean=use_mean_embedding, **kwargs)
+            embeddings = self.encode(
+                inputs, N, return_mean=use_mean_embedding, **kwargs
+            )
 
         elif set(cond_mod) == set(self.conditioning_modalities):
             cond_mod_data = {m: inputs.data[m] for m in self.conditioning_modalities}
@@ -450,17 +484,15 @@ class CVAE(BaseModel):
         output_decoder = self.decode(embeddings)
 
         output = ModelOutput()
-        output['embedding']= embeddings.z
+        output["embedding"] = embeddings.z
         output[self.main_modality] = output_decoder.reconstruction
         output['cond_mod_data'] = embeddings.cond_mod_data
 
         return output
-    
+
     def get_p_dropouts(self):
         if self.model_config.sparse:
             log_alpha = self.log_alpha.flatten()
             alpha = torch.exp(log_alpha)
-            p = alpha/(1+alpha)
+            p = alpha / (1 + alpha)
             return p.detach().numpy()
-    
-

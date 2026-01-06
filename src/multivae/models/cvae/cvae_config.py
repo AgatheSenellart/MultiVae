@@ -16,9 +16,9 @@ class CVAEConfig(BaseConfig):
         conditioning_modalities (List[str]): The modalities to condition the model on.
         main_modality (str): The main modality to reconstruct.
         beta (float): The parameter that weighs the KL divergence in the ELBO. Default to 1.0.
-        sigma_variation (str): Can be used to specify a variation of the simple beta-VAE loss to use. 
+        sigma_variation (str): Can be used to specify a variation of the simple beta-VAE loss to use.
             Options are 'sigma_vae': learns the optimal decoder variance. or 'optimal_sigma_vae': computes
-            an analytical approximation of the optimal sigma. If one of these option is chosen, beta must be 
+            an analytical approximation of the optimal sigma. If one of these option is chosen, beta must be
             set to 1 and decoder_dist must be set to "normal".
         decoder_dist (str): The decoder distribution to use. Possible values ['normal', 'bernoulli', 'laplace', 'categorical'].
             For Bernoulli distribution, the decoder is expected to output **logits**.
@@ -40,6 +40,7 @@ class CVAEConfig(BaseConfig):
     log_sigma_init: Optional[float] = -2.0
     mean_over_batch: bool=False
     log_alpha_init: Optional[float] = 0.0
+    lbd_ssim: float = 0
 
     def __post_init__(self):
         super().__post_init__()
@@ -51,4 +52,4 @@ class CVAEConfig(BaseConfig):
                 raise AttributeError(f"The sigma_variation {self.sigma_variation}"
                                      "can only be used with decoder_dist = 'normal'.")
 
-            
+
