@@ -66,7 +66,7 @@ def cross_entropy(input, target, eps=1e-6):
 
 def set_decoder_dist(dist_name, dist_params):
     """Transforms the distribution name and parameters into a callable log_prob function.
-    The log_prob function is -reconstruction_loss. 
+    The log_prob function is -reconstruction_loss.
     """
 
     if dist_name == "normal":
@@ -90,8 +90,9 @@ def set_decoder_dist(dist_name, dist_params):
         log_prob = cross_entropy
 
     elif dist_name == "bce":
+
         def log_prob(recon, target):
-            return - F.binary_cross_entropy_with_logits(recon, target, reduction="none")
+            return -F.binary_cross_entropy_with_logits(recon, target, reduction="none")
 
     else:
         raise ValueError("The distribution type 'dist' is not supported")
@@ -133,32 +134,36 @@ def kl_divergence(
 
     return kl.sum(dim=-1)
 
+
 def sparse_compute_logvar(mu, log_alpha):
-	return log_alpha + 2 * torch.log(torch.abs(mu) + 1e-8)
+    return log_alpha + 2 * torch.log(torch.abs(mu) + 1e-8)
+
 
 def sparse_compute_log_alpha(mu, logvar):
-	# clamp because dropout rate p in 0-99%, where p = alpha/(alpha+1)
-	return (logvar - 2 * torch.log(torch.abs(mu) + 1e-8)).clamp(min=-8, max=8)
+    # clamp because dropout rate p in 0-99%, where p = alpha/(alpha+1)
+    return (logvar - 2 * torch.log(torch.abs(mu) + 1e-8)).clamp(min=-8, max=8)
 
 
-
-def sparse_kl_divergence(mean:torch.Tensor, log_var: torch.Tensor):
+def sparse_kl_divergence(mean: torch.Tensor, log_var: torch.Tensor):
     """
 
     from https://gitlab.inria.fr/epione_ML/mcvae/-/blob/master/src/mcvae/distributions/kl_utilities.py?ref_type=heads
 
 
-	Paragraph 4.2 from:
-	Variational Dropout Sparsifies Deep Neural Networks
-	Molchanov, Dmitry; Ashukha, Arsenii; Vetrov, Dmitry
-	https://arxiv.org/abs/1701.05369
-	https://github.com/senya-ashukha/variational-dropout-sparsifies-dnn/blob/master/KL%20approximation.ipynb
-	"""
+        Paragraph 4.2 from:
+        Variational Dropout Sparsifies Deep Neural Networks
+        Molchanov, Dmitry; Ashukha, Arsenii; Vetrov, Dmitry
+        https://arxiv.org/abs/1701.05369
+        https://github.com/senya-ashukha/variational-dropout-sparsifies-dnn/blob/master/KL%20approximation.ipynb
+    """
     log_alpha = sparse_compute_log_alpha(mean, log_var)
     k1, k2, k3 = 0.63576, 1.8732, 1.48695
-    neg_KL = k1 * torch.sigmoid(k2 + k3 * log_alpha) - 0.5 * torch.log1p(torch.exp(-log_alpha)) - k1
+    neg_KL = (
+        k1 * torch.sigmoid(k2 + k3 * log_alpha)
+        - 0.5 * torch.log1p(torch.exp(-log_alpha))
+        - k1
+    )
     return -neg_KL.sum(dim=-1)
-
 
 
 def poe(mus, logvars, eps=1e-8):

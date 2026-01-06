@@ -32,13 +32,15 @@ class CVAEConfig(BaseConfig):
     input_dims: Dict[str, tuple] = None
     latent_dim: int = 10
     beta: float = 1.0
-    decoder_dist: Literal["normal", "laplace", "bernoulli", "categorical", "bce"] = "normal"
+    decoder_dist: Literal["normal", "laplace", "bernoulli", "categorical", "bce"] = (
+        "normal"
+    )
     sigma_variation: Optional[Literal["sigma_vae", "optimal_sigma_vae"]] = None
     decoder_dist_params: dict = field(default_factory=lambda: {})
     custom_architectures: list = field(default_factory=lambda: [])
     sparse: bool = False
     log_sigma_init: Optional[float] = -2.0
-    mean_over_batch: bool=False
+    mean_over_batch: bool = False
     log_alpha_init: Optional[float] = 0.0
     lbd_ssim: float = 0
 
@@ -46,10 +48,12 @@ class CVAEConfig(BaseConfig):
         super().__post_init__()
         if self.sigma_variation is not None:
             if self.beta != 1.0:
-                raise AttributeError(f"The sigma_variation {self.sigma_variation}"
-                                     "can only be used with beta=1.")
+                raise AttributeError(
+                    f"The sigma_variation {self.sigma_variation}"
+                    "can only be used with beta=1."
+                )
             if self.decoder_dist != "normal":
-                raise AttributeError(f"The sigma_variation {self.sigma_variation}"
-                                     "can only be used with decoder_dist = 'normal'.")
-
-
+                raise AttributeError(
+                    f"The sigma_variation {self.sigma_variation}"
+                    "can only be used with decoder_dist = 'normal'."
+                )

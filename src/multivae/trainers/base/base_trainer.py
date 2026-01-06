@@ -357,12 +357,12 @@ class BaseTrainer:
         loss.backward()
         self.optimizer.step()
 
-    def _schedulers_step(self,epoch, metrics=None):
+    def _schedulers_step(self, epoch, metrics=None):
         if self.scheduler is None:
             pass
 
         elif self.training_config.start_lr_scheduler_epoch > epoch:
-            logger.info('Not taking a scheduler step yet.')
+            logger.info("Not taking a scheduler step yet.")
             pass
 
         elif isinstance(self.scheduler, lr_scheduler.ReduceLROnPlateau):
@@ -508,12 +508,12 @@ class BaseTrainer:
                     metrics,
                     {"eval_" + k: epoch_eval_metrics[k] for k in epoch_eval_metrics},
                 )
-                self._schedulers_step(epoch,epoch_eval_loss)
+                self._schedulers_step(epoch, epoch_eval_loss)
                 torch.cuda.empty_cache()
 
             else:
                 epoch_eval_loss = self.best_eval_loss
-                self._schedulers_step(epoch,epoch_train_loss)
+                self._schedulers_step(epoch, epoch_train_loss)
             if epoch <= self.start_keep_best_epoch:
                 # save the model, don't keep track of the best loss
                 best_model = deepcopy(self.model)
@@ -556,11 +556,10 @@ class BaseTrainer:
                 )
 
                 # Save the reconstructions to folder
-                images = metrics_media.pop('images', {})
+                images = metrics_media.pop("images", {})
                 for key, image in images.items():
-                    save_image(image, os.path.join(self.training_dir, f'{key}.png'))
+                    save_image(image, os.path.join(self.training_dir, f"{key}.png"))
                 torch.cuda.empty_cache()
-
 
             self.callback_handler.on_epoch_end(training_config=self.training_config)
 
@@ -631,7 +630,7 @@ class BaseTrainer:
                         epoch=epoch,
                         dataset_size=len(self.eval_loader.dataset),
                         uses_ddp=self.distributed,
-                        use_mean_embedding=True
+                        use_mean_embedding=True,
                     )
 
             except RuntimeError:
@@ -640,7 +639,7 @@ class BaseTrainer:
                     epoch=epoch,
                     dataset_size=len(self.eval_loader.dataset),
                     uses_ddp=self.distributed,
-                    use_mean_embedding=True
+                    use_mean_embedding=True,
                 )
 
             loss = (
@@ -689,10 +688,10 @@ class BaseTrainer:
         for inputs in self.train_loader:
             inputs = set_inputs_to_device(inputs, device=self.device)
 
-            if hasattr(self.training_config,'beta_schedule'):
-                beta_epoch=self.training_config.beta_schedule[epoch-1]
+            if hasattr(self.training_config, "beta_schedule"):
+                beta_epoch = self.training_config.beta_schedule[epoch - 1]
             else:
-                beta_epoch=1
+                beta_epoch = 1
 
             model_output = self.model(
                 inputs,
@@ -700,7 +699,7 @@ class BaseTrainer:
                 dataset_size=len(self.train_loader.dataset),
                 uses_ddp=self.distributed,
                 batch_ratio=(batch_idx) / len(self.train_loader),
-                beta=beta_epoch
+                beta=beta_epoch,
             )
 
             self._optimizers_step(model_output)
@@ -755,7 +754,7 @@ class BaseTrainer:
         # save training config
         self.training_config.save_json(dir_path, "training_config")
         # save metrics
-        with open(f'{dir_path}/metrics_best_model.json', mode='w+') as fp:
+        with open(f"{dir_path}/metrics_best_model.json", mode="w+") as fp:
             json.dump(self.metrics_best_model, fp)
 
         self.callback_handler.on_save(self.training_config, dir_path=dir_path)
@@ -796,7 +795,7 @@ class BaseTrainer:
         self.training_config.save_json(checkpoint_dir, "training_config")
 
         # save metrics
-        with open(f'{dir_path}/metrics_best_model.json', mode='w+') as fp:
+        with open(f"{dir_path}/metrics_best_model.json", mode="w+") as fp:
             json.dump(self.metrics_best_model, fp)
 
         # save info about checkpoint
@@ -818,13 +817,15 @@ class BaseTrainer:
 
         model.eval()
 
-        predict_dataset = self.eval_dataset if self.eval_dataset is not None else self.train_dataset
+        predict_dataset = (
+            self.eval_dataset if self.eval_dataset is not None else self.train_dataset
+        )
 
         # Take one sample with n_data datapoints
         inputs = next(iter(DataLoader(predict_dataset, batch_size=n_data)))
         inputs = set_inputs_to_device(inputs, self.device)
 
-        all_recons = {'images' : {}}
+        all_recons = {"images": {}}
 
         # For multimodal VAEs we compute all 1-to-1 cross-modal reconstruction
         if isinstance(model, BaseMultiVAE):
@@ -853,12 +854,17 @@ class BaseTrainer:
                 # Transform to PIL format
                 recon_image = make_grid(recon_image, nrow=n_data)
                 # Add 0.5 after unnormalizing to [0, 255] to round to nearest integer
-                
-                all_recons['images'][f'recon_from_{mod}'] = recon_image
+
+                all_recons["images"][f"recon_from_{mod}"] = recon_image
 
         # For multimodal VAE or CVAE model, we compute the joint reconstruction
         recon = model.predict(
-            inputs=inputs, cond_mod="all", gen_mod="all", N=8, flatten=True, ignore_incomplete=True
+            inputs=inputs,
+            cond_mod="all",
+            gen_mod="all",
+            N=8,
+            flatten=True,
+            ignore_incomplete=True,
         )
         reconstructed_modalities = list(recon.keys())
         if hasattr(predict_dataset, "transform_for_plotting"):
@@ -879,7 +885,10 @@ class BaseTrainer:
 
         else:
             recon.update(
-                {f"true_data_{mod_name}": inputs.data[mod_name] for mod_name in inputs.data}
+                {
+                    f"true_data_{mod_name}": inputs.data[mod_name]
+                    for mod_name in inputs.data
+                }
             )
 
         recon, _ = adapt_shape(recon)
@@ -891,7 +900,7 @@ class BaseTrainer:
         # Transform to PIL format
         recon_image = make_grid(recon_image, nrow=n_data)
         # Add 0.5 after unnormalizing to [0, 255] to round to nearest integer
-        
-        all_recons['images']["recon_from_all"] = recon_image
+
+        all_recons["images"]["recon_from_all"] = recon_image
 
         return all_recons

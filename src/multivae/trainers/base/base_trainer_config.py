@@ -10,7 +10,7 @@ import multivae.trainers.base.beta_schedulers as beta_schedulers
 import logging
 
 logger = logging.Logger(__name__)
-ch= logging.StreamHandler()
+ch = logging.StreamHandler()
 logger.addHandler(ch)
 logger.setLevel(logging.INFO)
 
@@ -81,10 +81,11 @@ class BaseTrainerConfig(BaseConfig):
     master_port: str = field(default="12345")
     drop_last: bool = False
     gradient_clipping_max_norm: Union[float, None] = None
-    beta_schedule_fct: Optional[Literal['frange_cycle_linear','frange_cycle_sigmoid','frange']]=None
-    beta_schedule_params: Optional[dict]=None
-    start_lr_scheduler_epoch: Optional[int]=0
-
+    beta_schedule_fct: Optional[
+        Literal["frange_cycle_linear", "frange_cycle_sigmoid", "frange"]
+    ] = None
+    beta_schedule_params: Optional[dict] = None
+    start_lr_scheduler_epoch: Optional[int] = 0
 
     def __post_init__(self):
         super().__post_init__()
@@ -164,19 +165,30 @@ class BaseTrainerConfig(BaseConfig):
 
         if self.beta_schedule_fct is not None:
             fct = getattr(beta_schedulers, self.beta_schedule_fct)
-            self.beta_schedule = fct(**self.beta_schedule_params,n_epochs=self.num_epochs)
-            
-            if 'cycle' in self.beta_schedule_fct and self.scheduler_cls == 'ReduceLROnPlateau':
-                self.scheduler_cls=None
-                self.scheduler_params=None # don't use this scheduler with beta scheduling, doesn't make sense. 
-                
-                logger.info('Since beta_schedule_fct is cyclic, scheduler_cls="ReduceLROnPlateau" is ignored !')
+            self.beta_schedule = fct(
+                **self.beta_schedule_params, n_epochs=self.num_epochs
+            )
 
-            if self.scheduler_cls == 'CosineAnnealingLR':
-                t_max = self.num_epochs//self.beta_schedule_params['n_cycle']
+            if (
+                "cycle" in self.beta_schedule_fct
+                and self.scheduler_cls == "ReduceLROnPlateau"
+            ):
+                self.scheduler_cls = None
+                self.scheduler_params = None  # don't use this scheduler with beta scheduling, doesn't make sense.
+
+                logger.info(
+                    'Since beta_schedule_fct is cyclic, scheduler_cls="ReduceLROnPlateau" is ignored !'
+                )
+
+            if self.scheduler_cls == "CosineAnnealingLR":
+                t_max = self.num_epochs // self.beta_schedule_params["n_cycle"]
                 # Check that the period matches the period for the beta scheduling and corrects it if not
-                if self.scheduler_params['T_max'] != t_max:
-                     
-                    logger.warning(f'T_max does not match the n_cycle parameter, changing T_max to {t_max}')
+                if self.scheduler_params["T_max"] != t_max:
 
-                logger.info('Setting Cosine learning rate scheduler with T_max = %s', t_max)
+                    logger.warning(
+                        f"T_max does not match the n_cycle parameter, changing T_max to {t_max}"
+                    )
+
+                logger.info(
+                    "Setting Cosine learning rate scheduler with T_max = %s", t_max
+                )

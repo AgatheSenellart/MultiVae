@@ -222,9 +222,10 @@ def ms_ssim(
         raise ValueError("Window size should be odd.")
 
     smaller_side = min(X.shape[-2:])
-    assert smaller_side > (win_size - 1) * (2**4), (
-        "Image size should be larger than %d due to the 4 downsamplings in ms-ssim"
-        % ((win_size - 1) * (2**4))
+    assert smaller_side > (win_size - 1) * (
+        2**4
+    ), "Image size should be larger than %d due to the 4 downsamplings in ms-ssim" % (
+        (win_size - 1) * (2**4)
     )
 
     if weights is None:

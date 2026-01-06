@@ -246,7 +246,12 @@ class CVAE(BaseModel):
         if self.model_config.mean_over_batch:
             loss = loss / len(z)
 
-        metrics = {"kl": kl_div.item(), "recon_loss": recon_loss.item(), "beta": beta, "ssim": ssim_.item()}
+        metrics = {
+            "kl": kl_div.item(),
+            "recon_loss": recon_loss.item(),
+            "beta": beta,
+            "ssim": ssim_.item(),
+        }
         if self.model_config.sigma_variation == "sigma_vae":
             metrics["log_sigma"] = self.log_sigma.detach().item()
         elif self.model_config.sigma_variation == "optimal_sigma_vae":
@@ -486,7 +491,7 @@ class CVAE(BaseModel):
         output = ModelOutput()
         output["embedding"] = embeddings.z
         output[self.main_modality] = output_decoder.reconstruction
-        output['cond_mod_data'] = embeddings.cond_mod_data
+        output["cond_mod_data"] = embeddings.cond_mod_data
 
         return output
 

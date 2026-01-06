@@ -38,11 +38,13 @@ def load_wandb_path_from_folder(path):
 
         return wandb_info["path"]
 
+
 def load_ml_flow_id_from_folder(path):
     with open(os.path.join(path, "mlflow_info.json")) as fp:
         ml_flow_info = json.load(fp)
 
         return ml_flow_info
+
 
 def rename_logs(logs):
     train_prefix = "train_"
@@ -403,11 +405,11 @@ class WandbCallback(TrainingCallback):  # pragma: no cover
 
         metrics_media = kwargs.pop("metrics_media", {})
 
-        images = metrics_media.pop('images',{})
+        images = metrics_media.pop("images", {})
 
         # Log the images
         for k, image in images.items():
-            self._wandb.log({k : self._wandb.Image(image)})
+            self._wandb.log({k: self._wandb.Image(image)})
 
         # Log other metrics
         self._wandb.log(metrics_media)
@@ -476,9 +478,9 @@ class MLFlowCallback(TrainingCallback):  # pragma: no cover
         self,
         training_config: BaseTrainerConfig,
         model_config: BaseConfig = None,
-        project_name:str = None,
+        project_name: str = None,
         run_name: str = None,
-        logging_dir:str = None,
+        logging_dir: str = None,
         **kwargs,
     ):
         """
@@ -493,7 +495,7 @@ class MLFlowCallback(TrainingCallback):  # pragma: no cover
 
             run_name (str): The name to apply to the current run.
 
-            logging_dir (str): The path where to save the mlflow logs. 
+            logging_dir (str): The path where to save the mlflow logs.
                 This must be an absolute path.
         """
         self.is_initialized = True
@@ -550,15 +552,14 @@ class MLFlowCallback(TrainingCallback):  # pragma: no cover
 
         metrics_media = kwargs.pop("metrics_media", {})
 
-        images = metrics_media.pop('images',{})
+        images = metrics_media.pop("images", {})
 
         # Save the reconstructions to folder and log to ml_flow
         for key, image in images.items():
             tmpdir = tempfile.gettempdir()
-            save_image(image, os.path.join(tmpdir, f'{key}.png'))
-            self._mlflow.log_artifact(os.path.join(tmpdir, f'{key}.png'),'images')
+            save_image(image, os.path.join(tmpdir, f"{key}.png"))
+            self._mlflow.log_artifact(os.path.join(tmpdir, f"{key}.png"), "images")
 
-        
         # Log other metrics
         metrics = {}
         for k, v in metrics_media.items():
@@ -576,10 +577,10 @@ class MLFlowCallback(TrainingCallback):  # pragma: no cover
             )
             return
         info_dict = {
-            'run_id' :self._mlflow.active_run().info.run_id,
-            'run_name': self._mlflow.active_run().info.run_name,
-            'experiment_id':self._mlflow.active_run().info.experiment_id, 
-            'artifact_uri': self._mlflow.active_run().info.artifact_uri
+            "run_id": self._mlflow.active_run().info.run_id,
+            "run_name": self._mlflow.active_run().info.run_name,
+            "experiment_id": self._mlflow.active_run().info.experiment_id,
+            "artifact_uri": self._mlflow.active_run().info.artifact_uri,
         }
         with open(os.path.join(dir_path, "mlflow_info.json"), "w") as fp:
             json.dump(info_dict, fp)
@@ -605,23 +606,22 @@ class TensorboardCallback(TrainingCallback):  # pragma: no cover
 
     def __init__(self):
         from torch.utils.tensorboard.writer import SummaryWriter
-        self._summary_writer = SummaryWriter
 
+        self._summary_writer = SummaryWriter
 
     def setup(
         self,
-        logging_dir:str = None,
+        logging_dir: str = None,
         **kwargs,
     ):
         """
-        
+
 
         args:
-            
-            logging_dir (str): The path where to save the logs. 
+
+            logging_dir (str): The path where to save the logs.
                 This must be an absolute path.
         """
-
 
         self.is_initialized = True
         self.writer = self._summary_writer(log_dir=logging_dir)
@@ -636,7 +636,7 @@ class TensorboardCallback(TrainingCallback):  # pragma: no cover
         logs = rename_logs(logs)
         for k, v in logs.items():
             if isinstance(v, (int, float)):
-                self.writer.add_scalar(k,v,global_step=global_step)
+                self.writer.add_scalar(k, v, global_step=global_step)
                 self.writer.flush()
 
     def on_train_end(self, training_config: BaseTrainerConfig, **kwargs):
@@ -649,7 +649,7 @@ class TensorboardCallback(TrainingCallback):  # pragma: no cover
 
         metrics_media = kwargs.pop("metrics_media", {})
 
-        images = metrics_media.pop('images',{})
+        images = metrics_media.pop("images", {})
 
         # Save the images to tensorboard
         for key, image in images.items():
@@ -657,7 +657,7 @@ class TensorboardCallback(TrainingCallback):  # pragma: no cover
                 key, image, global_step=global_step, dataformats="CHW"
             )
         self.writer.flush()
-        
+
         # Log other metrics
         for k, v in metrics_media.items():
             if isinstance(v, (int, float)):
