@@ -26,6 +26,8 @@ from multivae.models.nn.default_architectures import (
 
 from .cvae_config import CVAEConfig
 
+from multivae.models.base.base_ssim import ssim
+
 
 def softclip(tensor, min):
     """Clips the tensor values at the minimum value min in a softway. Taken from Handful of Trials"""
@@ -231,15 +233,20 @@ class CVAE(BaseModel):
         else:
             kl_div = kl_divergence(embedding, log_var, prior_mean, prior_log_var).sum()
 
+        if self.model_config.lbd_ssim > 0:
+            ssim_ = ssim(recon, inputs.data[self.main_modality]).sum()
+        else:
+            ssim_ = 0
+
         # Compute the total loss
 
-        loss = recon_loss + kl_div * beta
+        loss = recon_loss + kl_div * beta - self.model_config.lbd_ssim * ssim_
 
         # take the mean over the batch instead of the sum
         if self.model_config.mean_over_batch:
             loss = loss / len(z)
 
-        metrics = {"kl": kl_div.item(), "recon_loss": recon_loss.item(), "beta": beta}
+        metrics = {"kl": kl_div.item(), "recon_loss": recon_loss.item(), "beta": beta, "ssim": ssim_.item()}
         if self.model_config.sigma_variation == "sigma_vae":
             metrics["log_sigma"] = self.log_sigma.detach().item()
         elif self.model_config.sigma_variation == "optimal_sigma_vae":
