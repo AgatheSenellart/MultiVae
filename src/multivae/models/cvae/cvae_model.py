@@ -176,6 +176,8 @@ class CVAE(BaseModel):
             ModelOutput : A ModelOutput instance containing the loss and metrics.
         """
         beta = kwargs.pop("beta", 1) * self.model_config.beta
+        epoch = kwargs.pop("epoch",0)
+        
         use_mean_embedding = kwargs.pop("use_mean_embedding", False)
 
         # Encode the input data
@@ -233,14 +235,15 @@ class CVAE(BaseModel):
         else:
             kl_div = kl_divergence(embedding, log_var, prior_mean, prior_log_var).sum()
 
-        if self.model_config.lbd_ssim > 0:
+        if self.model_config.lbd_ssim_schedule is not None:
             ssim_ = ssim(recon, inputs.data[self.main_modality]).sum()
+            lbd_ssim = self.model_config.lbd_ssim_schedule[epoch]
         else:
-            ssim_ = 0
+            ssim_  = lbd_ssim = 0
 
         # Compute the total loss
 
-        loss = recon_loss + kl_div * beta - self.model_config.lbd_ssim * ssim_
+        loss = recon_loss + kl_div * beta - lbd_ssim * ssim_
 
         # take the mean over the batch instead of the sum
         if self.model_config.mean_over_batch:
@@ -251,6 +254,7 @@ class CVAE(BaseModel):
             "recon_loss": recon_loss.item(),
             "beta": beta,
             "ssim": ssim_.item() if isinstance(ssim_,torch.Tensor) else ssim_,
+            "lbd_ssim": lbd_ssim
         }
         if self.model_config.sigma_variation == "sigma_vae":
             metrics["log_sigma"] = self.log_sigma.detach().item()
