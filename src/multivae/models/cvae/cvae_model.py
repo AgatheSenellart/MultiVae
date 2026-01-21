@@ -237,7 +237,7 @@ class CVAE(BaseModel):
 
         if self.model_config.lbd_ssim_schedule is not None:
             ssim_ = ssim(recon, inputs.data[self.main_modality]).sum()
-            lbd_ssim = self.model_config.lbd_ssim_schedule[epoch]
+            lbd_ssim = self.model_config.lbd_ssim_schedule[epoch-1]
         else:
             ssim_  = lbd_ssim = 0
 
