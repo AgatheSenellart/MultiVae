@@ -43,8 +43,8 @@ class CVAEConfig(BaseConfig):
     log_sigma_init: Optional[float] = -2.0
     mean_over_batch: bool = False
     log_alpha_init: Optional[float] = 0.0
-    lbd_ssim_schedule_function: Optional[Literal["constant", "one_frange"]] = None
-    lbd_ssim_schedule_params: Optional[dict] = None
+    lbd_ssim: float = 0.0
+    epoch_start_ssim: int = 0
 
 
     def __post_init__(self):
@@ -60,9 +60,3 @@ class CVAEConfig(BaseConfig):
                     f"The sigma_variation {self.sigma_variation}"
                     "can only be used with decoder_dist = 'normal'."
                 )
-        
-        if self.lbd_ssim_schedule_function is not None:
-            fct = getattr(lbd_ssim_schedulers,self.lbd_ssim_schedule_function)
-            self.lbd_ssim_schedule = fct(**self.lbd_ssim_schedule_params)
-        else:
-            self.lbd_ssim_schedule = None

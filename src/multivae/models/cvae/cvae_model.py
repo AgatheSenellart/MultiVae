@@ -89,6 +89,10 @@ class CVAE(BaseModel):
                     self.model_config.log_alpha_init, 0.01
                 )
             )
+        
+        # fine-tuning variation
+        if self.model_config.epoch_start_ssim != 0 and self.model_config.lbd_ssim != 0:
+            self.reset_optimizer_epochs = [self.model_config.epoch_start_ssim]
 
     def _set_encoder(self, encoder, model_config):
         if encoder is None:
@@ -235,9 +239,9 @@ class CVAE(BaseModel):
         else:
             kl_div = kl_divergence(embedding, log_var, prior_mean, prior_log_var).sum()
 
-        if self.model_config.lbd_ssim_schedule is not None:
+        if epoch >= self.model_config.epoch_start_ssim and self.model_config.lbd_ssim >0:
             ssim_ = ssim(recon, inputs.data[self.main_modality]).sum()
-            lbd_ssim = self.model_config.lbd_ssim_schedule[epoch-1]
+            lbd_ssim = self.model_config.lbd_ssim
         else:
             ssim_  = lbd_ssim = 0
 
