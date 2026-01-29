@@ -55,18 +55,19 @@ class MultistageTrainer(BaseTrainer):
         Function to operate changes between train_steps such as resetting the optimizer and
         the best losses values.
         """
-        if epoch in self.model.reset_optimizer_epochs:
-            logger.info(f"Epoch {epoch} : reset the optimizer and losses.")
-            logger.info(
-                f"Keeping the best model obtained until here for the rest of training."
-            )
-            self.save_checkpoint(self._best_model, self.training_dir, epoch - 1)
-            self.model = deepcopy(self._best_model).train()
-            # Reset the optimizer
-            self.set_optimizer()
-            self.set_scheduler()
-            best_train_loss = 1e12
-            best_eval_loss = 1e12
+        if hasattr(self.model, 'reset_optimizer_epochs'):
+            if epoch in self.model.reset_optimizer_epochs:
+                logger.info(f"Epoch {epoch} : reset the optimizer and losses.")
+                logger.info(
+                    f"Keeping the best model obtained until here for the rest of training."
+                )
+                self.save_checkpoint(self._best_model, self.training_dir, epoch - 1)
+                self.model = deepcopy(self._best_model).train()
+                # Reset the optimizer
+                self.set_optimizer()
+                self.set_scheduler()
+                best_train_loss = 1e12
+                best_eval_loss = 1e12
 
         return best_train_loss, best_eval_loss
 
