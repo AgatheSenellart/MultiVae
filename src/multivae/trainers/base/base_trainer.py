@@ -329,10 +329,12 @@ class BaseTrainer:
     def _run_model_sanity_check(self, model, loader):
         try:
             inputs = next(iter(loader))
-            train_dataset = set_inputs_to_device(inputs, device=self.device)
+            train_dataset = set_inputs_to_device(inputs, device=self.device,keys=['data'])
             model(train_dataset)
             model.zero_grad()
             torch.cuda.empty_cache()
+            del inputs, train_dataset
+            # check cuda memory
 
         except Exception as e:
             raise Exception(
@@ -355,6 +357,8 @@ class BaseTrainer:
                 self.training_config.gradient_clipping_max_norm,
             )
         loss.backward()
+        torch.cuda.empty_cache()
+        print(torch.cuda.memory_summary(device=self.device))
         self.optimizer.step()
 
     def _schedulers_step(self, epoch, metrics=None):
@@ -621,7 +625,7 @@ class BaseTrainer:
         epoch_metrics = {}
 
         for inputs in self.eval_loader:
-            inputs = set_inputs_to_device(inputs, device=self.device)
+            inputs = set_inputs_to_device(inputs, device=self.device,keys=['data'])
 
             try:
                 with torch.no_grad():
@@ -686,7 +690,7 @@ class BaseTrainer:
         epoch_model_metrics = {}
         batch_idx = 0
         for inputs in self.train_loader:
-            inputs = set_inputs_to_device(inputs, device=self.device)
+            inputs = set_inputs_to_device(inputs, device=self.device,keys=['data'])
 
             if hasattr(self.training_config, "beta_schedule"):
                 beta_epoch = self.training_config.beta_schedule[epoch - 1]
@@ -823,7 +827,7 @@ class BaseTrainer:
 
         # Take one sample with n_data datapoints
         inputs = next(iter(DataLoader(predict_dataset, batch_size=n_data)))
-        inputs = set_inputs_to_device(inputs, self.device)
+        inputs = set_inputs_to_device(inputs, self.device,keys=['data'])
 
         all_recons = {"images": {}}
 
