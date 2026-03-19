@@ -7,6 +7,7 @@ import torch.nn.functional as F
 from multivae.data.datasets.base import MultimodalBaseDataset
 from multivae.models.base import BaseModel
 from multivae.models.base.base_model import ModelOutput
+from multivae.models.base.base_ssim import ssim
 from multivae.models.base.base_utils import (
     kl_divergence,
     set_decoder_dist,
@@ -25,8 +26,6 @@ from multivae.models.nn.default_architectures import (
 )
 
 from .cvae_config import CVAEConfig
-
-from multivae.models.base.base_ssim import ssim
 
 
 def softclip(tensor, min):
@@ -202,7 +201,7 @@ class CVAE(BaseModel):
 
         else:
             output = self.prior_network(cond_mod_data)
-            prior_mean, prior_log_var = output.embedding, output.log_covariance
+            prior_mean, prior_log_var = output.z, output.log_covariance
 
         # Compute the reconstruction loss of the main modality
         output = self.decoder(z, cond_mod_data)
@@ -268,7 +267,7 @@ class CVAE(BaseModel):
         return ModelOutput(
             loss=loss,
             metrics=metrics,
-            embedding=z,
+            z=z,
             reconstruction=recon,
         )
 
@@ -282,14 +281,14 @@ class CVAE(BaseModel):
 
         else:
             output = self.prior_network(cond_mod_data)
-            prior_mean, prior_log_var = output.embedding, output.log_covariance
+            prior_mean, prior_log_var = output.z, output.log_covariance
 
         lp = dist.Normal(prior_mean, torch.exp(0.5 * prior_log_var)).log_prob(z).sum(-1)
         return lp, prior_mean, prior_log_var
 
     def get_mu_log_var(self, inputs: MultimodalBaseDataset):
         output = self.encoder(inputs.data)
-        embedding, log_var = output.embedding, output.log_covariance
+        embedding, log_var = output.z, output.log_covariance
 
         if self.model_config.sparse:
             log_var = sparse_compute_logvar(embedding, self.log_alpha)
@@ -418,7 +417,7 @@ class CVAE(BaseModel):
 
             device = list(cond_mod_data.values())[0].device
             output = self.prior_network(cond_mod_data)
-            prior_mean, prior_log_var = output.embedding, output.log_covariance
+            prior_mean, prior_log_var = output.z, output.log_covariance
 
         sample_shape = [] if N == 1 else [N]
         z = dist.Normal(prior_mean, torch.exp(0.5 * prior_log_var)).rsample(
@@ -497,7 +496,7 @@ class CVAE(BaseModel):
         output_decoder = self.decode(embeddings)
 
         output = ModelOutput()
-        output["embedding"] = embeddings.z
+        output["z"] = embeddings.z
         output[self.main_modality] = output_decoder.reconstruction
         output["cond_mod_data"] = embeddings.cond_mod_data
 
