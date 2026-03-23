@@ -116,56 +116,38 @@ class EncoderConvMMNIST_multilatents(BaseEncoder):
         super(EncoderConvMMNIST_multilatents, self).__init__()
         self.latent_dim = model_config.latent_dim
         self.style_dim = model_config.style_dim
-        self.encoder_class = nn.Sequential(  # input shape (3, 28, 28)
-            nn.Conv2d(
-                3, 32, kernel_size=3, stride=2, padding=1, bias=True
-            ),  # -> (32, 14, 14)
+    
+        self.shared_encoder = nn.Sequential(                          # input shape (3, 28, 28)
+            nn.Conv2d(3, 32, kernel_size=3, stride=2, padding=1),     # -> (32, 14, 14)
             nn.ReLU(),
-            nn.Conv2d(
-                32, 64, kernel_size=3, stride=2, padding=1, bias=True
-            ),  # -> (64, 7, 7)
+            nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),    # -> (64, 7, 7)
             nn.ReLU(),
-            nn.Conv2d(
-                64, 128, kernel_size=3, stride=2, padding=1, bias=True
-            ),  # -> (128, 4, 4)
+            nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1),   # -> (128, 4, 4)
+            nn.ReLU(),
+            Flatten(),                                                # -> (2048)
+            nn.Linear(2048, self.latent_dim + self.style_dim ),       # -> (ndim_private + ndim_shared)
             nn.ReLU(),
         )
-
+        
         # content branch
-        self.class_mu = nn.Conv2d(128, self.latent_dim, 4, 2, 0)
-        self.class_logvar = nn.Conv2d(128, self.latent_dim, 4, 2, 0)
+        self.class_mu = nn.Linear(self.latent_dim + self.style_dim, self.latent_dim + self.style_dim)
+        self.class_logvar = nn.Linear(self.latent_dim + self.style_dim, self.latent_dim + self.style_dim)
 
-        if self.style_dim > 0:
-            self.encoder_style = nn.Sequential(  # input shape (3, 28, 28)
-                nn.Conv2d(
-                    3, 32, kernel_size=3, stride=2, padding=1, bias=True
-                ),  # -> (32, 14, 14)
-                nn.ReLU(),
-                nn.Conv2d(
-                    32, 64, kernel_size=3, stride=2, padding=1, bias=True
-                ),  # -> (64, 7, 7)
-                nn.ReLU(),
-                nn.Conv2d(
-                    64, 128, kernel_size=3, stride=2, padding=1, bias=True
-                ),  # -> (128, 4, 4)
-                nn.ReLU(),
-            )
-
-            self.style_mu = nn.Conv2d(128, self.style_dim, 4, 2, 0)
-            self.style_logvar = nn.Conv2d(128, self.style_dim, 4, 2, 0)
 
     def forward(self, x):
+        h = self.shared_encoder(x)
+        
+        latent_space_mu =self.class_mu(h)
+        latent_space_logvar = self.class_logvar(h)
+        
         output = ModelOutput()
-        # content branch
-        h_class = self.encoder_class(x)
-        output["embedding"] = self.class_mu(h_class).squeeze(-1, -2)
-        output["log_covariance"] = self.class_logvar(h_class).squeeze(-1, -2)
+        
+        output["embedding"] = latent_space_mu[:,:self.latent_dim]
+        output["log_covariance"] = latent_space_logvar[:,:self.latent_dim]
 
         if self.style_dim > 0:
-            # style branch
-            h_style = self.encoder_style(x)
-            output["style_embedding"] = self.style_mu(h_style).squeeze(-1, -2)
-            output["style_log_covariance"] = self.style_logvar(h_style).squeeze(-1, -2)
+            output["style_embedding"] = latent_space_mu[:,self.latent_dim:]
+            output["style_log_covariance"] = latent_space_logvar[:,self.latent_dim:]
 
         return output
 
