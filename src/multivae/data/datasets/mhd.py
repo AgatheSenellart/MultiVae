@@ -183,7 +183,7 @@ class MHD(IncompleteDataset):  # pragma: no cover
             audio = unstack_tensor(data["audio"]).unsqueeze(0)
             data["audio"] = audio.permute(0, 2, 1)
 
-        if not self.is_incomplete or self.keep_incomplete:
+        if not self.is_incomplete or not self.keep_incomplete:
             return DatasetOutput(data=data, labels=self._s_data[index])
         else:
             masks = {s: self.masks[s][index] for s in self.data}
