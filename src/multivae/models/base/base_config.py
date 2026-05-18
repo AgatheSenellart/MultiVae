@@ -1,5 +1,5 @@
 from dataclasses import field
-from typing import Dict, Literal, Tuple, Union
+from typing import Dict, Literal, Optional, Tuple, Union
 
 from pydantic.dataclasses import dataclass
 from pythae.config import BaseConfig
@@ -9,7 +9,7 @@ from pythae.config import BaseConfig
 class BaseMultiVAEConfig(BaseConfig):
     """This is the base config for a Multi-Modal VAE model.
 
-    Parameters:
+    Args:
         n_modalities (int): The number of modalities. Default: None.
         latent_dim (int): The dimension of the latent space. Default: None.
         input_dims (dict[str,tuple]) : The modalities'names (str) and input shapes (tuple).
@@ -25,24 +25,30 @@ class BaseMultiVAEConfig(BaseConfig):
             the decoder is expected to output **logits**. If None is provided, a normal distribution is used for each modality.
         decoder_dist_params (Dict[str,dict]) : Parameters for the output decoder distributions, for
             computing the log-probability.
-            For instance, with normal or laplace distribution, you can pass the scale in this dictionary.
-            ex :  {'mod1' : {scale : 0.75}}
+            For instance, with normal or laplace distribution, you can pass the scale in this dictionary with
+            :code:`decoder_dist_params =  {'mod1' : {"scale" : 0.75}}`.
     """
 
-    n_modalities: Union[int, None] = None
+    n_modalities: int
     latent_dim: int = 10
-    input_dims: Union[dict, None] = None
+    input_dims: Optional[dict] = None
     uses_likelihood_rescaling: bool = False
-    rescale_factors: Union[dict, None] = None
+    rescale_factors: Optional[dict] = None
     decoders_dist: Union[
         Dict[str, Literal["normal", "bernoulli", "laplace", "categorical"]], None
     ] = None
     decoder_dist_params: Union[dict, None] = None
     custom_architectures: list = field(default_factory=lambda: [])
 
+    def __post_init__(self):
+        super().__post_init__()
+        if self.input_dims is not None:
+            self.input_dims = {k: tuple(self.input_dims[k]) for k in self.input_dims}
 
 @dataclass
 class EnvironmentConfig(BaseConfig):
+    """Base environment config to save python version."""
+
     python_version: str = "3.8"
 
 
@@ -51,7 +57,7 @@ class BaseAEConfig(BaseConfig):
     """This is the base configuration instance of encoders/decoders models deriving from
     :class:`~pythae.config.BaseConfig`.
 
-    Parameters:
+    Args:
         input_dim (tuple): The input_data dimension (channels X x_dim X y_dim)
         latent_dim (int): The latent space dimension. Default: None.
         style_dim (int) : For models with private latent spaces for each modality. Default: 0.

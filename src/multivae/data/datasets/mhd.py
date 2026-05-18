@@ -27,20 +27,25 @@ class MHD(IncompleteDataset):  # pragma: no cover
     cross-modality inference' (Vasco et al, 2021).'
 
     In this version of the dataset class, we add the possibility to
-    simulate missingness in the data, depending on the dataclass.
-    For that the missing_probabilities input provides probabilities of missingness for each class,
-    for each modality. For instance,
+    simulate missingness in the data, depending on the dataclass (Missing Not At Random).
+    For that, the `missing_probabilities` parameter provides probabilities of missingness for each class,
+    and for each modality. For instance, the code below will define a dataset with missing samples in the
+    trajectory modality, only in the classes 0,1,2, et 9.
 
     .. code-block:: python
 
+        >>> from multivae.data.datasets import MHD
         >>> missing_probabilities = {
         ...     image = np.zeros(10,).float(),
         ...     audio = np.zeros(10,).float(),
         ...     trajectory = [0.1,0.3,0.4,0.,0.,0.,0.,0.,0.,0.9]
         ... }
+        >>> dataset = MHD(data_path,
+        ...  'train',
+        ...   modalities = ['image', 'audio', 'trajectory'],
+        ...   download = True,
+        ...   missing_probabilities = missing_probabilities)
 
-    will define a dataset with missing samples in the trajectory modality only in the classes
-    0,1,2, et 9.
 
     Args:
 
@@ -68,6 +73,7 @@ class MHD(IncompleteDataset):  # pragma: no cover
             label=[0.0] * 10, audio=[0.0] * 10, trajectory=[0.0] * 10, image=[0.0] * 10
         ),
         seed=0,
+        keep_incomplete=True
     ):
         self.data_file = os.path.join(datapath, f"mhd_{split}.pt")
         self.modalities = modalities
@@ -114,6 +120,7 @@ class MHD(IncompleteDataset):  # pragma: no cover
         self.is_incomplete = (
             sum([sum(missing_probabilities[s]) for s in missing_probabilities]) != 0
         )
+        self.keep_incomplete=keep_incomplete
 
         if self.is_incomplete:
             # generate the masks
@@ -133,6 +140,16 @@ class MHD(IncompleteDataset):  # pragma: no cover
                 self.data[k] *= self.masks[k].float()  # erase missing samples
                 # put dimensions back in order
                 self.data[k] = self.data[k].permute(*reverse_dim_order)
+
+            if not self.keep_incomplete:
+                
+                # take the intersection of the modality masks
+                global_mask = torch.ones((self.n_data))
+                for m in self.modalities:
+                    global_mask = global_mask * self.masks[m]
+                # only keep the samples where all modalities are available
+                self.data = {k : self.data[k][global_mask.bool()] for k in self.data}
+                self.n_data = torch.sum(global_mask.bool()).item()
 
     def __download__(self, split, datapath):  # pragram : no cover
         import gdown
@@ -166,7 +183,7 @@ class MHD(IncompleteDataset):  # pragma: no cover
             audio = unstack_tensor(data["audio"]).unsqueeze(0)
             data["audio"] = audio.permute(0, 2, 1)
 
-        if not self.is_incomplete:
+        if not self.is_incomplete or not self.keep_incomplete:
             return DatasetOutput(data=data, labels=self._s_data[index])
         else:
             masks = {s: self.masks[s][index] for s in self.data}
