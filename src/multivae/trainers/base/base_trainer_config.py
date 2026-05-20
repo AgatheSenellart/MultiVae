@@ -45,6 +45,8 @@ class BaseTrainerConfig(BaseConfig):
         dist_backend (str): The distributed backend to use. Default: 'nccl'
         master_addr (str): The master address for distributed training. Default: 'localhost'
         master_port (str): The master port for distributed training. Default: '12345'
+        drop_last (bool): if True, we drop the last batches in the dataloaders
+        gradient_clipping_max_norm (float): clip the gradient norm. Default to None. 
     """
 
     output_dir: str = None
@@ -70,6 +72,7 @@ class BaseTrainerConfig(BaseConfig):
     master_addr: str = field(default="localhost")
     master_port: str = field(default="12345")
     drop_last: bool = False
+    gradient_clipping_max_norm: Union[float, None] = None
 
     def __post_init__(self):
         """Performs some checks on the training parameters."""

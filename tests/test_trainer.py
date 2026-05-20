@@ -474,14 +474,15 @@ class TestPredict:
         all_recons = trainer.predict(model_sample, epoch=1, n_data=3)
 
         if isinstance(model_sample, JMVAE):
-            assert list(all_recons.keys()) == model_sample.modalities_name + ["all"]
+            list_mods = model_sample.modalities_name + ["all"]
+            assert list(all_recons['images'].keys()) == [f'recon_from_{m}' for m in list_mods]
         else:
-            assert list(all_recons.keys()) == ["all"]
+            assert list(all_recons['images'].keys()) == ["recon_from_all"]
 
-        for mod in all_recons:
-            recon_mod = all_recons[mod]
-            assert isinstance(recon_mod, Image.Image)
-        output_without_transform = all_recons["all"]
+        for mod in all_recons['images']:
+            recon_mod = all_recons['images'][mod]
+            assert isinstance(recon_mod, torch.Tensor)
+        output_without_transform = all_recons['images']["recon_from_all"]
 
         # Test predict on a dataset with transform_for_plotting option
         trainer = BaseTrainer(
@@ -491,7 +492,7 @@ class TestPredict:
             training_config=training_config,
         )
         all_recons = trainer.predict(model_sample, epoch=1, n_data=3)
-        output_with_transform = all_recons["all"]
+        output_with_transform = all_recons['images']["recon_from_all"]
 
         assert output_with_transform.size != output_without_transform.size
 
@@ -505,10 +506,10 @@ class TestPredict:
         )
         all_recons = trainer.predict(model_sample, epoch=1, n_data=3)
         if isinstance(model_sample, JMVAE):
-            assert list(all_recons.keys()) == model_sample.modalities_name + ["all"]
+            list_mods = model_sample.modalities_name + ["all"]
+            assert list(all_recons['images'].keys()) == [f'recon_from_{m}' for m in list_mods]
         else:
-            assert list(all_recons.keys()) == ["all"]
-
+            assert list(all_recons['images'].keys()) == ["recon_from_all"]
 
 class TestCreateTrainingDir:
     """We check that the training_dir is created and correspond to
@@ -610,3 +611,23 @@ class TestSavingImages:
             assert os.path.exists(
                 os.path.join(trainer.training_dir, "recon_from_all.png")
             )
+
+
+class TestSaveMetrics:
+    """Check that best metrics were saved in the right place"""
+
+    def test(self, model_sample, train_dataset_1, training_config):
+
+        trainer = BaseTrainer(
+            model_sample,
+            train_dataset_1,
+            eval_dataset=None,
+            training_config=training_config
+        )
+
+        trainer.train()
+
+        assert os.path.exists(
+                os.path.join(trainer.training_dir,'final_model', "metrics_best_model.json")
+            )
+
