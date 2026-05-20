@@ -328,7 +328,9 @@ class BaseTrainer:
     def _run_model_sanity_check(self, model, loader):
         try:
             inputs = next(iter(loader))
-            train_dataset = set_inputs_to_device(inputs, device=self.device,keys=['data'])
+            train_dataset = set_inputs_to_device(
+                inputs, device=self.device, keys=["data"]
+            )
             model(train_dataset)
             model.zero_grad()
             torch.cuda.empty_cache()
@@ -499,7 +501,15 @@ class BaseTrainer:
                 epoch, self.best_train_loss, self.best_eval_loss
             )
             epoch_train_loss, epoch_metrics = self.train_step(epoch)
-            metrics = {"train_" + k: epoch_metrics[k].item() if isinstance(epoch_metrics[k],torch.Tensor) else epoch_metrics[k] for k in epoch_metrics}
+            metrics = {
+                "train_"
+                + k: (
+                    epoch_metrics[k].item()
+                    if isinstance(epoch_metrics[k], torch.Tensor)
+                    else epoch_metrics[k]
+                )
+                for k in epoch_metrics
+            }
             metrics["train_epoch_loss"] = epoch_train_loss
             torch.cuda.empty_cache()
 
@@ -508,7 +518,15 @@ class BaseTrainer:
                 metrics["eval_epoch_loss"] = epoch_eval_loss
                 update_dict(
                     metrics,
-                    {"eval_" + k: epoch_metrics[k].item() if isinstance(epoch_metrics[k],torch.Tensor) else epoch_metrics[k] for k in epoch_eval_metrics},
+                    {
+                        "eval_"
+                        + k: (
+                            epoch_metrics[k].item()
+                            if isinstance(epoch_metrics[k], torch.Tensor)
+                            else epoch_metrics[k]
+                        )
+                        for k in epoch_eval_metrics
+                    },
                 )
                 self._schedulers_step(epoch, epoch_eval_loss)
                 torch.cuda.empty_cache()
@@ -623,7 +641,7 @@ class BaseTrainer:
         epoch_metrics = {}
 
         for inputs in self.eval_loader:
-            inputs = set_inputs_to_device(inputs, device=self.device,keys=['data'])
+            inputs = set_inputs_to_device(inputs, device=self.device, keys=["data"])
 
             try:
                 with torch.no_grad():
@@ -688,7 +706,7 @@ class BaseTrainer:
         epoch_model_metrics = {}
         batch_idx = 0
         for inputs in self.train_loader:
-            inputs = set_inputs_to_device(inputs, device=self.device,keys=['data'])
+            inputs = set_inputs_to_device(inputs, device=self.device, keys=["data"])
 
             if hasattr(self.training_config, "beta_schedule"):
                 beta_epoch = self.training_config.beta_schedule[epoch - 1]
@@ -825,7 +843,7 @@ class BaseTrainer:
 
         # Take one sample with n_data datapoints
         inputs = next(iter(DataLoader(predict_dataset, batch_size=n_data)))
-        inputs = set_inputs_to_device(inputs, self.device,keys=['data'])
+        inputs = set_inputs_to_device(inputs, self.device, keys=["data"])
 
         all_recons = {"images": {}}
 

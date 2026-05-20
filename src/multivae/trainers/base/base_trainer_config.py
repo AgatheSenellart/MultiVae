@@ -46,7 +46,7 @@ class BaseTrainerConfig(BaseConfig):
         master_addr (str): The master address for distributed training. Default: 'localhost'
         master_port (str): The master port for distributed training. Default: '12345'
         drop_last (bool): if True, we drop the last batches in the dataloaders
-        gradient_clipping_max_norm (float): clip the gradient norm. Default to None. 
+        gradient_clipping_max_norm (float): clip the gradient norm. Default to None.
     """
 
     output_dir: str = None

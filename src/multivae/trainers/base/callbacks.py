@@ -495,7 +495,7 @@ class MLFlowCallback(TrainingCallback):  # pragma: no cover
 
             run_name (str): The name to apply to the current run.
 
-            tracking_uri (str): The URI of the MLflow tracking server. 
+            tracking_uri (str): The URI of the MLflow tracking server.
             By default, it uses a local sqlite database in the current folder. You can change it to log on a remote server or local file directory. For more information, see https://mlflow.org/docs/latest/ml/getting-started/running-notebooks/.
         """
         self.is_initialized = True
@@ -598,9 +598,9 @@ class TensorboardCallback(TrainingCallback):  # pragma: no cover
     A :class:`TrainingCallback` integrating the experiment tracking tool
     `tensorboard` (https://docs.pytorch.org/docs/stable//tensorboard.html).
 
-    Warning: Contrary to `WandbCallback` and `MLFlowCallback`, `TensorboardCallback` 
-    does not log the training configuration or the model configuration. It only logs the training metrics and media. 
-    
+    Warning: Contrary to `WandbCallback` and `MLFlowCallback`, `TensorboardCallback`
+    does not log the training configuration or the model configuration. It only logs the training metrics and media.
+
     """
 
     def __init__(self):
