@@ -815,7 +815,7 @@ class BaseTrainer:
         self.training_config.save_json(checkpoint_dir, "training_config")
 
         # save metrics
-        with open(f"{dir_path}/metrics_best_model.json", mode="w+") as fp:
+        with open(f"{checkpoint_dir}/metrics_best_model.json", mode="w+") as fp:
             json.dump(self.metrics_best_model, fp)
 
         # save info about checkpoint

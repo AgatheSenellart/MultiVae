@@ -363,6 +363,7 @@ class TestMVTCAE:
         )
 
         assert os.path.isdir(checkpoint_dir)
+        assert os.path.isfile(os.path.join(checkpoint_dir, "metrics_best_model.json"))
 
         # try resuming
         new_trainer_ = self.new_trainer(model, training_config, dataset, checkpoint_dir)
