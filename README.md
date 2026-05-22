@@ -125,6 +125,8 @@ Our library allows you to use any of the models with custom configuration, encod
 - [Learning with partial datasets](examples/tutorial_notebooks/learning_with_partial_data.ipynb) : Learn how to use the IncompleteDataset class and to train a model on an incomplete dataset.
 - [Using samplers](examples/tutorial_notebooks/using_samplers.ipynb): Learn how to train and use sampler to improve the joint generation of synthetic data.
 - [Using WandB](https://github.com/AgatheSenellart/MultiVae/tree/main/examples/tutorial_notebooks/use_wandb.ipynb): Learn how to easily monitor your training/evaluation with Wandb and MultiVae.  
+- [Using Tensorboard](https://github.com/AgatheSenellart/MultiVae/tree/main/examples/tutorial_notebooks/use_tensorboard.ipynb): Use the tensorboard callback to monitor your training.
+- [Using MLFlow](https://github.com/AgatheSenellart/MultiVae/tree/main/examples/tutorial_notebooks/use_mlflow_callback.ipynb): Use the MLflow callback to monitor your training.
 
 # Training on incomplete datasets
 

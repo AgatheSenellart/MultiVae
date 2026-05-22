@@ -9,11 +9,10 @@ import torch
 import torch.distributed as dist
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
-from PIL import Image
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
-from torchvision.utils import make_grid
+from torchvision.utils import make_grid, save_image
 
 from ...data import MultimodalBaseDataset
 from ...data.datasets.utils import adapt_shape
@@ -142,7 +141,7 @@ class BaseTrainer:
         self._run_model_sanity_check(model, train_loader)
 
         if self.is_main_process:
-            logger.info("Model passed sanity check !\nReady for training.\n")
+            logger.info("Model passed sanity check !\n" "Ready for training.\n")
 
         # Assert that the trainer is suited for the chosen model
         self.checktrainer(model)
@@ -171,6 +170,7 @@ class BaseTrainer:
 
     def _setup_devices(self):
         """Sets up the devices to perform distributed training."""
+
         if dist.is_available() and dist.is_initialized() and self.local_rank == -1:
             logger.warning(
                 "torch.distributed process group is initialized, but local_rank == -1. "
@@ -328,33 +328,45 @@ class BaseTrainer:
     def _run_model_sanity_check(self, model, loader):
         try:
             inputs = next(iter(loader))
-            train_dataset = set_inputs_to_device(inputs, device=self.device)
+            train_dataset = set_inputs_to_device(
+                inputs, device=self.device, keys=["data"]
+            )
             model(train_dataset)
+            model.zero_grad()
+            torch.cuda.empty_cache()
+            del inputs, train_dataset
+            # check cuda memory
 
         except Exception as e:
             raise Exception(
                 "Error when calling forward method from model. Potential issues: \n"
-                " - Wrong model architecture:\n"
-                "   Check encoders, decoders, and other custom architectures that you provided.\n"
-                " - Incorrect input_dims:\n"
-                "   When no encoders or decoders are provided, networks are built automatically but require\n"
-                "   the data shape for each modality. Check the input_dims parameter in the model config.\n"
-                "   It must be a dictionary with a tuple shape for each modality.\n"
-                " - Dataset incompatibility:\n"
-                "   The model might not be compatible with the dataset you provided.\n"
-                f"This is the specific exception raised: {type(e)} with message: "
-                + str(e)
+                " - Wrong model architecture -> check encoder, decoder and metric architecture if "
+                "you provide yours \n"
+                " - The data input dimension provided is wrong -> when no encoder, decoder or metric "
+                "provided, a network is built automatically but requires the shape of the flatten "
+                "input data.\n"
+                f"Exception raised: {type(e)} with message: " + str(e)
             ) from e
 
     def _optimizers_step(self, model_output=None):
         loss = model_output.loss
 
         self.optimizer.zero_grad()
+        if self.training_config.gradient_clipping_max_norm is not None:
+            torch.nn.utils.clip_grad_norm_(
+                self.model.parameters(),
+                self.training_config.gradient_clipping_max_norm,
+            )
         loss.backward()
+        torch.cuda.empty_cache()
         self.optimizer.step()
 
-    def _schedulers_step(self, metrics=None):
+    def _schedulers_step(self, epoch, metrics=None):
         if self.scheduler is None:
+            pass
+
+        elif self.training_config.start_lr_scheduler_epoch > epoch:
+            logger.info("Not taking a scheduler step yet.")
             pass
 
         elif isinstance(self.scheduler, lr_scheduler.ReduceLROnPlateau):
@@ -364,7 +376,7 @@ class BaseTrainer:
             self.scheduler.step()
 
     def prepare_training(self):
-        """Sets up the trainer for training."""
+        """Sets up the trainer for training"""
         # set random seed
         set_seed(self.training_config.seed)
 
@@ -384,13 +396,17 @@ class BaseTrainer:
         self.trained_epochs = 0
         self.best_train_loss = torch.inf
         self.best_eval_loss = torch.inf
+        self.metrics_best_model = {}
         # set up the best_model
         self._best_model = deepcopy(self.model)
 
     def resume_training(self, checkpoint):
-        """Sets up the trainer for training."""
+        """Sets up the trainer for training"""
         with open(os.path.join(checkpoint, "info_checkpoint.json"), "r") as fp:
             dict_checkpoint = json.load(fp)
+
+        with open(os.path.join(checkpoint, "metrics_best_model.json"), "r") as fp:
+            self.metrics_best_model = json.load(fp)
 
         # set random seed
         set_seed(self.training_config.seed)
@@ -427,19 +443,21 @@ class BaseTrainer:
         self._best_model = deepcopy(self.model)
 
     def prepare_train_step(self, epoch, best_train_loss, best_eval_loss):
-        """Function to operate changes between train_steps such as resetting the optimizer and
+        """
+        Function to operate changes between train_steps such as resetting the optimizer and
         the best losses values.
         """
         return best_train_loss, best_eval_loss
 
     def train(self, log_output_dir: str = None):
-        """This function is the main training function.
+        """This function is the main training function
 
         Args:
             log_output_dir (str): The path in which the log will be stored
             start_epoch (int) : The first epoch to do. Is useful in case of restarting a
                 training after saving a checkpoint. Default to 1.
         """
+
         self.callback_handler.on_train_begin(
             training_config=self.training_config, model_config=self.model_config
         )
@@ -483,25 +501,44 @@ class BaseTrainer:
                 epoch, self.best_train_loss, self.best_eval_loss
             )
             epoch_train_loss, epoch_metrics = self.train_step(epoch)
-            metrics = {"train_" + k: epoch_metrics[k] for k in epoch_metrics}
+            metrics = {
+                "train_"
+                + k: (
+                    epoch_metrics[k].item()
+                    if isinstance(epoch_metrics[k], torch.Tensor)
+                    else epoch_metrics[k]
+                )
+                for k in epoch_metrics
+            }
             metrics["train_epoch_loss"] = epoch_train_loss
+            torch.cuda.empty_cache()
 
             if self.eval_dataset is not None:
                 epoch_eval_loss, epoch_eval_metrics = self.eval_step(epoch)
                 metrics["eval_epoch_loss"] = epoch_eval_loss
                 update_dict(
                     metrics,
-                    {"eval_" + k: epoch_eval_metrics[k] for k in epoch_eval_metrics},
+                    {
+                        "eval_"
+                        + k: (
+                            epoch_metrics[k].item()
+                            if isinstance(epoch_metrics[k], torch.Tensor)
+                            else epoch_metrics[k]
+                        )
+                        for k in epoch_eval_metrics
+                    },
                 )
-                self._schedulers_step(epoch_eval_loss)
+                self._schedulers_step(epoch, epoch_eval_loss)
+                torch.cuda.empty_cache()
 
             else:
                 epoch_eval_loss = self.best_eval_loss
-                self._schedulers_step(epoch_train_loss)
+                self._schedulers_step(epoch, epoch_train_loss)
             if epoch <= self.start_keep_best_epoch:
                 # save the model, don't keep track of the best loss
                 best_model = deepcopy(self.model)
                 self._best_model = best_model
+                self.metrics_best_model = metrics
                 logger.info("New model saved!")
 
             elif (
@@ -511,6 +548,7 @@ class BaseTrainer:
                 self.best_eval_loss = epoch_eval_loss
                 best_model = deepcopy(self.model)
                 self._best_model = best_model
+                self.metrics_best_model = metrics
                 logger.info("New best model on eval saved!")
 
             elif (
@@ -520,6 +558,7 @@ class BaseTrainer:
                 self.best_train_loss = epoch_train_loss
                 best_model = deepcopy(self.model)
                 self._best_model = best_model
+                self.metrics_best_model = metrics
                 logger.info("New best model on train saved!")
 
             # If steps_predict is not None, compute reconstruction images
@@ -528,17 +567,19 @@ class BaseTrainer:
                 and (epoch % self.training_config.steps_predict == 0 or epoch == 1)
                 and self.is_main_process
             ):
-                reconstructions = self.predict(self._best_model, epoch)
+                metrics_media = self.predict(self._best_model, epoch)
 
                 self.callback_handler.on_prediction_step(
                     self.training_config,
-                    reconstructions=reconstructions,
+                    metrics_media=metrics_media,
                     global_step=epoch,
                 )
 
                 # Save the reconstructions to folder
-                for key, image in reconstructions.items():
-                    image.save(os.path.join(self.training_dir, f"recon_from_{key}.png"))
+                images = metrics_media.pop("images", {})
+                for key, image in images.items():
+                    save_image(image, os.path.join(self.training_dir, f"{key}.png"))
+                torch.cuda.empty_cache()
 
             self.callback_handler.on_epoch_end(training_config=self.training_config)
 
@@ -578,14 +619,15 @@ class BaseTrainer:
         self.callback_handler.on_train_end(self.training_config)
 
     def eval_step(self, epoch: int):
-        """Perform an evaluation step.
+        """Perform an evaluation step
 
-        Args:
+        Parameters:
             epoch (int): The current epoch number
 
         Returns:
             (torch.Tensor): The evaluation loss
         """
+
         self.callback_handler.on_eval_step_begin(
             training_config=self.training_config,
             eval_loader=self.eval_loader,
@@ -599,7 +641,7 @@ class BaseTrainer:
         epoch_metrics = {}
 
         for inputs in self.eval_loader:
-            inputs = set_inputs_to_device(inputs, device=self.device)
+            inputs = set_inputs_to_device(inputs, device=self.device, keys=["data"])
 
             try:
                 with torch.no_grad():
@@ -608,6 +650,7 @@ class BaseTrainer:
                         epoch=epoch,
                         dataset_size=len(self.eval_loader.dataset),
                         uses_ddp=self.distributed,
+                        use_mean_embedding=True,
                     )
 
             except RuntimeError:
@@ -616,6 +659,7 @@ class BaseTrainer:
                     epoch=epoch,
                     dataset_size=len(self.eval_loader.dataset),
                     uses_ddp=self.distributed,
+                    use_mean_embedding=True,
                 )
 
             loss = (
@@ -642,7 +686,7 @@ class BaseTrainer:
     def train_step(self, epoch: int):
         """The trainer performs training loop over the train_loader.
 
-        Args:
+        Parameters:
             epoch (int): The current epoch number
 
         Returns:
@@ -662,7 +706,12 @@ class BaseTrainer:
         epoch_model_metrics = {}
         batch_idx = 0
         for inputs in self.train_loader:
-            inputs = set_inputs_to_device(inputs, device=self.device)
+            inputs = set_inputs_to_device(inputs, device=self.device, keys=["data"])
+
+            if hasattr(self.training_config, "beta_schedule"):
+                beta_epoch = self.training_config.beta_schedule[epoch - 1]
+            else:
+                beta_epoch = 1
 
             model_output = self.model(
                 inputs,
@@ -670,6 +719,7 @@ class BaseTrainer:
                 dataset_size=len(self.train_loader.dataset),
                 uses_ddp=self.distributed,
                 batch_ratio=(batch_idx) / len(self.train_loader),
+                beta=beta_epoch,
             )
 
             self._optimizers_step(model_output)
@@ -704,12 +754,13 @@ class BaseTrainer:
         return epoch_loss, epoch_model_metrics
 
     def save_model(self, model: BaseModel, dir_path: str):
-        """This method saves the final model along with the config files.
+        """This method saves the final model along with the config files
 
         Args:
             model (BaseMultiVAE): The model to be saved
             dir_path (str): The folder where the model and config files should be saved
         """
+
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
 
@@ -722,16 +773,19 @@ class BaseTrainer:
 
         # save training config
         self.training_config.save_json(dir_path, "training_config")
+        # save metrics
+        with open(f"{dir_path}/metrics_best_model.json", mode="w+") as fp:
+            json.dump(self.metrics_best_model, fp)
 
         self.callback_handler.on_save(self.training_config, dir_path=dir_path)
 
     def save_checkpoint(self, model: BaseModel, dir_path, epoch: int):
-        """Saves a checkpoint alowing to restart training from here.
+        """Saves a checkpoint alowing to restart training from here
 
         Args:
             dir_path (str): The folder where the checkpoint should be saved
-            epochs_signature (int): The epoch number
-        """
+            epochs_signature (int): The epoch number"""
+
         checkpoint_dir = os.path.join(dir_path, f"checkpoint_epoch_{epoch}")
 
         if not os.path.exists(checkpoint_dir):
@@ -760,6 +814,10 @@ class BaseTrainer:
         # save training config
         self.training_config.save_json(checkpoint_dir, "training_config")
 
+        # save metrics
+        with open(f"{checkpoint_dir}/metrics_best_model.json", mode="w+") as fp:
+            json.dump(self.metrics_best_model, fp)
+
         # save info about checkpoint
         info = dict(
             training_dir=self.training_dir,
@@ -776,6 +834,7 @@ class BaseTrainer:
 
     def predict(self, model: BaseModel, epoch: int, n_data=8):
         """For BaseMultiVaE models, compute self and cross reconstructions during training."""
+
         model.eval()
 
         predict_dataset = (
@@ -784,9 +843,9 @@ class BaseTrainer:
 
         # Take one sample with n_data datapoints
         inputs = next(iter(DataLoader(predict_dataset, batch_size=n_data)))
-        inputs = set_inputs_to_device(inputs, self.device)
+        inputs = set_inputs_to_device(inputs, self.device, keys=["data"])
 
-        all_recons = {}
+        all_recons = {"images": {}}
 
         # For multimodal VAEs we compute all 1-to-1 cross-modal reconstruction
         if isinstance(model, BaseMultiVAE):
@@ -812,20 +871,8 @@ class BaseTrainer:
                 ]
                 recon_image = torch.cat(recon_image)
 
-                # Transform to PIL format
                 recon_image = make_grid(recon_image, nrow=n_data)
-                # Add 0.5 after unnormalizing to [0, 255] to round to nearest integer
-                ndarr = (
-                    recon_image.mul(255)
-                    .add_(0.5)
-                    .clamp_(0, 255)
-                    .permute(1, 2, 0)
-                    .to("cpu", torch.uint8)
-                    .numpy()
-                )
-                recon_image = Image.fromarray(ndarr)
-
-                all_recons[mod] = recon_image
+                all_recons["images"][f"recon_from_{mod}"] = recon_image
 
         # For multimodal VAE or CVAE model, we compute the joint reconstruction
         recon = model.predict(
@@ -870,16 +917,7 @@ class BaseTrainer:
         # Transform to PIL format
         recon_image = make_grid(recon_image, nrow=n_data)
         # Add 0.5 after unnormalizing to [0, 255] to round to nearest integer
-        ndarr = (
-            recon_image.mul(255)
-            .add_(0.5)
-            .clamp_(0, 255)
-            .permute(1, 2, 0)
-            .to("cpu", torch.uint8)
-            .numpy()
-        )
-        recon_image = Image.fromarray(ndarr)
 
-        all_recons["all"] = recon_image
+        all_recons["images"]["recon_from_all"] = recon_image
 
         return all_recons

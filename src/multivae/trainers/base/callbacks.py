@@ -1,5 +1,5 @@
 """Training Callbacks for training monitoring integrated in `pythae` (inspired from
-https://github.com/huggingface/transformers/blob/master/src/transformers/trainer_callback.py).
+https://github.com/huggingface/transformers/blob/master/src/transformers/trainer_callback.py)
 """
 
 import importlib
@@ -8,6 +8,8 @@ import logging
 import os
 import warnings
 from typing import Literal
+from torchvision.utils import save_image
+import tempfile
 
 import numpy as np
 from pythae.models.base.base_config import BaseConfig
@@ -19,22 +21,32 @@ logger = logging.getLogger(__name__)
 
 
 def wandb_is_available():
-    """Check if wandb logger is available."""
     return importlib.util.find_spec("wandb") is not None
 
 
+def mlflow_is_available():
+    return importlib.util.find_spec("mlflow") is not None
+
+
+def comet_is_available():
+    return importlib.util.find_spec("comet_ml") is not None
+
+
 def load_wandb_path_from_folder(path):
-    """To load the wandb_path from a trained model."""
     with open(os.path.join(path, "wandb_info.json")) as fp:
         wandb_info = json.load(fp)
 
         return wandb_info["path"]
 
 
+def load_ml_flow_id_from_folder(path):
+    with open(os.path.join(path, "mlflow_info.json")) as fp:
+        ml_flow_info = json.load(fp)
+
+        return ml_flow_info
+
+
 def rename_logs(logs):
-    """Renames the logs train_metric to train/metric, which is more
-    suited for wandb.
-    """
     train_prefix = "train_"
     eval_prefix = "eval_"
 
@@ -51,53 +63,85 @@ def rename_logs(logs):
 
 
 class TrainingCallback:
-    """Base class for creating training callbacks."""
+    """
+    Base class for creating training callbacks
+    """
 
     def on_init_end(self, training_config: BaseTrainerConfig, **kwargs):
-        """Event called at the end of the initialization of the [`Trainer`]."""
+        """
+        Event called at the end of the initialization of the [`Trainer`].
+        """
 
     def on_train_begin(self, training_config: BaseTrainerConfig, **kwargs):
-        """Event called at the beginning of training."""
+        """
+        Event called at the beginning of training.
+        """
 
     def on_train_end(self, training_config: BaseTrainerConfig, **kwargs):
-        """Event called at the end of training."""
+        """
+        Event called at the end of training.
+        """
 
     def on_epoch_begin(self, training_config: BaseTrainerConfig, **kwargs):
-        """Event called at the beginning of an epoch."""
+        """
+        Event called at the beginning of an epoch.
+        """
 
     def on_epoch_end(self, training_config: BaseTrainerConfig, **kwargs):
-        """Event called at the end of an epoch."""
+        """
+        Event called at the end of an epoch.
+        """
 
     def on_train_step_begin(self, training_config: BaseTrainerConfig, **kwargs):
-        """Event called at the beginning of a training step."""
+        """
+        Event called at the beginning of a training step.
+        """
 
     def on_train_step_end(self, training_config: BaseTrainerConfig, **kwargs):
-        """Event called at the end of a training step."""
+        """
+        Event called at the end of a training step.
+        """
 
     def on_eval_step_begin(self, training_config: BaseTrainerConfig, **kwargs):
-        """Event called at the beginning of a evaluation step."""
+        """
+        Event called at the beginning of a evaluation step.
+        """
 
     def on_eval_step_end(self, training_config: BaseTrainerConfig, **kwargs):
-        """Event called at the end of a evaluation step."""
+        """
+        Event called at the end of a evaluation step.
+        """
 
     def on_evaluate(self, training_config: BaseTrainerConfig, **kwargs):
-        """Event called after an evaluation phase."""
+        """
+        Event called after an evaluation phase.
+        """
 
     def on_prediction_step(self, training_config: BaseTrainerConfig, **kwargs):
-        """Event called after a prediction phase."""
+        """
+        Event called after a prediction phase.
+        """
 
     def on_save(self, training_config: BaseTrainerConfig, **kwargs):
-        """Event called after a checkpoint save."""
+        """
+        Event called after a checkpoint save.
+        """
 
     def on_save_checkpoint(self, training_config: BaseTrainerConfig, **kwargs):
-        """Event called after a checkpoint save."""
+        """
+        Event called after a checkpoint save.
+        """
 
     def on_log(self, training_config: BaseTrainerConfig, logs, **kwargs):
-        """Event called after logging the last logs."""
+        """
+        Event called after logging the last logs.
+        """
 
 
 class CallbackHandler:
-    """Class to handle list of Callback."""
+    """
+    Class to handle list of Callback.
+    """
 
     def __init__(self, callbacks, model):
         self.callbacks = []
@@ -114,6 +158,10 @@ class CallbackHandler:
                 f" The current list of callbacks is\n: {self.callback_list}"
             )
         self.callbacks.append(cb)
+
+    @property
+    def callback_list(self):
+        return "\n".join(cb.__class__.__name__ for cb in self.callbacks)
 
     @property
     def callback_list(self):
@@ -163,7 +211,7 @@ class CallbackHandler:
 
     def call_event(self, event, training_config, **kwargs):
         for callback in self.callbacks:
-            getattr(callback, event)(
+            result = getattr(callback, event)(
                 training_config,
                 model=self.model,
                 **kwargs,
@@ -171,7 +219,9 @@ class CallbackHandler:
 
 
 class MetricConsolePrinterCallback(TrainingCallback):
-    """A :class:`TrainingCallback` printing the training logs in the console."""
+    """
+    A :class:`TrainingCallback` printing the training logs in the console.
+    """
 
     def __init__(self):
         self.logger = logging.getLogger(__name__)
@@ -202,7 +252,9 @@ class MetricConsolePrinterCallback(TrainingCallback):
 
 
 class ProgressBarCallback(TrainingCallback):
-    """A :class:`TrainingCallback` printing the training progress bar."""
+    """
+    A :class:`TrainingCallback` printing the training progress bar.
+    """
 
     def __init__(self):
         self.train_progress_bar = None
@@ -249,7 +301,8 @@ class ProgressBarCallback(TrainingCallback):
 
 
 class WandbCallback(TrainingCallback):  # pragma: no cover
-    """A :class:`TrainingCallback` integrating the experiment tracking tool
+    """
+    A :class:`TrainingCallback` integrating the experiment tracking tool
     `wandb` (https://wandb.ai/).
 
     It allows users to store their configs, monitor their trainings
@@ -267,7 +320,6 @@ class WandbCallback(TrainingCallback):  # pragma: no cover
         .. code-block::
 
             $ wandb login
-
     """
 
     def __init__(self):
@@ -294,9 +346,10 @@ class WandbCallback(TrainingCallback):  # pragma: no cover
         ] = "allow",
         **kwargs,
     ):
-        """Setup the WandbCallback.
+        """
+        Setup the WandbCallback.
 
-        Args:
+        args:
             training_config (BaseTrainerConfig): The training configuration used in the run.
 
             model_config (BaseMultiVAEConfig): The model configuration used in the run.
@@ -309,6 +362,7 @@ class WandbCallback(TrainingCallback):  # pragma: no cover
 
             resume (Literal) : wether to log on the provided run_id. Default to 'allow'.
         """
+
         self.is_initialized = True
 
         training_config_dict = training_config.to_dict()
@@ -345,13 +399,20 @@ class WandbCallback(TrainingCallback):  # pragma: no cover
         self._wandb.log({**logs, "train/global_step": global_step})
 
     def on_prediction_step(self, training_config: BaseTrainerConfig, **kwargs):
+        """Log all metrics or media contained in the metrics dictionary"""
+
         kwargs.pop("global_step", None)
 
-        reconstructions = kwargs.pop("reconstructions", None)
+        metrics_media = kwargs.pop("metrics_media", {})
 
-        for cond_mod in reconstructions:
-            image = self._wandb.Image(reconstructions[cond_mod])
-            self._wandb.log({"recon_from_" + cond_mod: image})
+        images = metrics_media.pop("images", {})
+
+        # Log the images
+        for k, image in images.items():
+            self._wandb.log({k: self._wandb.Image(image)})
+
+        # Log other metrics
+        self._wandb.log(metrics_media)
 
     def on_save_checkpoint(self, training_config: BaseTrainerConfig, **kwargs):
         checkpoint_dir = kwargs.pop("checkpoint_dir", None)
@@ -385,3 +446,226 @@ class WandbCallback(TrainingCallback):  # pragma: no cover
 
     def on_train_end(self, training_config: BaseTrainerConfig, **kwargs):
         self.run.finish()
+
+
+class MLFlowCallback(TrainingCallback):  # pragma: no cover
+    """
+    A :class:`TrainingCallback` integrating the experiment tracking tool
+    `mlflow` (https://mlflow.org/).
+
+    It allows users to store their configs, monitor their trainings
+    and compare runs through a graphic interface. To be able use this feature you will need:
+
+        - the package `mlfow` installed in your virtual env. If not you can install it with
+
+        .. code-block::
+
+            $ pip install mlflow
+    """
+
+    def __init__(self):
+        if not mlflow_is_available():
+            raise ModuleNotFoundError(
+                "`mlflow` package must be installed. Run `pip install mlflow`"
+            )
+
+        else:
+            import mlflow
+
+            self._mlflow = mlflow
+
+    def setup(
+        self,
+        training_config: BaseTrainerConfig,
+        model_config: BaseConfig = None,
+        project_name: str = "multivae_experiment",
+        run_name: str = None,
+        tracking_uri: str = "sqlite:///mlflow.db",
+        **kwargs,
+    ):
+        """
+        Setup the MLflowCallback.
+
+        args:
+            training_config (BaseTrainerConfig): The training configuration used in the run.
+
+            model_config (BaseAEConfig): The model configuration used in the run.
+
+            project_name (str): Name of the project.
+
+            run_name (str): The name to apply to the current run.
+
+            tracking_uri (str): The URI of the MLflow tracking server.
+            By default, it uses a local sqlite database in the current folder. You can change it to log on a remote server or local file directory. For more information, see https://mlflow.org/docs/latest/ml/getting-started/running-notebooks/.
+        """
+        self.is_initialized = True
+
+        training_config_dict = training_config.to_dict()
+
+        self._mlflow.set_tracking_uri(tracking_uri)
+
+        self._mlflow.set_experiment(project_name)
+
+        self._mlflow.start_run(run_name=run_name)
+
+        logger.info(
+            f"MLflow run started with run_id={self._mlflow.active_run().info.run_id}"
+        )
+        if model_config is not None:
+            model_config_dict = model_config.to_dict()
+
+            self._mlflow.log_params(
+                {
+                    **training_config_dict,
+                    **model_config_dict,
+                }
+            )
+
+        else:
+            self._mlflow.log_params({**training_config_dict})
+
+    def on_train_begin(self, training_config, **kwargs):
+        model_config = kwargs.pop("model_config", None)
+        if not self.is_initialized:
+            self.setup(training_config, model_config=model_config)
+
+    def on_log(self, training_config: BaseTrainerConfig, logs, **kwargs):
+        global_step = kwargs.pop("global_step", None)
+
+        logs = rename_logs(logs)
+        metrics = {}
+        for k, v in logs.items():
+            if isinstance(v, (int, float)):
+                metrics[k] = v
+
+        self._mlflow.log_metrics(metrics=metrics, step=global_step)
+
+    def on_train_end(self, training_config: BaseTrainerConfig, **kwargs):
+        self._mlflow.end_run()
+
+    def on_prediction_step(self, training_config: BaseTrainerConfig, **kwargs):
+        """Log all metrics or media contained in the metrics dictionary"""
+
+        global_step = kwargs.pop("global_step", None)
+
+        metrics_media = kwargs.pop("metrics_media", {})
+
+        images = metrics_media.pop("images", {})
+
+        # Save the reconstructions to folder and log to ml_flow
+        for key, image in images.items():
+            tmpdir = tempfile.gettempdir()
+            save_image(image, os.path.join(tmpdir, f"{key}.png"))
+            self._mlflow.log_artifact(os.path.join(tmpdir, f"{key}.png"), "images")
+
+        # Log other metrics
+        metrics = {}
+        for k, v in metrics_media.items():
+            if isinstance(v, (int, float)):
+                metrics[k] = v
+
+        self._mlflow.log_metrics(metrics=metrics, step=global_step)
+
+    def on_save(self, training_config: BaseTrainerConfig, **kwargs):
+        dir_path = kwargs.pop("dir_path", None)
+        if dir_path is None:
+            warnings.warn(
+                "mlflow callback on_save is called without"
+                "a  directory information. Please provide dir_path=.."
+            )
+            return
+        info_dict = {
+            "run_id": self._mlflow.active_run().info.run_id,
+            "run_name": self._mlflow.active_run().info.run_name,
+            "experiment_id": self._mlflow.active_run().info.experiment_id,
+            "artifact_uri": self._mlflow.active_run().info.artifact_uri,
+        }
+        with open(os.path.join(dir_path, "mlflow_info.json"), "w") as fp:
+            json.dump(info_dict, fp)
+
+    def __del__(self):
+        # if the previous run is not terminated correctly, the fluent API will
+        # not let you start a new run before the previous one is killed
+        if (
+            callable(getattr(self._mlflow, "active_run", None))
+            and self._mlflow.active_run() is not None
+        ):
+            self._mlflow.end_run()
+
+
+class TensorboardCallback(TrainingCallback):  # pragma: no cover
+    """
+    A :class:`TrainingCallback` integrating the experiment tracking tool
+    `tensorboard` (https://docs.pytorch.org/docs/stable//tensorboard.html).
+
+    Warning: Contrary to `WandbCallback` and `MLFlowCallback`, `TensorboardCallback`
+    does not log the training configuration or the model configuration. It only logs the training metrics and media.
+
+    """
+
+    def __init__(self):
+        from torch.utils.tensorboard.writer import SummaryWriter
+
+        self._summary_writer = SummaryWriter
+
+    def setup(
+        self,
+        logging_dir: str = None,
+        **kwargs,
+    ):
+        """
+        Args:
+
+            logging_dir (str): The path where to save the logs.
+                This must be an absolute path.
+        """
+
+        self.is_initialized = True
+        self.writer = self._summary_writer(log_dir=logging_dir)
+
+    def on_train_begin(self, training_config, **kwargs):
+        if not self.is_initialized:
+            self.setup(**kwargs)
+
+    def on_log(self, training_config: BaseTrainerConfig, logs, **kwargs):
+        global_step = kwargs.pop("global_step", None)
+
+        logs = rename_logs(logs)
+        for k, v in logs.items():
+            if isinstance(v, (int, float)):
+                self.writer.add_scalar(k, v, global_step=global_step)
+                self.writer.flush()
+
+    def on_train_end(self, training_config: BaseTrainerConfig, **kwargs):
+        self.writer.close()
+
+    def on_prediction_step(self, training_config: BaseTrainerConfig, **kwargs):
+        """Log all metrics or media contained in the metrics dictionary"""
+
+        global_step = kwargs.pop("global_step", None)
+
+        metrics_media = kwargs.pop("metrics_media", {})
+
+        images = metrics_media.pop("images", {})
+
+        # Save the images to tensorboard
+        for key, image in images.items():
+            self.writer.add_image(
+                key, image, global_step=global_step, dataformats="CHW"
+            )
+        self.writer.flush()
+
+        # Log other metrics
+        for k, v in metrics_media.items():
+            if isinstance(v, (int, float)):
+                self.writer.add_scalar(k, v, global_step=global_step)
+
+    def on_save(self, training_config: BaseTrainerConfig, **kwargs):
+        return
+
+    def __del__(self):
+        # if the previous run is not terminated correctly, the fluent API will
+        # not let you start a new run before the previous one is killed
+        if self.is_initialized:
+            self.writer.close()
+            self.is_initialized = False

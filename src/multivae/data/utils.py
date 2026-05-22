@@ -5,18 +5,18 @@ from pythae.data.datasets import DatasetOutput
 
 
 def set_inputs_to_device(
-    inputs: Dict[str, Any], device: str = "cpu"
+    inputs: Dict[str, Any], device: str = "cpu", keys=None
 ):  # pragma: no cover
     """Set an dict input to device. It covers the case where the input is a
     Dict[str, tensor], Dict[str, dict[str, tensor]], Dict[str, dict[str, dict[str, Tensor]]]
     """
 
     inputs_on_device = inputs
-
+    keys = inputs.keys() if keys is None else keys
     if device == "cuda":
         cuda_inputs = dict.fromkeys(inputs)
 
-        for key in inputs.keys():
+        for key in keys:
             if torch.is_tensor(inputs[key]):
                 cuda_inputs[key] = inputs[key].cuda()
 
