@@ -8,8 +8,7 @@ from torchvision.utils import save_image
 
 
 class ResampleDataset(Dataset):
-    """
-    Dataset which resamples a given dataset. From torchnet's ResampleDataset.
+    """Dataset which resamples a given dataset. From torchnet's ResampleDataset.
     https://tnt.readthedocs.io/en/latest/_modules/torchnet/dataset/resampledataset.html
 
 
@@ -49,8 +48,7 @@ class ResampleDataset(Dataset):
 
 
 def adapt_shape(data):
-    """
-    Adapts the shape of the data for visualization. The output dictionary contains the same data
+    """Adapts the shape of the data for visualization. The output dictionary contains the same data
     but resized to be of the shape (n_data, ch=3, h, w) with h and w being the largest height and
     width accross data modalities.
     """

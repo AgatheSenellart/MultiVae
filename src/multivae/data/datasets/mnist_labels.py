@@ -1,5 +1,4 @@
-"""
-Multimodal dataset wrapper for the MNIST labels dataset.
+"""Multimodal dataset wrapper for the MNIST labels dataset.
 """
 
 import io
@@ -26,8 +25,7 @@ class MnistLabels(MultimodalBaseDataset):  # pragma: no cover
         random_binarized=True,
         dtype=torch.float32,
     ):
-        """
-        Class to wrap the MnistLabels dataset for MultiVae use.
+        """Class to wrap the MnistLabels dataset for MultiVae use.
 
         Args:
             data_path (str): Where is stored the data.

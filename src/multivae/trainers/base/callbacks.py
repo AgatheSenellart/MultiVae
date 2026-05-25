@@ -63,84 +63,68 @@ def rename_logs(logs):
 
 
 class TrainingCallback:
-    """
-    Base class for creating training callbacks
+    """Base class for creating training callbacks
     """
 
     def on_init_end(self, training_config: BaseTrainerConfig, **kwargs):
-        """
-        Event called at the end of the initialization of the [`Trainer`].
+        """Event called at the end of the initialization of the [`Trainer`].
         """
 
     def on_train_begin(self, training_config: BaseTrainerConfig, **kwargs):
-        """
-        Event called at the beginning of training.
+        """Event called at the beginning of training.
         """
 
     def on_train_end(self, training_config: BaseTrainerConfig, **kwargs):
-        """
-        Event called at the end of training.
+        """Event called at the end of training.
         """
 
     def on_epoch_begin(self, training_config: BaseTrainerConfig, **kwargs):
-        """
-        Event called at the beginning of an epoch.
+        """Event called at the beginning of an epoch.
         """
 
     def on_epoch_end(self, training_config: BaseTrainerConfig, **kwargs):
-        """
-        Event called at the end of an epoch.
+        """Event called at the end of an epoch.
         """
 
     def on_train_step_begin(self, training_config: BaseTrainerConfig, **kwargs):
-        """
-        Event called at the beginning of a training step.
+        """Event called at the beginning of a training step.
         """
 
     def on_train_step_end(self, training_config: BaseTrainerConfig, **kwargs):
-        """
-        Event called at the end of a training step.
+        """Event called at the end of a training step.
         """
 
     def on_eval_step_begin(self, training_config: BaseTrainerConfig, **kwargs):
-        """
-        Event called at the beginning of a evaluation step.
+        """Event called at the beginning of a evaluation step.
         """
 
     def on_eval_step_end(self, training_config: BaseTrainerConfig, **kwargs):
-        """
-        Event called at the end of a evaluation step.
+        """Event called at the end of a evaluation step.
         """
 
     def on_evaluate(self, training_config: BaseTrainerConfig, **kwargs):
-        """
-        Event called after an evaluation phase.
+        """Event called after an evaluation phase.
         """
 
     def on_prediction_step(self, training_config: BaseTrainerConfig, **kwargs):
-        """
-        Event called after a prediction phase.
+        """Event called after a prediction phase.
         """
 
     def on_save(self, training_config: BaseTrainerConfig, **kwargs):
-        """
-        Event called after a checkpoint save.
+        """Event called after a checkpoint save.
         """
 
     def on_save_checkpoint(self, training_config: BaseTrainerConfig, **kwargs):
-        """
-        Event called after a checkpoint save.
+        """Event called after a checkpoint save.
         """
 
     def on_log(self, training_config: BaseTrainerConfig, logs, **kwargs):
-        """
-        Event called after logging the last logs.
+        """Event called after logging the last logs.
         """
 
 
 class CallbackHandler:
-    """
-    Class to handle list of Callback.
+    """Class to handle list of Callback.
     """
 
     def __init__(self, callbacks, model):
@@ -219,8 +203,7 @@ class CallbackHandler:
 
 
 class MetricConsolePrinterCallback(TrainingCallback):
-    """
-    A :class:`TrainingCallback` printing the training logs in the console.
+    """A :class:`TrainingCallback` printing the training logs in the console.
     """
 
     def __init__(self):
@@ -252,8 +235,7 @@ class MetricConsolePrinterCallback(TrainingCallback):
 
 
 class ProgressBarCallback(TrainingCallback):
-    """
-    A :class:`TrainingCallback` printing the training progress bar.
+    """A :class:`TrainingCallback` printing the training progress bar.
     """
 
     def __init__(self):
@@ -301,8 +283,7 @@ class ProgressBarCallback(TrainingCallback):
 
 
 class WandbCallback(TrainingCallback):  # pragma: no cover
-    """
-    A :class:`TrainingCallback` integrating the experiment tracking tool
+    """A :class:`TrainingCallback` integrating the experiment tracking tool
     `wandb` (https://wandb.ai/).
 
     It allows users to store their configs, monitor their trainings
@@ -346,10 +327,9 @@ class WandbCallback(TrainingCallback):  # pragma: no cover
         ] = "allow",
         **kwargs,
     ):
-        """
-        Setup the WandbCallback.
+        """Setup the WandbCallback.
 
-        args:
+        Args:
             training_config (BaseTrainerConfig): The training configuration used in the run.
 
             model_config (BaseMultiVAEConfig): The model configuration used in the run.
@@ -362,7 +342,6 @@ class WandbCallback(TrainingCallback):  # pragma: no cover
 
             resume (Literal) : wether to log on the provided run_id. Default to 'allow'.
         """
-
         self.is_initialized = True
 
         training_config_dict = training_config.to_dict()
@@ -400,7 +379,6 @@ class WandbCallback(TrainingCallback):  # pragma: no cover
 
     def on_prediction_step(self, training_config: BaseTrainerConfig, **kwargs):
         """Log all metrics or media contained in the metrics dictionary"""
-
         kwargs.pop("global_step", None)
 
         metrics_media = kwargs.pop("metrics_media", {})
@@ -449,8 +427,7 @@ class WandbCallback(TrainingCallback):  # pragma: no cover
 
 
 class MLFlowCallback(TrainingCallback):  # pragma: no cover
-    """
-    A :class:`TrainingCallback` integrating the experiment tracking tool
+    """A :class:`TrainingCallback` integrating the experiment tracking tool
     `mlflow` (https://mlflow.org/).
 
     It allows users to store their configs, monitor their trainings
@@ -483,10 +460,9 @@ class MLFlowCallback(TrainingCallback):  # pragma: no cover
         tracking_uri: str = "sqlite:///mlflow.db",
         **kwargs,
     ):
-        """
-        Setup the MLflowCallback.
+        """Setup the MLflowCallback.
 
-        args:
+        Args:
             training_config (BaseTrainerConfig): The training configuration used in the run.
 
             model_config (BaseAEConfig): The model configuration used in the run.
@@ -545,7 +521,6 @@ class MLFlowCallback(TrainingCallback):  # pragma: no cover
 
     def on_prediction_step(self, training_config: BaseTrainerConfig, **kwargs):
         """Log all metrics or media contained in the metrics dictionary"""
-
         global_step = kwargs.pop("global_step", None)
 
         metrics_media = kwargs.pop("metrics_media", {})
@@ -594,8 +569,7 @@ class MLFlowCallback(TrainingCallback):  # pragma: no cover
 
 
 class TensorboardCallback(TrainingCallback):  # pragma: no cover
-    """
-    A :class:`TrainingCallback` integrating the experiment tracking tool
+    """A :class:`TrainingCallback` integrating the experiment tracking tool
     `tensorboard` (https://docs.pytorch.org/docs/stable//tensorboard.html).
 
     Warning: Contrary to `WandbCallback` and `MLFlowCallback`, `TensorboardCallback`
@@ -613,13 +587,10 @@ class TensorboardCallback(TrainingCallback):  # pragma: no cover
         logging_dir: str = None,
         **kwargs,
     ):
+        """Args:
+        logging_dir (str): The path where to save the logs.
+            This must be an absolute path.
         """
-        Args:
-
-            logging_dir (str): The path where to save the logs.
-                This must be an absolute path.
-        """
-
         self.is_initialized = True
         self.writer = self._summary_writer(log_dir=logging_dir)
 
@@ -641,7 +612,6 @@ class TensorboardCallback(TrainingCallback):  # pragma: no cover
 
     def on_prediction_step(self, training_config: BaseTrainerConfig, **kwargs):
         """Log all metrics or media contained in the metrics dictionary"""
-
         global_step = kwargs.pop("global_step", None)
 
         metrics_media = kwargs.pop("metrics_media", {})

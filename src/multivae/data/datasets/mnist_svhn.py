@@ -17,9 +17,7 @@ logger.setLevel(logging.INFO)
 
 
 class MnistSvhn(MultimodalBaseDataset):  # pragma: no cover
-    """
-
-    A paired MnistSvhn dataset.
+    """A paired MnistSvhn dataset.
 
     Args:
         path (str) : The path where the data is saved.

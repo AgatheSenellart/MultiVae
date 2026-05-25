@@ -17,9 +17,7 @@ def unstack_tensor(tensor, dim=0):
 
 
 class MHD(IncompleteDataset):  # pragma: no cover
-    """
-
-    Dataset class for the MHD dataset introduced in the paper:
+    """Dataset class for the MHD dataset introduced in the paper:
     'Leveraging hierarchy in multimodal generative models for effective
     cross-modality inference' (Vasco et al, 2021).'
 
@@ -45,7 +43,6 @@ class MHD(IncompleteDataset):  # pragma: no cover
 
 
     Args:
-
         datapath (str) : Where the data is stored. It must contained the 'mhd_train.pt' file and
             'mhd_test.pt' file.
         split (Literal['train', 'test']) : Split of the data to use. Default to 'train'.
@@ -166,13 +163,11 @@ class MHD(IncompleteDataset):  # pragma: no cover
             )
 
     def __getitem__(self, index):
-        """
-        Args:
+        """Args:
             index (int): Index
         Returns:
             tuple: (t_data, m_data, f_data)
         """
-
         data = {s: self.data[s][index] for s in self.data}
 
         if "audio" in data:

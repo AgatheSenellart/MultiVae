@@ -22,8 +22,7 @@ logger.setLevel(logging.INFO)
 
 
 class TranslatedMMNIST(MultimodalBaseDataset):  # pragma: no cover
-    """
-    Translated version of the PolyMNIST dataset.
+    """Translated version of the PolyMNIST dataset.
     The data is built from background images that need to be downloaded beforehand.
 
     The original PolyMNIST (5 modalities) background images can be downloaded from : https://mybox.inria.fr/d/78e581ee5b07402983fa/.
@@ -99,7 +98,6 @@ class TranslatedMMNIST(MultimodalBaseDataset):  # pragma: no cover
 
     def check_or_create_dataset(self, unimodal_paths, background_path, split):
         """Check if the dataset exists at the provided path and if not creates the dataset from the background images"""
-
         data_exists = True
         for p in unimodal_paths:
             data_exists = os.path.exists(p)
@@ -126,7 +124,6 @@ class TranslatedMMNIST(MultimodalBaseDataset):  # pragma: no cover
             translate_mnist (bool): downsample MNIST by a factor of 2 and place it at a random x/y-coordinate
 
         """
-
         # load MNIST data
         mnist = datasets.MNIST(
             self.parent_path, train=train, download=True, transform=None
@@ -223,8 +220,7 @@ class TranslatedMMNIST(MultimodalBaseDataset):  # pragma: no cover
         return new_img
 
     def __getitem__(self, index):
-        """
-        Returns a tuple (images, labels) where each element is a list of
+        """Returns a tuple (images, labels) where each element is a list of
         length `self.num_modalities`.
         """
         files = [self.file_paths[dp][index] for dp in self.file_paths]

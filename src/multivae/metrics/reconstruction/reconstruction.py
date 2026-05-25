@@ -37,8 +37,7 @@ class Reconstruction(Evaluator):
         self.metric_name = eval_config.metric
 
     def reconstruction_from_subset(self, subset: List[str]):
-        """
-        Take a subset of modalities as input and compute reconstructions metrics for those
+        """Take a subset of modalities as input and compute reconstructions metrics for those
         modalities.
 
         """

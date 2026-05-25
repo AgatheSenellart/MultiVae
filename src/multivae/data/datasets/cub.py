@@ -38,9 +38,7 @@ class OrderedCounter(Counter, OrderedDict):
 
 
 class CUBSentences(Dataset):  # pragma: no cover
-    """
-
-    Dataset for the CUB captions only.
+    """Dataset for the CUB captions only.
 
     Args:
         - root_data_dir (str): The path where to find the data.
@@ -276,9 +274,7 @@ class CUBSentences(Dataset):  # pragma: no cover
 
 
 class CUB(MultimodalBaseDataset):  # pragma: no cover
-    """
-
-    A paired text image CUB dataset.
+    """A paired text image CUB dataset.
 
     Args:
         path (str) : The path where the data is saved.
@@ -427,8 +423,8 @@ class CUB(MultimodalBaseDataset):  # pragma: no cover
         args :
 
             input (dict or tensor) : the input has the same type as returned by the getitem method for each modality type.
-            modality (str) : the name of the modality"""
-
+            modality (str) : the name of the modality
+        """
         if modality == "text":
             list_transformed = []
             if isinstance(input, torch.Tensor):
