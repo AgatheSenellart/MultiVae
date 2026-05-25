@@ -10,7 +10,6 @@ def set_inputs_to_device(
     """Set an dict input to device. It covers the case where the input is a
     Dict[str, tensor], Dict[str, dict[str, tensor]], Dict[str, dict[str, dict[str, Tensor]]]
     """
-
     inputs_on_device = inputs
     keys = inputs.keys() if keys is None else keys
     if device == "cuda":

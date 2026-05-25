@@ -1,11 +1,8 @@
 import os
 from pathlib import Path
-from typing import Union
 
 import numpy as np
 import torch
-from numpy import ndarray
-from torch import Tensor
 from torch.nn.functional import one_hot
 
 from .base import DatasetOutput, IncompleteDataset
@@ -20,9 +17,7 @@ def unstack_tensor(tensor, dim=0):
 
 
 class MHD(IncompleteDataset):  # pragma: no cover
-    """
-
-    Dataset class for the MHD dataset introduced in the paper:
+    """Dataset class for the MHD dataset introduced in the paper:
     'Leveraging hierarchy in multimodal generative models for effective
     cross-modality inference' (Vasco et al, 2021).'
 
@@ -48,7 +43,6 @@ class MHD(IncompleteDataset):  # pragma: no cover
 
 
     Args:
-
         datapath (str) : Where the data is stored. It must contained the 'mhd_train.pt' file and
             'mhd_test.pt' file.
         split (Literal['train', 'test']) : Split of the data to use. Default to 'train'.
@@ -73,6 +67,7 @@ class MHD(IncompleteDataset):  # pragma: no cover
             label=[0.0] * 10, audio=[0.0] * 10, trajectory=[0.0] * 10, image=[0.0] * 10
         ),
         seed=0,
+        keep_incomplete=True,
     ):
         self.data_file = os.path.join(datapath, f"mhd_{split}.pt")
         self.modalities = modalities
@@ -119,6 +114,7 @@ class MHD(IncompleteDataset):  # pragma: no cover
         self.is_incomplete = (
             sum([sum(missing_probabilities[s]) for s in missing_probabilities]) != 0
         )
+        self.keep_incomplete = keep_incomplete
 
         if self.is_incomplete:
             # generate the masks
@@ -139,6 +135,16 @@ class MHD(IncompleteDataset):  # pragma: no cover
                 # put dimensions back in order
                 self.data[k] = self.data[k].permute(*reverse_dim_order)
 
+            if not self.keep_incomplete:
+
+                # take the intersection of the modality masks
+                global_mask = torch.ones((self.n_data))
+                for m in self.modalities:
+                    global_mask = global_mask * self.masks[m]
+                # only keep the samples where all modalities are available
+                self.data = {k: self.data[k][global_mask.bool()] for k in self.data}
+                self.n_data = torch.sum(global_mask.bool()).item()
+
     def __download__(self, split, datapath):  # pragram : no cover
         import gdown
 
@@ -157,13 +163,11 @@ class MHD(IncompleteDataset):  # pragma: no cover
             )
 
     def __getitem__(self, index):
-        """
-        Args:
+        """Args:
             index (int): Index
         Returns:
             tuple: (t_data, m_data, f_data)
         """
-
         data = {s: self.data[s][index] for s in self.data}
 
         if "audio" in data:
@@ -171,7 +175,7 @@ class MHD(IncompleteDataset):  # pragma: no cover
             audio = unstack_tensor(data["audio"]).unsqueeze(0)
             data["audio"] = audio.permute(0, 2, 1)
 
-        if not self.is_incomplete:
+        if not self.is_incomplete or not self.keep_incomplete:
             return DatasetOutput(data=data, labels=self._s_data[index])
         else:
             masks = {s: self.masks[s][index] for s in self.data}

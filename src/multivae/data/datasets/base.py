@@ -6,8 +6,7 @@ from torch import Tensor
 
 
 class MultimodalBaseDataset(Dataset):
-    """
-    This class is the base class for datasets. A ``__getitem__`` is redefined and outputs a
+    """This class is the base class for datasets. A ``__getitem__`` is redefined and outputs a
     python dictionary with the keys corresponding to `data` and `labels`. You can use this
     class to define new datasets.
 
@@ -71,8 +70,7 @@ class MultimodalBaseDataset(Dataset):
         return DatasetOutput(data=X)
 
     def transform_for_plotting(self, tensor, modality):
-        """
-        A function that to override in subclasses if you want to transform
+        """A function that to override in subclasses if you want to transform
         a tensor data for plotting. This function is called by the BaseTrainer
         to visualize generations during training and by the Visualization Module.
 
@@ -93,17 +91,15 @@ class MultimodalBaseDataset(Dataset):
 
 
         """
-
         return tensor
 
 
 class IncompleteDataset(MultimodalBaseDataset):
-    """
-    This class is the base class for datasets with incomplete data.
+    """This class is the base class for datasets with incomplete data.
     We add a field masks to indicate which data samples are available.
     This is used with models compatible with partial data.
     A ``__getitem__`` is redefined and outputs a python dictionary with the keys
-    corresponding to `data` and `masks` (optionally `labels`). 
+    corresponding to `data` and `masks` (optionally `labels`).
     This class should be used for any new incomplete datasets.
 
     If you want, you can also create your own dataset class, inheriting from

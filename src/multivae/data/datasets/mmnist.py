@@ -20,8 +20,7 @@ logger.setLevel(logging.INFO)
 
 
 class MMNISTDataset(MultimodalBaseDataset):  # pragma: no cover
-    """
-    Multimodal PolyMNIST Dataset from
+    """Multimodal PolyMNIST Dataset from
     'Generalized Multimodal Elbo' Sutter et al 2021.
 
     This dataset class has a parameter 'missing_ratio' that allows to simulate a dataset
@@ -49,25 +48,23 @@ class MMNISTDataset(MultimodalBaseDataset):  # pragma: no cover
         missing_ratio: float = 0,
         keep_incomplete: bool = True,
     ):
-        """
-        Args:
-            data_path (str) : The path where to find the MMNIST folder containing the folders 'train' or 'test'.
-                The data used is the one that can be downloaded from https://zenodo.org/record/4899160#.YLn0rKgzaHu
-                If data_path doesn't contain the dataset and download is set to True, then the data can be downloaded
-                automatically using gdown. For that, set download to True.
-            transform: tranforms on colored MNIST digits.
-            target_transform: transforms on labels.
-            split (Literal['train', 'test']). Which part of the data to use.
-            download (bool). Autorization to download the data if it is missing at the specified location.
-            missing_ratio (float between 0 and 1) : To create an partially observed dataset, specify a missing ratio > 0 and <= 1.
-                Default to 0  : No missing data.
-            keep_incomplete (bool) : For a partially observed dataset, there are two options.
-                Either keep all the samples and masks to train with incomplete data (set keep_incomplete to True)
-                or only keep complete samples (keep_incomplete = False).
-                Default to True.
+        """Args:
+        data_path (str) : The path where to find the MMNIST folder containing the folders 'train' or 'test'.
+            The data used is the one that can be downloaded from https://zenodo.org/record/4899160#.YLn0rKgzaHu
+            If data_path doesn't contain the dataset and download is set to True, then the data can be downloaded
+            automatically using gdown. For that, set download to True.
+        transform: tranforms on colored MNIST digits.
+        target_transform: transforms on labels.
+        split (Literal['train', 'test']). Which part of the data to use.
+        download (bool). Autorization to download the data if it is missing at the specified location.
+        missing_ratio (float between 0 and 1) : To create an partially observed dataset, specify a missing ratio > 0 and <= 1.
+            Default to 0  : No missing data.
+        keep_incomplete (bool) : For a partially observed dataset, there are two options.
+            Either keep all the samples and masks to train with incomplete data (set keep_incomplete to True)
+            or only keep complete samples (keep_incomplete = False).
+            Default to True.
 
         """
-
         if isinstance(data_path, str):
             data_path = os.path.expanduser(data_path)
 
@@ -153,8 +150,7 @@ class MMNISTDataset(MultimodalBaseDataset):  # pragma: no cover
             )
 
     def __getitem__(self, index):
-        """
-        Returns a tuple (images, labels) where each element is a list of
+        """Returns a tuple (images, labels) where each element is a list of
         length `self.num_modalities`.
         """
         images_dict = {k: self.images_dict[k][index] for k in self.images_dict}

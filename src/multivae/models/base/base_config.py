@@ -40,6 +40,11 @@ class BaseMultiVAEConfig(BaseConfig):
     decoder_dist_params: Union[dict, None] = None
     custom_architectures: list = field(default_factory=lambda: [])
 
+    def __post_init__(self):
+        super().__post_init__()
+        if self.input_dims is not None:
+            self.input_dims = {k: tuple(self.input_dims[k]) for k in self.input_dims}
+
 
 @dataclass
 class EnvironmentConfig(BaseConfig):
