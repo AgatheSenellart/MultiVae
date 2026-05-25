@@ -1,5 +1,4 @@
-"""Multimodal dataset wrapper for the MNIST labels dataset.
-"""
+"""Multimodal dataset wrapper for the MNIST labels dataset."""
 
 import io
 from typing import Literal
