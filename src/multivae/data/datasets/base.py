@@ -103,7 +103,7 @@ class IncompleteDataset(MultimodalBaseDataset):
     We add a field masks to indicate which data samples are available.
     This is used with models compatible with partial data.
     A ``__getitem__`` is redefined and outputs a python dictionary with the keys
-    corresponding to `data` and `masks` (optionally `labels`). 
+    corresponding to `data` and `masks` (optionally `labels`).
     This class should be used for any new incomplete datasets.
 
     If you want, you can also create your own dataset class, inheriting from

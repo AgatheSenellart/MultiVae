@@ -73,7 +73,7 @@ class MHD(IncompleteDataset):  # pragma: no cover
             label=[0.0] * 10, audio=[0.0] * 10, trajectory=[0.0] * 10, image=[0.0] * 10
         ),
         seed=0,
-        keep_incomplete=True
+        keep_incomplete=True,
     ):
         self.data_file = os.path.join(datapath, f"mhd_{split}.pt")
         self.modalities = modalities
@@ -120,7 +120,7 @@ class MHD(IncompleteDataset):  # pragma: no cover
         self.is_incomplete = (
             sum([sum(missing_probabilities[s]) for s in missing_probabilities]) != 0
         )
-        self.keep_incomplete=keep_incomplete
+        self.keep_incomplete = keep_incomplete
 
         if self.is_incomplete:
             # generate the masks
@@ -142,13 +142,13 @@ class MHD(IncompleteDataset):  # pragma: no cover
                 self.data[k] = self.data[k].permute(*reverse_dim_order)
 
             if not self.keep_incomplete:
-                
+
                 # take the intersection of the modality masks
                 global_mask = torch.ones((self.n_data))
                 for m in self.modalities:
                     global_mask = global_mask * self.masks[m]
                 # only keep the samples where all modalities are available
-                self.data = {k : self.data[k][global_mask.bool()] for k in self.data}
+                self.data = {k: self.data[k][global_mask.bool()] for k in self.data}
                 self.n_data = torch.sum(global_mask.bool()).item()
 
     def __download__(self, split, datapath):  # pragram : no cover

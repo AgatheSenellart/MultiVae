@@ -116,38 +116,43 @@ class EncoderConvMMNIST_multilatents(BaseEncoder):
         super(EncoderConvMMNIST_multilatents, self).__init__()
         self.latent_dim = model_config.latent_dim
         self.style_dim = model_config.style_dim
-    
-        self.shared_encoder = nn.Sequential(                          # input shape (3, 28, 28)
-            nn.Conv2d(3, 32, kernel_size=3, stride=2, padding=1),     # -> (32, 14, 14)
+
+        self.shared_encoder = nn.Sequential(  # input shape (3, 28, 28)
+            nn.Conv2d(3, 32, kernel_size=3, stride=2, padding=1),  # -> (32, 14, 14)
             nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),    # -> (64, 7, 7)
+            nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),  # -> (64, 7, 7)
             nn.ReLU(),
-            nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1),   # -> (128, 4, 4)
+            nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1),  # -> (128, 4, 4)
             nn.ReLU(),
-            Flatten(),                                                # -> (2048)
-            nn.Linear(2048, self.latent_dim + self.style_dim ),       # -> (ndim_private + ndim_shared)
+            Flatten(),  # -> (2048)
+            nn.Linear(
+                2048, self.latent_dim + self.style_dim
+            ),  # -> (ndim_private + ndim_shared)
             nn.ReLU(),
         )
-        
-        # content branch
-        self.class_mu = nn.Linear(self.latent_dim + self.style_dim, self.latent_dim + self.style_dim)
-        self.class_logvar = nn.Linear(self.latent_dim + self.style_dim, self.latent_dim + self.style_dim)
 
+        # content branch
+        self.class_mu = nn.Linear(
+            self.latent_dim + self.style_dim, self.latent_dim + self.style_dim
+        )
+        self.class_logvar = nn.Linear(
+            self.latent_dim + self.style_dim, self.latent_dim + self.style_dim
+        )
 
     def forward(self, x):
         h = self.shared_encoder(x)
-        
-        latent_space_mu =self.class_mu(h)
+
+        latent_space_mu = self.class_mu(h)
         latent_space_logvar = self.class_logvar(h)
-        
+
         output = ModelOutput()
-        
-        output["embedding"] = latent_space_mu[:,:self.latent_dim]
-        output["log_covariance"] = latent_space_logvar[:,:self.latent_dim]
+
+        output["embedding"] = latent_space_mu[:, : self.latent_dim]
+        output["log_covariance"] = latent_space_logvar[:, : self.latent_dim]
 
         if self.style_dim > 0:
-            output["style_embedding"] = latent_space_mu[:,self.latent_dim:]
-            output["style_log_covariance"] = latent_space_logvar[:,self.latent_dim:]
+            output["style_embedding"] = latent_space_mu[:, self.latent_dim :]
+            output["style_log_covariance"] = latent_space_logvar[:, self.latent_dim :]
 
         return output
 

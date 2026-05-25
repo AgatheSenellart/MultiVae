@@ -45,6 +45,7 @@ class BaseMultiVAEConfig(BaseConfig):
         if self.input_dims is not None:
             self.input_dims = {k: tuple(self.input_dims[k]) for k in self.input_dims}
 
+
 @dataclass
 class EnvironmentConfig(BaseConfig):
     """Base environment config to save python version."""
