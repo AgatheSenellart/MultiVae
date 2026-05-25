@@ -1,11 +1,8 @@
 import os
 from pathlib import Path
-from typing import Union
 
 import numpy as np
 import torch
-from numpy import ndarray
-from torch import Tensor
 from torch.nn.functional import one_hot
 
 from .base import DatasetOutput, IncompleteDataset
