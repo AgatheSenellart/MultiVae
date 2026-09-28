@@ -358,7 +358,7 @@ class BaseTrainer:
             )
         loss.backward()
         torch.cuda.empty_cache()
-        print(torch.cuda.memory_summary(device=self.device))
+        # print(torch.cuda.memory_summary(device=self.device))
         self.optimizer.step()
 
     def _schedulers_step(self, epoch, metrics=None):
@@ -800,6 +800,7 @@ class BaseTrainer:
 
         # save metrics
         with open(f"{dir_path}/metrics_best_model.json", mode="w+") as fp:
+            print(self.metrics_best_model)
             json.dump(self.metrics_best_model, fp)
 
         # save info about checkpoint

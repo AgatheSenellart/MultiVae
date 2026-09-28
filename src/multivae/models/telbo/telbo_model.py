@@ -124,7 +124,7 @@ class TELBO(BaseJointModel):
                 mod_elbos[mod] = mod_recon_loss.sum() + mod_kld
                 loss += mod_recon_loss.sum() + mod_kld
 
-            return ModelOutput(loss=loss / len_batch, loss_sum=loss, metrics=mod_elbos)
+            return ModelOutput(loss=loss / len_batch, loss_sum=loss, metrics={mod: mod_elbos[mod].item() for mod in mod_elbos})
 
     def encode(
         self,
